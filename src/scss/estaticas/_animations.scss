@@ -1,0 +1,46 @@
+// Estado inicial manejado por GSAP (gsap-animations.js vía gsap.from())
+// Si GSAP no carga, los elementos quedan visibles sin bloquear la página
+.reveal { }
+.reveal.active { opacity: 1; transform: translateY(0); }
+
+.fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+
+// Estado inicial manejado por GSAP
+.fade-up { }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scrollCarousel {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(calc(-400px * 5)); }
+}
+
+@keyframes scrollMarquee {
+    0%   { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes float {
+    0%   { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,54 @@
+:root {
+    /* ---------- COLORES PRINCIPALES ---------- */
+    --col-bilbao: #4D8ABB;
+    --col-espiritu: #7DC6E5;
+    --col-herencia: #374C69;
+    --col-accent-pop: #F1C400;
+
+    /* ---------- TEXTO ---------- */
+    --col-texto: #1A202C;
+    --text-dark: #1A202C;
+    --text-gray: #4A5568;
+    --text-light: #FFFFFF;
+
+    /* ---------- FONDOS ---------- */
+    --bg-global: #F9FBFE;
+    --bg-dark: #0F172A;
+
+    /* ---------- BORDES ---------- */
+    --col-borde: rgba(77, 138, 187, 0.15);
+
+    /* ---------- LAYOUT ---------- */
+    --container-width: 1280px;
+    --header-height: 80px;
+
+    /* ---------- ESPACIADO ---------- */
+    --sp-sm: 24px;
+    --sp-md: 48px;
+    --sp-lg: 80px;
+    --sp-xl: 120px;
+
+    /* ---------- GUTTERS ---------- */
+    --gutter-mobile: 24px;
+    --gutter-desktop: 64px;
+
+    /* ---------- RADIOS ---------- */
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-card: 24px;
+    --radius-pill: 100px;
+
+    /* ---------- SOMBRAS ---------- */
+    --shadow-float:
+        0 30px 60px -10px rgba(77, 138, 187, 0.2),
+        0 10px 20px -5px rgba(0, 0, 0, 0.05);
+
+    --shadow-input:
+        0 4px 10px rgba(0, 0, 0, 0.03);
+
+    /* ---------- TRANSICIONES ---------- */
+    --transition-fast: 0.2s ease;
+    --transition-std: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-expo: cubic-bezier(0.19, 1, 0.22, 1);
+    --transition-bezi: cubic-bezier(0.25, 0.8, 0.25, 1);
+}

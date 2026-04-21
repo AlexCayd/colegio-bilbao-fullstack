@@ -1,0 +1,55 @@
+.text-gradient {
+    background: linear-gradient(135deg, var(--col-bilbao) 0%, var(--col-espiritu) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.visible {
+    display: block !important;
+}
+
+.rotate {
+    transform: rotate(180deg);
+}
+
+.no-scroll {
+    overflow: hidden;
+}
+
+.section-header-center {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.section-tag {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--col-espiritu);
+}
+
+.container {
+    width: 100%;
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 var(--gutter-mobile);
+    position: relative;
+    z-index: 2;
+}
+
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--col-bilbao);
+    color: white;
+    padding: 8px;
+    z-index: 2000;
+    transition: top 0.3s;
+
+    &:focus {
+        top: 0;
+    }
+}

@@ -1,0 +1,15 @@
+// Orden de carga: tokens → base → componentes globales → páginas
+@forward 'variables';
+@forward 'base';
+@forward 'utils';
+@forward 'animations';
+@forward 'buttons';
+@forward 'header';
+@forward 'footer';
+@forward 'home';
+@forward 'article';
+@forward 'contact';
+@forward 'blog';
+@forward 'construction';
+@forward 'admisiones-inicio';
+@forward 'admisiones-faq';

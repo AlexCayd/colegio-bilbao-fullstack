@@ -1,0 +1,380 @@
+/* =========================================================
+   ADMISIONES — preguntas frecuentes
+========================================================= */
+
+// 1. HERO
+.faq-hero {
+    background-color: var(--bg-global);
+    padding: 80px 0 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.faq-hero-blob {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(125, 198, 229, 0.15) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: breatheFaq 10s infinite alternate;
+}
+
+@keyframes breatheFaq {
+    0%   { transform: translateX(-50%) scale(1); }
+    100% { transform: translateX(-50%) scale(1.1); }
+}
+
+.faq-hero-pre {
+    display: inline-block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--col-espiritu);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+}
+
+.faq-hero-title {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    color: var(--col-bilbao);
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.faq-hero-desc {
+    font-size: 1.2rem;
+    color: var(--text-gray);
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.6;
+    position: relative;
+    z-index: 2;
+}
+
+
+// 2. INTRO CON MASCOTA
+.faq-intro-section {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 64px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    align-items: center;
+    text-align: center;
+
+    @media (min-width: 768px) {
+        flex-direction: row;
+        align-items: flex-start;
+        text-align: left;
+    }
+}
+
+.faq-intro-icon {
+    width: 200px;
+    height: auto;
+    flex-shrink: 0;
+    margin-bottom: 16px;
+
+    img { width: 100%; height: auto; }
+
+    @media (min-width: 768px) {
+        margin-right: 48px;
+        margin-bottom: 0;
+        border-right: 2px solid var(--col-borde);
+        padding-right: 48px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+.faq-intro-text { text-align: center; }
+
+.faq-intro-lead {
+    font-size: 1.4rem;
+    color: var(--col-bilbao);
+    font-weight: 600;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.faq-intro-body {
+    font-size: 1.15rem;
+    color: var(--col-herencia);
+    line-height: 1.8;
+    font-weight: 300;
+}
+
+@media (min-width: 768px) {
+    .faq-intro-text { text-align: justify; }
+}
+
+
+// 3. STICKY MOBILE NAV
+.mobile-cat-nav-wrapper {
+    position: sticky;
+    top: var(--header-height);
+    z-index: 900;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--col-borde);
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+
+    @media (min-width: 1024px) { display: none; }
+}
+
+.mobile-cat-nav {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar { display: none; }
+}
+
+.mobile-cat-link {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: 0.6rem 1.2rem;
+    background: white;
+    border-radius: 50px;
+    border: 1px solid var(--col-borde);
+    color: var(--col-herencia);
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+    white-space: nowrap;
+
+    &.active {
+        background: var(--col-bilbao);
+        color: white;
+        border-color: var(--col-bilbao);
+        box-shadow: 0 4px 10px rgba(77, 138, 187, 0.3);
+    }
+}
+
+
+// 4. LAYOUT PRINCIPAL (sidebar + contenido)
+.faq-content-section {
+    padding: 0 0 48px;
+    position: relative;
+}
+
+.faq-layout {
+    display: grid;
+    gap: 3rem;
+    grid-template-columns: 1fr;
+
+    @media (min-width: 1024px) {
+        grid-template-columns: 280px 1fr;
+        gap: 5rem;
+        align-items: start;
+    }
+}
+
+.sticky-wrapper {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+}
+
+.faq-nav {
+    background: white;
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid var(--col-borde);
+    display: none;
+
+    @media (min-width: 1024px) { display: block; }
+}
+
+.faq-nav-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: var(--text-gray);
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: 1px;
+    padding-left: 1rem;
+}
+
+.faq-nav-list a {
+    display: block;
+    padding: 0.8rem 1rem;
+    color: var(--col-herencia);
+    font-weight: 500;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+
+    &:hover,
+    &.active {
+        background-color: var(--bg-global);
+        color: var(--col-bilbao);
+        border-left-color: var(--col-bilbao);
+    }
+}
+
+
+// 5. GRUPOS FAQ
+.faq-group {
+    margin-bottom: 4rem;
+    scroll-margin-top: 160px;
+}
+
+.faq-group-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--col-bilbao);
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--col-borde);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.group-icon {
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+
+.category-img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: var(--radius-card);
+    margin-bottom: 3rem;
+    box-shadow: 0 10px 30px rgba(77, 138, 187, 0.1);
+    display: block;
+}
+
+
+// 6. ACCORDION NATIVO (details/summary)
+.faq-list-container {
+    details {
+        margin-bottom: 1.5rem;
+        background: white;
+        border-radius: 12px;
+        border: 1px solid rgba(77, 138, 187, 0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        transition: all 0.3s ease;
+
+        &:hover {
+            box-shadow: 0 8px 16px rgba(77, 138, 187, 0.1);
+            transform: translateY(-2px);
+            border-color: rgba(77, 138, 187, 0.3);
+        }
+
+        &[open] {
+            box-shadow: 0 10px 25px rgba(77, 138, 187, 0.15);
+            border-color: var(--col-espiritu);
+        }
+    }
+
+    summary {
+        padding: 1.5rem 4rem 1.5rem 2rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--col-herencia);
+        cursor: pointer;
+        list-style: none;
+        position: relative;
+        transition: color 0.3s;
+
+        &::-webkit-details-marker { display: none; }
+        &:hover { color: var(--col-bilbao); }
+
+        &::after {
+            content: '+';
+            position: absolute;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: var(--col-espiritu);
+            transition: transform 0.3s ease, color 0.3s;
+        }
+    }
+
+    details[open] summary::after {
+        transform: translateY(-50%) rotate(45deg);
+        color: var(--col-bilbao);
+    }
+}
+
+.faq-ans {
+    padding: 0 2rem 2rem;
+    color: var(--text-gray);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    animation: fadeInFaq 0.4s ease;
+}
+
+@keyframes fadeInFaq {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+// 7. CTA FINAL
+.faq-cta-box {
+    background: linear-gradient(135deg, var(--col-bilbao) 0%, var(--col-herencia) 100%);
+    color: white;
+    border-radius: var(--radius-card);
+    padding: 4rem 2rem;
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 30px 60px rgba(77, 138, 187, 0.2);
+}
+
+.faq-cta-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+}
+
+.faq-cta-desc {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 2.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-white-glow {
+    display: inline-block;
+    background: white;
+    color: var(--col-bilbao);
+    padding: 1.2rem 3.5rem;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transition: transform 0.3s, box-shadow 0.3s;
+
+    &:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+}
