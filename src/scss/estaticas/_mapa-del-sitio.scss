@@ -1,0 +1,106 @@
+/* =========================================================
+   MAPA DEL SITIO
+========================================================= */
+
+.page-sitemap {
+
+    .sitemap-header {
+        background-color: var(--col-herencia);
+        color: #fff;
+        padding: 80px 20px 60px;
+        text-align: center;
+    }
+
+    .sitemap-h1 {
+        font-size: clamp(2rem, 5vw, 3rem);
+        font-weight: 800;
+        margin-bottom: 24px;
+        letter-spacing: -1px;
+    }
+
+    .search-wrapper {
+        max-width: 500px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        color: var(--col-herencia);
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 14px 20px 14px 48px;
+        border-radius: 50px;
+        border: none;
+        font-size: 1rem;
+        font-family: inherit;
+        color: var(--col-herencia);
+        outline: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+        &::placeholder { color: #aab; }
+        &:focus { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25); }
+    }
+
+    .sitemap-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 24px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 40px;
+    }
+
+    .sitemap-group {
+        .group-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--col-bilbao);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--col-bilbao);
+        }
+    }
+
+    .sitemap-list { list-style: none; }
+
+    .sitemap-item { margin-bottom: 10px; }
+
+    .sitemap-link {
+        font-size: 0.95rem;
+        color: var(--col-herencia);
+        text-decoration: none;
+        transition: color 0.2s;
+
+        &:hover {
+            color: var(--col-bilbao);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+    }
+
+    .search-results-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px 60px;
+        display: none;
+
+        &.active { display: block; }
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 40px;
+        color: var(--col-herencia);
+        font-size: 1.1rem;
+    }
+}

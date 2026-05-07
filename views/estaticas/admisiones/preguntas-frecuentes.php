@@ -170,7 +170,7 @@
         <div class="faq-cta-box reveal">
             <h2 class="faq-cta-title">Hablemos de lo importante</h2>
             <p class="faq-cta-desc">Si ya resolviste tus dudas principales, el siguiente paso es hablar con nosotros. Te orientamos según el nivel y el momento de tu familia.</p>
-            <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20de%20admisiones,%20me%20gustó%20y%20quiero%20conocer%20el%20colegio%20en%20una%20visita%20guiada." class="btn-white-glow">Contactar a Admisiones</a>
+            <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20de%20admisiones,%20me%20gustó%20y%20quiero%20conocer%20el%20colegio%20en%20una%20visita%20guiada." class="btn-terciario">Contactar a Admisiones</a>
         </div>
     </div>
 

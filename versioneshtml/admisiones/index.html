@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admisiones Colegio Bilbao: Un proceso humano y personalizado para encontrar el lugar ideal para tu familia.">
+    <meta name="robots" content="index, follow">
+    
+    <title>Admisiones | Colegio Bilbao</title>
+
+    <!-- FAVICON -->
+    <link rel="shortcut icon" href="../../assets/img/global/favicon.png" type="image/png">
+    <link rel="icon" href="../../assets/img/global/favicon.png" type="image/png">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-8XVWCDM02P"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-8XVWCDM02P');
+    </script>
+
+    <!-- Tipografía Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- 1. VARIABLES & RESET --- */
+        :root {
+            --bg-global: #FFFFFF;
+            --bg-offwhite: #F8FAFC;
+            --col-bilbao: #4D8ABB;
+            --col-espiritu: #7DC6E5;
+            --col-herencia: #374C69;
+            --col-texto: #374C69;
+            --col-blanco: #FFFFFF;
+            --col-borde: #E0E6ED;
+            --col-dark-overlay: rgba(29, 29, 31, 0.6);
+            
+            --sp-xs: 8px; --sp-sm: 16px; --sp-md: 32px; --sp-lg: 64px; --sp-xl: 100px; --sp-xxl: 140px;
+            --font-main: 'Montserrat', sans-serif;
+            --max-width: 1280px;
+            --header-height: 90px;
+            
+            --radius-card: 24px;
+            --shadow-float: 0 30px 60px rgba(0,0,0,0.12);
+            --shadow-hover: 0 40px 80px rgba(77, 138, 187, 0.2);
+            --transition-smooth: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            
+            --container-width: 1280px;
+            --gutter-mobile: 24px;
+            --text-gray: #374C69;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-global);
+            color: var(--col-texto);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+        ul { list-style: none; }
+        button { font-family: inherit; border: none; background: none; cursor: pointer; }
+        img { max-width: 100%; height: auto; display: block; }
+        p { text-align: justify; margin-bottom: 1rem; }
+        .text-center { text-align: center !important; }
+
+        /* --- HEADER & MENU (INTACTOS) --- */
+        .header-bar { position: fixed; top: 0; left: 0; width: 100%; height: var(--header-height); background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); z-index: 1000; border-bottom: 1px solid rgba(77, 138, 187, 0.1); display: flex; align-items: center; justify-content: center; padding: 0 var(--sp-md); }
+        .header-inner { width: 100%; max-width: var(--max-width); display: flex; justify-content: space-between; align-items: center; }
+        .logo-link { display: flex; align-items: center; z-index: 1002; height: 100%; }
+        .logo-img { height: 67px; width: auto; object-fit: contain; }
+        .header-controls { display: flex; align-items: center; gap: var(--sp-md); z-index: 1002; }
+        .lang-switch { font-size: 0.9rem; font-weight: 600; color: var(--col-herencia); }
+        .lang-switch span.active { color: var(--col-bilbao); text-decoration: underline; text-underline-offset: 4px; }
+        .menu-trigger { display: flex; align-items: center; justify-content: center; padding: 8px; color: var(--col-bilbao); }
+        .hamburger-icon { width: 28px; height: 20px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+        .hamburger-icon span { display: block; width: 100%; height: 2px; background-color: var(--col-bilbao); border-radius: 2px; transition: all 0.3s ease; }
+        .menu-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-global); z-index: 2000; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; overflow-y: auto; }
+        .menu-overlay[aria-hidden="false"] { opacity: 1; visibility: visible; }
+        .overlay-header { flex-shrink: 0; height: var(--header-height); display: flex; align-items: center; justify-content: center; padding: 0 var(--sp-md); border-bottom: 1px solid rgba(77, 138, 187, 0.1); }
+        .close-btn { width: 44px; height: 44px; position: relative; color: var(--col-bilbao); }
+        .close-btn::before, .close-btn::after { content: ''; position: absolute; top: 50%; left: 50%; width: 24px; height: 2px; background-color: currentColor; }
+        .close-btn::before { transform: translate(-50%, -50%) rotate(45deg); }
+        .close-btn::after { transform: translate(-50%, -50%) rotate(-45deg); }
+        .overlay-content { flex-grow: 1; width: 100%; max-width: 800px; margin: 0 auto; padding: var(--sp-lg) var(--sp-md); }
+        .nav-accordion-item { border-bottom: 1px solid var(--col-borde); }
+        .nav-accordion-trigger { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--sp-md) 0; font-size: 1.5rem; font-weight: 700; color: var(--col-herencia); text-align: left; transition: color 0.2s; }
+        .nav-accordion-trigger:hover, .nav-accordion-trigger[aria-expanded="true"] { color: var(--col-bilbao); }
+        .nav-accordion-trigger .chevron { transition: transform 0.3s ease; font-size: 1rem; }
+        .nav-accordion-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+        .nav-submenu { display: none; padding-bottom: var(--sp-md); padding-left: var(--sp-md); border-left: 2px solid var(--col-espiritu); margin-left: 4px; }
+        .nav-submenu li { margin-bottom: var(--sp-sm); }
+        .nav-submenu a { font-size: 1.1rem; color: var(--col-texto); font-weight: 500; }
+        .nav-submenu a:hover { color: var(--col-bilbao); }
+        .no-scroll { overflow: hidden; }
+
+        /* --- ANIMACIONES GLOBALES --- */
+        .reveal { opacity: 0; transform: translateY(40px); transition: var(--transition-smooth); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .stagger-1 { transition-delay: 0.1s; }
+        .stagger-2 { transition-delay: 0.2s; }
+        .stagger-3 { transition-delay: 0.3s; }
+        .stagger-4 { transition-delay: 0.4s; }
+
+        /* --- PAGE STYLES --- */
+        main { padding-top: var(--header-height); }
+
+        /* 1. HERO SPLIT (NUEVO DISEÑO) */
+        .hero-section {
+            position: relative;
+            min-height: 85vh; 
+            display: flex; align-items: center;
+            background-color: var(--bg-global);
+            overflow: hidden; padding-top: 40px; 
+        }
+
+        .hero-blob-bg {
+            position: absolute; right: -15%; top: -20%; width: 70vw; height: 70vw;
+            background: radial-gradient(circle, rgba(77, 138, 187, 0.08) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%; z-index: 0; pointer-events: none;
+            animation: pulseBlob 10s infinite alternate;
+        }
+        @keyframes pulseBlob { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+
+        .hero-grid {
+            display: grid; grid-template-columns: 1fr; gap: 3rem;
+            width: 100%; max-width: var(--container-width); margin: 0 auto;
+            padding: 0 var(--gutter-mobile); position: relative; z-index: 2; align-items: center;
+        }
+        @media (min-width: 1024px) { .hero-grid { grid-template-columns: 0.9fr 1.1fr; gap: 5rem; } }
+
+        /* Columna Texto Hero */
+        .hero-text-col { position: relative; z-index: 3; text-align: left; }
+        .hero-supertitle {
+            font-size: 1rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--col-espiritu); margin-bottom: 1rem; display: block;
+            opacity: 0; animation: fadeUp 1s ease forwards 0.2s;
+        }
+        .hero-h1-title {
+            font-size: clamp(3rem, 7vw, 5rem); font-weight: 900; line-height: 1; color: var(--col-bilbao);
+            margin-bottom: 1.5rem; margin-left: -5px; letter-spacing: -0.04em;
+            opacity: 0; animation: fadeUp 1s ease forwards 0.2s;
+        }
+        .hero-desc-p {
+            font-size: 1.15rem; line-height: 1.6; color: var(--text-gray); max-width: 550px;
+            margin-bottom: 0; opacity: 0; animation: fadeUp 1s ease forwards 0.6s;
+            text-align: left;
+        }
+
+        /* Columna Imagen Hero */
+        .hero-img-col {
+            position: relative; height: 500px; display: flex; align-items: center; justify-content: center;
+            opacity: 0; animation: scaleIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.3s;
+        }
+        .hero-img-main {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 30px;
+            box-shadow: 30px 40px 80px -10px rgba(0, 51, 102, 0.2);
+            z-index: 2; transition: transform 0.6s ease; transform: rotate(2deg);
+        }
+        .hero-img-col:hover .hero-img-main { transform: rotate(0deg) scale(1.02); }
+        
+        .hero-floating-card {
+            position: absolute; background: white; padding: 1.5rem 2rem;
+            border-radius: 20px; box-shadow: var(--shadow-float);
+            z-index: 3; bottom: 40px; left: -20px;
+            border: 1px solid rgba(255,255,255,0.8);
+            animation: floatCard 5s ease-in-out infinite;
+            text-align: left;
+        }
+        .float-stat { font-size: 2rem; font-weight: 900; color: var(--col-bilbao); line-height: 1; margin-bottom: 5px; display: block; }
+        .float-label { font-size: 0.9rem; font-weight: 700; color: var(--col-herencia); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        @keyframes floatCard { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(40px); } }
+        @keyframes scaleIn { to { opacity: 1; transform: scale(1); } from { opacity: 0; transform: scale(0.95); } }
+
+
+        /* 2. MANIFIESTO (Estilo Quiénes Somos - Centrado) */
+        .manifesto-section {
+            padding: var(--sp-xxl) var(--sp-md);
+            background-color: white;
+            text-align: center;
+        }
+        
+        .manifesto-container { max-width: 900px; margin: 0 auto; }
+
+        .manifesto-lead {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            color: var(--col-bilbao);
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: var(--sp-lg);
+        }
+        
+        .manifesto-body {
+            font-size: 1.25rem; color: var(--col-texto); line-height: 1.8; font-weight: 400; max-width: 800px; margin: 0 auto;
+        }
+        
+        .manifesto-divider {
+            width: 80px; height: 4px; background: linear-gradient(90deg, var(--col-bilbao), var(--col-espiritu));
+            margin: var(--sp-lg) auto; border-radius: 2px;
+        }
+
+
+        /* 3. COMPARATIVA (ES PARA TI / NO ES PARA TI) */
+        .comparison-section {
+            padding: var(--sp-xxl) var(--sp-md);
+            background-color: #F8FAFC;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--sp-xl);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        @media (min-width: 900px) {
+            .comparison-grid { grid-template-columns: 1.1fr 0.9fr; align-items: start; }
+        }
+
+        .card-yes {
+            background: white;
+            border-radius: 30px;
+            padding: var(--sp-xl);
+            box-shadow: 0 20px 60px rgba(77, 138, 187, 0.15);
+            border-top: 8px solid var(--col-bilbao);
+            position: relative;
+        }
+        
+        .card-yes h2 { font-size: 2rem; color: var(--col-bilbao); margin-bottom: var(--sp-lg); font-weight: 700; }
+        
+        .check-list { list-style: none; padding: 0; margin: 0; }
+        .check-list li {
+            position: relative;
+            padding-left: 32px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: var(--col-herencia);
+            font-weight: 500;
+        }
+        .check-list li::before {
+            content: '✓';
+            position: absolute; left: 0; top: 0;
+            color: var(--col-bilbao); font-weight: 800; font-size: 1.2rem;
+        }
+
+        .card-no {
+            background: transparent;
+            padding: var(--sp-lg);
+            border-left: 4px solid #CBD5E1;
+            margin-top: var(--sp-lg);
+        }
+        
+        .card-no h2 { font-size: 1.5rem; color: #64748B; margin-bottom: var(--sp-md); font-weight: 600; }
+        .card-no p { font-size: 1rem; color: #64748B; margin-bottom: 16px; font-style: italic; }
+        .card-no strong { color: #475569; }
+
+
+        /* 4. EXPECTATIVAS (PROCESS) */
+        .process-section {
+            padding: var(--sp-xxl) var(--sp-md);
+            background-color: white;
+            text-align: center;
+        }
+        
+        .process-container { max-width: 1000px; margin: 0 auto; }
+        .process-h2 { font-size: 2.5rem; margin-bottom: var(--sp-xl); font-weight: 700; color: var(--col-herencia); }
+        
+        .steps-grid {
+            display: grid; gap: 30px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+        .step-item {
+            background: #F8FAFC; padding: 40px 30px; border-radius: 20px;
+            transition: background 0.3s, transform 0.3s;
+            border: 1px solid #E5E7EB;
+        }
+        .step-item:hover { background: white; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-color: var(--col-bilbao); }
+        
+        .step-icon { font-size: 3rem; margin-bottom: 20px; display: block; }
+        .step-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; color: var(--col-bilbao); }
+        .step-desc { font-size: 1rem; opacity: 0.9; line-height: 1.6; color: var(--col-texto); }
+
+
+        /* 5. EXPLORA (BENTO GRID CON REDES SOCIALES) */
+        .explore-section { padding: var(--sp-xxl) var(--sp-md); }
+        .explore-header { text-align: center; max-width: 700px; margin: 0 auto var(--sp-xl); }
+        .explore-h2 { font-size: 2.5rem; color: var(--col-herencia); font-weight: 700; margin-bottom: 16px; }
+ 
+        .bento-grid {
+            display: grid; gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            max-width: 1200px; margin: 0 auto;
+        }
+ 
+        .bento-card {
+            position: relative; height: 300px; border-radius: 20px; overflow: hidden;
+            display: block; box-shadow: var(--shadow-float); transition: transform 0.3s;
+            background-color: #eee;
+            text-decoration: none;
+        }
+        .bento-card:hover { transform: scale(1.02); z-index: 2; }
+        
+        .bento-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+        .bento-card:hover .bento-img { transform: scale(1.1); }
+        
+        .bento-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            display: flex; align-items: flex-end; padding: 24px;
+        }
+        .bento-title { color: white; font-size: 1.5rem; font-weight: 700; }
+        .bento-social-icon { position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; fill: white; z-index: 2; }
+ 
+        @media (min-width: 1024px) {
+            .bento-grid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 300px; }
+            .span-2 { grid-column: span 2; }
+        }
+        
+        .closing-message {
+            text-align: center; margin-top: 60px; max-width: 700px; margin-left: auto; margin-right: auto;
+        }
+        .closing-message p { font-size: 1.25rem; font-weight: 600; color: var(--col-bilbao); line-height: 1.5; }
+
+        /* 6. FAQ (Apple Style) */
+        .faq-section { background-color: white; padding: var(--sp-xxl) var(--sp-md); border-top: 1px solid var(--col-borde); }
+        .faq-wrapper { max-width: 900px; margin: 0 auto; }
+        .faq-title { text-align: center; font-size: 2rem; color: var(--col-bilbao); margin-bottom: var(--sp-xl); }
+        .faq-item { border-bottom: 1px solid #E5E7EB; margin-bottom: 0; }
+        .faq-question {
+            width: 100%; text-align: left; padding: 24px 0; background: none; border: none;
+            font-size: 1.2rem; font-weight: 600; color: var(--col-herencia);
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        }
+        .faq-question:hover { color: var(--col-bilbao); }
+        .faq-icon-wrap {
+            width: 32px; height: 32px; border-radius: 50%; background: #F3F4F6;
+            display: flex; align-items: center; justify-content: center; transition: 0.3s;
+        }
+        .faq-question[aria-expanded="true"] .faq-icon-wrap { background: var(--col-bilbao); transform: rotate(180deg); }
+        .faq-question[aria-expanded="true"] svg { fill: white; }
+        .faq-icon-wrap svg { width: 14px; fill: var(--col-herencia); }
+        .faq-answer { max-height: 0; overflow: hidden; transition: 0.4s ease; color: var(--col-texto); font-size: 1.05rem; line-height: 1.6; }
+        .faq-question[aria-expanded="true"] + .faq-answer { padding-bottom: 24px; }
+
+        /* 7. CTA */
+        .cta-section { padding: var(--sp-xxl) var(--sp-md); background-color: white; border-top: 1px solid var(--col-borde); }
+        .cta-container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: var(--sp-lg); }
+        .mascot-img { width: 300px; height: auto; flex-shrink: 0; transition: transform 0.3s ease; }
+        .mascot-img:hover { transform: scale(1.25) rotate(3deg); }
+        .cta-content { text-align: center; flex-grow: 1; }
+        .cta-content h2 { font-size: 2rem; color: var(--col-bilbao); margin-bottom: var(--sp-md); }
+        .cta-content p { text-align: center; font-size: 1.1rem; color: var(--col-texto); }
+        @media (min-width: 768px) {
+            .cta-container { flex-direction: row; text-align: left; align-items: center; }
+            .cta-content { text-align: left; }
+            .cta-content h2, .cta-content p { text-align: left; }
+            .mascot-img { width: 300px; margin-right: var(--sp-md); }
+        }
+        .btn-primary { display: inline-block; background-color: var(--col-bilbao); color: white; padding: 16px 32px; border-radius: 50px; font-weight: 600; font-size: 1.1rem; margin-top: var(--sp-lg); transition: background 0.3s, transform 0.2s; box-shadow: 0 8px 20px rgba(77, 138, 187, 0.3); }
+        .btn-primary:hover { background-color: var(--col-espiritu); transform: translateY(-2px); }
+
+
+        /* Animaciones */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 1s var(--ease-out-expo); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(40px); } }
+
+        /* FOOTER (Copia Exacta) */
+        footer { background-color: var(--bg-global); border-top: 1px solid var(--col-borde); padding-top: 60px; font-size: 0.95rem; color: var(--col-herencia); }
+        .footer-container { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+        .footer-header { display: flex; flex-direction: column; margin-bottom: 40px; align-items: flex-start; }
+        .footer-logo-link { display: inline-block; margin-bottom: 16px; }
+        .footer-logo-img { height: 77px; width: auto; object-fit: contain; display: block; }
+        .footer-social-desktop { display: none; }
+        .social-link { display: inline-flex; align-items: center; justify-content: center; color: var(--col-herencia); margin-right: 12px; transition: 0.2s; }
+        .social-link:hover { color: var(--col-bilbao); }
+        .social-icon { width: 20px; height: 20px; fill: currentColor; }
+        .footer-grid { display: grid; gap: 40px; grid-template-columns: 1fr; }
+        .footer-desc { margin-bottom: 24px; font-size: 0.9rem; line-height: 1.6; text-align: left; }
+        .footer-contact p { margin-bottom: 8px; text-align: left; font-weight: 400; }
+        .footer-contact a { font-weight: 600; color: var(--col-bilbao); }
+        .footer-social-mobile { margin-top: 24px; margin-bottom: 32px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .footer-col-title { font-weight: 700; color: var(--col-bilbao); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .footer-links { display: none; margin-bottom: 24px; }
+        .footer-links li { margin-bottom: 8px; }
+        .footer-links a:hover { color: var(--col-espiritu); text-decoration: underline; }
+        .footer-legal { margin-top: 48px; padding: 24px 0; border-top: 1px solid var(--col-borde); font-size: 0.8rem; display: flex; flex-direction: column; gap: 16px; text-align: center; opacity: 0.8; }
+        .legal-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+        .visible { display: block !important; }
+        .rotate { transform: rotate(180deg); }
+        @media (min-width: 600px) { .footer-grid { grid-template-columns: 1fr 1fr; } .footer-identity { grid-column: span 2; } }
+        @media (min-width: 1024px) { 
+            .footer-header { flex-direction: row; justify-content: space-between; align-items: center; }
+            .footer-social-desktop { display: flex; gap: 16px; align-items: center; }
+            .footer-grid { grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 36px; }
+            .footer-identity { grid-column: auto; }
+            .footer-links { display: block !important; }
+            .footer-col-title { pointer-events: none; cursor: default; }
+            .footer-col-title .chevron { display: none; }
+            .footer-social-mobile { display: none; }
+            .footer-legal { flex-direction: row; justify-content: space-between; text-align: left; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header-bar">
+        <div class="header-inner">
+            <a href="/" class="logo-link"><img src="../../assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img"></a>
+            <div class="header-controls">
+                <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
+                <button class="menu-trigger"><div class="hamburger-icon"><span></span><span></span><span></span></div></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- OVERLAY MENU -->
+    <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Menú principal">
+        <div class="overlay-header">
+            <div class="header-inner">
+                <a href="/" class="logo-link"><img src="../../assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img"></a>
+                <div class="header-controls">
+                    <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
+                    <button id="close-menu-btn" class="close-btn" aria-label="Cerrar menú"></button>
+                </div>
+            </div>
+        </div>
+        <nav class="overlay-content">
+            <ul id="primary-nav">
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Conócenos <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/conocenos/quienes-somos/">Quiénes somos</a></li><li><a href="/conocenos/equipo-educativo/">Equipo educativo</a></li><li><a href="/conocenos/instalaciones/">Instalaciones</a></li><li><a href="/conocenos/certificaciones-y-reconocimientos/">Certificaciones y reconocimientos</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Modelo educativo <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/modelo-educativo/modelo-vida/">Modelo VIDA</a></li><li><a href="/modelo-educativo/filosofia-y-metodologia/">Filosofía</a></li><li><a href="/modelo-educativo/aprendizaje-integral/">Aprendizaje integral</a></li><li><a href="/modelo-educativo/idiomas/">Idiomas</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Niveles académicos <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/niveles-academicos/preescolar/">Preescolar</a></li><li><a href="/niveles-academicos/primaria/">Primaria</a></li><li><a href="/niveles-academicos/secundaria/">Secundaria</a></li><li><a href="/niveles-academicos/preparatoria/">Preparatoria</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Vida escolar <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/vida-escolar/afterschool-extracurriculares/">Afterschool</a></li><li><a href="/vida-escolar/futuro-universitario-becas/">Futuro universitario</a></li><li><a href="/vida-escolar/programa-dual/">Programa Dual</a></li><li><a href="/vida-escolar/servicios-para-familias/">Servicios</a></li><li><a href="/vida-escolar/cuidado-y-bienestar/">Cuidado y bienestar</a></li><li><a href="/vida-escolar/eventos-y-tradiciones/">Eventos</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Admisiones <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/admisiones/">Inicio</a></li><li><a href="/admisiones/proceso/">Proceso</a></li><li><a href="/admisiones/preguntas-frecuentes/">FAQ</a></li><li><a href="/admisiones/convenios/">Convenios</a></li><li><a href="/admisiones/convocatoria-becas/">Becas</a></li><li><a href="/admisiones/contacto/">Contacto</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Comunidad <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/comunidad/estudiantes/">Estudiantes</a></li><li><a href="/comunidad/familias/">Familias</a></li><li><a href="/comunidad/exalumnos/">Exalumnos</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Voces Bilbao <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/voces-bilbao/noticias/">Noticias</a></li><li><a href="/voces-bilbao/entrevistas/">Entrevistas</a></li><li><a href="/voces-bilbao/articulos/">Artículos</a></li><li><a href="/voces-bilbao/testimonios/">Testimonios</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Contacto <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/contacto/">Contacto</a></li><li><a href="/contacto/directorio/">Directorio</a></li><li><a href="/contacto/cultura-y-talento/">Cultura y talento</a></li><li><a href="/contacto/proveedores/">Proveedores</a></li></ul></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main>
+        
+        <!-- 1. HERO SPLIT -->
+        <section class="hero-section">
+            <div class="hero-blob-bg"></div>
+            <div class="hero-grid">
+                <!-- Texto -->
+                <div class="hero-text-col">
+                    <span class="hero-supertitle">ADMISIONES</span>
+                    <h1 class="hero-title">Elegir escuela es elegir un lugar donde tu familia se sienta en casa.</h1>
+                    <p class="hero-desc-p">En el Colegio Bilbao, Admisiones no es una ventanilla fría. Es una conversación humana para ayudarte a decidir con certeza.</p>
+                </div>
+                
+                <!-- Imagen -->
+                <div class="hero-img-col">
+                    <img src="../../assets/img/admisiones/inicio/llegando-al-bilbao.jpg" alt="Familia feliz" class="hero-img-main">
+                    
+                    <!-- Floating Card -->
+                    <div class="hero-floating-card">
+                        <span class="float-stat">1 visita</span>
+                        <span class="float-label">puede cambiarlo todo.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. RESUMEN -->
+        <section class="manifesto-section reveal delay-1">
+            <div class="manifesto-container">
+                <h2 class="manifesto-lead">
+                    Sabemos que buscar escuela en CDMX puede sentirse como un mar de opciones.
+                </h2>
+                <div class="intro-divider"></div>
+                <p class="manifesto-body">
+                    Muchos sitios dicen lo mismo, pero pocas escuelas se viven igual. La meta es que tu familia encuentre la escuela correcta, con calma y certeza.
+                </p>
+            </div>
+        </section>
+
+        <!-- 3. COMPARATIVA (SPLIT SCREEN) -->
+        <section class="comparison-section">
+            <div class="comparison-grid">
+                
+                <!-- Columna SI -->
+                <div class="card-yes reveal delay-1">
+                    <h2>Para qué familias es el Colegio Bilbao</h2>
+                    <ul class="check-list">
+                        <li>Familias que buscan una educación integral con propósito.</li>
+                        <li>Quienes valoran lo académico, pero también el carácter y la sensibilidad humana.</li>
+                        <li>Comunidad cercana, donde los vínculos importan.</li>
+                        <li>Pensamiento crítico sobre memorización automática.</li>
+                        <li>Familias que desean un campus con naturaleza en la CDMX.</li>
+                    </ul>
+                </div>
+
+                <!-- Columna NO -->
+                <div class="card-no reveal delay-2">
+                    <h2>Para qué familias probablemente no es la mejor opción</h2>
+                    <p>El Bilbao quizá no es para quienes quieren un modelo rígido, uniforme y poco flexible.</p>
+                    <p>Si tu prioridad es una experiencia escolar impersonal, tipo “línea de producción”, no encajará.</p>
+                    <p>Y si esperas decisiones rápidas sin conocerse, tampoco somos ese estilo.</p>
+                    <br>
+                    <p><strong>Nos interesa que el “sí” sea consciente y sostenible.</strong></p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 4. QUÉ ESPERAR (PROCESO) -->
+        <section class="process-section reveal">
+            <div class="process-container">
+                <h2 class="process-h2">Qué puedes esperar de Admisiones</h2>
+                <div class="steps-grid">
+                    <div class="step-item">
+                        <span class="step-icon">🤝</span>
+                        <h3 class="step-title">Cercanía</h3>
+                        <p class="step-desc">Nos interesa conocer a tu familia, no solo “llenar un cupo”. Escuchamos tu contexto y lo que buscas de verdad.</p>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-icon">💬</span>
+                        <h3 class="step-title">Honestidad</h3>
+                        <p class="step-desc">Te explicamos con claridad cómo somos y cómo se vive la escuela realmente. Si no encaja, te lo diremos.</p>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-icon">✨</span>
+                        <h3 class="step-title">Certeza</h3>
+                        <p class="step-desc">Preferimos una decisión informada a una inscripción apresurada. Lo importante es que tu hijo esté en el lugar correcto.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. EXPLORA (BENTO GRID CON REDES SOCIALES) -->
+        <section class="explore-section">
+            <div class="explore-header reveal">
+                <h2 class="explore-h2">Conócenos antes de dar el siguiente paso</h2>
+                <p class="explore-p">Sabemos que una escuela se entiende mejor cuando se ve desde varios ángulos. Explora nuestra vida escolar y digital.</p>
+            </div>
+            <div class="bento-grid">
+                <!-- Modelo VIDA -->
+                <a href="/modelo-educativo/modelo-vida" class="bento-card span-2 reveal delay-1">
+                    <img src="../../assets/img/admisiones/inicio/vida.jpg" alt="Modelo Vida" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title">Modelo VIDA</span></div>
+                </a>
+                
+                <!-- RED SOCIAL: Instagram @bilbaocolegio -->
+                <a href="https://www.instagram.com/bilbaocolegio/" class="bento-card reveal delay-2">
+                    <img src="../../assets/img/admisiones/inicio/insta.jpg" alt="Instagram @bilbaocolegio" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title">Instagram @bilbaocolegio</span></div>
+                </a>
+
+                <!-- RED SOCIAL: YOUTUBE -->
+                <a href="https://www.youtube.com/@ColegioBilbaoOficial" class="bento-card reveal delay-3">
+                    <img src="../../assets/img/admisiones/inicio/youtube.jpg" alt="YouTube" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title"> YouTube </span></div>
+                </a>
+
+                <!-- UNIVERSIDADES -->
+                 <a href="/vida-escolar/futuro-universitario-becas/" class="bento-card span-2 reveal delay-4">
+                    <img src="../../assets/img/admisiones/inicio/universidad.jpg" alt="Futuro Universitario" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title">Futuro Universitario</span></div>
+                </a>
+		<!-- EVENTOS -->
+                <a href="/vida-escolar/eventos-y-tradiciones/" class="bento-card span-2 reveal delay-1">
+                    <img src="../../assets/img/admisiones/inicio/eventos.jpg" alt="Eventos" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title">Nuestros Eventos</span></div>
+                </a>
+                
+                <!-- RED SOCIAL: FACEBOOK  -->
+                <a href="https://www.facebook.com/bilbaocolegio/" class="bento-card reveal delay-2">
+                    <img src="../../assets/img/admisiones/inicio/facebook.jpg" alt="Facebook" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title">Facebook</span></div>
+                </a>
+
+                <!-- RED SOCIAL: INSTAGRAM @BILBAOMOMENTS -->
+                <a href="https://www.instagram.com/bilbaomoments/" class="bento-card reveal delay-3">
+                    <img src="../../assets/img/admisiones/inicio/igmom.jpg" alt="Instagram @bilbaomoments" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title">Instagram @bilbaomoments</span></div>
+                </a>
+
+                <!-- SERVICIOS -->
+                 <a href="/vida-escolar/servicios-para-familias/" class="bento-card span-2 reveal delay-4">
+                    <img src="../../assets/img/admisiones/inicio/servicios.jpg" alt="Servicios" class="bento-img">
+                    <div class="bento-overlay"><span class="bento-title">Servicios</span></div>
+                </a>
+            </div>
+
+            <!-- Frase de cierre -->
+            <div class="closing-message reveal delay-4">
+                <p>Tómate tu tiempo, guarda lo que te haga sentido y vuelve cuando estés listo.<br>Aquí estaremos.</p>
+            </div>
+        </section>
+
+        <!-- 6. FAQ -->
+        <section class="faq-section reveal">
+            <div class="faq-wrapper">
+                <h2 class="faq-title">Preguntas frecuentes</h2>
+                
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">¿Buscan excelencia académica o desarrollo humano? <span class="faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span></button>
+                    <div class="faq-answer"><p>Para ambas. Creemos que la excelencia sin humanidad se queda corta, y la calidez sin estructura también.</p></div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">¿Me van a presionar para inscribirme? <span class="faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span></button>
+                    <div class="faq-answer"><p>No. Te orientamos con honestidad para que tomes una decisión con calma y certeza.</p></div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">¿Si vivo fuera del poniente, vale la pena? <span class="faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span></button>
+                    <div class="faq-answer"><p>Sí. Muchas familias llegan desde zonas más lejanas cuando nos conocen. Les apoyamos con opciones y rutas de transporte.</p></div>
+                </div>
+                 <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">¿Qué hace diferente el enfoque de comunidad? <span class="faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span></button>
+                    <div class="faq-answer"><p>La cercanía no es discurso, se vive en el acompañamiento y en la convivencia diaria. Buscamos que cada estudiante se sienta visto.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. CTA  -->
+       <section class="cta-section">
+            <div class="cta-container">
+                <img src="../../assets/img/admisiones/inicio/fam-alex-surp.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img">
+                <div class="cta-content">
+                    <h2>Empecemos bien</h2>
+                    <p>Si lo que buscas es una escuela que combine excelencia y humanidad, aquí podemos empezar bien.</p>
+                    <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20de%20admisiones,%20me%20gustó%20y%20quiero%20conocer%20el%20colegio%20en%20una%20visita%20guiada." class="btn-primary">Agenda una visita</a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-header">
+                <a href="/" class="footer-logo-link" aria-label="Ir al inicio de Colegio Bilbao">
+                    <img src="../../assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="footer-logo-img">
+                </a>
+                <div class="footer-social-desktop">
+                    <span style="margin-right: 8px;">Síguenos</span>
+                    <a href="https://www.facebook.com/bilbaocolegio/" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Facebook"><svg class="social-icon" viewBox="0 0 24 24"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V1.74c-.75-.07-2.47-.24-4.75-.24-4.8 0-8 2.9-8 8v3h-5v4h5v11.5h7V13.5z"/></svg></a>
+                    <a href="https://www.instagram.com/bilbaocolegio/" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Instagram"><svg class="social-icon" viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85 0 3.2-.01 3.58-.07 4.85-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.64.07-4.85.07-3.2 0-3.58-.01-4.85-.07-3.23-.15-4.77-1.66-4.92-4.92-.06-1.27-.07-1.64-.07-4.85 0-3.2.01-3.58.07-4.85.15-3.23 1.66-4.77 4.92-4.92 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 2.7.27.27 2.7.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.36-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95C23.73 2.7 21.31.27 16.95.07 15.67.01 15.26 0 12 0zm0 5.84c-3.4 0-6.16 2.76-6.16 6.16 0 3.4 2.76 6.16 6.16 6.16 3.4 0 6.16-2.76 6.16-6.16 0-3.4-2.76-6.16-6.16-6.16zm0 10.16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6.4-10.8c0 .66-.54 1.2-1.2 1.2-.66 0-1.2-.54-1.2-1.2 0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2z"/></svg></a>
+                    <a href="https://www.instagram.com/bilbaomoments/" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Instagram Secundaria"><svg class="social-icon" viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85 0 3.2-.01 3.58-.07 4.85-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.64.07-4.85.07-3.2 0-3.58-.01-4.85-.07-3.23-.15-4.77-1.66-4.92-4.92-.06-1.27-.07-1.64-.07-4.85 0-3.2.01-3.58.07-4.85.15-3.23 1.66-4.77 4.92-4.92 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 2.7.27.27 2.7.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.36-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95C23.73 2.7 21.31.27 16.95.07 15.67.01 15.26 0 12 0zm0 5.84c-3.4 0-6.16 2.76-6.16 6.16 0 3.4 2.76 6.16 6.16 6.16 3.4 0 6.16-2.76 6.16-6.16 0-3.4-2.76-6.16-6.16-6.16zm0 10.16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6.4-10.8c0 .66-.54 1.2-1.2 1.2-.66 0-1.2-.54-1.2-1.2 0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2z"/></svg></a>
+                    <a href="https://www.youtube.com/@ColegioBilbaoOficial" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="YouTube"><svg class="social-icon" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg></a>
+                    <a href="https://mx.linkedin.com/company/colegio-bilbao" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="LinkedIn"><svg class="social-icon" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+                    <span style="margin: 0 16px;">|</span>
+                    <div class="lang-switch" style="display: inline-block;"><span class="active">ES</span> | <a href="/en/">EN</a></div>
+                </div>
+            </div>
+            
+            <div class="footer-grid">
+                <div class="footer-identity">
+                    <p class="footer-desc">Escuela privada K-12 en la zona poniente de la Ciudad de México.</p>
+                    <div class="footer-contact">
+                        <p><strong>Dirección:</strong><br>Tlalmimilolpan 39, San Mateo Tlaltenango,<br>Cuajimalpa de Morelos, 05600 Ciudad de México, CDMX</p>
+                        <p style="margin-top:12px"><strong>Teléfonos:</strong></p>
+                        <p>Conmutador: <a href="tel:+5558101346">55 5810 1346</a></p>
+                        <p>Admisiones:<br> <a href="tel:+525549839745">+52 55 4983 9745</a><br><a href="tel:+525614612682">+52 56 1461 2682</a></p>
+                        <p style="margin-top:12px"><a href="/contacto/">Ver ubicación y mapa →</a></p>
+                    </div>
+                    <div class="footer-social-mobile">
+                        <span>Síguenos:</span>
+                        <!-- Mobile Socials Same as Desktop -->
+                        <a href="https://www.facebook.com/bilbaocolegio/" class="social-link"><svg class="social-icon" viewBox="0 0 24 24"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V1.74c-.75-.07-2.47-.24-4.75-.24-4.8 0-8 2.9-8 8v3h-5v4h5v11.5h7V13.5z"/></svg></a>
+                        <a href="https://www.instagram.com/bilbaocolegio/" class="social-link"><svg class="social-icon" viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.64.07 4.85 0 3.2-.01 3.58-.07 4.85-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.64.07-4.85.07-3.2 0-3.58-.01-4.85-.07-3.23-.15-4.77-1.66-4.92-4.92-.06-1.27-.07-1.64-.07-4.85 0-3.2.01-3.58.07-4.85.15-3.23 1.66-4.77 4.92-4.92 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 2.7.27.27 2.7.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.36-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95C23.73 2.7 21.31.27 16.95.07 15.67.01 15.26 0 12 0zm0 5.84c-3.4 0-6.16 2.76-6.16 6.16 0 3.4 2.76 6.16 6.16 6.16 3.4 0 6.16-2.76 6.16-6.16 0-3.4-2.76-6.16-6.16-6.16zm0 10.16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6.4-10.8c0 .66-.54 1.2-1.2 1.2-.66 0-1.2-.54-1.2-1.2 0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2z"/></svg></a>
+                        <a href="https://www.youtube.com/@ColegioBilbaoOficial" class="social-link"><svg class="social-icon" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg></a>
+                        <a href="https://mx.linkedin.com/company/colegio-bilbao" class="social-link"><svg class="social-icon" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <button class="footer-col-title" aria-expanded="false">Conócenos <span class="chevron">▼</span></button>
+                    <ul class="footer-links">
+                        <li><a href="/conocenos/quienes-somos/">Quiénes somos</a></li>
+                        <li><a href="/conocenos/equipo-educativo/">Equipo educativo</a></li>
+                        <li><a href="/conocenos/instalaciones/">Instalaciones</a></li>
+                        <li><a href="/modelo-educativo/modelo-vida/">Modelo VIDA</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <button class="footer-col-title" aria-expanded="false">Niveles <span class="chevron">▼</span></button>
+                    <ul class="footer-links">
+                        <li><a href="/niveles-academicos/preescolar/">Preescolar</a></li>
+                        <li><a href="/niveles-academicos/primaria/">Primaria</a></li>
+                        <li><a href="/niveles-academicos/secundaria/">Secundaria</a></li>
+                        <li><a href="/niveles-academicos/preparatoria/">Preparatoria</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <button class="footer-col-title" aria-expanded="false">Comunidad <span class="chevron">▼</span></button>
+                    <ul class="footer-links">
+                        <li><a href="/admisiones/">Admisiones</a></li>
+                        <li><a href="/comunidad/familias/">Familias</a></li>
+                        <li><a href="/voces-bilbao/noticias/">Noticias</a></li>
+                        <li><a href="/contacto/cultura-y-talento/">Bolsa de trabajo</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-legal">
+                <div class="legal-links">
+                    <a href="/aviso-de-privacidad/">Aviso de privacidad</a> · 
+                    <a href="/terminos-y-condiciones/">Términos y condiciones</a> · 
+                    <a href="/mapa-del-sitio/">Mapa del sitio</a>
+                </div>
+                <div>© 2025 Colegio Bilbao. Todos los derechos reservados.</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const menuTrigger = document.querySelector('.menu-trigger');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const body = document.body;
+        const navAccordions = document.querySelectorAll('.nav-accordion-trigger');
+        const footerToggles = document.querySelectorAll('.footer-col-title');
+        const faqQuestions = document.querySelectorAll('.faq-question');
+
+        function toggleMenu(show) {
+            menuOverlay.setAttribute('aria-hidden', !show);
+            menuTrigger.setAttribute('aria-expanded', show);
+            show ? body.classList.add('no-scroll') : body.classList.remove('no-scroll');
+            (show ? closeMenuBtn : menuTrigger).focus();
+        }
+
+        menuTrigger.addEventListener('click', () => toggleMenu(true));
+        closeMenuBtn.addEventListener('click', () => toggleMenu(false));
+
+        navAccordions.forEach(trigger => {
+            trigger.addEventListener('click', () => {
+                const submenu = trigger.nextElementSibling;
+                if(submenu) {
+                    const expanded = trigger.getAttribute('aria-expanded') === 'true';
+                    trigger.setAttribute('aria-expanded', !expanded);
+                    submenu.style.display = expanded ? 'none' : 'block';
+                }
+            });
+        });
+
+        footerToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                if (window.innerWidth < 1024) {
+                    const content = toggle.nextElementSibling;
+                    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+                    toggle.setAttribute('aria-expanded', !expanded);
+                    content.style.display = expanded ? 'none' : 'block';
+                }
+            });
+        });
+
+        // FAQ Logic
+        faqQuestions.forEach(question => {
+            question.addEventListener('click', () => {
+                const expanded = question.getAttribute('aria-expanded') === 'true';
+                question.setAttribute('aria-expanded', !expanded);
+                const answer = question.nextElementSibling;
+                const icon = question.querySelector('.faq-icon-wrap');
+                
+                if (!expanded) {
+                    answer.style.maxHeight = answer.scrollHeight + "px";
+                    answer.style.marginTop = "10px";
+                    if(icon) icon.style.transform = 'rotate(180deg)';
+                    if(icon) icon.style.backgroundColor = 'var(--col-bilbao)';
+                    if(icon) icon.querySelector('svg').style.fill = 'white';
+                } else {
+                    answer.style.maxHeight = null;
+                    answer.style.marginTop = "0";
+                    if(icon) icon.style.transform = 'rotate(0deg)';
+                    if(icon) icon.style.backgroundColor = '#F3F4F6';
+                    if(icon) icon.querySelector('svg').style.fill = 'var(--col-herencia)';
+                }
+            });
+        });
+        
+        // Scroll Reveal
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if(entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        window.addEventListener('resize', () => {
+             if(window.innerWidth >= 1024) {
+                 document.querySelectorAll('.footer-links').forEach(el => el.style.display = 'block');
+                 document.querySelectorAll('.footer-col-title .chevron').forEach(el => el.style.transform = '');
+             } else {
+                 document.querySelectorAll('.footer-links').forEach(el => el.style.display = 'none');
+             }
+        });
+    </script>
+</body>
+</html>

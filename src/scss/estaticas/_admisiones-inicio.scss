@@ -1,3 +1,5 @@
+@use 'utils' as *;
+
 /* =========================================================
    ADMISIONES — página de inicio
 ========================================================= */
@@ -423,82 +425,15 @@
 }
 
 
-// 6. FAQ (ADMISIONES INICIO — botón/max-height)
+// 6. FAQ
 .adm-faq-section {
     background-color: white;
     padding: 140px 32px;
     border-top: 1px solid var(--col-borde);
-}
 
-.adm-faq-wrapper {
-    max-width: 900px;
-    margin: 0 auto;
-}
+    @include faq-accordion(900px);
 
-.adm-faq-title {
-    text-align: center;
-    font-size: 2rem;
-    color: var(--col-bilbao);
-    margin-bottom: 100px;
-}
-
-.adm-faq-item { border-bottom: 1px solid #E5E7EB; }
-
-.adm-faq-question {
-    width: 100%;
-    text-align: left;
-    padding: 24px 0;
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--col-herencia);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: color 0.2s;
-
-    &:hover { color: var(--col-bilbao); }
-}
-
-.adm-faq-icon-wrap {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #F3F4F6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.3s;
-    flex-shrink: 0;
-
-    svg {
-        width: 14px;
-        fill: var(--col-herencia);
-    }
-}
-
-.adm-faq-question[aria-expanded="true"] .adm-faq-icon-wrap {
-    background: var(--col-bilbao);
-    transform: rotate(180deg);
-
-    svg { fill: white; }
-}
-
-.adm-faq-answer {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.4s ease;
-    color: var(--col-herencia);
-    font-size: 1.05rem;
-    line-height: 1.6;
-
-    p { margin: 0; }
-}
-
-.adm-faq-question[aria-expanded="true"] + .adm-faq-answer {
-    padding-bottom: 24px;
+    .faq-title { margin-bottom: 64px; }
 }
 
 

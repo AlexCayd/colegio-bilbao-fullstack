@@ -53,3 +53,95 @@
         top: 0;
     }
 }
+
+// =========================================================
+//  MIXIN: FAQ ACCORDION (botón + div, max-height JS toggle)
+//  Uso: @include faq-accordion; o @include faq-accordion(900px);
+// =========================================================
+@mixin faq-accordion($max-width: 800px) {
+    .faq-wrapper {
+        max-width: $max-width;
+        margin: 0 auto;
+    }
+
+    .faq-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--col-bilbao);
+        text-align: center;
+        margin-bottom: 48px;
+    }
+
+    .faq-item {
+        border-bottom: 1px solid var(--col-borde);
+    }
+
+    .faq-question {
+        width: 100%;
+        text-align: left;
+        padding: 20px 0;
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--col-herencia);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        cursor: pointer;
+        transition: color 0.2s;
+
+        &:hover {
+            color: var(--col-bilbao);
+            .faq-icon svg { fill: var(--col-bilbao); }
+        }
+
+        &[aria-expanded="true"] {
+            color: var(--col-bilbao);
+
+            .faq-icon {
+                background-color: var(--col-bilbao);
+                transform: rotate(180deg);
+                svg { fill: #fff; }
+            }
+        }
+    }
+
+    .faq-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #F0F4F8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s, transform 0.3s;
+        flex-shrink: 0;
+
+        svg {
+            width: 14px;
+            height: 14px;
+            fill: var(--col-herencia);
+            transition: fill 0.3s;
+        }
+    }
+
+    .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+        color: var(--col-herencia);
+        font-size: 1rem;
+        line-height: 1.6;
+        opacity: 0;
+
+        p { margin: 0 0 8px; }
+    }
+
+    .faq-question[aria-expanded="true"] + .faq-answer {
+        opacity: 1;
+        padding-bottom: 24px;
+    }
+}

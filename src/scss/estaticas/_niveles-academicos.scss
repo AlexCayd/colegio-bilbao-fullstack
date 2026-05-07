@@ -1,0 +1,513 @@
+@use 'utils' as *;
+
+/* =========================================================
+   NIVELES ACADÉMICOS — Preescolar y niveles educativos
+========================================================= */
+
+// ---- HERO PREESCOLAR ----
+.preschool-hero {
+    position: relative;
+    min-height: 65vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    overflow: hidden;
+}
+
+.hero-bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-size: cover;
+    background-position: center;
+    z-index: 1;
+}
+
+.hero-overlay-light {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(rgba(125, 198, 229, 0.2), rgba(77, 138, 187, 0.3));
+    z-index: 2;
+}
+
+// =========================================================
+//   LAYOUT COMPARTIDO — todos los niveles académicos
+// =========================================================
+
+.section-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 64px 24px;
+}
+
+.organic-block {
+    display: grid;
+    gap: 48px;
+    align-items: center;
+    margin-bottom: 64px;
+
+    @media (min-width: 900px) {
+        grid-template-columns: 1fr 1fr;
+
+        &.reverse {
+            .organic-text        { order: 1; }
+            .organic-img-wrapper { order: 2; }
+        }
+
+        &.inverse {
+            .organic-img-wrapper { order: 1; }
+            .organic-text        { order: 2; }
+        }
+    }
+}
+
+.organic-img-wrapper {
+    position: relative;
+    border-radius: 30px;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(77, 138, 187, 0.15);
+    height: 400px;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s ease;
+    }
+
+    &:hover img { transform: scale(1.05); }
+
+    @media (min-width: 900px) { height: 500px; }
+}
+
+.section-title {
+    font-size: 2.2rem;
+    color: var(--col-bilbao);
+    margin-bottom: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.section-text {
+    font-size: 1.1rem;
+    color: var(--col-herencia);
+    line-height: 1.7;
+
+    p { margin-bottom: 16px; }
+}
+
+.intro-text {
+    p {
+        font-size: 1.25rem;
+        color: var(--col-herencia);
+        line-height: 1.8;
+        margin-bottom: 24px;
+
+        strong {
+            color: var(--col-bilbao);
+            font-weight: 600;
+        }
+    }
+}
+
+.learning-section {
+    background-color: #F0F6FC;
+    border-radius: 30px;
+    padding: 48px;
+    margin: 64px auto;
+    max-width: 1280px;
+}
+
+.learning-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+}
+
+.learning-card {
+    background: #fff;
+    padding: 32px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+    transition: transform 0.3s;
+
+    &:hover { transform: translateY(-5px); }
+}
+
+.learning-icon {
+    font-size: 2rem;
+    color: var(--col-espiritu);
+    margin-bottom: 16px;
+    display: block;
+}
+
+.learning-title {
+    font-weight: 700;
+    color: var(--col-herencia);
+    margin-bottom: 4px;
+}
+
+.transition-wrapper {
+    position: relative;
+    background-color: #fff;
+    border: 2px solid #E0E6ED;
+    border-radius: 30px;
+    padding: 48px;
+    margin-bottom: 64px;
+
+    @media (max-width: 768px) { padding: 32px 24px; }
+}
+
+.cta-section {
+    padding: 64px 24px;
+    background-color: var(--bg-global);
+    text-align: center;
+    border-top: 1px solid #E0E6ED;
+}
+
+.cta-container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.cta-content {
+    text-align: center;
+    width: 100%;
+}
+
+.cta-h2 {
+    font-size: 2rem;
+    color: var(--col-bilbao);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.cta-p {
+    font-size: 1.1rem;
+    margin: 0 auto 32px;
+    max-width: 600px;
+}
+
+// =========================================================
+//   PREESCOLAR — overrides específicos
+// =========================================================
+.page-preescolar {
+
+    // Intro centrada en columna (distinta de secundaria/preparatoria)
+    .intro-section {
+        padding: 64px 24px;
+        max-width: 900px;
+        margin: 0 auto;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    // Reduce tamaño del cuerpo en la sección "Acompañamiento cercano"
+    .transition-wrapper .organic-text p {
+        font-size: 0.92rem;
+        line-height: 1.65;
+        color: var(--col-herencia);
+    }
+
+    @include faq-accordion(900px);
+}
+
+// ---- MASCOTAS ----
+.mascot-intro {
+    width: 140px;
+    margin-bottom: 32px;
+    transition: transform 0.3s;
+
+    &:hover { transform: scale(1.1) rotate(-5deg); }
+}
+
+.mascot-thinking {
+    position: absolute;
+    top: -60px;
+    right: 40px;
+    width: 120px;
+    height: auto;
+    z-index: 5;
+
+    @media (max-width: 768px) {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 0 auto 24px;
+        display: block;
+    }
+}
+
+.mascot-happy {
+    width: 140px;
+    margin-bottom: 24px;
+    transition: 0.3s;
+
+    &:hover { transform: scale(1.1) translateY(-10px); }
+}
+
+// ---- KEYFRAME ----
+@keyframes floatUpPreescolar {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+// =========================================================
+//   UTILIDADES GLOBALES — compartidas por Primaria, Sec, Prepa
+// =========================================================
+
+// ---- HERO OVERLAY ----
+.hero-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(rgba(125, 198, 229, 0.2), rgba(77, 138, 187, 0.4));
+    z-index: 2;
+}
+
+// ---- HERO CONTENT (interior del hero) ----
+.hero-content {
+    position: relative;
+    z-index: 3;
+    max-width: 900px;
+    padding: 24px;
+    animation: floatUpPreescolar 1.2s ease-out;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+
+    .hero-title {
+        font-size: clamp(2.5rem, 7vw, 5rem);
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 16px;
+        color: white;
+    }
+
+    .hero-subtitle {
+        font-size: clamp(1.1rem, 2.5vw, 1.7rem);
+        font-weight: 500;
+        color: white;
+    }
+}
+
+// ---- HERO TIPO PAGE (Secundaria, Preparatoria) ----
+.page-hero {
+    position: relative;
+    height: 60vh;
+    min-height: 400px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    overflow: hidden;
+
+    .hero-bg {
+        background-size: cover;
+        background-position: center;
+    }
+
+    .hero-overlay {
+        background: linear-gradient(rgba(55, 76, 105, 0.3), rgba(55, 76, 105, 0.5));
+    }
+}
+
+// ---- IMAGE MODIFIERS ----
+.organic-img-wrapper {
+    &.img-vertical {
+        height: 500px;
+        max-width: 400px;
+        margin: 0 auto;
+
+        @media (min-width: 900px) { height: 600px; }
+    }
+
+    &.img-square,
+    &.aspect-square {
+        aspect-ratio: 1 / 1;
+        height: auto;
+        max-width: 500px;
+        margin: 0 auto;
+
+        @media (min-width: 900px) { height: 500px; width: 500px; }
+    }
+
+    &.img-horizontal,
+    &.aspect-horizontal {
+        aspect-ratio: 16 / 9;
+        height: auto;
+        width: 100%;
+    }
+}
+
+// ---- TITLE + MASCOT INLINE ----
+.title-mascot-container {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.mascot-title-icon {
+    width: 80px;
+    height: auto;
+    flex-shrink: 0;
+}
+
+// ---- MASCOT FLOATERS ----
+.mascot-float-small {
+    width: 80px;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.mascot-float-center {
+    width: 100px;
+    margin: 0 auto 16px;
+    display: block;
+}
+
+// ---- PLUS ICON FAQ ----
+.plus-icon {
+    font-size: 1.5rem;
+    color: var(--col-espiritu);
+    transition: transform 0.3s, color 0.3s;
+    flex-shrink: 0;
+}
+
+.faq-question[aria-expanded="true"] .plus-icon {
+    transform: rotate(45deg);
+    color: var(--col-bilbao);
+}
+
+// ---- INTRO ICON CONTAINER (primaria) ----
+.intro-icon-container {
+    width: 200px;
+    flex-shrink: 0;
+    margin-bottom: 24px;
+}
+
+.intro-icon-img {
+    width: 100%;
+    height: auto;
+}
+
+.intro-text-content { text-align: center; }
+
+.intro-lead {
+    font-size: 1.4rem;
+    color: var(--col-bilbao);
+    font-weight: 600;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+// =========================================================
+//   PRIMARIA
+// =========================================================
+.page-primaria {
+
+    .hero-bg {
+        background-image: url('/build/assets/img/niveles-academicos/primaria/alumnos-abrazados.jpg');
+    }
+
+    .intro-section {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 64px 24px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        align-items: center;
+        text-align: center;
+
+        @media (min-width: 768px) {
+            flex-direction: row;
+            align-items: flex-start;
+            text-align: left;
+        }
+    }
+
+    .intro-icon-container {
+        @media (min-width: 768px) {
+            margin-right: 48px;
+            margin-bottom: 0;
+            border-right: 2px solid var(--col-borde);
+            padding-right: 48px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+        }
+    }
+
+    .intro-text-content {
+        @media (min-width: 768px) { text-align: justify; }
+    }
+
+    @include faq-accordion(900px);
+}
+
+// =========================================================
+//   SECUNDARIA
+// =========================================================
+.page-secundaria {
+
+    .hero-bg {
+        background-image: url('/build/assets/img/niveles-academicos/secundaria/alumnas-argumentando.jpg');
+    }
+
+    .intro-section {
+        padding: 64px 24px;
+        max-width: 1000px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        align-items: center;
+        text-align: center;
+
+        @media (min-width: 768px) {
+            flex-direction: row;
+            align-items: center;
+            text-align: left;
+        }
+    }
+
+    @include faq-accordion(900px);
+}
+
+// =========================================================
+//   PREPARATORIA
+// =========================================================
+.page-preparatoria {
+
+    .intro-section {
+        padding: 64px 24px;
+        max-width: 1000px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        align-items: center;
+        text-align: center;
+
+        @media (min-width: 768px) {
+            flex-direction: row;
+            align-items: center;
+            text-align: left;
+        }
+    }
+
+    @include faq-accordion(900px);
+}

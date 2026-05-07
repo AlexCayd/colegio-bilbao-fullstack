@@ -6,6 +6,6 @@
              width="600" height="400">
         <h1 class="construction-title">Próximamente</h1>
         <p class="construction-lead">Estamos construyendo algo extraordinario. Esta sección estará disponible muy pronto con toda la información que buscas.</p>
-        <a href="/" class="btn-primary">Volver al Inicio</a>
+        <a href="/" class="btn-primario">Volver al Inicio</a>
     </div>
 </main>

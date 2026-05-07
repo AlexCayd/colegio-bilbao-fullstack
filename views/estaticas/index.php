@@ -31,7 +31,7 @@
                 <h1 class="hero-title" id="dynamic-hero-title">Learning to become yourself</h1>
                 <div class="hero-cta-wrapper">
                 <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada."
-                    class="btn-epic btn-epic-primary">Agenda tu visita</a>
+                    class="btn-primario">Agenda tu visita</a>
                 </div>
             </div>
         </section>        
@@ -162,7 +162,7 @@
                     </div>
                 </div>
 
-                <a href="modelo-educativo/modelo-vida/" class="btn-epic btn-epic-outline" >Conocer Modelo</a>
+                <a href="modelo-educativo/modelo-vida" class="btn-secundario">Conocer Modelo</a>
             </div>
         </section>
 
@@ -352,7 +352,7 @@
                         Descubre artículos, entrevistas, noticias y momentos que reflejan la vida, la filosofía y la comunidad del Colegio Bilbao.
                     </p>
                 </div>
-                <a href="/blog" class="btn-blog-cta">Visitar el blog</a>
+                <a href="/blog" class="btn-primario">Visitar el blog</a>
             </div>
         </section>
 
@@ -361,14 +361,14 @@
             <div class="alumni-content">
                 <h3 class="alumni-title">Alumni Bilbao</h3>
                 <p class="alumni-text">Vuelve a conectar, esta sigue siendo tu casa. Queremos reencontrarnos y crear nuevos espacios de conexión. Comunidad de exalumnos.</p>
-                <a href="/comunidad/exalumnos/" class="btn-alumni">Volver a conectar</a>
+                <a href="/comunidad/exalumnos" class="btn-secundario">Volver a conectar</a>
             </div>
         </section>
 
         <!-- 10. CTA -->
         <section class="final-cta">
             <h2 class="cta-big-h2">El futuro de tus hijos<br>comienza aquí.</h2>
-            <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada." class="btn-final">Agenda una visita hoy</a>
+            <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada." class="btn-primario">Agenda una visita hoy</a>
         </section>
 
     </main>

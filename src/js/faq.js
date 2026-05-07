@@ -1,8 +1,8 @@
-// FAQ accordion — .adm-faq-question / .adm-faq-answer (max-height toggle)
-document.querySelectorAll('.adm-faq-question').forEach(question => {
+// FAQ accordion — .faq-question / .faq-answer (max-height toggle)
+document.querySelectorAll('.faq-question').forEach(question => {
     question.addEventListener('click', () => {
         const expanded = question.getAttribute('aria-expanded') === 'true';
-        question.setAttribute('aria-expanded', !expanded);
+        question.setAttribute('aria-expanded', String(!expanded));
         const answer = question.nextElementSibling;
         answer.style.maxHeight = expanded ? null : answer.scrollHeight + 'px';
     });

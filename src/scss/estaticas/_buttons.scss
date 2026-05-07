@@ -1,9 +1,8 @@
 // =========================================================
 //   MIXIN: btn-pill — base estructural para botones pill
 //   Uso: @include btn-pill($bg, $color, $pad-v, $pad-h);
-//   Cada clase añade sus sombras, colores hover y variantes.
 // =========================================================
-@mixin btn-pill($bg, $color, $pad-v: 16px, $pad-h: 36px) {
+@mixin btn-pill($bg, $color, $pad-v: 14px, $pad-h: 28px) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -40,78 +39,53 @@
 }
 
 // =========================================================
-//   CLASES DE BOTONES
+//   CLASES DE BOTONES — SISTEMA UNIFICADO
 // =========================================================
 
-// Hero principal / CTAs generales
-.btn-epic {
-    @include btn-pill(var(--col-espiritu), white, 18px, 40px);
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(77, 138, 187, 0.4);
-    font-size: 16px;
+// Primario: CTA principal, relleno sólido
+.btn-primario {
+    @include btn-pill(var(--col-bilbao), white, 16px, 36px);
+    font-size: 1rem;
+    box-shadow: 0 6px 20px rgba(77, 138, 187, 0.28);
 
     &:hover {
-        box-shadow: 0 20px 40px rgba(77, 138, 187, 0.6);
-        background-color: white;
-        color: var(--col-bilbao);
+        background-color: var(--col-herencia);
+        box-shadow: 0 12px 30px rgba(55, 76, 105, 0.35);
     }
 }
 
-// Strip de blog (home)
-.btn-blog-cta {
-    @include btn-pill(var(--col-bilbao), white, 16px, 32px);
-    white-space: nowrap;
-    font-size: 0.98rem;
-    box-shadow: 0 12px 28px rgba(77, 138, 187, 0.28);
-    transition: all 0.4s var(--transition-bezi);
+// Secundario: acción complementaria, contorno
+.btn-secundario {
+    @include btn-outline(var(--col-bilbao), var(--col-bilbao), 14px, 34px);
+    font-size: 1rem;
 
     &:hover {
-        background-color: var(--col-espiritu);
-        box-shadow: 0 20px 36px rgba(125, 198, 229, 0.35);
+        background: var(--col-bilbao);
+        color: white;
+        box-shadow: 0 8px 20px rgba(77, 138, 187, 0.25);
     }
 }
 
-// Sección alumni (outline)
-.btn-alumni {
-    font-size: 16px;
-    @include btn-outline(var(--col-espiritu), var(--col-espiritu), 16px, 36px);
+// Terciario: fondo blanco, texto bilbao — para secciones oscuras o degradados
+.btn-terciario {
+    @include btn-pill(white, var(--col-bilbao), 14px, 32px);
+    font-size: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 
     &:hover {
-        background: var(--col-espiritu);
         color: var(--col-herencia);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
     }
 }
 
-// CTA final de home
-.btn-final {
-    @include btn-pill(var(--col-bilbao), white, 20px, 50px);
-    font-size: 1.2rem;
-    box-shadow: 0 20px 40px rgba(77, 138, 187, 0.4);
+// =========================================================
+//   BOTONES FUNCIONALES (conservados por uso específico)
+// =========================================================
 
-    &:hover {
-        transform: translateY(-5px) scale(1.05);
-        box-shadow: 0 30px 60px rgba(77, 138, 187, 0.5);
-    }
-}
-
-// CTA dentro de artículo
-.btn-cta-article {
-    @include btn-pill(var(--col-espiritu), white, 14px, 32px);
-    font-size: 0.95rem;
-    box-shadow: 0 8px 24px rgba(125, 198, 229, 0.35);
-
-    &:hover {
-        box-shadow: 0 16px 40px rgba(125, 198, 229, 0.5);
-        background-color: white;
-        color: var(--col-bilbao);
-    }
-}
-
-// Formulario de contacto — submit
+// Formulario — submit
 .btn-submit {
     @include btn-pill(var(--col-bilbao), white, 1.2rem, 3rem);
-    display: flex; // full-width: sobreescribe inline-flex
+    display: flex;
     width: 100%;
     border: none;
     font-size: 1.1rem;
@@ -170,56 +144,6 @@
     &:hover {
         background: #25D366;
         color: white;
-    }
-}
-
-// Página en construcción
-.btn-primary {
-    @include btn-pill(var(--col-bilbao), var(--text-light), 14px, 32px);
-    display: inline-block;
-    font-size: 1rem;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(77, 138, 187, 0.2);
-
-    &:hover {
-        background-color: var(--col-herencia);
-        transform: translateY(-2px);
-    }
-}
-
-// Blog home — botones de cabecera
-.btn-blog-primary,
-.btn-blog-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 54px;
-    padding: 0 24px;
-    border-radius: 999px;
-    font-weight: 700;
-    transition: all 0.3s ease;
-}
-
-.btn-blog-primary {
-    background: var(--col-bilbao);
-    color: #fff;
-    box-shadow: 0 12px 30px rgba(77, 138, 187, 0.22);
-
-    &:hover {
-        transform: translateY(-2px);
-        background: var(--col-herencia);
-    }
-}
-
-.btn-blog-secondary {
-    border: 1px solid var(--col-borde);
-    background: #fff;
-    color: var(--col-herencia);
-
-    &:hover {
-        transform: translateY(-2px);
-        border-color: var(--col-bilbao);
-        color: var(--col-bilbao);
     }
 }
 

@@ -123,36 +123,36 @@
 
     <!-- 6. FAQ -->
     <section class="adm-faq-section reveal">
-        <div class="adm-faq-wrapper">
-            <h2 class="adm-faq-title">Preguntas frecuentes</h2>
+        <div class="faq-wrapper">
+            <h2 class="faq-title">Preguntas frecuentes</h2>
 
-            <div class="adm-faq-item">
-                <button class="adm-faq-question" aria-expanded="false">
+            <div class="faq-item">
+                <button class="faq-question" aria-expanded="false">
                     ¿Buscan excelencia académica o desarrollo humano?
-                    <span class="adm-faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
+                    <span class="faq-icon"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
                 </button>
-                <div class="adm-faq-answer"><p>Para ambas. Creemos que la excelencia sin humanidad se queda corta, y la calidez sin estructura también.</p></div>
+                <div class="faq-answer"><p>Para ambas. Creemos que la excelencia sin humanidad se queda corta, y la calidez sin estructura también.</p></div>
             </div>
-            <div class="adm-faq-item">
-                <button class="adm-faq-question" aria-expanded="false">
+            <div class="faq-item">
+                <button class="faq-question" aria-expanded="false">
                     ¿Me van a presionar para inscribirme?
-                    <span class="adm-faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
+                    <span class="faq-icon"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
                 </button>
-                <div class="adm-faq-answer"><p>No. Te orientamos con honestidad para que tomes una decisión con calma y certeza.</p></div>
+                <div class="faq-answer"><p>No. Te orientamos con honestidad para que tomes una decisión con calma y certeza.</p></div>
             </div>
-            <div class="adm-faq-item">
-                <button class="adm-faq-question" aria-expanded="false">
+            <div class="faq-item">
+                <button class="faq-question" aria-expanded="false">
                     ¿Si vivo fuera del poniente, vale la pena?
-                    <span class="adm-faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
+                    <span class="faq-icon"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
                 </button>
-                <div class="adm-faq-answer"><p>Sí. Muchas familias llegan desde zonas más lejanas cuando nos conocen. Les apoyamos con opciones y rutas de transporte.</p></div>
+                <div class="faq-answer"><p>Sí. Muchas familias llegan desde zonas más lejanas cuando nos conocen. Les apoyamos con opciones y rutas de transporte.</p></div>
             </div>
-            <div class="adm-faq-item">
-                <button class="adm-faq-question" aria-expanded="false">
+            <div class="faq-item">
+                <button class="faq-question" aria-expanded="false">
                     ¿Qué hace diferente el enfoque de comunidad?
-                    <span class="adm-faq-icon-wrap"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
+                    <span class="faq-icon"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span>
                 </button>
-                <div class="adm-faq-answer"><p>La cercanía no es discurso, se vive en el acompañamiento y en la convivencia diaria. Buscamos que cada estudiante se sienta visto.</p></div>
+                <div class="faq-answer"><p>La cercanía no es discurso, se vive en el acompañamiento y en la convivencia diaria. Buscamos que cada estudiante se sienta visto.</p></div>
             </div>
         </div>
     </section>
@@ -164,7 +164,7 @@
             <div class="adm-cta-content">
                 <h2>Empecemos bien</h2>
                 <p>Si lo que buscas es una escuela que combine excelencia y humanidad, aquí podemos empezar bien.</p>
-                <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20de%20admisiones,%20me%20gustó%20y%20quiero%20conocer%20el%20colegio%20en%20una%20visita%20guiada." class="btn-epic">Agenda una visita</a>
+                <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20de%20admisiones,%20me%20gustó%20y%20quiero%20conocer%20el%20colegio%20en%20una%20visita%20guiada." class="btn-primario">Agenda una visita</a>
             </div>
         </div>
     </section>

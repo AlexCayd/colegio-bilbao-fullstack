@@ -75,7 +75,7 @@
         <div class="footer-container">
             <div class="footer-header">
                 <a href="/" class="footer-logo-link" aria-label="Ir al inicio de Colegio Bilbao">
-                    <img src="../../assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="footer-logo-img" loading="lazy">
+                    <img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="footer-logo-img" loading="lazy">
                 </a>
                 <div class="footer-social-desktop">
                     <span style="margin-right: 8px;">Síguenos</span>
