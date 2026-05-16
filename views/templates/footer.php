@@ -24,7 +24,7 @@
                         <p><strong>Dirección:</strong><br>Tlalmimilolpan 39, San Mateo Tlaltenango,<br>Cuajimalpa de Morelos, 05600 Ciudad de México, CDMX</p>
                         <p style="margin-top:12px"><strong>Teléfonos:</strong></p>
                         <p>Conmutador: <a href="tel:+5558101346">55 5810 1346</a></p>
-                        <p>Admisiones:<br> <a href="tel:+525549839745">+52 55 4983 9745</a><br><a href="tel:+525614612682">+52 56 1461 2682</a></p>
+                        <p>Admisiones:<br><a href="tel:+525614612682">+52 56 1461 2682</a></p>
                         <p style="margin-top:12px"><a href="/contacto">Ver ubicación y mapa →</a></p>
                     </div>
                     <div class="footer-social-mobile">

@@ -180,7 +180,7 @@
                         
                         <h3 style="font-size: 1.3rem; color:var(--col-bilbao); margin-bottom: 1rem; font-weight:700;">¿Quieres verlo en acción?</h3>
                         <p style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 1.5rem;">Agenda una visita y descubre cómo aprendemos.</p>
-                        <a href="/modelo-educativo/filosofia-y-metodologia/" class="btn-primario">Explorar Metodologías</a>
+                        <a href="/modelo-educativo/filosofia-y-metodologia" class="btn-primario">Explorar Metodologías</a>
                     </div>
 
                 </div>

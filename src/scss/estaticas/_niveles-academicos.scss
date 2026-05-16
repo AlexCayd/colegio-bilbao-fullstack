@@ -101,7 +101,7 @@
 
 .intro-text {
     p {
-        font-size: 1.25rem;
+        font-size: 1rem;
         color: var(--col-herencia);
         line-height: 1.8;
         margin-bottom: 24px;
@@ -130,11 +130,12 @@
 
 .learning-card {
     background: #fff;
-    padding: 32px;
+    padding: 24px;
     border-radius: 20px;
     text-align: center;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
     transition: transform 0.3s;
+    font-size: 18px;
 
     &:hover { transform: translateY(-5px); }
 }
@@ -176,25 +177,31 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
 }
 
 .cta-content {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
     text-align: center;
     width: 100%;
+    gap: 20px;
 }
 
 .cta-h2 {
     font-size: 2rem;
     color: var(--col-bilbao);
-    margin-bottom: 16px;
     text-align: center;
+    margin-bottom: 0;
 }
 
 .cta-p {
     font-size: 1.1rem;
-    margin: 0 auto 32px;
     max-width: 600px;
+    text-align: center;
 }
 
 // =========================================================
@@ -455,6 +462,9 @@
         @media (min-width: 768px) { text-align: justify; }
     }
 
+    #resumen .intro-text { font-size: 1rem; }
+    #idiomas .organic-text p { font-size: 1rem; }
+
     @include faq-accordion(900px);
 }
 
@@ -484,6 +494,8 @@
         }
     }
 
+    #acompanamiento .organic-text p { font-size: 1rem; }
+
     @include faq-accordion(900px);
 }
 
@@ -508,6 +520,8 @@
             text-align: left;
         }
     }
+
+    #vocacional .organic-text p { font-size: 1rem; }
 
     @include faq-accordion(900px);
 }

@@ -349,7 +349,7 @@ h2.section-title {
     @media (min-width: 768px) {
         text-align: left;
 
-        h2, p { text-align: left; }
+        h2, p:not(.cta-p) { text-align: left; }
     }
 }
 

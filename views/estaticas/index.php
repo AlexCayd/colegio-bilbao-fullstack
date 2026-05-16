@@ -78,7 +78,7 @@
             
             <div class="levels-container">
                 <!-- Preescolar -->
-                <a href="niveles-academicos/preescolar/" class="level-card">
+                <a href="niveles-academicos/preescolar" class="level-card">
                     <img src="build/assets/img/niveles-academicos/preescolar/nino-burbujas.jpg" alt="Preescolar" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">01</span>
@@ -89,8 +89,8 @@
                 </a>
                 
                 <!-- Primaria -->
-                <a href="niveles-academicos/primaria/" class="level-card">
-                    <img src="build/assets/img/niveles-academicos/primaria/alumnos-abrazados.jpg" alt="Primaria" class="level-bg" loading="lazy">
+                <a href="niveles-academicos/primaria" class="level-card">
+                    <img src="build/assets/img/niveles-academicos/primaria/alumna-escribiendo.jpg" alt="Primaria" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">02</span>
                         <h3 class="level-title">Primaria</h3>
@@ -100,7 +100,7 @@
                 </a>
 
                 <!-- Secundaria -->
-                <a href="niveles-academicos/secundaria/" class="level-card">
+                <a href="niveles-academicos/secundaria" class="level-card">
                     <img src="build/assets/img/niveles-academicos/secundaria/alumnas-argumentando.jpg" alt="Secundaria" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">03</span>
@@ -111,7 +111,7 @@
                 </a>
 
                 <!-- Preparatoria -->
-                <a href="niveles-academicos/preparatoria/" class="level-card">
+                <a href="niveles-academicos/preparatoria" class="level-card">
                     <img src="build/assets/img/niveles-academicos/preparatoria/alumnos-felices.jpg" alt="Preparatoria" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">04</span>
@@ -184,7 +184,7 @@
                         </div>
                     </a>
                     <!-- Slide 2 -->
-                    <a href="/conocenos/equipo-educativo/" class="carousel-slide">
+                    <a href="/conocenos/equipo-educativo" class="carousel-slide">
                         <img src="build/assets/img/conocenos/quienes-somos/relacion-maestro-alumno.jpg" alt="Equipo educativo" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Equipo educativo</span>
@@ -192,7 +192,7 @@
                         </div>
                     </a>
                     <!-- Slide 3 -->
-                    <a href="/conocenos/instalaciones/" class="carousel-slide">
+                    <a href="/conocenos/instalaciones" class="carousel-slide">
                         <img src="build/assets/img/conocenos/instalaciones/edificio-preescolar.jpg" alt="Instalaciones" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Instalaciones</span>
@@ -200,7 +200,7 @@
                         </div>
                     </a>
                     <!-- Slide 4 -->
-                    <a href="/modelo-educativo/idiomas/" class="carousel-slide">
+                    <a href="/modelo-educativo/idiomas" class="carousel-slide">
                         <img src="build/assets/img/modelo-educativo/idiomas/kids.jpg" alt="Idiomas" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Idiomas</span>
@@ -208,7 +208,7 @@
                         </div>
                     </a>
                     <!-- Slide 5 -->
-                    <a href="/vida-escolar/futuro-universitario-becas/" class="carousel-slide">
+                    <a href="/vida-escolar/futuro-universitario-becas" class="carousel-slide">
                         <img src="build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg" alt="Futuro universitario" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Futuro universitario</span>
@@ -217,14 +217,14 @@
                     </a>
                      <!-- Slide 6 (Duplicate for loop) -->
                     <a href="/admisiones/inicio" class="carousel-slide">
-                        <img src="build/assets/img/admisiones/inicio/llegando-al-bilbao.jpg" alt="Admisiones" loading="lazy">
+                        <img src="build/assets/img/admisiones/inicio/vida.jpg" alt="Admisiones" loading="lazy">
                          <div class="carousel-overlay">
                             <span class="slide-title"> Admisiones </span>
                             <span class="slide-cta">Ver Más →</span>
                         </div>
                     </a>
                     <!-- Slide 7 (Duplicate for loop safety) -->
-                     <a href="/conocenos/equipo-educativo/" class="carousel-slide">
+                     <a href="/conocenos/equipo-educativo" class="carousel-slide">
                         <img src="build/assets/img/conocenos/equipo-educativo/relacion-maestro-alumno.jpg" alt="Equipo educativo" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Equipo educativo</span>

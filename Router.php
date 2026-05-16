@@ -20,7 +20,14 @@ class Router
     public function comprobarRutas()
     {
 
-        $url_actual = $_SERVER['PATH_INFO'] ?? '/';
+        // IIS guarda la URL original antes del rewrite en HTTP_X_ORIGINAL_URL
+        $url_actual = parse_url(
+            $_SERVER['HTTP_X_ORIGINAL_URL']
+            ?? $_SERVER['UNENCODED_URL']
+            ?? $_SERVER['REQUEST_URI']
+            ?? '/',
+            PHP_URL_PATH
+        );
         $method = $_SERVER['REQUEST_METHOD'];
 
         if ($method === 'GET') {

@@ -4245,7 +4245,7 @@ h2.section-title::after {
   .cta-content {
     text-align: left;
   }
-  .cta-content h2, .cta-content p {
+  .cta-content h2, .cta-content p:not(.cta-p) {
     text-align: left;
   }
 }
@@ -6936,7 +6936,7 @@ h2.section-title::after {
 }
 
 .intro-text p {
-  font-size: 1.25rem;
+  font-size: 1rem;
   color: var(--col-herencia);
   line-height: 1.8;
   margin-bottom: 24px;
@@ -6963,11 +6963,12 @@ h2.section-title::after {
 
 .learning-card {
   background: #fff;
-  padding: 32px;
+  padding: 24px;
   border-radius: 20px;
   text-align: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
   transition: transform 0.3s;
+  font-size: 18px;
 }
 .learning-card:hover {
   transform: translateY(-5px);
@@ -7013,25 +7014,31 @@ h2.section-title::after {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
 .cta-content {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
   text-align: center;
   width: 100%;
+  gap: 20px;
 }
 
 .cta-h2 {
   font-size: 2rem;
   color: var(--col-bilbao);
-  margin-bottom: 16px;
   text-align: center;
+  margin-bottom: 0;
 }
 
 .cta-p {
   font-size: 1.1rem;
-  margin: 0 auto 32px;
   max-width: 600px;
+  text-align: center;
 }
 
 .page-preescolar .intro-section {
@@ -7350,6 +7357,12 @@ h2.section-title::after {
     text-align: justify;
   }
 }
+.page-primaria #resumen .intro-text {
+  font-size: 1rem;
+}
+.page-primaria #idiomas .organic-text p {
+  font-size: 1rem;
+}
 .page-primaria .faq-wrapper {
   max-width: 900px;
   margin: 0 auto;
@@ -7451,6 +7464,9 @@ h2.section-title::after {
     text-align: left;
   }
 }
+.page-secundaria #acompanamiento .organic-text p {
+  font-size: 1rem;
+}
 .page-secundaria .faq-wrapper {
   max-width: 900px;
   margin: 0 auto;
@@ -7548,6 +7564,9 @@ h2.section-title::after {
     align-items: center;
     text-align: left;
   }
+}
+.page-preparatoria #vocacional .organic-text p {
+  font-size: 1rem;
 }
 .page-preparatoria .faq-wrapper {
   max-width: 900px;
