@@ -5,7 +5,7 @@
             <!-- Poster SOLO móvil -->
             <img
                 class="hero-poster"
-                src="build/assets/img/home/poster1.jpg"
+                src="/build/assets/img/home/poster1.jpg"
                 alt=""
                 loading="eager"
                 decoding="async"
@@ -19,9 +19,9 @@
                 loop
                 playsinline
                 preload="metadata"
-                poster="build/assets/img/home/poster2.jpg"
+                poster="/build/assets/img/home/poster2.jpg"
             >
-                <source src="build/assets/vid/home/bg_high.mp4" type="video/mp4" />
+                <source src="/build/assets/vid/home/bg_high.mp4" type="video/mp4" />
             </video>
 
             <div class="hero-overlay"></div>
@@ -79,7 +79,7 @@
             <div class="levels-container">
                 <!-- Preescolar -->
                 <a href="niveles-academicos/preescolar" class="level-card">
-                    <img src="build/assets/img/niveles-academicos/preescolar/nino-burbujas.jpg" alt="Preescolar" class="level-bg" loading="lazy">
+                    <img src="/build/assets/img/niveles-academicos/preescolar/nino-burbujas.jpg" alt="Preescolar" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">01</span>
                         <h3 class="level-title">Preescolar</h3>
@@ -90,7 +90,7 @@
                 
                 <!-- Primaria -->
                 <a href="niveles-academicos/primaria" class="level-card">
-                    <img src="build/assets/img/niveles-academicos/primaria/alumna-escribiendo.jpg" alt="Primaria" class="level-bg" loading="lazy">
+                    <img src="/build/assets/img/niveles-academicos/primaria/alumna-escribiendo.jpg" alt="Primaria" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">02</span>
                         <h3 class="level-title">Primaria</h3>
@@ -101,7 +101,7 @@
 
                 <!-- Secundaria -->
                 <a href="niveles-academicos/secundaria" class="level-card">
-                    <img src="build/assets/img/niveles-academicos/secundaria/alumnas-argumentando.jpg" alt="Secundaria" class="level-bg" loading="lazy">
+                    <img src="/build/assets/img/niveles-academicos/secundaria/alumnas-argumentando.jpg" alt="Secundaria" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">03</span>
                         <h3 class="level-title">Secundaria</h3>
@@ -112,7 +112,7 @@
 
                 <!-- Preparatoria -->
                 <a href="niveles-academicos/preparatoria" class="level-card">
-                    <img src="build/assets/img/niveles-academicos/preparatoria/alumnos-felices.jpg" alt="Preparatoria" class="level-bg" loading="lazy">
+                    <img src="/build/assets/img/niveles-academicos/preparatoria/alumnos-felices.jpg" alt="Preparatoria" class="level-bg" loading="lazy">
                     <div class="level-content">
                         <span class="panel-num">04</span>
                         <h3 class="level-title">Preparatoria</h3>
@@ -177,7 +177,7 @@
                 <div class="carousel-track">
                     <!-- Slide 1 -->
                     <a href="/admisiones/inicio" class="carousel-slide">
-                        <img src="build/assets/img/admisiones/inicio/llegando-al-bilbao.jpg" alt="Admisiones" loading="lazy"> 
+                        <img src="/build/assets/img/admisiones/inicio/llegando-al-bilbao.jpg" alt="Admisiones" loading="lazy"> 
                         <div class="carousel-overlay">
                             <span class="slide-title">Admisiones</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -185,7 +185,7 @@
                     </a>
                     <!-- Slide 2 -->
                     <a href="/conocenos/equipo-educativo" class="carousel-slide">
-                        <img src="build/assets/img/conocenos/quienes-somos/relacion-maestro-alumno.jpg" alt="Equipo educativo" loading="lazy">
+                        <img src="/build/assets/img/conocenos/quienes-somos/relacion-maestro-alumno.jpg" alt="Equipo educativo" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Equipo educativo</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -193,7 +193,7 @@
                     </a>
                     <!-- Slide 3 -->
                     <a href="/conocenos/instalaciones" class="carousel-slide">
-                        <img src="build/assets/img/conocenos/instalaciones/edificio-preescolar.jpg" alt="Instalaciones" loading="lazy">
+                        <img src="/build/assets/img/conocenos/instalaciones/edificio-preescolar.jpg" alt="Instalaciones" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Instalaciones</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -201,7 +201,7 @@
                     </a>
                     <!-- Slide 4 -->
                     <a href="/modelo-educativo/idiomas" class="carousel-slide">
-                        <img src="build/assets/img/modelo-educativo/idiomas/kids.jpg" alt="Idiomas" loading="lazy">
+                        <img src="/build/assets/img/modelo-educativo/idiomas/kids.jpg" alt="Idiomas" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Idiomas</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -209,7 +209,7 @@
                     </a>
                     <!-- Slide 5 -->
                     <a href="/vida-escolar/futuro-universitario-becas" class="carousel-slide">
-                        <img src="build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg" alt="Futuro universitario" loading="lazy">
+                        <img src="/build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg" alt="Futuro universitario" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Futuro universitario</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -217,7 +217,7 @@
                     </a>
                      <!-- Slide 6 (Duplicate for loop) -->
                     <a href="/admisiones/inicio" class="carousel-slide">
-                        <img src="build/assets/img/admisiones/inicio/vida.jpg" alt="Admisiones" loading="lazy">
+                        <img src="/build/assets/img/admisiones/inicio/vida.jpg" alt="Admisiones" loading="lazy">
                          <div class="carousel-overlay">
                             <span class="slide-title"> Admisiones </span>
                             <span class="slide-cta">Ver Más →</span>
@@ -225,7 +225,7 @@
                     </a>
                     <!-- Slide 7 (Duplicate for loop safety) -->
                      <a href="/conocenos/equipo-educativo" class="carousel-slide">
-                        <img src="build/assets/img/conocenos/equipo-educativo/relacion-maestro-alumno.jpg" alt="Equipo educativo" loading="lazy">
+                        <img src="/build/assets/img/conocenos/equipo-educativo/relacion-maestro-alumno.jpg" alt="Equipo educativo" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Equipo educativo</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -233,7 +233,7 @@
                     </a>
                      <!-- Slide 8 (Duplicate for loop safety) -->
                      <a href="/modelo-educativo/idiomas/" class="carousel-slide">
-                        <img src="build/assets/img/modelo-educativo/idiomas/kids.jpg" alt="Idiomas" loading="lazy">
+                        <img src="/build/assets/img/modelo-educativo/idiomas/kids.jpg" alt="Idiomas" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Instalaciones</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -241,7 +241,7 @@
                     </a>
                      <!-- Slide 9 (Duplicate for loop safety) -->
                     <a href="/modelo-educativo/ciencias/" class="carousel-slide">
-                        <img src="build/assets/img/modelo-educativo/aprendizaje-integral/ciencia.jpg" alt="Idiomas" loading="lazy">
+                        <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/ciencia.jpg" alt="Idiomas" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title"> Idiomas </span>
                             <span class="slide-cta">Ver Más →</span>
@@ -249,7 +249,7 @@
                     </a>
                     <!-- Slide 10 (Duplicate for loop safety) -->
                     <a href="/vida-escolar/futuro-universitario-becas/" class="carousel-slide">
-                        <img src="build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg" alt="Futuro universitario" loading="lazy">
+                        <img src="/build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg" alt="Futuro universitario" loading="lazy">
                         <div class="carousel-overlay">
                             <span class="slide-title">Futuro universitario</span>
                             <span class="slide-cta">Ver Más →</span>
@@ -320,21 +320,21 @@
                 
                 <div class="news-grid">
                     <a href="https://www.excelsior.com.mx/nacional/egresados-del-colegio-bilbao-con-acceso-a-mas-de-200-universidades-en-mexico-y-el-mundo" class="news-item featured reveal">
-                        <img src="build/assets/img/inicio/nota-1.jpeg" alt="Noticia Principal" class="news-img" loading="lazy">
+                        <img src="/build/assets/img/inicio/nota-1.jpeg" alt="Noticia Principal" class="news-img" loading="lazy">
                         <div class="news-overlay">
                             <span class="news-date">Destacado</span>
                             <h3 class="news-title-card">EXCELSIOR: Egresados del Colegio Bilbao, con acceso a más de 200 universidades en México y el mundo</h3>
                         </div>
                     </a>
                     <a href="https://www.youtube.com/watch?v=trRy2F8KFcU" class="news-item reveal" style="transition-delay:0.1s">
-                        <img src="build/assets/img/inicio/entrevista.png" alt="Noticia 2" class="news-img" loading="lazy">
+                        <img src="/build/assets/img/inicio/entrevista.png" alt="Noticia 2" class="news-img" loading="lazy">
                         <div class="news-overlay">
                             <span class="news-date">Destacado</span>
                             <h3 class="news-title-card">Entrevista: ¿Qué hace diferente a una escuela cuando realmente se convierte en comunidad?</h3>
                         </div>
                     </a>
                     <a href="https://www.youtube.com/watch?v=gDbAl_3y9Bc" class="news-item reveal" style="transition-delay:0.2s">
-                        <img src="build/assets/img/inicio/entrevista-2.jpg" alt="Noticia 3" class="news-img" loading="lazy">
+                        <img src="/build/assets/img/inicio/entrevista-2.jpg" alt="Noticia 3" class="news-img" loading="lazy">
                         <div class="news-overlay">
                             <span class="news-date">Destacado</span>
                             <h3 class="news-title-card">Entrevista: ¿Qué se siente volver a casa… ahora como maestro?</h3>

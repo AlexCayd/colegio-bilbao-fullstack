@@ -9,8 +9,8 @@
     <title>Colegio Bilbao | Formando personas para la vida</title>
 
     <!-- FAVICON -->
-    <link rel="shortcut icon" href="assets/img/global/favicon.png" type="image/png">
-    <link rel="icon" href="assets/img/global/favicon.png" type="image/png">
+    <link rel="shortcut icon" href="/build/assets/img/global/favicon.png" type="image/png">
+    <link rel="icon" href="/build/assets/img/global/favicon.png" type="image/png">
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8XVWCDM02P"></script>
@@ -25,14 +25,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/build/css/app.css">
 </head>
 <body>
 
     <!-- HEADER -->
     <header class="header-bar">
         <div class="header-inner">
-            <a href="/" class="logo-link"><img src="assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy"></a>
+            <a href="/" class="logo-link"><img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy"></a>
             <div class="header-controls">
                 <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
                 <button class="menu-trigger"><div class="hamburger-icon"><span></span><span></span><span></span></div></button>
@@ -44,7 +44,7 @@
     <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Menú principal">
         <div class="overlay-header">
             <div class="header-inner">
-                <a href="/" class="logo-link"><img src="assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy"></a>
+                <a href="/" class="logo-link"><img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy"></a>
                 <div class="header-controls">
                     <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
                     <button id="close-menu-btn" class="close-btn" aria-label="Cerrar menú"></button>
@@ -148,6 +148,6 @@
         </div>
     </footer>
 
-    <script src="app.js"></script>
+    <script src="/build/js/bundle.min.js"></script>
 </body>
 </html>

@@ -85,7 +85,7 @@ class ActiveRecord {
     public function sincronizar($args=[]) { 
         foreach($args as $key => $value) {
           if(property_exists($this, $key) && !is_null($value)) {
-            $this->$key = $value;
+            $this->$key = is_string($value) ? trim($value) : $value;
           }
         }
     }
@@ -139,9 +139,9 @@ class ActiveRecord {
         // Insertar en la base de datos
         $query = " INSERT INTO " . static::$tabla . " ( ";
         $query .= join(', ', array_keys($atributos));
-        $query .= " ) VALUES (' "; 
+        $query .= " ) VALUES ('";
         $query .= join("', '", array_values($atributos));
-        $query .= " ') ";
+        $query .= "') ";
 
         // debuguear($query); // Descomentar si no te funciona algo
 

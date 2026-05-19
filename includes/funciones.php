@@ -7,6 +7,5 @@ function debuguear($variable) : string {
     exit;
 }
 function s($html) : string {
-    $s = htmlspecialchars($html);
-    return $s;
+    return htmlspecialchars($html ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }

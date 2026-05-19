@@ -13,3 +13,5 @@ if (!$db) {
     echo "error de depuración: " . mysqli_connect_error();
     exit;
 }
+
+mysqli_set_charset($db, 'utf8mb4');

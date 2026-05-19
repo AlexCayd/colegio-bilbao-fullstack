@@ -171,4 +171,5 @@ class EstaticasController {
     public static function en(Router $router) {
         $router->render('estaticas/en/en', ['titulo' => 'Colegio Bilbao — English']);
     }
+
 }

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/app.php';
 use MVC\Router;
 use Controllers\EstaticasController;
 use Controllers\AuthController;
+use Controllers\BlogController;
 
 $router = new Router();
 
@@ -94,5 +95,36 @@ $router->get('/mensaje', [AuthController::class, 'mensaje']);
 $router->get('/confirmar-cuenta', [AuthController::class, 'confirmar']);
 
 
+
+// Blog Público
+$router->get('/blog', [BlogController::class, 'blogPublico']);
+$router->pattern('/blog/{slug}', [BlogController::class, 'verArticulo']);
+
+// Blog Admin
+$router->get('/blog/login', [BlogController::class, 'login']);
+$router->post('/blog/login', [BlogController::class, 'login']);
+$router->post('/blog/logout', [BlogController::class, 'logout']);
+
+$router->get('/blog/dashboard', [BlogController::class, 'dashboard']);
+
+$router->get('/blog/articulos', [BlogController::class, 'articulos']);
+$router->get('/blog/articulos/crear', [BlogController::class, 'crearArticulo']);
+$router->post('/blog/articulos/crear', [BlogController::class, 'crearArticulo']);
+$router->get('/blog/articulos/editar', [BlogController::class, 'editarArticulo']);
+$router->post('/blog/articulos/editar', [BlogController::class, 'editarArticulo']);
+
+$router->get('/blog/usuarios', [BlogController::class, 'usuarios']);
+$router->get('/blog/usuarios/crear', [BlogController::class, 'crearUsuario']);
+$router->post('/blog/usuarios/crear', [BlogController::class, 'crearUsuario']);
+$router->get('/blog/usuarios/editar', [BlogController::class, 'editarUsuario']);
+$router->post('/blog/usuarios/editar', [BlogController::class, 'editarUsuario']);
+$router->post('/blog/usuarios/eliminar', [BlogController::class, 'eliminarUsuario']);
+
+$router->get('/blog/categorias', [BlogController::class, 'categorias']);
+$router->get('/blog/categorias/crear', [BlogController::class, 'crearCategoria']);
+$router->post('/blog/categorias/crear', [BlogController::class, 'crearCategoria']);
+$router->get('/blog/categorias/editar', [BlogController::class, 'editarCategoria']);
+$router->post('/blog/categorias/editar', [BlogController::class, 'editarCategoria']);
+$router->post('/blog/categorias/eliminar', [BlogController::class, 'eliminarCategoria']);
 
 $router->comprobarRutas();

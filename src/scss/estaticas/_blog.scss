@@ -53,7 +53,8 @@
 
 .blog-home-lead {
     max-width: 760px;
-    font-size: 1.12rem;
+    font-size: 0.95rem;
+    font-weight: 300;
     line-height: 1.8;
     color: var(--col-texto);
     opacity: 0.9;
@@ -64,6 +65,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
+
+    .btn-primario,
+    .btn-secundario {
+        font-size: 0.875rem;
+        padding: 12px 26px;
+    }
 }
 
 /* ARTÍCULO DESTACADO */
@@ -87,6 +94,8 @@
 
 .blog-section-copy {
     max-width: 540px;
+    font-size: 0.9rem;
+    font-weight: 300;
     color: var(--col-texto);
     opacity: 0.85;
 }
@@ -152,7 +161,8 @@
 }
 
 .featured-main-excerpt {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    font-weight: 300;
     line-height: 1.75;
     opacity: 0.94;
     margin-bottom: 18px;
@@ -216,6 +226,8 @@
 
 .mini-post-excerpt,
 .post-card-excerpt {
+    font-size: 0.88rem;
+    font-weight: 300;
     color: var(--col-texto);
     opacity: 0.85;
     line-height: 1.7;
@@ -276,6 +288,7 @@
     align-items: center;
     gap: 8px;
     margin-top: 18px;
+    font-size: 0.875rem;
     font-weight: 700;
     color: var(--col-bilbao);
 
@@ -329,7 +342,14 @@
     p {
         max-width: 720px;
         margin: 0 auto 24px;
+        font-size: 0.95rem;
+        font-weight: 300;
         line-height: 1.75;
         opacity: 0.95;
+    }
+
+    .btn-terciario {
+        font-size: 0.875rem;
+        padding: 12px 28px;
     }
 }

@@ -25,8 +25,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css">
-
     <!-- GSAP — defer evita bloqueo de renderizado; preconnect adelanta la conexión -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
