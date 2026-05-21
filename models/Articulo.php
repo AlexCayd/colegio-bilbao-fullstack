@@ -301,6 +301,69 @@ class Articulo extends ActiveRecord {
         return $data;
     }
 
+    /**
+     * Devuelve hasta 3 artículos recomendados:
+     *   'reciente'  → el publicado más recientemente (≠ actual)
+     *   'categoria' → uno de la misma categoría al azar (≠ actual ni reciente)
+     *   'aleatorio' → uno al azar de los restantes
+     * Cada slot puede ser null si no hay artículos disponibles.
+     */
+    public static function recomendados(int $excluirId, ?int $categoriaId): array {
+        $excluirId = max(0, $excluirId);
+        $yaIds     = [$excluirId ?: 0];
+
+        $cols = "
+            a.*,
+            c.nombre AS categoria_nombre,
+            c.color  AS categoria_color,
+            c.slug   AS categoria_slug,
+            u.nombre AS autor_nombre,
+            u.avatar AS autor_avatar
+        ";
+        $joins = "
+            LEFT JOIN categorias c ON c.id = a.categoria_id
+            LEFT JOIN usuarios   u ON u.id = a.autor_id
+        ";
+
+        // 1. Más reciente publicado
+        $excStr   = implode(',', $yaIds);
+        $reciente = static::consultarSQL("
+            SELECT {$cols} FROM articulos a {$joins}
+            WHERE  a.estado = 'publicado' AND a.id NOT IN ({$excStr})
+            ORDER  BY a.fecha_publicacion DESC, a.id DESC LIMIT 1
+        ")[0] ?? null;
+        if ($reciente) $yaIds[] = (int) $reciente->id;
+
+        // 2. Misma categoría (si la hay y existe otro artículo)
+        $categoria = null;
+        if ($categoriaId) {
+            $catId  = (int) $categoriaId;
+            $excStr = implode(',', $yaIds);
+            $categoria = static::consultarSQL("
+                SELECT {$cols} FROM articulos a {$joins}
+                WHERE  a.estado = 'publicado'
+                       AND a.categoria_id = {$catId}
+                       AND a.id NOT IN ({$excStr})
+                ORDER  BY RAND() LIMIT 1
+            ")[0] ?? null;
+            if ($categoria) $yaIds[] = (int) $categoria->id;
+        }
+
+        // 3. Aleatorio de los restantes
+        $excStr   = implode(',', $yaIds);
+        $aleatorio = static::consultarSQL("
+            SELECT {$cols} FROM articulos a {$joins}
+            WHERE  a.estado = 'publicado' AND a.id NOT IN ({$excStr})
+            ORDER  BY RAND() LIMIT 1
+        ")[0] ?? null;
+
+        return [
+            'reciente'  => $reciente,
+            'categoria' => $categoria,
+            'aleatorio' => $aleatorio,
+        ];
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static function slugify(string $str): string {

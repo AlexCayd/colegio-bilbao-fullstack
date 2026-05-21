@@ -1,4 +1,43 @@
 /* =========================================================
+   VIEW TRANSITIONS — blog section
+========================================================= */
+
+@view-transition {
+    navigation: auto;
+}
+
+/* Fade suave para el fondo de página (todo excepto los elementos con nombre propio) */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.32s;
+    animation-timing-function: ease-out;
+}
+
+::view-transition-old(root) { animation-name: vt-fade-out; }
+::view-transition-new(root) { animation-name: vt-fade-in; }
+
+@keyframes vt-fade-out {
+    to { opacity: 0; }
+}
+
+@keyframes vt-fade-in {
+    from { opacity: 0; }
+}
+
+/* Elementos con nombre propio (card → hero): duración más larga, easing enérgico */
+::view-transition-group(*) {
+    animation-duration: 0.5s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Los snapshots del elemento compartido se comportan como imágenes que rellenan su caja */
+::view-transition-old(*),
+::view-transition-new(*) {
+    object-fit: cover;
+    overflow: clip;
+}
+
+/* =========================================================
    BLOG HOME — listado de artículos
 ========================================================= */
 

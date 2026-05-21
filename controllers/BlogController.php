@@ -37,12 +37,17 @@ class BlogController {
             exit;
         }
 
-        $tags = $articulo->obtenerTags();
+        $tags         = $articulo->obtenerTags();
+        $recomendados = Articulo::recomendados(
+            (int) $articulo->id,
+            $articulo->categoria_id ? (int) $articulo->categoria_id : null
+        );
 
         $router->renderBlog('blog/articulo', [
-            'titulo'   => s($articulo->titulo) . ' | Voces Bilbao',
-            'articulo' => $articulo,
-            'tags'     => $tags,
+            'titulo'       => s($articulo->titulo) . ' | Voces Bilbao',
+            'articulo'     => $articulo,
+            'tags'         => $tags,
+            'recomendados' => $recomendados,
         ]);
     }
 
