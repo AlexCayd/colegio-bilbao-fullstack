@@ -1,10 +1,9 @@
 const heroPhrases = [
-    "Learning to become yourself",
-    "Tu voz, tu camino",
-    "Think free. Act responsible.",
-    "Naturaleza que despierta tu mente",
-    "Belong. Explore. Build your future.",
-    "Aquí tu voz importa."
+    "Aprende a ser quien eres",
+    "Pertenece. Explora. Construye tu futuro",
+    "Piensa libremente. Crea con libertad",
+    "Tu lugar para cuestionar el mundo",
+    "Raíces profundas. Horizonte abierto"
 ];
 
 const titleElement = document.getElementById('dynamic-hero-title');

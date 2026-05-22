@@ -55,6 +55,16 @@ class Categoria extends ActiveRecord {
         return static::consultarSQL($query);
     }
 
+    public static function allConArticulosPublicados(): array {
+        $query = "
+            SELECT DISTINCT c.*
+            FROM   categorias c
+            INNER JOIN articulos a ON a.categoria_id = c.id AND a.estado = 'publicado'
+            ORDER BY c.nombre ASC
+        ";
+        return static::consultarSQL($query);
+    }
+
     public static function findConArticulos(int $id): ?self {
         $query = "
             SELECT c.*, COUNT(a.id) AS total_articulos

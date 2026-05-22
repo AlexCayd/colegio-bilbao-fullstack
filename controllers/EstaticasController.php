@@ -3,12 +3,19 @@
 namespace Controllers;
 
 use MVC\Router;
+use Model\Articulo;
 
 class EstaticasController {
 
     // ---- HOME ----
     public static function index(Router $router) {
-        $router->render('estaticas/index', ['titulo' => 'Home']);
+        Articulo::publicarProgramados();
+        $todos = Articulo::allConDetalles('publicado');
+        $articulos_recientes = array_slice($todos, 0, 5);
+        $router->render('estaticas/index', [
+            'titulo'             => 'Home',
+            'articulos_recientes' => $articulos_recientes,
+        ]);
     }
 
     // ---- CONÓCENOS ----

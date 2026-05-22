@@ -14,7 +14,7 @@ class BlogController {
     public static function blogPublico(Router $router) {
         Articulo::publicarProgramados();
         $articulos  = Articulo::allConDetalles('publicado');
-        $categorias = Categoria::all();
+        $categorias = Categoria::allConArticulosPublicados();
 
         $router->renderBlog('blog/index', [
             'titulo'     => 'Voces Bilbao | Artículos del Colegio Bilbao',
