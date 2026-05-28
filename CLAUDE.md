@@ -54,7 +54,25 @@ Conexión MySQLi en `includes/database.php`, instancia global via `ActiveRecord:
 **Tablas del blog:** `articulos`, `categorias`, `tags`, `articulo_tags`, `usuarios` (UsuarioBlog)  
 **Tablas del sitio:** `usuarios` (Usuario — registro/auth público)
 
-Seed inicial: `blog_seed_minimo.sql`
+Seed completo: `blog_seed_minimo.sql` — incluye 2 admins, 8 categorías de artículos, 5 categorías de noticias, 12 artículos y 12 noticias.
+
+### Cuentas del seed
+
+| Email | Contraseña | Rol |
+|-------|-----------|-----|
+| `admin@bilbao.edu.mx` | `Tlalmimilolpan39%` | administrador |
+| `alexander.oliva@bilbao.edu.mx` | `ColegioBilbao13` | administrador |
+
+### Paleta de colores para categorías
+
+Usar **exactamente** estos 10 colores, en este orden cromático (naranja → rojo):
+
+```
+#fc6722  #f5b400  #8ac926  #34a853  #46bdc6
+#4285f4  #4267ac  #aa2296  #ea075a  #e51022
+```
+
+Los selectores de color en `views/blog/categorias/crear.php`, `editar.php`, `views/blog/noticias/categorias/crear.php` y `editar.php` ya están configurados con esta paleta. No usar otros colores para categorías.
 
 ---
 
@@ -64,6 +82,17 @@ Seed inicial: `blog_seed_minimo.sql`
 - Salida compilada: `public/build/css/`, `public/build/js/`, `public/build/assets/`
 - **No editar** nada dentro de `public/build/` directamente; se sobreescribe con Gulp
 - Comando de watch: `npm run dev`
+
+### Imágenes subidas por PHP
+
+Los uploads de blog, noticias y avatares van a `public/build/assets/{blog,noticias,usuarios}/`. Para optimizar y generar versiones WebP:
+
+```bash
+npx gulp optimizar   # optimiza todas las imágenes subidas + genera .webp
+npx gulp build       # CSS minificado + JS + imágenes de src/ para producción
+```
+
+El watcher `npm run dev` también observa los directorios de uploads y los optimiza al detectar nuevos archivos.
 
 ---
 
@@ -112,6 +141,22 @@ Variables críticas: `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `HOST`, `EMAIL_
 
 ---
 
+## SEO
+
+`views/layout.php` soporta estas variables opcionales por página para sobrescribir los defaults:
+
+| Variable | Uso |
+|----------|-----|
+| `$seo_titulo` | `<title>` y OG title |
+| `$seo_descripcion` | `<meta description>` y OG description |
+| `$seo_imagen` | OG image (ruta relativa, ej. `/build/assets/img/...`) |
+
+Las vistas públicas de noticias y blog tienen sus propios `<head>` con OG tags completos.
+
+## Rutas del panel (protección)
+
+Todas las rutas bajo `/dashboard/*` y `/blog/articulos*`, `/blog/categorias*`, `/blog/usuarios*` requieren sesión activa. La guard `requireAuth()` en `BlogController` redirige a `/` si `$_SESSION['blog_usuario']` está vacío. `requireAdmin()` es para operaciones destructivas; los editores pueden crear/editar pero no eliminar usuarios ni categorías.
+
 ## Comandos frecuentes
 
 ```bash
@@ -121,7 +166,11 @@ php -S localhost:3000          # servidor de desarrollo
 
 # Frontend
 npm install                    # instalar deps Node
-npm run dev                    # watch SCSS + JS + imágenes
+npm run dev                    # watch SCSS + JS + imágenes + uploads
+
+# Imágenes
+npx gulp optimizar             # optimiza uploads y genera .webp
+npx gulp build                 # compilación de producción (CSS minificado)
 
 # Base de datos
 mysql -u root -p colegiobilbao < blog_seed_minimo.sql

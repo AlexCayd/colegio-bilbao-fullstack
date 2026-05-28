@@ -310,7 +310,7 @@
         <section class="voices-section">
             <div class="voices-header">
                 <span class="section-tag">Lo que dicen las familias del Colegio Bilbao</span>
-                <h2 class="voices-title">Voces Bilbao</h2>
+                <h2 class="voices-title">Familias Bilbao</h2>
                 <span class="voices-stars" aria-label="5 estrellas de 5">★★★★★</span>
             </div>
 
@@ -443,8 +443,9 @@
 
 
         <!-- ================================================
-             8. NOTICIAS (contenido institucional estático)
+             8. NOTICIAS (dinámicas desde la BD)
         ================================================ -->
+        <?php if (!empty($noticia_destacada) || !empty($noticias_recientes)): ?>
         <section class="news-section">
             <div style="max-width:1200px; margin:0 auto;">
 
@@ -454,8 +455,7 @@
                         Noticias
                     </div>
                     <h2 class="content-section-title">Momentos Bilbao</h2>
-                    <p class="content-section-sub">Lo que el mundo está diciendo sobre nuestra comunidad</p>
-                    <!-- Alex al costado derecho del header -->
+                    <p class="content-section-sub">Lo último de nuestra comunidad escolar</p>
                     <div class="news-alex-wrap" aria-hidden="true">
                         <img src="/build/assets/img/conocenos/quienes-somos/alex-dice.png"
                              alt="" loading="lazy">
@@ -463,48 +463,56 @@
                 </div>
 
                 <div class="news-grid">
-                    <a href="https://www.excelsior.com.mx/nacional/egresados-del-colegio-bilbao-con-acceso-a-mas-de-200-universidades-en-mexico-y-el-mundo"
-                       class="news-item featured reveal"
-                       target="_blank" rel="noopener">
-                        <img src="/build/assets/img/inicio/nota-1.jpeg" alt="Nota Excélsior" class="news-img" loading="lazy">
+                    <?php if (!empty($noticia_destacada)): ?>
+                    <a href="/noticias/<?= s($noticia_destacada->slug) ?>"
+                       class="news-item featured reveal">
+                        <?php if (!empty($noticia_destacada->portada)): ?>
+                        <img src="<?= s($noticia_destacada->portada) ?>"
+                             alt="<?= s($noticia_destacada->portada_alt ?? $noticia_destacada->titulo) ?>"
+                             class="news-img" loading="eager">
+                        <?php else: ?>
+                        <img src="/build/assets/img/blog/blog-placeholder.png" alt="" class="news-img" loading="lazy">
+                        <?php endif; ?>
                         <div class="news-overlay">
-                            <span class="news-source-badge">Excélsior</span>
-                            <h3 class="news-title-card">Egresados del Colegio Bilbao, con acceso a más de 200 universidades en México y el mundo</h3>
-                            <span class="news-arrow">Leer artículo →</span>
+                            <?php if (!empty($noticia_destacada->categoria_nombre)): ?>
+                            <span class="news-source-badge"<?= !empty($noticia_destacada->categoria_color) ? ' style="background:' . s($noticia_destacada->categoria_color) . ';"' : '' ?>><?= s($noticia_destacada->categoria_nombre) ?></span>
+                            <?php endif; ?>
+                            <h3 class="news-title-card"><?= s($noticia_destacada->titulo) ?></h3>
+                            <span class="news-arrow">Leer noticia →</span>
                         </div>
                     </a>
-                    <a href="https://www.youtube.com/watch?v=trRy2F8KFcU"
+                    <?php endif; ?>
+                    <?php foreach (array_slice($noticias_recientes, 0, 2) as $i => $n): ?>
+                    <a href="/noticias/<?= s($n->slug) ?>"
                        class="news-item reveal"
-                       style="transition-delay:0.1s"
-                       target="_blank" rel="noopener">
-                        <img src="/build/assets/img/inicio/entrevista.png" alt="Entrevista" class="news-img" loading="lazy">
+                       style="transition-delay:<?= ($i + 1) * 0.06 ?>s">
+                        <?php if (!empty($n->portada)): ?>
+                        <img src="<?= s($n->portada) ?>"
+                             alt="<?= s($n->portada_alt ?? $n->titulo) ?>"
+                             class="news-img" loading="lazy">
+                        <?php else: ?>
+                        <img src="/build/assets/img/blog/blog-placeholder.png" alt="" class="news-img" loading="lazy">
+                        <?php endif; ?>
                         <div class="news-overlay">
-                            <span class="news-source-badge">Entrevista</span>
-                            <h3 class="news-title-card">¿Qué hace diferente a una escuela cuando realmente se convierte en comunidad?</h3>
-                            <span class="news-arrow">Ver entrevista →</span>
+                            <?php if (!empty($n->categoria_nombre)): ?>
+                            <span class="news-source-badge"<?= !empty($n->categoria_color) ? ' style="background:' . s($n->categoria_color) . ';"' : '' ?>><?= s($n->categoria_nombre) ?></span>
+                            <?php endif; ?>
+                            <h3 class="news-title-card"><?= s($n->titulo) ?></h3>
+                            <span class="news-arrow">Leer noticia →</span>
                         </div>
                     </a>
-                    <a href="https://www.youtube.com/watch?v=gDbAl_3y9Bc"
-                       class="news-item reveal"
-                       style="transition-delay:0.2s"
-                       target="_blank" rel="noopener">
-                        <img src="/build/assets/img/inicio/entrevista-2.jpg" alt="Entrevista 2" class="news-img" loading="lazy">
-                        <div class="news-overlay">
-                            <span class="news-source-badge">Entrevista</span>
-                            <h3 class="news-title-card">¿Qué se siente volver a casa… ahora como maestro?</h3>
-                            <span class="news-arrow">Ver entrevista →</span>
-                        </div>
-                    </a>
+                    <?php endforeach; ?>
                 </div>
 
                 <div class="articulos-cta reveal" style="margin-top:40px;">
-                    <a href="/voces-bilbao/noticias" class="btn-primario">
+                    <a href="/noticias" class="btn-primario">
                         Ver todas las noticias →
                     </a>
                 </div>
 
             </div>
         </section>
+        <?php endif; ?>
 
 
         <!-- ================================================
@@ -519,8 +527,8 @@
                         <span class="label-dot"></span>
                         Artículos
                     </div>
-                    <h2 class="content-section-title">Voces Bilbao</h2>
-                    <p class="content-section-sub">Historias, ideas y experiencias que dan voz a la vida escolar</p>
+                    <h2 class="content-section-title">Perspectivas Bilbao</h2>
+                    <p class="content-section-sub">Ideas, reflexiones y experiencias escritas desde adentro del colegio</p>
                     <!-- Alex al lado izquierdo del header -->
                     <div class="articulos-alex-wrap" aria-hidden="true">
                         <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-lee.png"

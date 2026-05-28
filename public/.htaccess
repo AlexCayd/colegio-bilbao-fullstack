@@ -1,0 +1,9 @@
+Options -Indexes
+RewriteEngine On
+
+# Archivos y directorios físicos se sirven directamente
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Todo lo demás pasa por index.php
+RewriteRule ^ index.php [QSA,L]

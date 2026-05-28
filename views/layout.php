@@ -1,9 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es-MX">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Colegio Bilbao - <?php echo $titulo; ?></title>
+    <title><?= isset($seo_titulo) ? s($seo_titulo) . ' | Colegio Bilbao' : 'Colegio Bilbao — ' . s($titulo) ?></title>
+    <meta name="description" content="<?= s($seo_descripcion ?? $descripcion ?? 'Colegio Bilbao es una institución educativa privada en México que forma personas con criterio, carácter y vocación de servicio a través del Modelo VIDA.') ?>">
+    <link rel="canonical" href="https://<?= htmlspecialchars($_SERVER['HTTP_HOST'] . strtok($_SERVER['REQUEST_URI'], '?')) ?>">
+
+    <!-- Open Graph -->
+    <meta property="og:type"        content="website">
+    <meta property="og:locale"      content="es_MX">
+    <meta property="og:site_name"   content="Colegio Bilbao">
+    <meta property="og:title"       content="<?= s($seo_titulo ?? $titulo) ?> | Colegio Bilbao">
+    <meta property="og:description" content="<?= s($seo_descripcion ?? $descripcion ?? 'Colegio Bilbao — educación con criterio y carácter.') ?>">
+    <meta property="og:url"         content="https://<?= htmlspecialchars($_SERVER['HTTP_HOST'] . strtok($_SERVER['REQUEST_URI'], '?')) ?>">
+    <?php if (!empty($seo_imagen)): ?>
+    <meta property="og:image"       content="https://<?= htmlspecialchars($_SERVER['HTTP_HOST']) ?><?= s($seo_imagen) ?>">
+    <?php endif; ?>
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="<?= s($seo_titulo ?? $titulo) ?> | Colegio Bilbao">
+    <meta name="twitter:description" content="<?= s($seo_descripcion ?? $descripcion ?? 'Colegio Bilbao — educación con criterio y carácter.') ?>">
+
+    <!-- View Transitions -->
+    <meta name="view-transition" content="same-origin">
+
     <link rel="shortcut icon" href="/build/assets/img/global/favicon.png" type="image/png">
     <link rel="icon" type="image/png" sizes="32x32" href="/build/assets/img/global/favicon.png">
     <link rel="apple-touch-icon" href="/build/assets/img/global/favicon.png">

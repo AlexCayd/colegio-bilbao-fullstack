@@ -6,6 +6,8 @@ use MVC\Router;
 use Model\UsuarioBlog;
 use Model\Categoria;
 use Model\Articulo;
+use Model\Noticia;
+use Model\CategoriaNoticia;
 
 class BlogController {
 
@@ -63,7 +65,7 @@ class BlogController {
 
     private static function requireAdmin(): void {
         if (($_SESSION['blog_usuario']['rol'] ?? '') !== 'administrador') {
-            header('Location: /blog/dashboard');
+            header('Location: /dashboard');
             exit;
         }
     }
@@ -72,18 +74,21 @@ class BlogController {
 
     public static function login(Router $router) {
         if (!empty($_SESSION['blog_usuario'])) {
-            header('Location: /blog/dashboard');
+            header('Location: /dashboard');
             exit;
         }
 
-        $alertas = [];
+        $alertas    = [];
+        $errorCampo = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email    = trim($_POST['email'] ?? '');
             $password = $_POST['password'] ?? '';
 
             if (!$email || !$password) {
-                UsuarioBlog::setAlerta('error', 'Todos los campos son obligatorios');
+                if (!$email) $errorCampo = 'email';
+                if (!$password) $errorCampo = $errorCampo ?? 'password';
+                UsuarioBlog::setAlerta('error', 'Completa todos los campos antes de continuar.');
                 $alertas = UsuarioBlog::getAlertas();
             } else {
                 $usuario = UsuarioBlog::findByEmail($email);
@@ -96,16 +101,22 @@ class BlogController {
                         'rol'    => $usuario->rol,
                         'avatar' => $usuario->avatar ?? '',
                     ];
-                    header('Location: /blog/dashboard');
+                    header('Location: /dashboard');
                     exit;
                 }
 
-                UsuarioBlog::setAlerta('error', 'Correo electrónico o contraseña incorrectos');
+                if (!$usuario) {
+                    $errorCampo = 'email';
+                    UsuarioBlog::setAlerta('error', 'No encontramos ninguna cuenta con ese correo. ¿Está bien escrito?');
+                } else {
+                    $errorCampo = 'password';
+                    UsuarioBlog::setAlerta('error', 'Contraseña incorrecta. Verifica que el bloqueo de mayúsculas esté desactivado.');
+                }
                 $alertas = UsuarioBlog::getAlertas();
             }
         }
 
-        $router->renderAdmin('blog/login', ['titulo' => 'Iniciar Sesión - Blog', 'alertas' => $alertas]);
+        $router->renderAdmin('blog/login', ['titulo' => 'Iniciar Sesión - Blog', 'alertas' => $alertas, 'errorCampo' => $errorCampo]);
     }
 
     public static function logout(Router $router) {
@@ -116,6 +127,7 @@ class BlogController {
 
     public static function dashboard(Router $router) {
         self::requireAuth();
+        // Artículos
         $publicados  = Articulo::contarPorEstado('publicado');
         $borradores  = Articulo::contarPorEstado('borrador');
         $programados = Articulo::contarPorEstado('programado');
@@ -124,6 +136,14 @@ class BlogController {
         $recientes   = Articulo::recentesConDetalles(6);
         $porMes      = Articulo::articulosPorMes(6);
         $porCat      = Categoria::articulosPorCategoria();
+        // Noticias
+        $nPub        = Noticia::contarPorEstado('publicado');
+        $nBor        = Noticia::contarPorEstado('borrador');
+        $nProg       = Noticia::contarPorEstado('programado');
+        $nTotalCats  = CategoriaNoticia::contarTotal();
+        $nRecientes  = Noticia::recentesConDetalles(6);
+        $nPorMes     = Noticia::noticiasPorMes(6);
+        $nPorCat     = CategoriaNoticia::noticiasPorCategoria();
 
         $router->renderAdmin('blog/dashboard', [
             'titulo'      => 'Dashboard',
@@ -135,6 +155,14 @@ class BlogController {
             'recientes'   => $recientes,
             'porMes'      => $porMes,
             'porCat'      => $porCat,
+            // noticias
+            'nPub'        => $nPub,
+            'nBor'        => $nBor,
+            'nProg'       => $nProg,
+            'nTotalCats'  => $nTotalCats,
+            'nRecientes'  => $nRecientes,
+            'nPorMes'     => $nPorMes,
+            'nPorCat'     => $nPorCat,
         ]);
     }
 
@@ -620,5 +648,299 @@ class BlogController {
         }
         header('Location: /blog/categorias?deleted=1');
         exit;
+    }
+
+    // ── NOTICIAS ───────────────────────────────────────────────────────────────
+
+    public static function noticias(Router $router) {
+        self::requireAuth();
+        $estadosValidos = ['publicado', 'borrador', 'programado'];
+        $estado   = in_array($_GET['estado'] ?? '', $estadosValidos, true) ? $_GET['estado'] : '';
+        $noticias = Noticia::allConDetalles($estado);
+        $success  = isset($_GET['success']);
+        $edited   = isset($_GET['edited']);
+
+        $router->renderAdmin('blog/noticias/index', [
+            'titulo'   => 'Noticias',
+            'noticias' => $noticias,
+            'success'  => $success,
+            'edited'   => $edited,
+            'estado'   => $estado,
+        ]);
+    }
+
+    public static function crearNoticia(Router $router) {
+        self::requireAuth();
+        $noticia             = new Noticia();
+        $noticia->autor_id   = $_SESSION['blog_usuario']['id'] ?? null;
+        $categorias = CategoriaNoticia::all();
+        $usuarios   = UsuarioBlog::all();
+        $alertas    = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $noticia->sincronizar($_POST);
+            $noticia->destacada = isset($_POST['destacada']) ? 1 : 0;
+
+            if (!trim($noticia->slug ?? '')) {
+                $noticia->slug = self::generarSlug($noticia->titulo ?? '');
+            }
+            if (!trim($noticia->fecha_publicacion ?? '')) {
+                $noticia->fecha_publicacion = ($noticia->estado === 'publicado')
+                    ? date('Y-m-d H:i:s')
+                    : null;
+            }
+            $noticia->tiempo_lectura = (int)($noticia->tiempo_lectura ?? 0) ?: null;
+            if (!(int)($noticia->categoria_id ?? 0)) $noticia->categoria_id = null;
+            if (!(int)($noticia->autor_id     ?? 0)) $noticia->autor_id     = null;
+
+            $alertas = $noticia->validar();
+
+            if (empty($alertas['error'])) {
+                if ($noticia->existeSlug()) {
+                    Noticia::setAlerta('error', 'Ya existe una noticia con ese slug.');
+                    $alertas = Noticia::getAlertas();
+                } else {
+                    if (isset($_FILES['portada']) && $_FILES['portada']['error'] === UPLOAD_ERR_OK) {
+                        $alertas = self::subirPortada($_FILES['portada'], $noticia);
+                    }
+                    if (empty($alertas['error'])) {
+                        if ($noticia->destacada) Noticia::quitarDestacadaDeOtras();
+                        $resultado = $noticia->crear();
+                        if ($resultado['resultado']) {
+                            header('Location: /dashboard/noticias?success=1');
+                            exit;
+                        }
+                        Noticia::setAlerta('error', 'Error al guardar la noticia. Intenta de nuevo.');
+                        $alertas = Noticia::getAlertas();
+                    }
+                }
+            }
+        }
+
+        $router->renderAdmin('blog/noticias/crear', [
+            'titulo'     => 'Nueva Noticia',
+            'noticia'    => $noticia,
+            'categorias' => $categorias,
+            'usuarios'   => $usuarios,
+            'alertas'    => $alertas,
+        ]);
+    }
+
+    public static function editarNoticia(Router $router) {
+        self::requireAuth();
+        $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+        if (!$id) {
+            header('Location: /dashboard/noticias');
+            exit;
+        }
+
+        $noticia = Noticia::allConDetalles('');
+        $noticia = array_values(array_filter($noticia, fn($n) => (int)$n->id === $id))[0] ?? null;
+        if (!$noticia) {
+            $noticia = Noticia::find($id);
+        }
+        if (!$noticia) {
+            header('Location: /dashboard/noticias');
+            exit;
+        }
+
+        $categorias = CategoriaNoticia::all();
+        $usuarios   = UsuarioBlog::all();
+        $alertas    = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $slugOriginal = $noticia->slug;
+            $noticia->sincronizar($_POST);
+            $noticia->destacada = isset($_POST['destacada']) ? 1 : 0;
+
+            if (!trim($noticia->slug ?? '')) {
+                $noticia->slug = self::generarSlug($noticia->titulo ?? '');
+            }
+            if (!trim($noticia->fecha_publicacion ?? '')) {
+                $noticia->fecha_publicacion = ($noticia->estado === 'publicado')
+                    ? date('Y-m-d H:i:s')
+                    : null;
+            }
+            $noticia->tiempo_lectura = (int)($noticia->tiempo_lectura ?? 0) ?: null;
+            if (!(int)($noticia->categoria_id ?? 0)) $noticia->categoria_id = null;
+            if (!(int)($noticia->autor_id     ?? 0)) $noticia->autor_id     = null;
+
+            $alertas = $noticia->validar();
+
+            if (empty($alertas['error'])) {
+                if ($noticia->slug !== $slugOriginal && $noticia->existeSlug()) {
+                    Noticia::setAlerta('error', 'Ya existe una noticia con ese slug.');
+                    $alertas = Noticia::getAlertas();
+                } else {
+                    if (isset($_FILES['portada']) && $_FILES['portada']['error'] === UPLOAD_ERR_OK) {
+                        $alertas = self::subirPortada($_FILES['portada'], $noticia);
+                    }
+                    if (empty($alertas['error'])) {
+                        if ($noticia->destacada) Noticia::quitarDestacadaDeOtras((int)$noticia->id);
+                        $noticia->actualizar();
+                        header('Location: /dashboard/noticias?edited=1');
+                        exit;
+                    }
+                }
+            }
+        }
+
+        $router->renderAdmin('blog/noticias/editar', [
+            'titulo'     => 'Editar Noticia',
+            'noticia'    => $noticia,
+            'categorias' => $categorias,
+            'usuarios'   => $usuarios,
+            'alertas'    => $alertas,
+        ]);
+    }
+
+    public static function eliminarNoticia(Router $router) {
+        self::requireAuth();
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id) {
+            $noticia = Noticia::find($id);
+            if ($noticia) {
+                if (!empty($noticia->portada)) {
+                    $ruta = __DIR__ . '/../public' . $noticia->portada;
+                    if (file_exists($ruta)) @unlink($ruta);
+                }
+                $noticia->eliminar();
+            }
+        }
+        header('Location: /dashboard/noticias?deleted=1');
+        exit;
+    }
+
+    // ── CATEGORÍAS NOTICIAS ────────────────────────────────────────────────────
+
+    public static function categoriasNoticias(Router $router) {
+        self::requireAuth();
+        $categorias = CategoriaNoticia::allConNoticias();
+        $success    = isset($_GET['success']);
+
+        $router->renderAdmin('blog/noticias/categorias/index', [
+            'titulo'     => 'Categorías de Noticias',
+            'categorias' => $categorias,
+            'success'    => $success,
+        ]);
+    }
+
+    public static function crearCategoriaNoticia(Router $router) {
+        self::requireAuth();
+        $categoria = new CategoriaNoticia();
+        $alertas   = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $categoria->sincronizar($_POST);
+            if (!trim($categoria->slug ?? '')) {
+                $categoria->slug = self::generarSlug($categoria->nombre ?? '');
+            }
+            $alertas = $categoria->validar();
+
+            if (empty($alertas['error'])) {
+                if ($categoria->existeSlug()) {
+                    CategoriaNoticia::setAlerta('error', 'Ya existe una categoría con ese slug');
+                    $alertas = CategoriaNoticia::getAlertas();
+                } else {
+                    $categoria->guardar();
+                    header('Location: /dashboard/noticias/categorias?success=1');
+                    exit;
+                }
+            }
+        }
+
+        $router->renderAdmin('blog/noticias/categorias/crear', [
+            'titulo'     => 'Nueva Categoría de Noticias',
+            'categoria'  => $categoria,
+            'categorias' => CategoriaNoticia::allConNoticias(),
+            'alertas'    => $alertas,
+        ]);
+    }
+
+    public static function editarCategoriaNoticia(Router $router) {
+        self::requireAuth();
+        $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+        if (!$id) {
+            header('Location: /dashboard/noticias/categorias');
+            exit;
+        }
+
+        $categoria = CategoriaNoticia::findConNoticias($id);
+        if (!$categoria) {
+            header('Location: /dashboard/noticias/categorias');
+            exit;
+        }
+
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $categoria->sincronizar($_POST);
+            $alertas = $categoria->validar();
+
+            if (empty($alertas['error'])) {
+                if ($categoria->existeSlug()) {
+                    CategoriaNoticia::setAlerta('error', 'Ya existe otra categoría con ese slug');
+                    $alertas = CategoriaNoticia::getAlertas();
+                } else {
+                    $categoria->guardar();
+                    header('Location: /dashboard/noticias/categorias?edited=1');
+                    exit;
+                }
+            }
+        }
+
+        $router->renderAdmin('blog/noticias/categorias/editar', [
+            'titulo'    => 'Editar Categoría',
+            'categoria' => $categoria,
+            'alertas'   => $alertas,
+        ]);
+    }
+
+    public static function eliminarCategoriaNoticia(Router $router) {
+        self::requireAuth();
+        self::requireAdmin();
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id) {
+            $categoria = CategoriaNoticia::find($id);
+            if ($categoria) {
+                $categoria->eliminar();
+            }
+        }
+        header('Location: /dashboard/noticias/categorias?deleted=1');
+        exit;
+    }
+
+    // ── Helper portada noticias ───────────────────────────────────────────────
+
+    private static function subirPortada(array $file, Noticia $noticia): array {
+        $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        $maxSize = 5 * 1024 * 1024;
+
+        if (!in_array($ext, $allowed)) {
+            Noticia::setAlerta('error', 'Formato no permitido. Usa JPG, PNG o WebP.');
+            return Noticia::getAlertas();
+        }
+        if ($file['size'] > $maxSize) {
+            Noticia::setAlerta('error', 'La imagen supera el límite de 5 MB.');
+            return Noticia::getAlertas();
+        }
+
+        $dir = realpath(__DIR__ . '/../public') . DIRECTORY_SEPARATOR
+             . 'build' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'noticias' . DIRECTORY_SEPARATOR;
+
+        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+            Noticia::setAlerta('error', 'No se pudo crear el directorio de imágenes.');
+            return Noticia::getAlertas();
+        }
+
+        $filename = uniqid('not_', true) . '.' . $ext;
+        if (!move_uploaded_file($file['tmp_name'], $dir . $filename)) {
+            Noticia::setAlerta('error', 'Error al guardar la imagen.');
+            return Noticia::getAlertas();
+        }
+
+        $noticia->portada = '/build/assets/noticias/' . $filename;
+        return [];
     }
 }

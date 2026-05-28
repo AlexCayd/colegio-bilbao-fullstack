@@ -71,11 +71,9 @@ $router->get('/comunidad/estudiantes', [EstaticasController::class, 'estudiantes
 $router->get('/comunidad/familias', [EstaticasController::class, 'familias']);
 $router->get('/comunidad/exalumnos', [EstaticasController::class, 'exalumnos']);
 
-// Voces Bilbao
-$router->get('/voces-bilbao/noticias', [EstaticasController::class, 'noticias']);
-$router->get('/voces-bilbao/entrevistas', [EstaticasController::class, 'entrevistas']);
-$router->get('/voces-bilbao/articulos', [EstaticasController::class, 'articulos']);
-$router->get('/voces-bilbao/testimonios', [EstaticasController::class, 'testimonios']);
+// Voces Bilbao — Noticias
+$router->get('/noticias', [EstaticasController::class, 'noticias']);
+$router->pattern('/noticias/{slug}', [EstaticasController::class, 'noticiaDetalle']);
 
 // Contacto
 $router->get('/contacto', [EstaticasController::class, 'contacto']);
@@ -115,7 +113,8 @@ $router->get('/blog/login', [BlogController::class, 'login']);
 $router->post('/blog/login', [BlogController::class, 'login']);
 $router->post('/blog/logout', [BlogController::class, 'logout']);
 
-$router->get('/blog/dashboard', [BlogController::class, 'dashboard']);
+$router->get('/dashboard', [BlogController::class, 'dashboard']);
+$router->get('/blog/dashboard', function() { header('Location: /dashboard'); exit; });
 
 $router->get('/blog/articulos', [BlogController::class, 'articulos']);
 $router->get('/blog/articulos/crear', [BlogController::class, 'crearArticulo']);
@@ -137,5 +136,23 @@ $router->post('/blog/categorias/crear', [BlogController::class, 'crearCategoria'
 $router->get('/blog/categorias/editar', [BlogController::class, 'editarCategoria']);
 $router->post('/blog/categorias/editar', [BlogController::class, 'editarCategoria']);
 $router->post('/blog/categorias/eliminar', [BlogController::class, 'eliminarCategoria']);
+
+// Blog Admin — Noticias (rutas primarias bajo /dashboard/noticias)
+$router->get('/dashboard/noticias', [BlogController::class, 'noticias']);
+$router->get('/dashboard/noticias/crear', [BlogController::class, 'crearNoticia']);
+$router->post('/dashboard/noticias/crear', [BlogController::class, 'crearNoticia']);
+$router->get('/dashboard/noticias/editar', [BlogController::class, 'editarNoticia']);
+$router->post('/dashboard/noticias/editar', [BlogController::class, 'editarNoticia']);
+$router->post('/dashboard/noticias/eliminar', [BlogController::class, 'eliminarNoticia']);
+
+$router->get('/dashboard/noticias/categorias', [BlogController::class, 'categoriasNoticias']);
+$router->get('/dashboard/noticias/categorias/crear', [BlogController::class, 'crearCategoriaNoticia']);
+$router->post('/dashboard/noticias/categorias/crear', [BlogController::class, 'crearCategoriaNoticia']);
+$router->get('/dashboard/noticias/categorias/editar', [BlogController::class, 'editarCategoriaNoticia']);
+$router->post('/dashboard/noticias/categorias/editar', [BlogController::class, 'editarCategoriaNoticia']);
+$router->post('/dashboard/noticias/categorias/eliminar', [BlogController::class, 'eliminarCategoriaNoticia']);
+
+// Alias de compatibilidad: /blog/noticias redirige a /dashboard/noticias
+$router->get('/blog/noticias', function() { header('Location: /dashboard/noticias'); exit; });
 
 $router->comprobarRutas();

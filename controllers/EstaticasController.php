@@ -4,17 +4,27 @@ namespace Controllers;
 
 use MVC\Router;
 use Model\Articulo;
+use Model\Noticia;
 
 class EstaticasController {
 
     // ---- HOME ----
     public static function index(Router $router) {
         Articulo::publicarProgramados();
+        Noticia::publicarProgramadas();
+
         $todos = Articulo::allConDetalles('publicado');
         $articulos_recientes = array_slice($todos, 0, 5);
+
+        $noticia_destacada = Noticia::destacada();
+        $excluirId = $noticia_destacada ? (int)$noticia_destacada->id : 0;
+        $noticias_recientes = Noticia::recientes(3, $excluirId);
+
         $router->render('estaticas/index', [
-            'titulo'             => 'Home',
+            'titulo'              => 'Home',
             'articulos_recientes' => $articulos_recientes,
+            'noticia_destacada'   => $noticia_destacada,
+            'noticias_recientes'  => $noticias_recientes,
         ]);
     }
 
@@ -134,7 +144,47 @@ class EstaticasController {
 
     // ---- VOCES BILBAO ----
     public static function noticias(Router $router) {
-        $router->render('estaticas/voces-bilbao/noticias', ['titulo' => 'Noticias']);
+        Noticia::publicarProgramadas();
+
+        $todas      = Noticia::publicadas();
+        $featured   = null;
+        $listado    = [];
+
+        foreach ($todas as $n) {
+            if (!$featured && $n->destacada) {
+                $featured = $n;
+            } else {
+                $listado[] = $n;
+            }
+        }
+        if (!$featured && !empty($listado)) {
+            $featured = array_shift($listado);
+        }
+
+        usort($listado, fn($a, $b) =>
+            strtotime($b->fecha_publicacion ?? '0') <=> strtotime($a->fecha_publicacion ?? '0')
+        );
+
+        $router->renderBlog('noticias/index', [
+            'titulo'     => 'Noticias · Colegio Bilbao',
+            'featured'   => $featured,
+            'noticias'   => $listado,
+            'categorias' => Noticia::categorias(),
+        ]);
+    }
+
+    public static function noticiaDetalle(Router $router) {
+        $slug = $router->params['slug'] ?? '';
+        if (!$slug) { header('Location: /noticias'); exit; }
+
+        $noticia = Noticia::findBySlug($slug);
+        if (!$noticia) { header('Location: /noticias'); exit; }
+
+        $router->renderBlog('noticias/detalle', [
+            'titulo'      => htmlspecialchars($noticia->titulo) . ' · Colegio Bilbao',
+            'noticia'     => $noticia,
+            'relacionadas' => Noticia::relacionadas((int)$noticia->id, $noticia->categoria_id ? (int)$noticia->categoria_id : null),
+        ]);
     }
 
     public static function entrevistas(Router $router) {

@@ -53,15 +53,22 @@ main.article-main {
 .article-category,
 .article-category-home {
     display: inline-block;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 2.5px;
+    letter-spacing: 1.8px;
     text-transform: uppercase;
     color: var(--col-bilbao);
     margin-bottom: 5px;
-    border: 1px solid var(--col-bilbao);
-    padding: 5px 14px;
+    border: 1.5px solid var(--col-bilbao);
+    padding: 4px 13px;
     border-radius: 50px;
+    transition: opacity 0.2s;
+
+    /* When color is overridden via inline style the pill becomes solid */
+    &[style*="background"] {
+        color: #fff !important;
+        border-color: transparent !important;
+    }
 }
 
 .article-category-template {
@@ -83,6 +90,56 @@ main.article-main {
     align-items: center;
     gap: 16px;
     flex-wrap: wrap;
+    row-gap: 12px;
+}
+
+/* Share buttons dentro del hero del artículo */
+.article-share-btns {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+
+    @media (max-width: 520px) {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+.article-share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    transition: background 0.22s ease, border-color 0.22s ease, transform 0.18s ease;
+    white-space: nowrap;
+    line-height: 1;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.28);
+        border-color: rgba(255, 255, 255, 0.65);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    &--wa {
+        background: #25d366;
+        border-color: #25d366;
+
+        &:hover {
+            background: #1da851;
+            border-color: #1da851;
+        }
+    }
 }
 
 .author-avatar-small {
@@ -148,7 +205,7 @@ main.article-main {
 }
 
 .article-lead {
-    font-size: 1.25rem;
+    font-size: 1.08rem;
     font-weight: 500;
     color: var(--col-herencia);
     line-height: 1.75;
@@ -158,11 +215,22 @@ main.article-main {
 }
 
 .article-body {
+    p:first-of-type::first-letter {
+        float: left;
+        font-size: 3.6rem;
+        line-height: 0.82;
+        font-weight: 900;
+        color: var(--col-bilbao);
+        margin-right: 8px;
+        margin-top: 5px;
+        letter-spacing: -0.03em;
+    }
+
     p {
-        font-size: 1.05rem;
-        line-height: 1.85;
+        font-size: 0.93rem;
+        line-height: 1.82;
         color: var(--col-texto);
-        margin-bottom: 1.75rem;
+        margin-bottom: 1.5rem;
         font-weight: 400;
     }
 

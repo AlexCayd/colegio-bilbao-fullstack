@@ -673,7 +673,7 @@
     text-align: center;
     padding: 0 20px;
     max-width: 1400px;
-    margin: 0 auto 2rem;
+    margin: 0 auto 1rem;
 
     h2 {
         font-size: clamp(1.8rem, 4vw, 2.5rem);
@@ -860,7 +860,7 @@
     display: flex;
     gap: 24px;
     width: max-content;
-    animation: scrollMarquee 44s linear infinite;
+    animation: scrollMarquee 75s linear infinite;
     will-change: transform;
 
     &:hover { animation-play-state: paused; }
@@ -893,30 +893,37 @@
 .voice-author {
     display: flex;
     align-items: center;
-    gap: 12px;
-    border-top: 1px solid rgba(77, 138, 187, 0.1);
-    padding-top: 16px;
+    gap: 10px;
+    border-top: 1px solid rgba(77, 138, 187, 0.08);
+    padding-top: 14px;
 }
 
 .author-avatar {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    background: #ddd;
+    background: linear-gradient(135deg, var(--col-bilbao), var(--col-espiritu));
     flex-shrink: 0;
+    border: 2px solid rgba(77, 138, 187, 0.18);
+    box-shadow: 0 2px 8px rgba(77, 138, 187, 0.12);
 }
 
 .author-info {
+    line-height: 1;
+
     strong {
         display: block;
         color: var(--col-bilbao);
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 2px;
     }
     span {
-        font-size: 0.8rem;
-        color: #999;
+        font-size: 0.76rem;
+        color: #94a3b8;
+        line-height: 1.1;
     }
 }
 
@@ -1051,6 +1058,10 @@
     transition: transform 0.5s;
     position: absolute;
     inset: 0;
+
+    &--placeholder {
+        background: linear-gradient(135deg, #1a3a5c 0%, #374C69 100%);
+    }
 }
 
 .news-overlay {
