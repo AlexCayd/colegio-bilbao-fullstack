@@ -33,19 +33,19 @@ class ActiveRecord {
 
     // Consulta SQL para crear un objeto en Memoria (Active Record)
     public static function consultarSQL($query) {
-        // Consultar la base de datos
         $resultado = self::$db->query($query);
 
-        // Iterar los resultados
+        if (!$resultado || !($resultado instanceof \mysqli_result)) {
+            return [];
+        }
+
         $array = [];
         while($registro = $resultado->fetch_assoc()) {
             $array[] = static::crearObjeto($registro);
         }
 
-        // liberar la memoria
         $resultado->free();
 
-        // retornar los resultados
         return $array;
     }
 

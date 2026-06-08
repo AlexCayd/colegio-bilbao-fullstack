@@ -57,21 +57,19 @@ function javascript() {
 function imagenes() {
     return src(paths.imagenes)
         .pipe(cache(imagemin({ optimizationLevel: 3 })))
-        .pipe(dest('public/build/img'));
+        .pipe(dest('public/build/assets/img'));
 }
 
-function versionWebp(done) {
-    src('src/img/**/*.{png,jpg}')
+function versionWebp() {
+    return src('src/img/**/*.{png,jpg,jpeg}')
         .pipe(webp({ quality: 80 }))
-        .pipe(dest('public/build/img'));
-    done();
+        .pipe(dest('public/build/assets/img'));
 }
 
-function versionAvif(done) {
-    src('src/img/**/*.{png,jpg}')
+function versionAvif() {
+    return src('src/img/**/*.{png,jpg,jpeg}')
         .pipe(avif({ quality: 70 }))
-        .pipe(dest('public/build/img'));
-    done();
+        .pipe(dest('public/build/assets/img'));
 }
 
 /* ── Optimización de imágenes subidas (blog, noticias, usuarios) ── */
@@ -82,13 +80,23 @@ function optimizarUploads() {
         .pipe(dest('public/build/assets'));
 }
 
-function uploadsAWebp(done) {
-    [paths.uploadsBlog, paths.uploadsNot, paths.uploadsUsuarios].forEach(glob => {
-        src(glob, { base: 'public/build/assets' })
-            .pipe(webp({ quality: 82, method: 4 }))
-            .pipe(dest('public/build/assets'));
-    });
-    done();
+function uploadsAWebp() {
+    return src([paths.uploadsBlog, paths.uploadsNot, paths.uploadsUsuarios], { base: 'public/build/assets' })
+        .pipe(webp({ quality: 82, method: 4 }))
+        .pipe(dest('public/build/assets'));
+}
+
+/* WebP/AVIF para assets estáticos (public/build/assets/img/) referenciados en vistas */
+function staticAssetsWebp() {
+    return src('public/build/assets/img/**/*.{png,jpg,jpeg}', { base: 'public/build/assets' })
+        .pipe(webp({ quality: 80 }))
+        .pipe(dest('public/build/assets'));
+}
+
+function staticAssetsAvif() {
+    return src('public/build/assets/img/**/*.{png,jpg,jpeg}', { base: 'public/build/assets' })
+        .pipe(avif({ quality: 70 }))
+        .pipe(dest('public/build/assets'));
 }
 
 /* Tarea completa: optimiza lossless + genera .webp para todos los uploads */
@@ -105,12 +113,14 @@ function dev(done) {
     done();
 }
 
-exports.css         = css;
-exports.cssProd     = cssProd;
-exports.js          = javascript;
-exports.imagenes    = imagenes;
-exports.versionWebp = versionWebp;
-exports.versionAvif = versionAvif;
-exports.optimizar   = optimizarImagenes;   // npx gulp optimizar
-exports.dev         = parallel(css, imagenes, versionWebp, versionAvif, javascript, dev);
-exports.build       = parallel(cssProd, imagenes, versionWebp, versionAvif, javascript);
+exports.css              = css;
+exports.cssProd          = cssProd;
+exports.js               = javascript;
+exports.imagenes         = imagenes;
+exports.versionWebp      = versionWebp;
+exports.versionAvif      = versionAvif;
+exports.staticWebp       = staticAssetsWebp;   // npx gulp staticWebp
+exports.staticAvif       = staticAssetsAvif;   // npx gulp staticAvif
+exports.optimizar        = optimizarImagenes;  // npx gulp optimizar
+exports.dev              = parallel(css, imagenes, versionWebp, versionAvif, javascript, dev);
+exports.build            = parallel(cssProd, imagenes, versionWebp, versionAvif, staticAssetsWebp, staticAssetsAvif, javascript);

@@ -17,105 +17,175 @@
     padding-bottom: 140px;
 }
 
-.hero-video-bg,
-.hero-poster {
+/* Imagen de fondo poster1 */
+.hero-poster-wrap {
     position: absolute;
     inset: 0;
+    z-index: 0;
+
+    picture {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.hero-poster-img {
     width: 100%;
-    height: 100%;
+    height: 110%;      /* buffer para parallax sin clipping */
+    margin-top: -5%;   /* re-centrado vertical */
     object-fit: cover;
-}
-
-.hero-video-bg {
-    opacity: 0.88;
-    will-change: opacity;
-    z-index: 1;
+    object-position: center;
     display: block;
+    will-change: transform;
+    transform-origin: center center;
 }
 
-.hero-poster { display: none; }
-
-.hero-overlay {
+/* Línea de scan cinematográfica al revelar */
+.hero-scan-line {
     position: absolute;
-    inset: 0;
-    background: linear-gradient(
-        170deg,
-        rgba(0, 0, 0, 0.1) 0%,
-        rgba(30, 55, 90, 0.45) 50%,
-        rgba(30, 55, 90, 0.72) 100%
-    );
-    z-index: 2;
-}
-
-/* Acento azul creativo – gradiente en la base del hero */
-.hero-blue-bottom {
-    position: absolute;
-    bottom: 0;
     left: 0;
     right: 0;
-    height: 160px;
-    background: linear-gradient(0deg, rgba(77, 138, 187, 0.55) 0%, transparent 100%);
-    z-index: 2;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(70, 189, 198, 0.9), rgba(255, 255, 255, 0.85), rgba(70, 189, 198, 0.9), transparent);
+    z-index: 6;
     pointer-events: none;
+    box-shadow: 0 0 22px rgba(70, 189, 198, 0.6), 0 0 6px rgba(255, 255, 255, 0.4);
 }
 
-/* Franja vertical – desactivada */
-.hero-blue-stripe { display: none; }
+/* Scoped a .hero-flagship para evitar colisión con _niveles-academicos.scss */
+.hero-flagship {
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(to bottom, rgba(7, 21, 36, 0.12) 0%, rgba(7, 21, 36, 0.38) 45%, rgba(7, 21, 36, 0.85) 100%),
+            radial-gradient(ellipse at center, transparent 30%, rgba(7, 21, 36, 0.38) 100%);
+        z-index: 2;
+    }
 
-.hero-content {
-    position: relative;
-    z-index: 3;
-    text-align: center;
-    color: white;
-    padding: 0 20px;
-    max-width: 900px;
-    will-change: transform, opacity;
-}
+    /* Acento azul creativo – gradiente en la base del hero */
+    .hero-blue-bottom {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 160px;
+        background: linear-gradient(0deg, rgba(77, 138, 187, 0.55) 0%, transparent 100%);
+        z-index: 2;
+        pointer-events: none;
+    }
 
-.hero-subtitle-tag {
-    display: inline-block;
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    margin-bottom: 28px;
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(8px);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    padding: 10px 28px;
-    border-radius: 50px;
-    animation: fadeInDown 1s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
+    .hero-content {
+        position: relative;
+        z-index: 3;
+        text-align: center;
+        color: white;
+        padding: 0 20px;
+        max-width: 900px;
+        will-change: transform, opacity;
+        animation: none; /* reset any conflicting animation from other pages */
+    }
 
-.hero-title {
-    font-size: clamp(52px, 8vw, 108px);
-    font-weight: 900;
-    line-height: 1.05;
-    letter-spacing: -2px;
-    min-height: 1.2em;
-    animation: fadeInUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s backwards;
-    height: auto;
-    display: block;
-    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.3);
-}
+    .hero-subtitle-tag {
+        display: inline-block;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 28px;
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(8px);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 10px 28px;
+        border-radius: 50px;
+        animation: fadeInDown 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
 
-.hero-sub {
-    font-size: clamp(1rem, 1.8vw, 1.15rem);
-    color: rgba(255, 255, 255, 0.82);
-    max-width: 580px;
-    margin: 18px auto 0;
-    font-weight: 300;
-    line-height: 1.65;
-    animation: fadeInUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s backwards;
-}
+    .hero-title {
+        font-size: clamp(52px, 8vw, 108px);
+        font-weight: 900;
+        line-height: 1.05;
+        letter-spacing: -2px;
+        min-height: 1.2em;
+        height: auto;
+        display: block;
+        text-shadow: 0 2px 40px rgba(0, 0, 0, 0.55);
+    }
 
-.hero-cta-wrapper {
-    margin-top: 44px;
-    display: flex;
-    gap: 14px;
-    justify-content: center;
-    flex-wrap: wrap;
-    animation: fadeInUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s backwards;
+    /* Eyebrow tag sobre el título */
+    .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 24px;
+    }
+
+    .hero-eyebrow-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--col-espiritu, #46bdc6);
+        flex-shrink: 0;
+        animation: pulseDot 2s ease-in-out infinite;
+    }
+
+    .hero-sub {
+        font-size: clamp(1rem, 1.8vw, 1.15rem);
+        color: rgba(255, 255, 255, 0.82);
+        max-width: 580px;
+        margin: 18px auto 0;
+        font-weight: 300;
+        line-height: 1.65;
+    }
+
+    .hero-cta-wrapper {
+        margin-top: 44px;
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    /* Indicador de frase activa */
+    .hero-phrase-indicator {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        justify-content: center;
+        margin-top: 32px;
+    }
+
+    .hero-phrase-num {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.42);
+        letter-spacing: 1.5px;
+        font-variant-numeric: tabular-nums;
+        min-width: 46px;
+    }
+
+    .hero-phrase-track {
+        width: 72px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .hero-phrase-prog {
+        height: 100%;
+        background: var(--col-espiritu, #46bdc6);
+        border-radius: 2px;
+        width: 0%;
+    }
 }
 
 /* Alex flotante en el hero */
@@ -126,7 +196,7 @@
     z-index: 3;
     width: clamp(180px, 18vw, 300px);
     pointer-events: none;
-    display: none;
+    display: block;
 
     img {
         width: 100%;
@@ -136,26 +206,42 @@
     }
 }
 
-/* Indicador de scroll */
-.hero-scroll-indicator {
-    position: absolute;
-    bottom: 32px;
-    left: 50%;
-    z-index: 4;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    opacity: 0.7;
+/* Indicador de scroll — scoped a .hero-flagship */
+.hero-flagship {
+    .hero-scroll-indicator {
+        position: absolute;
+        bottom: 32px;
+        left: 50%;
+        z-index: 4;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        opacity: 0.7;
+    }
+
+    .scroll-dot {
+        display: block;
+        width: 5px;
+        height: 5px;
+        background: white;
+        border-radius: 50%;
+        animation: scrollDot 1.8s ease-in-out infinite;
+    }
 }
 
-.scroll-dot {
-    display: block;
-    width: 5px;
-    height: 5px;
-    background: white;
+/* ── PARTÍCULAS GSAP ──────────────────────────────────── */
+.hero-particle {
+    position: absolute;
     border-radius: 50%;
-    animation: scrollDot 1.8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+    will-change: transform, opacity;
+}
+
+/* Carácter individual de la animación de título */
+.hero-char {
+    will-change: transform, opacity;
 }
 
 /* ── BOTONES EXTRA ─────────────────────────────────────── */
@@ -584,9 +670,9 @@
     margin-bottom: 14px;
 }
 
-.vida-p {
+.vida-showcase .vida-p {
     font-size: 1.15rem;
-    color: rgba(255, 255, 255, 0.85);
+    color: #ffffff;
     margin-bottom: 28px;
     font-weight: 300;
 }
@@ -1488,12 +1574,9 @@
 
 /* ── RESPONSIVE ─────────────────────────────────────────── */
 @media (max-width: 1024px) {
-    .hero-poster {
-        display: block;
-        z-index: 0;
+    .hero-alex-wrap {
+        width: clamp(130px, 14vw, 200px);
     }
-
-    .hero-video-bg { display: none; }
 
     .levels-container {
         flex-direction: column;

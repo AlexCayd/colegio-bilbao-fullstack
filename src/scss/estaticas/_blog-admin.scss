@@ -362,11 +362,24 @@
     height: 100vh;
     overflow-y: auto;
     z-index: 200;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15);
+        border-radius: 4px;
+        &:hover { background: rgba(255,255,255,0.28); }
+    }
 }
 
 .admin-sidebar__top {
-    padding: 24px 20px;
+    padding: 16px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .admin-sidebar__brand {
@@ -466,6 +479,117 @@
     }
 }
 
+/* ── BOTÓN COLAPSAR ────────────────────────────────────── */
+.admin-sidebar__collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    margin-left: auto;  /* empuja a la derecha dentro del flex */
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.14);
+        color: #fff;
+    }
+
+    i { font-size: 0.72rem; transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
+}
+
+/* ── ESTADO COLAPSADO ──────────────────────────────────── */
+.admin-sidebar--collapsed {
+    width: 72px;
+
+    /* Cabecera: solo el botón toggle centrado */
+    .admin-sidebar__top {
+        justify-content: center;
+        padding: 12px 8px;
+    }
+
+    .admin-sidebar__brand,
+    .admin-sidebar__brand-label {
+        display: none;
+    }
+
+    .admin-sidebar__collapse-btn {
+        margin-left: 0;
+    }
+
+    .admin-sidebar__brand-label--text,
+    .admin-nav__section-label,
+    .admin-nav__label,
+    .admin-sidebar__alex--collapsible p {
+        display: none;
+    }
+
+    .admin-sidebar__alex--collapsible img {
+        width: 44px;
+    }
+
+    .admin-nav__link {
+        justify-content: center;
+        padding: 10px 6px;
+        gap: 0;
+
+        i { width: auto; font-size: 1.05rem; }
+    }
+
+    .admin-sidebar__collapse-btn i {
+        transform: rotate(180deg);
+    }
+}
+
+/* Ajuste del área principal cuando sidebar está colapsado */
+.admin-main.sidebar-collapsed {
+    margin-left: 72px;
+}
+
+/* ── OVERLAY MOBILE ────────────────────────────────────── */
+.admin-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 21, 36, 0.55);
+    z-index: 199;
+    opacity: 0;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(2px);
+
+    &.is-active {
+        display: block;
+        opacity: 1;
+    }
+}
+
+/* ── BOTÓN HAMBURGER EN TOPBAR ─────────────────────────── */
+.admin-topbar__menu-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid #E2E8F0;
+    background: transparent;
+    color: var(--col-herencia);
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
+
+    &:hover {
+        background: #F0F4F8;
+        border-color: #CBD5E0;
+    }
+}
+
 /* MAIN AREA */
 .admin-main {
     margin-left: 260px;
@@ -474,6 +598,39 @@
     display: flex;
     flex-direction: column;
     background: #f0f4f8;
+    transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar transition */
+.admin-sidebar {
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── RESPONSIVE MOBILE ─────────────────────────────────── */
+@media (max-width: 1024px) {
+    .admin-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 200;
+
+        &.is-open { transform: translateX(0); }
+    }
+
+    .admin-main {
+        margin-left: 0 !important;
+    }
+
+    .admin-topbar__menu-btn { display: flex; }
+
+    .admin-sidebar__collapse-btn { display: none; }
+
+    .admin-content {
+        padding: 20px 16px 40px;
+    }
+
+    .admin-topbar {
+        padding: 0 16px;
+    }
 }
 
 /* TOP BAR */
@@ -552,6 +709,14 @@
     font-size: 0.85rem;
     flex-shrink: 0;
     overflow: hidden;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.18s, box-shadow 0.18s;
+
+    &:hover {
+        transform: scale(1.08);
+        box-shadow: 0 4px 12px rgba(66, 103, 172, 0.4);
+    }
 }
 
 .admin-logout-btn {

@@ -6,9 +6,9 @@ class Articulo extends ActiveRecord {
     protected static $tabla      = 'articulos';
     protected static $columnasDB = [
         'id', 'titulo', 'slug', 'extracto', 'contenido',
-        'imagen', 'estado', 'fecha_publicacion',
-        'categoria_id', 'autor_id', 'tiempo_lectura',
-        // 'tags' va en la tabla pivot articulo_tags, no aquí
+        'imagen', 'estado', 'envio_revision', 'comentario_revision',
+        'fecha_publicacion', 'tiempo_lectura', 'vistas', 'likes',
+        'categoria_id', 'autor_id',
     ];
 
     public $id;
@@ -17,11 +17,15 @@ class Articulo extends ActiveRecord {
     public $extracto;
     public $contenido;
     public $imagen;
-    public $estado           = 'borrador';
+    public $estado              = 'borrador';
+    public $envio_revision      = 0;
+    public $comentario_revision;
     public $fecha_publicacion;
+    public $tiempo_lectura;
+    public $vistas              = 0;
+    public $likes               = 0;
     public $categoria_id;
     public $autor_id;
-    public $tiempo_lectura;
     public $creado_en;
     public $actualizado_en;
 
@@ -283,6 +287,19 @@ class Articulo extends ActiveRecord {
         return static::consultarSQL($query);
     }
 
+    public static function conRevisionPendiente(): array {
+        $query = "
+            SELECT a.*, u.nombre AS autor_nombre, u.avatar AS autor_avatar,
+                   c.nombre AS categoria_nombre, c.color AS categoria_color
+            FROM articulos a
+            LEFT JOIN usuarios u ON u.id = a.autor_id
+            LEFT JOIN categorias c ON c.id = a.categoria_id
+            WHERE a.envio_revision = 1
+            ORDER BY a.actualizado_en DESC
+        ";
+        return static::consultarSQL($query);
+    }
+
     public static function articulosPorMes(int $meses = 6): array {
         $meses     = max(1, (int) $meses);
         $resultado = self::$db->query("
@@ -299,6 +316,10 @@ class Articulo extends ActiveRecord {
             }
         }
         return $data;
+    }
+
+    public static function incrementarVistas(int $id): void {
+        static::$db->query("UPDATE articulos SET vistas=vistas+1 WHERE id=" . $id);
     }
 
     /**

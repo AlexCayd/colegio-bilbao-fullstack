@@ -14,7 +14,47 @@
         'mp4'  => 'video/mp4', 'webm' => 'video/webm',
         'woff' => 'font/woff', 'woff2' => 'font/woff2',
     ];
-    header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
+    $mime = $types[$ext] ?? 'application/octet-stream';
+    $size = filesize($file);
+
+    // Range request support (required for HTML5 video playback in browsers)
+    if (in_array($ext, ['mp4', 'webm'], true)) {
+        header('Accept-Ranges: bytes');
+        $start = 0;
+        $end   = $size - 1;
+
+        if (isset($_SERVER['HTTP_RANGE'])) {
+            preg_match('/bytes=(\d*)-(\d*)/i', $_SERVER['HTTP_RANGE'], $m);
+            $start = $m[1] !== '' ? (int)$m[1] : 0;
+            $end   = $m[2] !== '' ? (int)$m[2] : $size - 1;
+            $end   = min($end, $size - 1);
+            $length = $end - $start + 1;
+
+            http_response_code(206);
+            header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+            header('Content-Length: ' . $length);
+            header('Content-Type: ' . $mime);
+            header('Cache-Control: public, max-age=86400');
+
+            $fp = fopen($file, 'rb');
+            fseek($fp, $start);
+            $remaining = $length;
+            while ($remaining > 0 && !feof($fp)) {
+                $chunk = min(8192, $remaining);
+                echo fread($fp, $chunk);
+                $remaining -= $chunk;
+            }
+            fclose($fp);
+        } else {
+            header('Content-Length: ' . $size);
+            header('Content-Type: ' . $mime);
+            header('Cache-Control: public, max-age=86400');
+            readfile($file);
+        }
+        exit;
+    }
+
+    header('Content-Type: ' . $mime);
     header('Cache-Control: public, max-age=86400');
     readfile($file);
     exit;
@@ -87,10 +127,10 @@ $router->get('/terminos-y-condiciones', [EstaticasController::class, 'terminosco
 $router->get('/mapa-del-sitio', [EstaticasController::class, 'mapadelsitio']);
 $router->get('/en', [EstaticasController::class, 'en']);
 
-// Auth
-$router->get('/login', [AuthController::class, 'login']);
-$router->post('/login', [AuthController::class, 'login']);
-$router->post('/logout', [AuthController::class, 'logout']);
+// Auth público (cuentas de familias/alumnos — ahora bajo /cuenta/*)
+$router->get('/cuenta/login', [AuthController::class, 'login']);
+$router->post('/cuenta/login', [AuthController::class, 'login']);
+$router->post('/cuenta/logout', [AuthController::class, 'logout']);
 
 $router->get('/registro', [AuthController::class, 'registro']);
 $router->post('/registro', [AuthController::class, 'registro']);
@@ -108,43 +148,57 @@ $router->get('/confirmar-cuenta', [AuthController::class, 'confirmar']);
 $router->get('/blog', [BlogController::class, 'blogPublico']);
 $router->pattern('/blog/{slug}', [BlogController::class, 'verArticulo']);
 
-// Blog Admin
-$router->get('/blog/login', [BlogController::class, 'login']);
-$router->post('/blog/login', [BlogController::class, 'login']);
-$router->post('/blog/logout', [BlogController::class, 'logout']);
+// Admin — Login/Logout
+$router->get('/login', [BlogController::class, 'login']);
+$router->post('/login', [BlogController::class, 'login']);
+$router->post('/logout', [BlogController::class, 'logout']);
 
+// Admin — Dashboard
 $router->get('/dashboard', [BlogController::class, 'dashboard']);
-$router->get('/blog/dashboard', function() { header('Location: /dashboard'); exit; });
 
-$router->get('/blog/articulos', [BlogController::class, 'articulos']);
-$router->get('/blog/articulos/crear', [BlogController::class, 'crearArticulo']);
-$router->post('/blog/articulos/crear', [BlogController::class, 'crearArticulo']);
-$router->get('/blog/articulos/editar', [BlogController::class, 'editarArticulo']);
-$router->post('/blog/articulos/editar', [BlogController::class, 'editarArticulo']);
-$router->post('/blog/articulos/eliminar', [BlogController::class, 'eliminarArticulo']);
+// Admin — Artículos
+$router->get('/dashboard/articulos', [BlogController::class, 'articulos']);
+$router->get('/dashboard/articulos/crear', [BlogController::class, 'crearArticulo']);
+$router->post('/dashboard/articulos/crear', [BlogController::class, 'crearArticulo']);
+$router->get('/dashboard/articulos/editar', [BlogController::class, 'editarArticulo']);
+$router->post('/dashboard/articulos/editar', [BlogController::class, 'editarArticulo']);
+$router->post('/dashboard/articulos/eliminar', [BlogController::class, 'eliminarArticulo']);
+$router->post('/dashboard/articulos/enviar-revision', [BlogController::class, 'enviarRevisionArticulo']);
+$router->post('/dashboard/articulos/aprobar', [BlogController::class, 'aprobarArticulo']);
+$router->post('/dashboard/articulos/rechazar', [BlogController::class, 'rechazarArticulo']);
+$router->post('/dashboard/articulos/like', [BlogController::class, 'likeArticulo']);
 
-$router->get('/blog/usuarios', [BlogController::class, 'usuarios']);
-$router->get('/blog/usuarios/crear', [BlogController::class, 'crearUsuario']);
-$router->post('/blog/usuarios/crear', [BlogController::class, 'crearUsuario']);
-$router->get('/blog/usuarios/editar', [BlogController::class, 'editarUsuario']);
-$router->post('/blog/usuarios/editar', [BlogController::class, 'editarUsuario']);
-$router->post('/blog/usuarios/eliminar', [BlogController::class, 'eliminarUsuario']);
+// Admin — Usuarios
+$router->get('/dashboard/usuarios', [BlogController::class, 'usuarios']);
+$router->get('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario']);
+$router->post('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario']);
+$router->get('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
+$router->post('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
+$router->post('/dashboard/usuarios/eliminar', [BlogController::class, 'eliminarUsuario']);
+$router->get('/dashboard/perfil', [BlogController::class, 'perfil']);
+$router->post('/dashboard/perfil', [BlogController::class, 'perfil']);
 
-$router->get('/blog/categorias', [BlogController::class, 'categorias']);
-$router->get('/blog/categorias/crear', [BlogController::class, 'crearCategoria']);
-$router->post('/blog/categorias/crear', [BlogController::class, 'crearCategoria']);
-$router->get('/blog/categorias/editar', [BlogController::class, 'editarCategoria']);
-$router->post('/blog/categorias/editar', [BlogController::class, 'editarCategoria']);
-$router->post('/blog/categorias/eliminar', [BlogController::class, 'eliminarCategoria']);
+// Admin — Categorías de artículos
+$router->get('/dashboard/categorias', [BlogController::class, 'categorias']);
+$router->get('/dashboard/categorias/crear', [BlogController::class, 'crearCategoria']);
+$router->post('/dashboard/categorias/crear', [BlogController::class, 'crearCategoria']);
+$router->get('/dashboard/categorias/editar', [BlogController::class, 'editarCategoria']);
+$router->post('/dashboard/categorias/editar', [BlogController::class, 'editarCategoria']);
+$router->post('/dashboard/categorias/eliminar', [BlogController::class, 'eliminarCategoria']);
 
-// Blog Admin — Noticias (rutas primarias bajo /dashboard/noticias)
+// Admin — Noticias
 $router->get('/dashboard/noticias', [BlogController::class, 'noticias']);
 $router->get('/dashboard/noticias/crear', [BlogController::class, 'crearNoticia']);
 $router->post('/dashboard/noticias/crear', [BlogController::class, 'crearNoticia']);
 $router->get('/dashboard/noticias/editar', [BlogController::class, 'editarNoticia']);
 $router->post('/dashboard/noticias/editar', [BlogController::class, 'editarNoticia']);
 $router->post('/dashboard/noticias/eliminar', [BlogController::class, 'eliminarNoticia']);
+$router->post('/dashboard/noticias/enviar-revision', [BlogController::class, 'enviarRevisionNoticia']);
+$router->post('/dashboard/noticias/aprobar', [BlogController::class, 'aprobarNoticia']);
+$router->post('/dashboard/noticias/rechazar', [BlogController::class, 'rechazarNoticia']);
+$router->post('/dashboard/noticias/like', [BlogController::class, 'likeNoticia']);
 
+// Admin — Categorías de noticias
 $router->get('/dashboard/noticias/categorias', [BlogController::class, 'categoriasNoticias']);
 $router->get('/dashboard/noticias/categorias/crear', [BlogController::class, 'crearCategoriaNoticia']);
 $router->post('/dashboard/noticias/categorias/crear', [BlogController::class, 'crearCategoriaNoticia']);
@@ -152,7 +206,21 @@ $router->get('/dashboard/noticias/categorias/editar', [BlogController::class, 'e
 $router->post('/dashboard/noticias/categorias/editar', [BlogController::class, 'editarCategoriaNoticia']);
 $router->post('/dashboard/noticias/categorias/eliminar', [BlogController::class, 'eliminarCategoriaNoticia']);
 
-// Alias de compatibilidad: /blog/noticias redirige a /dashboard/noticias
-$router->get('/blog/noticias', function() { header('Location: /dashboard/noticias'); exit; });
+// Admin — Revisiones pendientes
+$router->get('/dashboard/revisiones', [BlogController::class, 'revisiones']);
+
+// Editor — Mis revisiones
+$router->get('/dashboard/mis-revisiones', [BlogController::class, 'misRevisiones']);
+
+// Admin — Autores
+$router->get('/dashboard/autores', [BlogController::class, 'autores']);
+
+// Alias de compatibilidad (redirects 301)
+$router->get('/blog/login',     function() { header('Location: /login', true, 301); exit; });
+$router->get('/blog/articulos', function() { header('Location: /dashboard/articulos', true, 301); exit; });
+$router->get('/blog/usuarios',  function() { header('Location: /dashboard/usuarios', true, 301); exit; });
+$router->get('/blog/categorias',function() { header('Location: /dashboard/categorias', true, 301); exit; });
+$router->get('/blog/noticias',  function() { header('Location: /dashboard/noticias', true, 301); exit; });
+$router->get('/blog/dashboard', function() { header('Location: /dashboard', true, 301); exit; });
 
 $router->comprobarRutas();

@@ -7,7 +7,8 @@ class Noticia extends ActiveRecord {
     protected static $columnasDB = [
         'id', 'titulo', 'slug', 'extracto', 'contenido',
         'portada', 'portada_alt', 'estado', 'destacada',
-        'fecha_publicacion', 'tiempo_lectura',
+        'envio_revision', 'comentario_revision',
+        'fecha_publicacion', 'tiempo_lectura', 'vistas', 'likes',
         'categoria_id', 'autor_id',
     ];
 
@@ -18,10 +19,14 @@ class Noticia extends ActiveRecord {
     public $contenido;
     public $portada;
     public $portada_alt;
-    public $estado          = 'borrador';
-    public $destacada       = 0;
+    public $estado              = 'borrador';
+    public $destacada           = 0;
+    public $envio_revision      = 0;
+    public $comentario_revision;
     public $fecha_publicacion;
     public $tiempo_lectura;
+    public $vistas              = 0;
+    public $likes               = 0;
     public $categoria_id;
     public $autor_id;
     public $creado_en;
@@ -211,6 +216,19 @@ class Noticia extends ActiveRecord {
             " . self::joins() . "
             ORDER  BY n.creado_en DESC, n.id DESC
             LIMIT  {$limit}
+        ";
+        return static::consultarSQL($query);
+    }
+
+    public static function conRevisionPendiente(): array {
+        $query = "
+            SELECT n.*, u.nombre AS autor_nombre, u.avatar AS autor_avatar,
+                   c.nombre AS categoria_nombre, c.color AS categoria_color
+            FROM noticias n
+            LEFT JOIN usuarios u ON u.id = n.autor_id
+            LEFT JOIN categorias_noticias c ON c.id = n.categoria_id
+            WHERE n.envio_revision = 1
+            ORDER BY n.actualizado_en DESC
         ";
         return static::consultarSQL($query);
     }

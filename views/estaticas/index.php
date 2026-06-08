@@ -6,39 +6,26 @@
         ================================================ -->
         <section class="hero-flagship">
 
-            <!-- Poster solo móvil -->
-            <img
-                class="hero-poster"
-                src="/build/assets/img/home/poster1.jpg"
-                alt=""
-                loading="eager"
-                decoding="async"
-            />
+            <!-- Imagen de fondo poster1 con efecto Ken Burns (GSAP) -->
+            <div class="hero-poster-wrap" aria-hidden="true">
+                <picture>
+                    <source srcset="/build/assets/img/home/poster1.avif" type="image/avif">
+                    <source srcset="/build/assets/img/home/poster1.webp" type="image/webp">
+                    <img src="/build/assets/img/home/poster1.jpg" alt="" class="hero-poster-img" fetchpriority="high">
+                </picture>
+            </div>
 
-            <!-- Video solo desktop -->
-            <video
-                class="hero-video-bg"
-                autoplay muted loop playsinline
-                preload="metadata"
-                poster="/build/assets/img/home/poster2.jpg"
-            >
-                <source src="/build/assets/vid/home/bg_high.mp4" type="video/mp4" />
-            </video>
+            <!-- Línea de scan al revelar (GSAP) -->
+            <div class="hero-scan-line" aria-hidden="true"></div>
 
             <div class="hero-overlay"></div>
-
-            <!-- Acento azul creativo en la base del hero -->
             <div class="hero-blue-bottom" aria-hidden="true"></div>
-            <div class="hero-blue-stripe" aria-hidden="true"></div>
 
             <!-- Contenido principal -->
             <div class="hero-content">
                 <h1 class="hero-title" id="dynamic-hero-title">
                     La naturaleza es nuestro salón
                 </h1>
-                <p class="hero-sub">
-                    Aquí los estudiantes aprenden a pensar, a cuestionarse y a encontrar su propio camino.
-                </p>
                 <div class="hero-cta-wrapper">
                     <a
                         href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada."
@@ -56,6 +43,7 @@
                         Conocer el colegio ↓
                     </a>
                 </div>
+
             </div>
 
             <!-- Indicador de scroll -->
@@ -103,8 +91,7 @@
 
                 <!-- Preescolar -->
                 <a href="/niveles-academicos/preescolar" class="level-card">
-                    <img src="/build/assets/img/niveles-academicos/preescolar/nino-burbujas.jpg"
-                         alt="Preescolar" class="level-bg" loading="lazy">
+                    <?= picture('/build/assets/img/niveles-academicos/preescolar/nino-burbujas.jpg', 'Preescolar', 'level-bg') ?>
                     <div class="level-alex-mascot">
                         <img src="/build/assets/img/niveles-academicos/preescolar/bby-alex-feliz.png"
                              alt="" loading="lazy">
@@ -119,8 +106,7 @@
 
                 <!-- Primaria -->
                 <a href="/niveles-academicos/primaria" class="level-card">
-                    <img src="/build/assets/img/niveles-academicos/primaria/alumna-escribiendo.jpg"
-                         alt="Primaria" class="level-bg" loading="lazy">
+                    <?= picture('/build/assets/img/niveles-academicos/primaria/alumna-escribiendo.jpg', 'Primaria', 'level-bg') ?>
                     <div class="level-alex-mascot">
                         <img src="/build/assets/img/niveles-academicos/primaria/kid-alex-explora.png"
                              alt="" loading="lazy">
@@ -135,8 +121,7 @@
 
                 <!-- Secundaria -->
                 <a href="/niveles-academicos/secundaria" class="level-card">
-                    <img src="/build/assets/img/niveles-academicos/secundaria/alumnas-argumentando.jpg"
-                         alt="Secundaria" class="level-bg" loading="lazy">
+                    <?= picture('/build/assets/img/niveles-academicos/secundaria/alumnas-argumentando.jpg', 'Secundaria', 'level-bg') ?>
                     <div class="level-alex-mascot">
                         <img src="/build/assets/img/niveles-academicos/secundaria/teen-alex-camina.png"
                              alt="" loading="lazy">
@@ -151,8 +136,7 @@
 
                 <!-- Preparatoria -->
                 <a href="/niveles-academicos/preparatoria" class="level-card">
-                    <img src="/build/assets/img/niveles-academicos/preparatoria/alumnos-felices.jpg"
-                         alt="Preparatoria" class="level-bg" loading="lazy">
+                    <?= picture('/build/assets/img/niveles-academicos/preparatoria/alumnos-felices.jpg', 'Preparatoria', 'level-bg') ?>
                     <div class="level-alex-mascot">
                         <img src="/build/assets/img/niveles-academicos/preparatoria/alex-medita.png"
                              alt="" loading="lazy">
@@ -230,8 +214,7 @@
 
                 <!-- Card 1: Admisiones — tall izquierda -->
                 <a href="/admisiones/inicio" class="explore-card">
-                    <img src="/build/assets/img/admisiones/inicio/llegando-al-bilbao.jpg"
-                         alt="Admisiones" loading="lazy">
+                    <?= picture('/build/assets/img/admisiones/inicio/llegando-al-bilbao.jpg', 'Admisiones') ?>
                     <div class="explore-overlay">
                         <span class="explore-num">01</span>
                         <h3 class="explore-title">Admisiones</h3>
@@ -242,8 +225,7 @@
 
                 <!-- Card 2: Equipo educativo — row 1 col 2 -->
                 <a href="/conocenos/equipo-educativo" class="explore-card">
-                    <img src="/build/assets/img/conocenos/equipo-educativo/maestro-escucha.jpg"
-                         alt="Equipo educativo" loading="lazy">
+                    <?= picture('/build/assets/img/conocenos/equipo-educativo/maestro-escucha.jpg', 'Equipo educativo') ?>
                     <div class="explore-overlay">
                         <span class="explore-num">02</span>
                         <h3 class="explore-title">Equipo educativo</h3>
@@ -254,8 +236,7 @@
 
                 <!-- Card 3: Idiomas — row 1 col 3 -->
                 <a href="/modelo-educativo/idiomas" class="explore-card">
-                    <img src="/build/assets/img/modelo-educativo/idiomas/reading.jpg"
-                         alt="Idiomas" loading="lazy">
+                    <?= picture('/build/assets/img/modelo-educativo/idiomas/reading.jpg', 'Idiomas') ?>
                     <div class="explore-overlay">
                         <span class="explore-num">03</span>
                         <h3 class="explore-title">Idiomas</h3>
@@ -266,8 +247,7 @@
 
                 <!-- Card 4: Aprendizaje Integral — row 2 col 2 -->
                 <a href="/modelo-educativo/aprendizaje-integral" class="explore-card">
-                    <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/ciencia.jpg"
-                         alt="Aprendizaje Integral" loading="lazy">
+                    <?= picture('/build/assets/img/modelo-educativo/aprendizaje-integral/ciencia.jpg', 'Aprendizaje Integral') ?>
                     <div class="explore-overlay">
                         <span class="explore-num">04</span>
                         <h3 class="explore-title">Aprendizaje Integral</h3>
@@ -278,8 +258,7 @@
 
                 <!-- Card 5: Futuro universitario — row 2 col 3 -->
                 <a href="/vida-escolar/futuro-universitario-becas" class="explore-card">
-                    <img src="/build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg"
-                         alt="Futuro universitario" loading="lazy">
+                    <?= picture('/build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg', 'Futuro universitario') ?>
                     <div class="explore-overlay">
                         <span class="explore-num">05</span>
                         <h3 class="explore-title">Futuro universitario</h3>
@@ -290,8 +269,7 @@
 
                 <!-- Card 6: Instalaciones — tall derecha -->
                 <a href="/conocenos/instalaciones" class="explore-card">
-                    <img src="/build/assets/img/conocenos/instalaciones/cancha-futbol.jpg"
-                         alt="Instalaciones" loading="lazy">
+                    <?= picture('/build/assets/img/conocenos/instalaciones/cancha-futbol.jpg', 'Instalaciones') ?>
                     <div class="explore-overlay">
                         <span class="explore-num">06</span>
                         <h3 class="explore-title">Instalaciones</h3>

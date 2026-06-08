@@ -39,6 +39,7 @@ $all_para_ticker = array_merge(
 $ticker_items = array_map(fn($n) => [
     'cat'   => $n->categoria_nombre ?? '',
     'texto' => $n->titulo,
+    'slug'  => $n->slug ?? '',
 ], array_slice($all_para_ticker, 0, 8));
 ?>
 <!DOCTYPE html>
@@ -159,7 +160,7 @@ $ticker_items = array_map(fn($n) => [
 
         <!-- ── TICKER — ancho completo ────────────────────── -->
         <?php if (!empty($ticker_items)): ?>
-        <div class="news-ticker-bar" aria-hidden="true">
+        <div class="news-ticker-bar">
             <div class="news-ticker-inner">
                 <div class="ticker-label">
                     <span class="ticker-dot"></span>
@@ -170,10 +171,10 @@ $ticker_items = array_map(fn($n) => [
                         <?php
                         $ticker_doubled = array_merge($ticker_items, $ticker_items);
                         foreach ($ticker_doubled as $t): ?>
-                        <span class="ticker-item">
+                        <a class="ticker-item" href="/noticias/<?= htmlspecialchars($t['slug']) ?>">
                             <span class="ticker-cat"><?= htmlspecialchars($t['cat']) ?></span>
-                            <?= htmlspecialchars($t['texto']) ?>
-                        </span>
+                            <span class="ticker-text"><?= htmlspecialchars($t['texto']) ?></span>
+                        </a>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -271,9 +272,13 @@ $ticker_items = array_map(fn($n) => [
                         <a href="/noticias/<?= $slug ?>"
                            class="noticia-card-img"
                            tabindex="-1" aria-hidden="true">
-                            <img src="<?= $has_img ? htmlspecialchars($n->portada) : '/build/assets/img/blog/blog-placeholder.png' ?>"
-                                 alt="" loading="lazy"
-                                 style="view-transition-name: noticia-img-<?= htmlspecialchars($slug) ?>">
+                            <?= picture(
+                                $has_img ? htmlspecialchars($n->portada) : '/build/assets/img/blog/blog-placeholder.png',
+                                '',
+                                '',
+                                'lazy',
+                                ['style' => 'view-transition-name: noticia-img-' . htmlspecialchars($slug)]
+                            ) ?>
                             <span class="cat-chip cat-chip--glass cat-<?= $cat_slug ?>">
                                 <?= htmlspecialchars($n->categoria_nombre ?? '') ?>
                             </span>
