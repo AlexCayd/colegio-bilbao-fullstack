@@ -6,7 +6,7 @@ class Articulo extends ActiveRecord {
     protected static $tabla      = 'articulos';
     protected static $columnasDB = [
         'id', 'titulo', 'slug', 'extracto', 'contenido',
-        'imagen', 'estado', 'envio_revision', 'comentario_revision',
+        'imagen', 'estado', 'envio_revision', 'comentario_revision', 'version_pendiente',
         'fecha_publicacion', 'tiempo_lectura', 'vistas', 'likes',
         'categoria_id', 'autor_id',
     ];
@@ -20,6 +20,7 @@ class Articulo extends ActiveRecord {
     public $estado              = 'borrador';
     public $envio_revision      = 0;
     public $comentario_revision;
+    public $version_pendiente;
     public $fecha_publicacion;
     public $tiempo_lectura;
     public $vistas              = 0;
@@ -194,12 +195,16 @@ class Articulo extends ActiveRecord {
 
     // ── Queries ───────────────────────────────────────────────────────────────
 
-    public static function allConDetalles(string $estado = ''): array {
-        $where = '';
+    public static function allConDetalles(string $estado = '', int $autorId = 0): array {
+        $conditions = [];
         if ($estado && in_array($estado, ['publicado', 'borrador', 'programado'], true)) {
-            $e     = self::$db->escape_string($estado);
-            $where = "WHERE a.estado = '{$e}'";
+            $e            = self::$db->escape_string($estado);
+            $conditions[] = "a.estado = '{$e}'";
         }
+        if ($autorId > 0) {
+            $conditions[] = "a.autor_id = {$autorId}";
+        }
+        $where = $conditions ? "WHERE " . implode(" AND ", $conditions) : "";
         $query = "
             SELECT a.*,
                    c.nombre AS categoria_nombre,

@@ -7,44 +7,45 @@ namespace Composer\Autoload;
 class ComposerStaticInitd3ee9ce9c5e82e3f6ebc646e329be11e
 {
     public static $files = array (
+        'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
+        '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
-        'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        'S' => 
+        'S' =>
         array (
             'Symfony\\Polyfill\\Php80\\' => 23,
             'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Polyfill\\Ctype\\' => 23,
         ),
-        'P' => 
+        'P' =>
         array (
             'Psr\\Http\\Message\\' => 17,
             'PhpOption\\' => 10,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
-        'M' => 
+        'M' =>
         array (
             'Model\\' => 6,
             'MVC\\' => 4,
         ),
-        'I' => 
+        'I' =>
         array (
             'Intervention\\Image\\' => 19,
         ),
-        'G' => 
+        'G' =>
         array (
             'GuzzleHttp\\Psr7\\' => 16,
             'GrahamCampbell\\ResultType\\' => 26,
         ),
-        'D' => 
+        'D' =>
         array (
             'Dotenv\\' => 7,
         ),
-        'C' => 
+        'C' =>
         array (
             'Controllers\\' => 12,
             'Classes\\' => 8,
@@ -52,60 +53,60 @@ class ComposerStaticInitd3ee9ce9c5e82e3f6ebc646e329be11e
     );
 
     public static $prefixDirsPsr4 = array (
-        'Symfony\\Polyfill\\Php80\\' => 
+        'Symfony\\Polyfill\\Php80\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
         ),
-        'Symfony\\Polyfill\\Mbstring\\' => 
+        'Symfony\\Polyfill\\Mbstring\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
         ),
-        'Symfony\\Polyfill\\Ctype\\' => 
+        'Symfony\\Polyfill\\Ctype\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
         ),
-        'Psr\\Http\\Message\\' => 
+        'Psr\\Http\\Message\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/http-factory/src',
             1 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
-        'PhpOption\\' => 
+        'PhpOption\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
         ),
-        'PHPMailer\\PHPMailer\\' => 
+        'PHPMailer\\PHPMailer\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
-        'Model\\' => 
+        'Model\\' =>
         array (
             0 => __DIR__ . '/../..' . '/models',
         ),
-        'MVC\\' => 
+        'MVC\\' =>
         array (
             0 => __DIR__ . '/../..' . '/',
         ),
-        'Intervention\\Image\\' => 
+        'Intervention\\Image\\' =>
         array (
             0 => __DIR__ . '/..' . '/intervention/image/src/Intervention/Image',
         ),
-        'GuzzleHttp\\Psr7\\' => 
+        'GuzzleHttp\\Psr7\\' =>
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
         ),
-        'GrahamCampbell\\ResultType\\' => 
+        'GrahamCampbell\\ResultType\\' =>
         array (
             0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
         ),
-        'Dotenv\\' => 
+        'Dotenv\\' =>
         array (
             0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
         ),
-        'Controllers\\' => 
+        'Controllers\\' =>
         array (
             0 => __DIR__ . '/../..' . '/controllers',
         ),
-        'Classes\\' => 
+        'Classes\\' =>
         array (
             0 => __DIR__ . '/../..' . '/classes',
         ),

@@ -212,6 +212,11 @@ $router->get('/dashboard/revisiones', [BlogController::class, 'revisiones']);
 // Editor — Mis revisiones
 $router->get('/dashboard/mis-revisiones', [BlogController::class, 'misRevisiones']);
 
+// Notificaciones
+$router->get('/dashboard/notificaciones',             [BlogController::class, 'notificaciones']);
+$router->post('/dashboard/notificaciones/leer',       [BlogController::class, 'marcarNotificacionLeida']);
+$router->post('/dashboard/notificaciones/leer-todas', [BlogController::class, 'marcarTodasLeidas']);
+
 // Admin — Autores
 $router->get('/dashboard/autores', [BlogController::class, 'autores']);
 

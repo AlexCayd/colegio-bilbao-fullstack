@@ -8,6 +8,7 @@ use Model\Categoria;
 use Model\Articulo;
 use Model\Noticia;
 use Model\CategoriaNoticia;
+use Model\Notificacion;
 
 class BlogController {
 
@@ -192,9 +193,10 @@ class BlogController {
     // ── ARTÍCULOS ──────────────────────────────────────────────────────────────
 
     public static function articulos(Router $router) {
-        self::requireAuth();
+        $usuario        = self::requireAuth();
         $estadosValidos = ['publicado', 'borrador', 'programado'];
         $estado    = in_array($_GET['estado'] ?? '', $estadosValidos, true) ? $_GET['estado'] : '';
+        $esEditor  = ($usuario['rol'] ?? '') === 'editor';
         $articulos = Articulo::allConDetalles($estado);
         $success   = isset($_GET['success']);
         $edited    = isset($_GET['edited']);
@@ -205,6 +207,8 @@ class BlogController {
             'success'   => $success,
             'edited'    => $edited,
             'estado'    => $estado,
+            'esEditor'  => $esEditor,
+            'usuarioId' => (int)($usuario['id'] ?? 0),
         ]);
     }
 
@@ -261,7 +265,13 @@ class BlogController {
                         if ($resultado['resultado']) {
                             $articulo->id = $resultado['id'];
                             $articulo->guardarTags(trim($_POST['tags'] ?? ''));
-                            header('Location: /dashboard/articulos?success=1');
+                            $accion = $_POST['_accion'] ?? 'guardar';
+                            if ($esEditor && $accion === 'enviar_revision') {
+                                Articulo::getDB()->query("UPDATE articulos SET envio_revision=1, comentario_revision=NULL WHERE id={$articulo->id}");
+                                header('Location: /dashboard/articulos?revision=1');
+                            } else {
+                                header('Location: /dashboard/articulos?success=1');
+                            }
                             exit;
                         }
                         Articulo::setAlerta('error', 'Error al guardar el artículo. Intenta de nuevo.');
@@ -303,10 +313,39 @@ class BlogController {
         $alertas     = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $estadoActual = $articulo->estado;
             $slugOriginal = $articulo->slug;
             $articulo->sincronizar($_POST);
 
-            // Los editores solo pueden guardar como borrador
+            // Editor editando artículo ya publicado → guardar como version_pendiente
+            if ($esEditor && in_array($estadoActual, ['publicado', 'programado'], true)) {
+                // Procesar nueva imagen si se subió
+                $imagenPendiente = $articulo->imagen;
+                if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                    $tmpArticulo = new Articulo();
+                    $alertasImg  = self::subirImagen($_FILES['imagen'], $tmpArticulo);
+                    if (empty($alertasImg['error'])) {
+                        $imagenPendiente = $tmpArticulo->imagen;
+                    }
+                }
+                $vp = [
+                    'titulo'         => trim($articulo->titulo ?? ''),
+                    'extracto'       => trim($articulo->extracto ?? ''),
+                    'contenido'      => $articulo->contenido ?? '',
+                    'imagen'         => $imagenPendiente,
+                    'categoria_id'   => (int)($articulo->categoria_id ?? 0) ?: null,
+                    'tiempo_lectura' => (int)($articulo->tiempo_lectura ?? 0) ?: null,
+                    'tags'           => trim($_POST['tags'] ?? ''),
+                ];
+                $vpEsc = Articulo::getDB()->escape_string(json_encode($vp, JSON_UNESCAPED_UNICODE));
+                Articulo::getDB()->query(
+                    "UPDATE articulos SET version_pendiente='{$vpEsc}', envio_revision=1, comentario_revision=NULL WHERE id={$id}"
+                );
+                header('Location: /dashboard/articulos?revision=1');
+                exit;
+            }
+
+            // Flujo normal para borradores
             if ($esEditor) {
                 $articulo->estado = 'borrador';
             }
@@ -335,8 +374,21 @@ class BlogController {
                     }
 
                     if (empty($alertas['error'])) {
+                        if (!$esEditor) {
+                            // Admin siempre cierra el ciclo de revisión al guardar
+                            $articulo->envio_revision     = 0;
+                            $articulo->comentario_revision = null;
+                            $articulo->version_pendiente   = null;
+                        }
                         $articulo->guardar();
                         $articulo->guardarTags(trim($_POST['tags'] ?? ''));
+                        if ($esEditor && ($_POST['_accion'] ?? '') === 'reenviar_revision') {
+                            Articulo::getDB()->query(
+                                "UPDATE articulos SET envio_revision=1 WHERE id={$id}"
+                            );
+                            header('Location: /dashboard/mis-revisiones?reenviado=1');
+                            exit;
+                        }
                         $tagsActuales = $articulo->obtenerTags();
                         header('Location: /dashboard/articulos?edited=1');
                         exit;
@@ -396,7 +448,7 @@ class BlogController {
         if ($id) {
             $art = Articulo::find($id);
             if ($art && $art->estado === 'borrador') {
-                Articulo::$db->query("UPDATE articulos SET envio_revision=1, comentario_revision=NULL WHERE id={$id}");
+                Articulo::getDB()->query("UPDATE articulos SET envio_revision=1, comentario_revision=NULL WHERE id={$id}");
             }
         }
         header('Location: /dashboard/articulos?revision=1');
@@ -410,8 +462,48 @@ class BlogController {
         $estado = in_array($_POST['estado'] ?? '', ['publicado','programado'], true) ? $_POST['estado'] : 'publicado';
         $fecha  = trim($_POST['fecha_publicacion'] ?? '');
         if ($id) {
-            $fechaSql = ($estado === 'programado' && $fecha) ? "'" . Articulo::$db->escape_string($fecha) . "'" : 'NULL';
-            Articulo::$db->query("UPDATE articulos SET estado='{$estado}', fecha_publicacion={$fechaSql}, envio_revision=0, comentario_revision=NULL WHERE id={$id}");
+            $fechaSql = ($estado === 'programado' && $fecha) ? "'" . Articulo::getDB()->escape_string($fecha) . "'" : 'NULL';
+            Articulo::getDB()->query("UPDATE articulos SET estado='{$estado}', fecha_publicacion={$fechaSql}, envio_revision=0, comentario_revision=NULL WHERE id={$id}");
+
+            // Aplicar version_pendiente si existe
+            $art = Articulo::find($id);
+            if ($art && !empty($art->version_pendiente)) {
+                $vp = json_decode($art->version_pendiente, true);
+                if (is_array($vp)) {
+                    $sets = [];
+                    foreach (['titulo','extracto','contenido','imagen','categoria_id','tiempo_lectura'] as $col) {
+                        if (array_key_exists($col, $vp)) {
+                            $v = $vp[$col];
+                            $sets[] = ($v === null || $v === '')
+                                ? "{$col} = NULL"
+                                : "{$col} = '" . Articulo::getDB()->escape_string((string)$v) . "'";
+                        }
+                    }
+                    if ($sets) {
+                        Articulo::getDB()->query(
+                            "UPDATE articulos SET " . implode(', ', $sets) . ", version_pendiente = NULL WHERE id = {$id}"
+                        );
+                    }
+                    if (!empty($vp['tags'])) {
+                        $art->id = $id;
+                        $art->guardarTags($vp['tags']);
+                    }
+                }
+            } else {
+                Articulo::getDB()->query("UPDATE articulos SET version_pendiente = NULL WHERE id = {$id}");
+            }
+
+            // Notificar al autor
+            $artFinal = Articulo::find($id);
+            if ($artFinal && $artFinal->autor_id) {
+                Notificacion::nueva(
+                    (int)$artFinal->autor_id,
+                    'articulo_aprobado',
+                    "Tu artículo \"{$artFinal->titulo}\" fue publicado.",
+                    $id,
+                    'articulo'
+                );
+            }
         }
         header('Location: /dashboard/revisiones?aprobado=1');
         exit;
@@ -420,11 +512,23 @@ class BlogController {
     public static function rechazarArticulo(Router $router) {
         self::requireAuth();
         self::requireAdmin();
-        $id      = (int)($_POST['id'] ?? 0);
+        $id         = (int)($_POST['id'] ?? 0);
         $comentario = substr(trim($_POST['comentario'] ?? ''), 0, 1000);
         if ($id) {
-            $c = Articulo::$db->escape_string($comentario);
-            Articulo::$db->query("UPDATE articulos SET envio_revision=0, comentario_revision='{$c}' WHERE id={$id}");
+            $c = Articulo::getDB()->escape_string($comentario);
+            Articulo::getDB()->query("UPDATE articulos SET envio_revision=0, comentario_revision='{$c}', version_pendiente=NULL WHERE id={$id}");
+
+            // Notificar al autor
+            $art = Articulo::find($id);
+            if ($art && $art->autor_id) {
+                Notificacion::nueva(
+                    (int)$art->autor_id,
+                    'articulo_rechazado',
+                    "Tu artículo \"{$art->titulo}\" requiere cambios.",
+                    $id,
+                    'articulo'
+                );
+            }
         }
         header('Location: /dashboard/revisiones?rechazado=1');
         exit;
@@ -434,10 +538,10 @@ class BlogController {
         self::requireAuth();
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {
-            Articulo::$db->query("UPDATE articulos SET likes=likes+1 WHERE id={$id}");
+            Articulo::getDB()->query("UPDATE articulos SET likes=likes+1 WHERE id={$id}");
         }
         header('Content-Type: application/json');
-        $r = Articulo::$db->query("SELECT likes FROM articulos WHERE id={$id}");
+        $r = Articulo::getDB()->query("SELECT likes FROM articulos WHERE id={$id}");
         $likes = $r ? (int)$r->fetch_assoc()['likes'] : 0;
         echo json_encode(['likes' => $likes]);
         exit;
@@ -449,7 +553,7 @@ class BlogController {
         if ($id) {
             $not = Noticia::find($id);
             if ($not && $not->estado === 'borrador') {
-                Noticia::$db->query("UPDATE noticias SET envio_revision=1, comentario_revision=NULL WHERE id={$id}");
+                Noticia::getDB()->query("UPDATE noticias SET envio_revision=1, comentario_revision=NULL WHERE id={$id}");
             }
         }
         header('Location: /dashboard/noticias?revision=1');
@@ -463,8 +567,44 @@ class BlogController {
         $estado = in_array($_POST['estado'] ?? '', ['publicado','programado'], true) ? $_POST['estado'] : 'publicado';
         $fecha  = trim($_POST['fecha_publicacion'] ?? '');
         if ($id) {
-            $fechaSql = ($estado === 'programado' && $fecha) ? "'" . Noticia::$db->escape_string($fecha) . "'" : 'NULL';
-            Noticia::$db->query("UPDATE noticias SET estado='{$estado}', fecha_publicacion={$fechaSql}, envio_revision=0, comentario_revision=NULL WHERE id={$id}");
+            $fechaSql = ($estado === 'programado' && $fecha) ? "'" . Noticia::getDB()->escape_string($fecha) . "'" : 'NULL';
+            Noticia::getDB()->query("UPDATE noticias SET estado='{$estado}', fecha_publicacion={$fechaSql}, envio_revision=0, comentario_revision=NULL WHERE id={$id}");
+
+            // Aplicar version_pendiente si existe
+            $not = Noticia::find($id);
+            if ($not && !empty($not->version_pendiente)) {
+                $vp = json_decode($not->version_pendiente, true);
+                if (is_array($vp)) {
+                    $sets = [];
+                    foreach (['titulo','extracto','contenido','portada','portada_alt','categoria_id','tiempo_lectura'] as $col) {
+                        if (array_key_exists($col, $vp)) {
+                            $v = $vp[$col];
+                            $sets[] = ($v === null || $v === '')
+                                ? "{$col} = NULL"
+                                : "{$col} = '" . Noticia::getDB()->escape_string((string)$v) . "'";
+                        }
+                    }
+                    if ($sets) {
+                        Noticia::getDB()->query(
+                            "UPDATE noticias SET " . implode(', ', $sets) . ", version_pendiente = NULL WHERE id = {$id}"
+                        );
+                    }
+                }
+            } else {
+                Noticia::getDB()->query("UPDATE noticias SET version_pendiente = NULL WHERE id = {$id}");
+            }
+
+            // Notificar al autor
+            $notFinal = Noticia::find($id);
+            if ($notFinal && $notFinal->autor_id) {
+                Notificacion::nueva(
+                    (int)$notFinal->autor_id,
+                    'noticia_aprobada',
+                    "Tu noticia \"{$notFinal->titulo}\" fue publicada.",
+                    $id,
+                    'noticia'
+                );
+            }
         }
         header('Location: /dashboard/revisiones?aprobado=1');
         exit;
@@ -473,11 +613,23 @@ class BlogController {
     public static function rechazarNoticia(Router $router) {
         self::requireAuth();
         self::requireAdmin();
-        $id      = (int)($_POST['id'] ?? 0);
+        $id         = (int)($_POST['id'] ?? 0);
         $comentario = substr(trim($_POST['comentario'] ?? ''), 0, 1000);
         if ($id) {
-            $c = Noticia::$db->escape_string($comentario);
-            Noticia::$db->query("UPDATE noticias SET envio_revision=0, comentario_revision='{$c}' WHERE id={$id}");
+            $c = Noticia::getDB()->escape_string($comentario);
+            Noticia::getDB()->query("UPDATE noticias SET envio_revision=0, comentario_revision='{$c}', version_pendiente=NULL WHERE id={$id}");
+
+            // Notificar al autor
+            $not = Noticia::find($id);
+            if ($not && $not->autor_id) {
+                Notificacion::nueva(
+                    (int)$not->autor_id,
+                    'noticia_rechazada',
+                    "Tu noticia \"{$not->titulo}\" requiere cambios.",
+                    $id,
+                    'noticia'
+                );
+            }
         }
         header('Location: /dashboard/revisiones?rechazado=1');
         exit;
@@ -487,10 +639,10 @@ class BlogController {
         self::requireAuth();
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {
-            Noticia::$db->query("UPDATE noticias SET likes=likes+1 WHERE id={$id}");
+            Noticia::getDB()->query("UPDATE noticias SET likes=likes+1 WHERE id={$id}");
         }
         header('Content-Type: application/json');
-        $r = Noticia::$db->query("SELECT likes FROM noticias WHERE id={$id}");
+        $r = Noticia::getDB()->query("SELECT likes FROM noticias WHERE id={$id}");
         $likes = $r ? (int)$r->fetch_assoc()['likes'] : 0;
         echo json_encode(['likes' => $likes]);
         exit;
@@ -951,19 +1103,22 @@ class BlogController {
     // ── NOTICIAS ───────────────────────────────────────────────────────────────
 
     public static function noticias(Router $router) {
-        self::requireAuth();
+        $usuario        = self::requireAuth();
         $estadosValidos = ['publicado', 'borrador', 'programado'];
         $estado   = in_array($_GET['estado'] ?? '', $estadosValidos, true) ? $_GET['estado'] : '';
+        $esEditor = ($usuario['rol'] ?? '') === 'editor';
         $noticias = Noticia::allConDetalles($estado);
         $success  = isset($_GET['success']);
         $edited   = isset($_GET['edited']);
 
         $router->renderAdmin('blog/noticias/index', [
-            'titulo'   => 'Noticias',
-            'noticias' => $noticias,
-            'success'  => $success,
-            'edited'   => $edited,
-            'estado'   => $estado,
+            'titulo'    => 'Noticias',
+            'noticias'  => $noticias,
+            'success'   => $success,
+            'edited'    => $edited,
+            'estado'    => $estado,
+            'esEditor'  => $esEditor,
+            'usuarioId' => (int)($usuario['id'] ?? 0),
         ]);
     }
 
@@ -1013,7 +1168,14 @@ class BlogController {
                         if ($noticia->destacada) Noticia::quitarDestacadaDeOtras();
                         $resultado = $noticia->crear();
                         if ($resultado['resultado']) {
-                            header('Location: /dashboard/noticias?success=1');
+                            $noticiaId = $resultado['id'];
+                            $accion    = $_POST['_accion'] ?? 'guardar';
+                            if ($esEditor && $accion === 'enviar_revision') {
+                                Noticia::getDB()->query("UPDATE noticias SET envio_revision=1, comentario_revision=NULL WHERE id={$noticiaId}");
+                                header('Location: /dashboard/noticias?revision=1');
+                            } else {
+                                header('Location: /dashboard/noticias?success=1');
+                            }
                             exit;
                         }
                         Noticia::setAlerta('error', 'Error al guardar la noticia. Intenta de nuevo.');
@@ -1042,11 +1204,7 @@ class BlogController {
             exit;
         }
 
-        $noticia = Noticia::allConDetalles('');
-        $noticia = array_values(array_filter($noticia, fn($n) => (int)$n->id === $id))[0] ?? null;
-        if (!$noticia) {
-            $noticia = Noticia::find($id);
-        }
+        $noticia = Noticia::findConDetalles($id);
         if (!$noticia) {
             header('Location: /dashboard/noticias');
             exit;
@@ -1057,11 +1215,39 @@ class BlogController {
         $alertas    = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $estadoActual = $noticia->estado;
             $slugOriginal = $noticia->slug;
             $noticia->sincronizar($_POST);
             $noticia->destacada = isset($_POST['destacada']) ? 1 : 0;
 
-            // Editores solo pueden guardar como borrador
+            // Editor editando noticia ya publicada → guardar como version_pendiente
+            if ($esEditor && in_array($estadoActual, ['publicado', 'programado'], true)) {
+                $portadaPendiente = $noticia->portada;
+                if (isset($_FILES['portada']) && $_FILES['portada']['error'] === UPLOAD_ERR_OK) {
+                    $tmpNoticia = new Noticia();
+                    $alertasImg = self::subirPortada($_FILES['portada'], $tmpNoticia);
+                    if (empty($alertasImg['error'])) {
+                        $portadaPendiente = $tmpNoticia->portada;
+                    }
+                }
+                $vp = [
+                    'titulo'         => trim($noticia->titulo ?? ''),
+                    'extracto'       => trim($noticia->extracto ?? ''),
+                    'contenido'      => $noticia->contenido ?? '',
+                    'portada'        => $portadaPendiente,
+                    'portada_alt'    => trim($noticia->portada_alt ?? ''),
+                    'categoria_id'   => (int)($noticia->categoria_id ?? 0) ?: null,
+                    'tiempo_lectura' => (int)($noticia->tiempo_lectura ?? 0) ?: null,
+                ];
+                $vpEsc = Noticia::getDB()->escape_string(json_encode($vp, JSON_UNESCAPED_UNICODE));
+                Noticia::getDB()->query(
+                    "UPDATE noticias SET version_pendiente='{$vpEsc}', envio_revision=1, comentario_revision=NULL WHERE id={$id}"
+                );
+                header('Location: /dashboard/noticias?revision=1');
+                exit;
+            }
+
+            // Flujo normal para borradores
             if ($esEditor) {
                 $noticia->estado    = 'borrador';
                 $noticia->destacada = 0;
@@ -1090,8 +1276,21 @@ class BlogController {
                         $alertas = self::subirPortada($_FILES['portada'], $noticia);
                     }
                     if (empty($alertas['error'])) {
+                        if (!$esEditor) {
+                            // Admin siempre cierra el ciclo de revisión al guardar
+                            $noticia->envio_revision     = 0;
+                            $noticia->comentario_revision = null;
+                            $noticia->version_pendiente   = null;
+                        }
                         if ($noticia->destacada) Noticia::quitarDestacadaDeOtras((int)$noticia->id);
                         $noticia->actualizar();
+                        if ($esEditor && ($_POST['_accion'] ?? '') === 'reenviar_revision') {
+                            Noticia::getDB()->query(
+                                "UPDATE noticias SET envio_revision=1 WHERE id={$id}"
+                            );
+                            header('Location: /dashboard/mis-revisiones?reenviado=1');
+                            exit;
+                        }
                         header('Location: /dashboard/noticias?edited=1');
                         exit;
                     }
@@ -1257,5 +1456,38 @@ class BlogController {
 
         $noticia->portada = '/build/assets/noticias/' . $filename;
         return [];
+    }
+
+    // ── NOTIFICACIONES ────────────────────────────────────────────────────────
+
+    public static function notificaciones(Router $router) {
+        $usuario = self::requireAuth();
+        $notifs  = Notificacion::porUsuario((int)$usuario['id'], 30);
+        $router->renderAdmin('blog/notificaciones/index', [
+            'titulo' => 'Notificaciones',
+            'notifs' => $notifs,
+        ]);
+    }
+
+    public static function marcarNotificacionLeida(Router $router) {
+        $usuario = self::requireAuth();
+        $id      = (int)($_POST['id'] ?? 0);
+        if ($id) {
+            Notificacion::marcarLeida($id, (int)$usuario['id']);
+        }
+        if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true]);
+            exit;
+        }
+        header('Location: /dashboard/notificaciones');
+        exit;
+    }
+
+    public static function marcarTodasLeidas(Router $router) {
+        $usuario = self::requireAuth();
+        Notificacion::marcarTodasLeidas((int)$usuario['id']);
+        header('Location: /dashboard/notificaciones?marcadas=1');
+        exit;
     }
 }

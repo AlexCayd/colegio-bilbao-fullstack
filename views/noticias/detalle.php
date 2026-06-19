@@ -28,12 +28,9 @@ if (!empty($noticia->autor_nombre)) {
 
 $has_portada  = !empty($noticia->portada);
 $fecha_mostrar = $noticia->fecha_publicacion ?: ($noticia->creado_en ?? '');
-$wa_text     = urlencode('Leí esta noticia del Colegio Bilbao: '
-    . ($_SERVER['HTTP_HOST'] ?? 'colegiobilbao.mx')
-    . ($_SERVER['REQUEST_URI'] ?? ''));
 
-$svg_link = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
-$svg_wa   = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 0C5.373 0 0 5.373 0 12c0 2.117.553 4.103 1.523 5.833L.052 23.999l6.304-1.454A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.006-1.369l-.359-.214-3.721.859.936-3.612-.234-.371A9.818 9.818 0 1 1 12 21.818z"/></svg>';
+$svg_link  = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+$svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
 ?>
 <!DOCTYPE html>
 <html lang="es-MX">
@@ -145,12 +142,11 @@ $svg_wa   = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" view
                         </div>
                         <div class="nd-hero-share">
                             <button class="nd-share-btn" id="copyLinkHero" type="button">
-                                <?= $svg_link ?> Copiar enlace
+                                <?= $svg_link ?> <span id="ndCopyTxt">Copiar enlace</span>
                             </button>
-                            <a href="https://wa.me/?text=<?= $wa_text ?>" target="_blank" rel="noopener noreferrer"
-                               class="nd-share-btn nd-share-btn--wa">
-                                <?= $svg_wa ?> Compartir
-                            </a>
+                            <button class="nd-share-btn" id="ndShareBtn" type="button">
+                                <?= $svg_share ?> Compartir
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -300,27 +296,45 @@ $svg_wa   = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" view
         window.addEventListener('scroll', onScroll, { passive: true });
         onScroll();
 
-        function initCopy(id) {
-            var el = document.getElementById(id);
-            if (!el) return;
-            el.addEventListener('click', function () {
-                var orig = el.innerHTML;
-                el.innerHTML = '¡Copiado!';
-                setTimeout(function () { el.innerHTML = orig; }, 2200);
+        var copyBtn = document.getElementById('copyLinkHero');
+        var copyTxt = document.getElementById('ndCopyTxt');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function () {
+                var write = function () {
+                    copyTxt.textContent = '¡Copiado!';
+                    copyBtn.style.background = '#dcfce7';
+                    copyBtn.style.color = '#166534';
+                    setTimeout(function () {
+                        copyTxt.textContent = 'Copiar enlace';
+                        copyBtn.style.background = '';
+                        copyBtn.style.color = '';
+                    }, 2000);
+                };
                 if (navigator.clipboard) {
-                    navigator.clipboard.writeText(window.location.href);
+                    navigator.clipboard.writeText(location.href).then(write).catch(write);
                 } else {
                     var ta = document.createElement('textarea');
-                    ta.value = window.location.href;
+                    ta.value = location.href;
                     Object.assign(ta.style, { position: 'fixed', opacity: '0' });
                     document.body.appendChild(ta);
                     ta.select();
                     document.execCommand('copy');
                     document.body.removeChild(ta);
+                    write();
                 }
             });
         }
-        initCopy('copyLinkHero');
+
+        var shareBtn = document.getElementById('ndShareBtn');
+        if (shareBtn) {
+            if (navigator.share) {
+                shareBtn.addEventListener('click', function () {
+                    navigator.share({ title: document.title, url: location.href });
+                });
+            } else {
+                shareBtn.style.display = 'none';
+            }
+        }
     })();
     </script>
 </body>

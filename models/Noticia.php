@@ -7,7 +7,7 @@ class Noticia extends ActiveRecord {
     protected static $columnasDB = [
         'id', 'titulo', 'slug', 'extracto', 'contenido',
         'portada', 'portada_alt', 'estado', 'destacada',
-        'envio_revision', 'comentario_revision',
+        'envio_revision', 'comentario_revision', 'version_pendiente',
         'fecha_publicacion', 'tiempo_lectura', 'vistas', 'likes',
         'categoria_id', 'autor_id',
     ];
@@ -23,6 +23,7 @@ class Noticia extends ActiveRecord {
     public $destacada           = 0;
     public $envio_revision      = 0;
     public $comentario_revision;
+    public $version_pendiente;
     public $fecha_publicacion;
     public $tiempo_lectura;
     public $vistas              = 0;
@@ -192,12 +193,16 @@ class Noticia extends ActiveRecord {
         return ($r) ? (int) $r->fetch_assoc()['total'] : 0;
     }
 
-    public static function allConDetalles(string $estado = ''): array {
-        $where = '';
+    public static function allConDetalles(string $estado = '', int $autorId = 0): array {
+        $conditions = [];
         if ($estado && in_array($estado, ['publicado', 'borrador', 'programado'], true)) {
-            $e     = self::$db->escape_string($estado);
-            $where = "WHERE n.estado = '{$e}'";
+            $e            = self::$db->escape_string($estado);
+            $conditions[] = "n.estado = '{$e}'";
         }
+        if ($autorId > 0) {
+            $conditions[] = "n.autor_id = {$autorId}";
+        }
+        $where = $conditions ? "WHERE " . implode(" AND ", $conditions) : "";
         $query = "
             SELECT " . self::colsJoin() . "
             FROM   noticias n
@@ -206,6 +211,18 @@ class Noticia extends ActiveRecord {
             ORDER BY n.fecha_publicacion DESC, n.id DESC
         ";
         return static::consultarSQL($query);
+    }
+
+    public static function findConDetalles(int $id): ?self {
+        $query = "
+            SELECT " . self::colsJoin() . "
+            FROM   noticias n
+            " . self::joins() . "
+            WHERE  n.id = {$id}
+            LIMIT  1
+        ";
+        $resultado = static::consultarSQL($query);
+        return $resultado[0] ?? null;
     }
 
     public static function recentesConDetalles(int $limit = 6): array {

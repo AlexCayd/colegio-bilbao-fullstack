@@ -54,7 +54,7 @@ Conexión MySQLi en `includes/database.php`, instancia global via `ActiveRecord:
 **Tablas del blog:** `articulos`, `categorias`, `tags`, `articulo_tags`, `usuarios` (UsuarioBlog)  
 **Tablas del sitio:** `usuarios` (Usuario — registro/auth público)
 
-Seed completo: `blog_seed_minimo.sql` — incluye 2 admins, 8 categorías de artículos, 5 categorías de noticias, 12 artículos y 12 noticias.
+Seed completo: `blog_seed_minimo.sql` — incluye 2 admins, 2 editores, 8 categorías de artículos, 5 categorías de noticias, 12 artículos y 12 noticias.
 
 ### Cuentas del seed
 
@@ -62,6 +62,8 @@ Seed completo: `blog_seed_minimo.sql` — incluye 2 admins, 8 categorías de art
 |-------|-----------|-----|
 | `admin@bilbao.edu.mx` | `Tlalmimilolpan39%` | administrador |
 | `alexander.oliva@bilbao.edu.mx` | `ColegioBilbao13` | administrador |
+| `maria.gonzalez@bilbao.edu.mx` | `EditorBilbao25` | editor (artículo/noticia en revisión) |
+| `carlos.ramirez@bilbao.edu.mx` | `EditorBilbao25` | editor (artículo/noticia rechazado con feedback) |
 
 ### Paleta de colores para categorías
 

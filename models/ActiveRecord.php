@@ -15,6 +15,10 @@ class ActiveRecord {
         self::$db = $database;
     }
 
+    public static function getDB(): \mysqli {
+        return static::$db;
+    }
+
     // Setear un tipo de Alerta
     public static function setAlerta($tipo, $mensaje) {
         static::$alertas[$tipo][] = $mensaje;
@@ -112,23 +116,23 @@ class ActiveRecord {
 
     // Busca un registro por su id
     public static function find($id) {
-        $query = "SELECT * FROM " . static::$tabla  ." WHERE id = ${id}";
+        $query = "SELECT * FROM " . static::$tabla . " WHERE id = " . (int)$id;
         $resultado = self::consultarSQL($query);
-        return array_shift( $resultado ) ;
+        return array_shift($resultado);
     }
 
     // Obtener Registros con cierta cantidad
     public static function get($limite) {
-        $query = "SELECT * FROM " . static::$tabla . " LIMIT ${limite} ORDER BY id DESC" ;
+        $query = "SELECT * FROM " . static::$tabla . " ORDER BY id DESC LIMIT " . (int)$limite;
         $resultado = self::consultarSQL($query);
-        return array_shift( $resultado ) ;
+        return array_shift($resultado);
     }
 
-    // Busqueda Where con Columna 
+    // Busqueda Where con Columna
     public static function where($columna, $valor) {
-        $query = "SELECT * FROM " . static::$tabla . " WHERE ${columna} = '${valor}'";
+        $query = "SELECT * FROM " . static::$tabla . " WHERE " . self::$db->escape_string($columna) . " = '" . self::$db->escape_string($valor) . "'";
         $resultado = self::consultarSQL($query);
-        return array_shift( $resultado ) ;
+        return array_shift($resultado);
     }
 
     // crea un nuevo registro

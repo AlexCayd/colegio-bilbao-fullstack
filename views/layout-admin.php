@@ -15,5 +15,72 @@
 </head>
 <body class="admin-body">
     <?php echo $contenido; ?>
+
+<?php
+// Alex notification modal — shown once per unread notification
+$_alexNotif = null;
+if (!empty($_SESSION['blog_usuario']) && ($_SESSION['blog_usuario']['rol'] ?? '') === 'editor') {
+    if (class_exists(\Model\Notificacion::class)) {
+        $uid = (int)$_SESSION['blog_usuario']['id'];
+        $recientes = \Model\Notificacion::porUsuario($uid, 5);
+        foreach ($recientes as $_n) {
+            if (!(int)$_n->leida) { $_alexNotif = $_n; break; }
+        }
+    }
+}
+?>
+<?php if ($_alexNotif): ?>
+<?php
+$_esAprobado = str_contains($_alexNotif->tipo ?? '', 'aprobado');
+$_enlace = null;
+if (!empty($_alexNotif->referencia_id) && !empty($_alexNotif->referencia_tipo)) {
+    $_enlace = '/dashboard/' . htmlspecialchars($_alexNotif->referencia_tipo) . 's/editar?id=' . (int)$_alexNotif->referencia_id;
+}
+?>
+<div id="alexModal" class="alex-modal" data-notif-id="<?= (int)$_alexNotif->id ?>">
+    <div class="alex-modal__card">
+        <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-tech.png"
+             alt="Alex, mascota del Colegio Bilbao" class="alex-modal__img">
+        <div class="alex-modal__body">
+            <p class="alex-modal__tipo">
+                <?= $_esAprobado ? '&#127881; ¡Publicado!' : '&#128221; Tienes feedback' ?>
+            </p>
+            <p class="alex-modal__msg"><?= htmlspecialchars($_alexNotif->mensaje) ?></p>
+            <div class="alex-modal__actions">
+                <?php if ($_enlace): ?>
+                <a href="<?= $_enlace ?>" class="admin-btn admin-btn--primary alex-modal__cta">
+                    <?= $_esAprobado ? 'Ver publicación' : 'Ver feedback' ?>
+                </a>
+                <?php endif; ?>
+                <button type="button" class="admin-btn admin-btn--ghost" id="alexModalClose">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    const modal = document.getElementById('alexModal');
+    const close = document.getElementById('alexModalClose');
+    if (!modal || !close) return;
+
+    setTimeout(() => modal.classList.add('is-open'), 300);
+
+    function dismiss() {
+        modal.classList.remove('is-open');
+        setTimeout(() => modal.remove(), 350);
+        fetch('/dashboard/notificaciones/leer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: 'id=' + encodeURIComponent(modal.dataset.notifId)
+        });
+    }
+
+    close.addEventListener('click', dismiss);
+    modal.addEventListener('click', function(e) { if (e.target === modal) dismiss(); });
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>
