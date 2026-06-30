@@ -32,63 +32,7 @@ $fecha_mostrar = $noticia->fecha_publicacion ?: ($noticia->creado_en ?? '');
 $svg_link  = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
 $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
 ?>
-<!DOCTYPE html>
-<html lang="es-MX">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($titulo ?? ($noticia->titulo . ' · Colegio Bilbao')) ?></title>
-    <meta name="description" content="<?= htmlspecialchars($noticia->extracto ?? '') ?>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <link rel="shortcut icon" href="/build/assets/img/global/favicon.png" type="image/png">
-    <link rel="stylesheet" href="/build/css/app.css">
-    <meta name="view-transition" content="same-origin">
-</head>
-<body>
-
-    <div class="read-progress-bar" id="readProgress" role="progressbar" aria-hidden="true"></div>
-
-    <!-- HEADER -->
-    <header class="header-bar">
-        <div class="header-inner">
-            <a href="/" class="logo-link">
-                <img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy">
-            </a>
-            <div class="header-controls">
-                <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
-                <button class="menu-trigger" aria-label="Abrir menú">
-                    <div class="hamburger-icon"><span></span><span></span><span></span></div>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- OVERLAY MENU -->
-    <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Menú principal">
-        <div class="overlay-header">
-            <div class="header-inner">
-                <a href="/" class="logo-link"><img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" loading="lazy" alt="Colegio Bilbao" class="logo-img"></a>
-                <div class="header-controls">
-                    <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
-                    <button id="close-menu-btn" class="close-btn" aria-label="Cerrar menú"></button>
-                </div>
-            </div>
-        </div>
-        <nav class="overlay-content">
-            <ul id="primary-nav">
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Conócenos <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/conocenos/quienes-somos/">Quiénes somos</a></li><li><a href="/conocenos/equipo-educativo/">Equipo educativo</a></li><li><a href="/conocenos/instalaciones/">Instalaciones</a></li><li><a href="/conocenos/certificaciones-y-reconocimientos/">Certificaciones y reconocimientos</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Modelo educativo <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/modelo-educativo/modelo-vida/">Modelo VIDA</a></li><li><a href="/modelo-educativo/filosofia-y-metodologia/">Filosofía</a></li><li><a href="/modelo-educativo/aprendizaje-integral/">Aprendizaje integral</a></li><li><a href="/modelo-educativo/idiomas/">Idiomas</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Niveles académicos <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/niveles-academicos/preescolar/">Preescolar</a></li><li><a href="/niveles-academicos/primaria/">Primaria</a></li><li><a href="/niveles-academicos/secundaria/">Secundaria</a></li><li><a href="/niveles-academicos/preparatoria/">Preparatoria</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Vida escolar <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/vida-escolar/afterschool-extracurriculares/">Afterschool</a></li><li><a href="/vida-escolar/futuro-universitario-becas/">Futuro universitario</a></li><li><a href="/vida-escolar/programa-dual/">Programa Dual</a></li><li><a href="/vida-escolar/servicios-para-familias/">Servicios</a></li><li><a href="/vida-escolar/cuidado-y-bienestar/">Cuidado y bienestar</a></li><li><a href="/vida-escolar/eventos-y-tradiciones/">Eventos</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Admisiones <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/admisiones/">Inicio</a></li><li><a href="/admisiones/proceso/">Proceso</a></li><li><a href="/admisiones/preguntas-frecuentes/">FAQ</a></li><li><a href="/admisiones/convenios/">Convenios</a></li><li><a href="/admisiones/convocatoria-becas/">Becas</a></li><li><a href="/admisiones/contacto/">Contacto</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Comunidad <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/comunidad/estudiantes/">Estudiantes</a></li><li><a href="/comunidad/familias/">Familias</a></li><li><a href="/comunidad/exalumnos/">Exalumnos</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Voces Bilbao <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/noticias/" class="active">Noticias</a></li><li><a href="/voces-bilbao/entrevistas/">Entrevistas</a></li><li><a href="/blog">Artículos</a></li><li><a href="/voces-bilbao/testimonios/">Testimonios</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Contacto <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/contacto/">Contacto</a></li><li><a href="/contacto/directorio/">Directorio</a></li><li><a href="/contacto/cultura-y-talento/">Cultura y talento</a></li><li><a href="/contacto/proveedores/">Proveedores</a></li></ul></li>
-            </ul>
-        </nav>
-    </div>
+<div class="read-progress-bar" id="readProgress" role="progressbar" aria-hidden="true"></div>
 
     <main class="noticia-detalle">
 
@@ -178,7 +122,7 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
             <div class="alex-summary">
                 <div class="alex-summary-inner">
                     <div class="alex-summary-mascot-wrap" aria-hidden="true">
-                        <img src="/build/assets/img/niveles-academicos/preescolar/bby-alex-saluda.png" alt="">
+                        <img src="/build/assets/img/alex/bby-alex-saluda.png" alt="">
                         <span>Alex</span>
                     </div>
                     <div class="alex-summary-bubble">
@@ -337,5 +281,3 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
         }
     })();
     </script>
-</body>
-</html>

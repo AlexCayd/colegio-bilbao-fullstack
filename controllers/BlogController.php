@@ -9,6 +9,7 @@ use Model\Articulo;
 use Model\Noticia;
 use Model\CategoriaNoticia;
 use Model\Notificacion;
+use Model\Testimonial;
 
 class BlogController {
 
@@ -19,10 +20,13 @@ class BlogController {
         $articulos  = Articulo::allConDetalles('publicado');
         $categorias = Categoria::allConArticulosPublicados();
 
-        $router->renderBlog('blog/index', [
-            'titulo'     => 'Voces Bilbao | Artículos del Colegio Bilbao',
-            'articulos'  => $articulos,
-            'categorias' => $categorias,
+        $extra_head = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
+        $router->render('blog/index', [
+            'seo_titulo'       => 'Voces Bilbao — Artículos',
+            'seo_descripcion'  => 'Artículos, reflexiones y perspectivas sobre educación, aprendizaje y la vida dentro del Colegio Bilbao.',
+            'extra_head'       => $extra_head,
+            'articulos'        => $articulos,
+            'categorias'       => $categorias,
         ]);
     }
 
@@ -49,11 +53,13 @@ class BlogController {
             $articulo->categoria_id ? (int) $articulo->categoria_id : null
         );
 
-        $router->renderBlog('blog/articulo', [
-            'titulo'       => s($articulo->titulo) . ' | Voces Bilbao',
-            'articulo'     => $articulo,
-            'tags'         => $tags,
-            'recomendados' => $recomendados,
+        $router->render('blog/articulo', [
+            'seo_titulo'      => s($articulo->titulo),
+            'seo_descripcion' => s($articulo->extracto ?? ''),
+            'seo_imagen'      => $articulo->imagen ?? '',
+            'articulo'        => $articulo,
+            'tags'            => $tags,
+            'recomendados'    => $recomendados,
         ]);
     }
 
@@ -1488,6 +1494,46 @@ class BlogController {
         $usuario = self::requireAuth();
         Notificacion::marcarTodasLeidas((int)$usuario['id']);
         header('Location: /dashboard/notificaciones?marcadas=1');
+        exit;
+    }
+
+    // ── TESTIMONIALES ──────────────────────────────────────────────────────────
+
+    public static function testimoniales(Router $router) {
+        self::requireAuth();
+        self::requireAdmin();
+
+        $testimoniales = Testimonial::todos();
+
+        $router->renderAdmin('blog/testimoniales/index', [
+            'titulo'        => 'Testimoniales',
+            'testimoniales' => $testimoniales,
+        ]);
+    }
+
+    public static function aprobarTestimonial(Router $router) {
+        self::requireAuth();
+        self::requireAdmin();
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id) {
+            $db = Testimonial::getDB();
+            $db->query("UPDATE testimoniales SET aprobado=1 WHERE id={$id}");
+        }
+        header('Location: /dashboard/testimoniales?aprobado=1');
+        exit;
+    }
+
+    public static function rechazarTestimonial(Router $router) {
+        self::requireAuth();
+        self::requireAdmin();
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id) {
+            $db = Testimonial::getDB();
+            $db->query("DELETE FROM testimoniales WHERE id={$id}");
+        }
+        header('Location: /dashboard/testimoniales?rechazado=1');
         exit;
     }
 }

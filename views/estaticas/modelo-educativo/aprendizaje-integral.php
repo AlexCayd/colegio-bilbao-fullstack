@@ -39,11 +39,11 @@
                 <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/tech.jpg"         class="visual-image"        id="img-tecnologia"   alt="Tecnología">
                 <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/volley.jpg"       class="visual-image"        id="img-deportes"     alt="Deportes">
 
-                <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-ciencia.png"   class="visual-mascot active" id="mascot-ciencia"      alt="Alex Científico">
-                <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-lee.png"        class="visual-mascot"        id="mascot-humanidades"  alt="Alex Humanidades">
-                <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-toca.png"       class="visual-mascot"        id="mascot-artes"        alt="Alex Arte">
-                <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-tech.png"       class="visual-mascot"        id="mascot-tecnologia"   alt="Alex Tech">
-                <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-volley.png"     class="visual-mascot"        id="mascot-deportes"     alt="Alex Deportes">
+                <img src="/build/assets/img/alex/alex-ciencia.png"   class="visual-mascot active" id="mascot-ciencia"      alt="Alex Científico">
+                <img src="/build/assets/img/alex/alex-lee.png"        class="visual-mascot"        id="mascot-humanidades"  alt="Alex Humanidades">
+                <img src="/build/assets/img/alex/alex-toca.png"       class="visual-mascot"        id="mascot-artes"        alt="Alex Arte">
+                <img src="/build/assets/img/alex/alex-tech.png"       class="visual-mascot"        id="mascot-tecnologia"   alt="Alex Tech">
+                <img src="/build/assets/img/alex/alex-volley.png"     class="visual-mascot"        id="mascot-deportes"     alt="Alex Deportes">
             </div>
 
             <!-- Panel de Contenido (Derecha — scroll) -->
@@ -149,7 +149,7 @@
         <!-- 5. CTA -->
         <section class="cta-section">
             <div class="cta-pill reveal">
-                <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-point.png" class="ai-cta-mascot" alt="Mascota Alex">
+                <img src="/build/assets/img/alex/alex-point.png" class="ai-cta-mascot" alt="Mascota Alex">
                 <h2>Vívelo de cerca</h2>
                 <p>Si quieres ver cómo estas experiencias cambian la forma de aprender, lo mejor es vivirlo de cerca.</p>
                 <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20de%205%20aprendizajes%20bilbao,%20me%20gustó%20y%20quiero%20conocer%20el%20colegio%20en%20una%20visita%20guiada." class="btn-terciario">Agenda una visita</a>

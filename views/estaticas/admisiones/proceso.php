@@ -167,7 +167,7 @@ Se vive como un camino para conocernos con calma y con profundidad.
 
               <section class="cta-section">
             <div class="cta-container">
-                <img src="/build/assets/img/admisiones/proceso/fam-alex.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img">
+                <img src="/build/assets/img/alex/fam-alex.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img">
                 <div class="cta-content">
                     <h2>Decide con certeza</h2>
                     <p>Si buscas un colegio humano y académico para tu familia, conócenos.</p>

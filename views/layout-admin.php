@@ -39,7 +39,7 @@ if (!empty($_alexNotif->referencia_id) && !empty($_alexNotif->referencia_tipo)) 
 ?>
 <div id="alexModal" class="alex-modal" data-notif-id="<?= (int)$_alexNotif->id ?>">
     <div class="alex-modal__card">
-        <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-tech.png"
+        <img src="/build/assets/img/alex/alex-tech.png"
              alt="Alex, mascota del Colegio Bilbao" class="alex-modal__img">
         <div class="alex-modal__body">
             <p class="alex-modal__tipo">

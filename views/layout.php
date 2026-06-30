@@ -14,9 +14,7 @@
     <meta property="og:title"       content="<?= s($seo_titulo ?? $titulo) ?> | Colegio Bilbao">
     <meta property="og:description" content="<?= s($seo_descripcion ?? $descripcion ?? 'Colegio Bilbao — educación con criterio y carácter.') ?>">
     <meta property="og:url"         content="https://<?= htmlspecialchars($_SERVER['HTTP_HOST'] . strtok($_SERVER['REQUEST_URI'], '?')) ?>">
-    <?php if (!empty($seo_imagen)): ?>
-    <meta property="og:image"       content="https://<?= htmlspecialchars($_SERVER['HTTP_HOST']) ?><?= s($seo_imagen) ?>">
-    <?php endif; ?>
+    <meta property="og:image"       content="https://<?= htmlspecialchars($_SERVER['HTTP_HOST']) ?><?= !empty($seo_imagen) ? s($seo_imagen) : '/build/assets/img/global/logo-bilbao-horizontal-azul.png' ?>">
 
     <!-- Twitter / X -->
     <meta name="twitter:card"        content="summary_large_image">
@@ -36,6 +34,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css" integrity="sha512-1sCRPdkRXhBV2PBLUdRb4tMg1w2YPf37qatUFeS7zlBy7jJI8Lf4VHwWfZZfpXtYSLy85pkm9GaYVYMfw5BC1A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/build/css/app.css">
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js" integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ==" crossorigin="" defer></script>
+    <?php if (!empty($extra_head)) echo $extra_head; ?>
 </head>
 <body>
     <?php 
@@ -43,6 +42,18 @@
         echo $contenido;
         include_once __DIR__ .'/templates/footer.php'; 
     ?>
+    <!-- Google Translate Widget (in-place, hidden) -->
+    <div id="google_translate_element" style="display:none;visibility:hidden;position:absolute;"></div>
+    <script>
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'es',
+            includedLanguages: 'en',
+            autoDisplay: false
+        }, 'google_translate_element');
+    }
+    </script>
+    <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script>
     <script src="/build/js/bundle.min.js" defer></script>
 </body>
 </html>

@@ -36,9 +36,28 @@
     <header class="header-bar">
         <div class="header-inner">
             <a href="/" class="logo-link"><img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy"></a>
+
+            <nav class="header-nav" aria-label="Navegación principal">
+                <a href="/conocenos/quienes-somos"  class="header-nav__link">Conócenos</a>
+                <a href="/niveles"                  class="header-nav__link">Niveles</a>
+                <a href="/modelo-educativo/modelo-vida" class="header-nav__link">Modelo educativo</a>
+                <a href="/admisiones"               class="header-nav__link">Admisiones</a>
+                <a href="/noticias"                 class="header-nav__link">Noticias</a>
+                <a href="/blog"                     class="header-nav__link">Blog</a>
+                <a href="/contacto"                 class="header-nav__link">Visítanos</a>
+            </nav>
+
             <div class="header-controls">
-                <div class="lang-switch"><span class="active">ES</span> | <a href="/en">EN</a></div>
-                <button class="menu-trigger"><div class="hamburger-icon"><span></span><span></span><span></span></div></button>
+                <div class="lang-switch"><span class="active">ES</span> | <a href="#" id="lang-en-btn">EN</a></div>
+                <button id="theme-toggle" class="header-theme-btn" aria-label="Cambiar modo de color" title="Modo oscuro / claro">
+                    <span id="theme-icon" class="theme-icon-wrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-moon" style="display:none" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </span>
+                </button>
+                <a href="https://wa.me/525614612682?text=Hola,%20quiero%20agendar%20una%20visita%20al%20Colegio%20Bilbao."
+                   class="header-agenda-btn" target="_blank" rel="noopener">Agenda</a>
+                <button class="menu-trigger" aria-label="Abrir menú"><div class="hamburger-icon"><span></span><span></span><span></span></div></button>
             </div>
         </div>
     </header>
@@ -49,7 +68,7 @@
             <div class="header-inner">
                 <a href="/" class="logo-link"><img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy"></a>
                 <div class="header-controls">
-                    <div class="lang-switch"><span class="active">ES</span> | <a href="/en">EN</a></div>
+                    <div class="lang-switch"><span class="active">ES</span> | <a href="#" class="lang-en-overlay-btn">EN</a></div>
                     <button id="close-menu-btn" class="close-btn" aria-label="Cerrar menú"></button>
                 </div>
             </div>

@@ -196,3 +196,24 @@ INSERT INTO categorias_noticias (nombre, slug, color, descripcion) VALUES
 ('Cultural',      'cultural',      '#aa2296', 'Eventos artísticos, festivales y vida cultural del campus.'),
 ('Deportivo',     'deportivo',     '#34a853', 'Torneos, equipos y logros en el área deportiva.'),
 ('Comunidad',     'comunidad',     '#f5b400', 'Actividades que involucran a familias y la comunidad escolar.');
+
+-- ── Testimoniales ─────────────────────────────────────────────────────────────
+
+DROP TABLE IF EXISTS testimoniales;
+
+CREATE TABLE testimoniales (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  nombre     VARCHAR(100) NOT NULL,
+  rol        ENUM('Papá','Mamá','Exalumno','Exalumna','Familia') NOT NULL,
+  comentario TEXT NOT NULL,
+  aprobado   TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO testimoniales (nombre, rol, comentario, aprobado) VALUES
+('Claudia R.',       'Mamá',      'El colegio transformó la manera en que mi hijo entiende el aprendizaje. La naturaleza como aula es algo que no se olvida.', 1),
+('Roberto C.',       'Papá',      'Lo que más valoramos es la atención individual. Los maestros conocen a cada alumno de verdad.', 1),
+('Familia Torres',   'Familia',   'Tres años llevando a nuestros hijos aquí y seguimos eligiendo Bilbao. La comunidad que han construido es única.', 1),
+('Sofía M.',         'Mamá',      'Mi hija llegó tímida y hoy participa en todo. El modelo VIDA realmente transforma a los niños.', 1),
+('Alejandro P.',     'Exalumno',  'Salí del Bilbao con herramientas para la vida, no solo para los exámenes. Eso no tiene precio.', 1),
+('Familia Ramos',    'Familia',   'La comunicación con los maestros es excepcional. Siempre al tanto de cómo van nuestros hijos.', 1);

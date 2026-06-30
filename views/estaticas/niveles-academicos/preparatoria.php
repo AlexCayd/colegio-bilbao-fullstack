@@ -22,7 +22,7 @@
 
         <!-- 3. RESUMEN CON MASCOTA (Alex Científico) -->
         <section id="resumen" class="intro-section">
-            <img src="/build/assets/img/niveles-academicos/preparatoria/alex-cientifico.png" alt="Alex Científico" class="mascot-intro">
+            <img src="/build/assets/img/alex/alex-cientifico.png" alt="Alex Científico" class="mascot-intro">
             <div class="intro-text">
                 <p>En la <strong>Prepa Bilbao</strong> acompañamos una etapa donde se toman decisiones que cambian el rumbo de la vida.</p>
                 <p>Aquí estudiar significa pensar, crear, debatir y construir un proyecto de vida propio. Nuestro modelo se basa en el construccionismo: aprender haciendo, creando productos y proyectos que se muestran más allá del aula. Buscamos que lleguen a la universidad con criterio, habilidades y salud emocional, no solo con un certificado.</p>
@@ -34,7 +34,7 @@
             <div class="organic-block">
                 <div class="organic-text">
                     <div class="title-mascot-container">
-                        <img src="/build/assets/img/niveles-academicos/preparatoria/alex-recicla.png" alt="Alex Recicla" class="mascot-title-icon">
+                        <img src="/build/assets/img/alex/alex-recicla.png" alt="Alex Recicla" class="mascot-title-icon">
                         <h2 class="section-title" style="margin-bottom:0;">Vida preuniversitaria: liderazgo, acción social y experiencias fuera del aula</h2>
                     </div>
                     
@@ -57,7 +57,7 @@
                 </div>
                 <div class="organic-text">
                     <div class="title-mascot-container">
-                         <img src="/build/assets/img/niveles-academicos/preparatoria/alex-basket.png" alt="Sticker Alex Basketball" class="mascot-title-icon" style="width:100px;">
+                         <img src="/build/assets/img/alex/alex-basket.png" alt="Sticker Alex Basketball" class="mascot-title-icon" style="width:100px;">
                         <h2 class="section-title" style="margin-bottom:0;">Idiomas: perfeccionamiento de inglés y alemán como tercer idioma</h2>
                     </div>
                     
@@ -89,7 +89,7 @@
         <section id="vocacional" class="section-container">
             <div class="transition-wrapper">
                 <div style="text-align:center; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:20px; margin-bottom:30px;">
-                    <img src="/build/assets/img/niveles-academicos/preparatoria/alex-medita.png" alt="Alex Medita" class="mascot-title-icon" style="width:100px; margin-bottom:0;">
+                    <img src="/build/assets/img/alex/alex-medita.png" alt="Alex Medita" class="mascot-title-icon" style="width:100px; margin-bottom:0;">
                     <h2 class="section-title" style="margin-bottom:0;">Acompañamiento vocacional y proyecto de vida</h2>
                 </div>
                 

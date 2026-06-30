@@ -42,65 +42,6 @@ $ticker_items = array_map(fn($n) => [
     'slug'  => $n->slug ?? '',
 ], array_slice($all_para_ticker, 0, 8));
 ?>
-<!DOCTYPE html>
-<html lang="es-MX">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($titulo ?? 'Noticias · Colegio Bilbao') ?></title>
-    <meta name="description" content="Mantente al día con todo lo que pasa en el Colegio Bilbao: logros académicos, eventos culturales, deportes y vida escolar.">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
-
-    <link rel="shortcut icon" href="/build/assets/img/global/favicon.png" type="image/png">
-    <link rel="icon" href="/build/assets/img/global/favicon.png" type="image/png">
-    <link rel="stylesheet" href="/build/css/app.css">
-    <meta name="view-transition" content="same-origin">
-</head>
-<body>
-
-    <!-- HEADER -->
-    <header class="header-bar">
-        <div class="header-inner">
-            <a href="/" class="logo-link">
-                <img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy">
-            </a>
-            <div class="header-controls">
-                <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
-                <button class="menu-trigger" aria-label="Abrir menú">
-                    <div class="hamburger-icon"><span></span><span></span><span></span></div>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- OVERLAY MENU -->
-    <div id="menu-overlay" class="menu-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Menú principal">
-        <div class="overlay-header">
-            <div class="header-inner">
-                <a href="/" class="logo-link"><img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" loading="lazy" alt="Colegio Bilbao" class="logo-img"></a>
-                <div class="header-controls">
-                    <div class="lang-switch"><span class="active">ES</span> | <a href="/en/">EN</a></div>
-                    <button id="close-menu-btn" class="close-btn" aria-label="Cerrar menú"></button>
-                </div>
-            </div>
-        </div>
-        <nav class="overlay-content">
-            <ul id="primary-nav">
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Conócenos <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/conocenos/quienes-somos/">Quiénes somos</a></li><li><a href="/conocenos/equipo-educativo/">Equipo educativo</a></li><li><a href="/conocenos/instalaciones/">Instalaciones</a></li><li><a href="/conocenos/certificaciones-y-reconocimientos/">Certificaciones y reconocimientos</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Modelo educativo <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/modelo-educativo/modelo-vida/">Modelo VIDA</a></li><li><a href="/modelo-educativo/filosofia-y-metodologia/">Filosofía</a></li><li><a href="/modelo-educativo/aprendizaje-integral/">Aprendizaje integral</a></li><li><a href="/modelo-educativo/idiomas/">Idiomas</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Niveles académicos <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/niveles-academicos/preescolar/">Preescolar</a></li><li><a href="/niveles-academicos/primaria/">Primaria</a></li><li><a href="/niveles-academicos/secundaria/">Secundaria</a></li><li><a href="/niveles-academicos/preparatoria/">Preparatoria</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Vida escolar <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/vida-escolar/afterschool-extracurriculares/">Afterschool</a></li><li><a href="/vida-escolar/futuro-universitario-becas/">Futuro universitario</a></li><li><a href="/vida-escolar/programa-dual/">Programa Dual</a></li><li><a href="/vida-escolar/servicios-para-familias/">Servicios</a></li><li><a href="/vida-escolar/cuidado-y-bienestar/">Cuidado y bienestar</a></li><li><a href="/vida-escolar/eventos-y-tradiciones/">Eventos</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Admisiones <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/admisiones/">Inicio</a></li><li><a href="/admisiones/proceso/">Proceso</a></li><li><a href="/admisiones/preguntas-frecuentes/">FAQ</a></li><li><a href="/admisiones/convenios/">Convenios</a></li><li><a href="/admisiones/convocatoria-becas/">Becas</a></li><li><a href="/admisiones/contacto/">Contacto</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Comunidad <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/comunidad/estudiantes/">Estudiantes</a></li><li><a href="/comunidad/familias/">Familias</a></li><li><a href="/comunidad/exalumnos/">Exalumnos</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Voces Bilbao <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/noticias/" class="active">Noticias</a></li><li><a href="/voces-bilbao/entrevistas/">Entrevistas</a></li><li><a href="/blog">Artículos</a></li><li><a href="/voces-bilbao/testimonios/">Testimonios</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger">Contacto <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/contacto/">Contacto</a></li><li><a href="/contacto/directorio/">Directorio</a></li><li><a href="/contacto/cultura-y-talento/">Cultura y talento</a></li><li><a href="/contacto/proveedores/">Proveedores</a></li></ul></li>
-            </ul>
-        </nav>
-    </div>
-
     <!-- ── SUBNAV ───────────────────────────────────────────── -->
     <nav class="noticias-subnav" aria-label="Voces Bilbao">
         <div class="container">
@@ -134,6 +75,7 @@ $ticker_items = array_map(fn($n) => [
 
         <!-- ── HERO ──────────────────────────────────────── -->
         <section class="noticias-hero">
+            <canvas id="noticias-hero-bg" aria-hidden="true"></canvas>
             <div class="container">
                 <div class="noticias-hero-body fade-up">
                     <div class="noticias-eyebrow">
@@ -151,10 +93,14 @@ $ticker_items = array_map(fn($n) => [
                         <a href="/contacto/" class="btn-secundario">Conocer el colegio</a>
                     </div>
                 </div>
-                <img src="/build/assets/img/conocenos/quienes-somos/alex-dice.png"
-                     class="noticias-hero-mascot"
-                     alt="Alex anuncia las noticias"
-                     aria-hidden="true">
+                <picture class="noticias-hero-mascot-wrap">
+                    <source srcset="/build/assets/img/alex/alex-periodico.avif" type="image/avif">
+                    <source srcset="/build/assets/img/alex/alex-periodico.webp" type="image/webp">
+                    <img src="/build/assets/img/alex/alex-periodico.png"
+                         class="noticias-hero-mascot"
+                         alt="Alex reportero de noticias"
+                         aria-hidden="true">
+                </picture>
             </div>
         </section>
 
@@ -197,7 +143,7 @@ $ticker_items = array_map(fn($n) => [
                 ?>
                 <article class="featured-noticia fade-up">
                     <div class="featured-noticia-bg-decor"></div>
-                    <img src="/build/assets/img/modelo-educativo/aprendizaje-integral/alex-lee.png"
+                    <img src="/build/assets/img/alex/alex-lee.png"
                          class="featured-noticia-mascot"
                          alt="" aria-hidden="true">
                     <div class="featured-noticia-content">
@@ -322,7 +268,7 @@ $ticker_items = array_map(fn($n) => [
 
                 <!-- Empty state -->
                 <div class="noticias-empty" id="noticiasEmpty" role="status">
-                    <img src="/build/assets/img/niveles-academicos/preescolar/bby-alex-piensa.png" alt="" aria-hidden="true">
+                    <img src="/build/assets/img/alex/bby-alex-piensa.png" alt="" aria-hidden="true">
                     <h3>Sin resultados</h3>
                     <p>Prueba con otro término o selecciona "Todas".</p>
                 </div>
@@ -348,11 +294,6 @@ $ticker_items = array_map(fn($n) => [
 
     </main>
 
-    <footer class="footer-simple">
-        <p>© 2026 Colegio Bilbao. Todos los derechos reservados. · <a href="/aviso-privacidad/">Aviso de privacidad</a></p>
-    </footer>
-
-    <script src="/build/js/bundle.min.js" defer></script>
     <script>
     (function () {
         'use strict';
@@ -463,5 +404,135 @@ $ticker_items = array_map(fn($n) => [
         render();
     })();
     </script>
-</body>
-</html>
+
+    <!-- ── Three.js hero background ── -->
+    <script>
+    (function () {
+        if (typeof THREE === 'undefined') return;
+        const canvas = document.getElementById('noticias-hero-bg');
+        const hero   = canvas.parentElement;
+
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+        const scene  = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(0, 0, 0, 0, -10, 10);
+
+        const N = 70;
+        const pts = [];
+        const vel = [];
+
+        function resize() {
+            const w = hero.offsetWidth;
+            const h = hero.offsetHeight;
+            renderer.setSize(w, h);
+            camera.left   = 0;
+            camera.right  = w;
+            camera.top    = h;
+            camera.bottom = 0;
+            camera.updateProjectionMatrix();
+
+            if (pts.length === 0) {
+                for (let i = 0; i < N; i++) {
+                    pts.push(Math.random() * w, Math.random() * h, 0);
+                    const speed = 0.18 + Math.random() * 0.22;
+                    const angle = Math.random() * Math.PI * 2;
+                    vel.push(Math.cos(angle) * speed, Math.sin(angle) * speed);
+                }
+            }
+        }
+
+        resize();
+
+        // Particles
+        const ptGeo  = new THREE.BufferGeometry();
+        const posArr = new Float32Array(pts);
+        ptGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+        const ptMat  = new THREE.PointsMaterial({ color: 0xffffff, size: 2.8, transparent: true, opacity: 0.55 });
+        const points = new THREE.Points(ptGeo, ptMat);
+        scene.add(points);
+
+        // Connections
+        const linGeo = new THREE.BufferGeometry();
+        const linMat = new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.20 });
+        const lines  = new THREE.LineSegments(linGeo, linMat);
+        scene.add(lines);
+
+        const CONN_DIST = 140;
+        let mouseX = -9999, mouseY = -9999;
+
+        function buildConnections() {
+            const p   = ptGeo.attributes.position.array;
+            const seg = [];
+            for (let i = 0; i < N; i++) {
+                for (let j = i + 1; j < N; j++) {
+                    const dx = p[i*3] - p[j*3];
+                    const dy = p[i*3+1] - p[j*3+1];
+                    if (dx*dx + dy*dy < CONN_DIST * CONN_DIST) {
+                        seg.push(p[i*3], p[i*3+1], 0, p[j*3], p[j*3+1], 0);
+                    }
+                }
+            }
+            linGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(seg), 3));
+        }
+
+        function tick() {
+            rafId = requestAnimationFrame(tick);
+            const p = ptGeo.attributes.position.array;
+            const w = hero.offsetWidth;
+            const h = hero.offsetHeight;
+
+            for (let i = 0; i < N; i++) {
+                p[i*3]   += vel[i*2];
+                p[i*3+1] += vel[i*2+1];
+
+                // Mouse attraction (subtle)
+                const dx = mouseX - p[i*3];
+                const dy = mouseY - p[i*3+1];
+                const d2 = dx*dx + dy*dy;
+                if (d2 < 22500) {
+                    const f = 0.0003;
+                    vel[i*2]   += dx * f;
+                    vel[i*2+1] += dy * f;
+                    // cap speed
+                    const spd = Math.sqrt(vel[i*2]*vel[i*2] + vel[i*2+1]*vel[i*2+1]);
+                    if (spd > 0.8) { vel[i*2] *= 0.8/spd; vel[i*2+1] *= 0.8/spd; }
+                }
+
+                if (p[i*3] < 0)  { p[i*3] = 0;  vel[i*2]   = Math.abs(vel[i*2]); }
+                if (p[i*3] > w)  { p[i*3] = w;  vel[i*2]   = -Math.abs(vel[i*2]); }
+                if (p[i*3+1] < 0){ p[i*3+1] = 0; vel[i*2+1] = Math.abs(vel[i*2+1]); }
+                if (p[i*3+1] > h){ p[i*3+1] = h; vel[i*2+1] = -Math.abs(vel[i*2+1]); }
+            }
+
+            ptGeo.attributes.position.needsUpdate = true;
+            buildConnections();
+            renderer.render(scene, camera);
+        }
+
+        let rafId;
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (prefersReduced) {
+            buildConnections();
+            renderer.render(scene, camera);
+        } else {
+            tick();
+        }
+
+        hero.addEventListener('mousemove', function (e) {
+            const r = hero.getBoundingClientRect();
+            mouseX = e.clientX - r.left;
+            mouseY = hero.offsetHeight - (e.clientY - r.top);
+        });
+        hero.addEventListener('mouseleave', function () {
+            mouseX = -9999; mouseY = -9999;
+        });
+
+        window.addEventListener('resize', function () {
+            resize();
+            ptGeo.attributes.position.needsUpdate = true;
+            if (!rafId) buildConnections();
+        }, { passive: true });
+    })();
+    </script>

@@ -203,7 +203,7 @@
         <!-- 10. CTA (Centrado) -->
         <section class="cta-section">
             <div class="cta-container">
-                <img src="/build/assets/img/conocenos/instalaciones/alex-teen.png" alt="Mascota Alex" class="mascot-img">
+                <img src="/build/assets/img/alex/alex-teen.png" alt="Mascota Alex" class="mascot-img">
                 <div class="cta-content">
                     <h2>Imagina a tus hijos aquí</h2>
                     <p>Si quieres imaginar a tus hijas e hijos en estos espacios, el siguiente paso es conocer cómo aprendemos en ellos. Conoce nuestro modelo educativo y descubre cómo las instalaciones se vuelven parte viva del aprendizaje.</p>

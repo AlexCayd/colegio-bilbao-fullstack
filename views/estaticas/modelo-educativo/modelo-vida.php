@@ -176,7 +176,7 @@
                     <!-- Mascota Sticky -->
                     <div class="mascot-box reveal">
                         <!-- PLACEHOLDER MASCOTA PNG -->
-                        <img src="/build/assets/img/modelo-educativo/modelo-vida/alex-pinta.png" alt="Mascota" class="mascot-img-place">
+                        <img src="/build/assets/img/alex/alex-pinta.png" alt="Mascota" class="mascot-img-place">
                         
                         <h3 style="font-size: 1.3rem; color:var(--col-bilbao); margin-bottom: 1rem; font-weight:700;">¿Quieres verlo en acción?</h3>
                         <p style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 1.5rem;">Agenda una visita y descubre cómo aprendemos.</p>

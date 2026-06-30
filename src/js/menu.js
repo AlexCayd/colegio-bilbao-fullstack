@@ -15,3 +15,13 @@ function toggleMenu(show) {
 
 menuTrigger?.addEventListener('click', () => toggleMenu(true));
 closeMenuBtn?.addEventListener('click', () => toggleMenu(false));
+
+document.querySelectorAll('.nav-accordion-trigger').forEach(function(btn) {
+    btn.setAttribute('aria-expanded', 'false');
+    btn.addEventListener('click', function() {
+        var expanded = btn.getAttribute('aria-expanded') === 'true';
+        var submenu = btn.nextElementSibling;
+        btn.setAttribute('aria-expanded', !expanded);
+        if (submenu) submenu.style.display = expanded ? 'none' : 'block';
+    });
+});

@@ -85,6 +85,7 @@ $router->get('/modelo-educativo/aprendizaje-integral', [EstaticasController::cla
 $router->get('/modelo-educativo/idiomas', [EstaticasController::class, 'idiomas']);
 
 // Niveles Académicos
+$router->get('/niveles', [EstaticasController::class, 'niveles']);
 $router->get('/niveles-academicos/preescolar', [EstaticasController::class, 'preescolar']);
 $router->get('/niveles-academicos/primaria', [EstaticasController::class, 'primaria']);
 $router->get('/niveles-academicos/secundaria', [EstaticasController::class, 'secundaria']);
@@ -120,6 +121,10 @@ $router->get('/contacto', [EstaticasController::class, 'contacto']);
 $router->get('/contacto/directorio', [EstaticasController::class, 'directorio']);
 $router->get('/contacto/cultura-y-talento', [EstaticasController::class, 'culturatalento']);
 $router->get('/contacto/proveedores', [EstaticasController::class, 'proveedores']);
+
+// Feedback y testimoniales (formulario público)
+$router->get('/feedback-testimoniales',  [EstaticasController::class, 'feedbackTestimoniales']);
+$router->post('/feedback-testimoniales', [EstaticasController::class, 'feedbackTestimoniales']);
 
 // Legal y utilidad
 $router->get('/aviso-privacidad', [EstaticasController::class, 'avisoprivacidad']);
@@ -205,6 +210,11 @@ $router->post('/dashboard/noticias/categorias/crear', [BlogController::class, 'c
 $router->get('/dashboard/noticias/categorias/editar', [BlogController::class, 'editarCategoriaNoticia']);
 $router->post('/dashboard/noticias/categorias/editar', [BlogController::class, 'editarCategoriaNoticia']);
 $router->post('/dashboard/noticias/categorias/eliminar', [BlogController::class, 'eliminarCategoriaNoticia']);
+
+// Admin — Testimoniales
+$router->get('/dashboard/testimoniales',           [BlogController::class, 'testimoniales']);
+$router->post('/dashboard/testimoniales/aprobar',  [BlogController::class, 'aprobarTestimonial']);
+$router->post('/dashboard/testimoniales/rechazar', [BlogController::class, 'rechazarTestimonial']);
 
 // Admin — Revisiones pendientes
 $router->get('/dashboard/revisiones', [BlogController::class, 'revisiones']);

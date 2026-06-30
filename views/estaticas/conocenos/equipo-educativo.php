@@ -186,7 +186,7 @@
         <section class="cta-section">
             <div class="cta-container">
                 <!-- Mascota actualizada -->
-                <img src="/build/assets/img/niveles-academicos/preescolar/bby-alex-saluda.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img">
+                <img src="/build/assets/img/alex/bby-alex-saluda.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img">
                 <div class="cta-content">
                     <h2>¿Te gustaría conocer más?</h2>
                     <p>Si quieres conocer más sobre cómo trabajamos en las aulas, puedes dar el siguiente paso. Conoce nuestro modelo educativo y visualiza cómo se traduce en la experiencia diaria de tus hijas e hijos.</p>

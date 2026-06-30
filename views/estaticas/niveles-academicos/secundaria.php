@@ -23,7 +23,7 @@
 
         <!-- 3. RESUMEN CON MASCOTA (Style Primaria) -->
         <section id="resumen" class="intro-section">
-            <img src="/build/assets/img/niveles-academicos/secundaria/teen-alex-camina.png" alt="Teen Alex Caminando" class="mascot-intro">
+            <img src="/build/assets/img/alex/teen-alex-camina.png" alt="Teen Alex Caminando" class="mascot-intro">
             <div class="intro-text">
                 <p>En la secundaria del <strong>Colegio Bilbao</strong>, acompañamos una etapa intensa y clave: la adolescencia.</p>
                 <p>Aquí aprender significa pensar, cuestionar, dialogar y asumir responsabilidades crecientes.</p>
@@ -35,7 +35,7 @@
             <div class="organic-block">
                 <div class="organic-text">
                     <div class="title-mascot-container">
-                        <img src="/build/assets/img/niveles-academicos/secundaria/teen-alex-emociones.png" alt="Teen Alex Emociones" class="mascot-title-icon">
+                        <img src="/build/assets/img/alex/teen-alex-emociones.png" alt="Teen Alex Emociones" class="mascot-title-icon">
                         <h2 class="section-title" style="margin-bottom:0;">Secundaria en la etapa de la adolescencia</h2>
                     </div>
                     
@@ -59,7 +59,7 @@
                 </div>
                 <div class="organic-text">
                     <div class="title-mascot-container">
-                        <img src="/build/assets/img/niveles-academicos/secundaria/teen-alex-debate.png" alt="Teen Alex Debate" class="mascot-title-icon">
+                        <img src="/build/assets/img/alex/teen-alex-debate.png" alt="Teen Alex Debate" class="mascot-title-icon">
                         <h2 class="section-title" style="margin-bottom:0;">Pensamiento crítico y humanidades</h2>
                     </div>
                     
@@ -92,7 +92,7 @@
         <section id="acompanamiento" class="section-container">
             <div class="transition-wrapper">
                 <div style="text-align:center; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:20px; margin-bottom:30px;">
-                    <img src="/build/assets/img/niveles-academicos/secundaria/teen-alex-escucha.png" alt="Teen Alex Escucha" class="mascot-title-icon" style="width:100px; margin-bottom:0;">
+                    <img src="/build/assets/img/alex/teen-alex-escucha.png" alt="Teen Alex Escucha" class="mascot-title-icon" style="width:100px; margin-bottom:0;">
                     <h2 class="section-title" style="margin-bottom:0;">Acompañamiento emocional y psicopedagógico</h2>
                 </div>
                 
@@ -139,7 +139,7 @@
         <!-- 9. CTA FINAL -->
         <section class="cta-section">
             <div class="cta-container">
-                <img src="/build/assets/img/niveles-academicos/secundaria/teen-alex-camina.png" alt="Teen Alex Feliz" class="mascot-happy">
+                <img src="/build/assets/img/alex/teen-alex-camina.png" alt="Teen Alex Feliz" class="mascot-happy">
                 <div class="cta-content">
                     <h2 class="cta-h2">Ven a conocernos</h2>
                     <p class="cta-p">Si no quieres que tu hija o hijo solo “sobreviva” la secundaria, sino que crezca acompañado, vale la pena conocernos.</p>

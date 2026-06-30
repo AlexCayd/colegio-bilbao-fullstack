@@ -25,7 +25,7 @@
         <section id="resumen" class="intro-section">
             <div class="intro-icon-container">
                 <!-- Mascota Kid Alex Salta como ícono -->
-                <img src="/build/assets/img/niveles-academicos/primaria/kid-alex-salta.png" alt="Kid Alex Salta" class="intro-icon-img">
+                <img src="/build/assets/img/alex/kid-alex-salta.png" alt="Kid Alex Salta" class="intro-icon-img">
             </div>
             <div class="intro-text-content">
                 <p class="intro-lead">En la primaria del Colegio Bilbao, aprender no significa solo sacar buenas calificaciones.</p>
@@ -37,7 +37,7 @@
         <section id="cuestiona" class="section-container">
             <div class="organic-block">
                 <div class="organic-text">
-                    <img src="/build/assets/img/niveles-academicos/primaria/kid-alex-cuestiona.png" alt="Alex Cuestiona" class="mascot-float-small">
+                    <img src="/build/assets/img/alex/kid-alex-cuestiona.png" alt="Alex Cuestiona" class="mascot-float-small">
                     <h2 class="section-title">Una primaria donde tus hijas e hijos se atreven a preguntar más</h2>
                     <div class="section-text">
                         <p>En la primaria del Colegio Bilbao las preguntas no se castigan, se celebran. Sabemos que preguntar es una señal de curiosidad y de pensamiento vivo.</p>
@@ -56,7 +56,7 @@
              <div class="organic-block"> <!-- Orden normal: Texto Izq, Imagen Der -->
                 <div class="organic-text">
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <img src="/build/assets/img/niveles-academicos/primaria/kid-alex-esculpe.png" alt="Alex Esculpe" class="mascot-float-center">
+                        <img src="/build/assets/img/alex/kid-alex-esculpe.png" alt="Alex Esculpe" class="mascot-float-center">
                     </div>
                     <h2 class="section-title">Una primaria donde tu hija o hijo no es solo un número</h2>
                     <div class="section-text">
@@ -109,7 +109,7 @@
         <!-- 7. IDIOMAS Y MUNDO (Bloque Especial) -->
         <section id="idiomas" class="section-container">
             <div class="transition-wrapper">
-                <img src="/build/assets/img/niveles-academicos/primaria/kid-alex-explora.png" alt="Kid Alex Explora" class="mascot-thinking">
+                <img src="/build/assets/img/alex/kid-alex-explora.png" alt="Kid Alex Explora" class="mascot-thinking">
                 
                 <h2 class="section-title text-center" style="margin-bottom: 30px;">Idiomas y mundo global</h2>
                 
@@ -155,7 +155,7 @@
         <!-- 9. CTA FINAL (KID ALEX SALTA) -->
         <section class="cta-section">
             <div class="cta-container">
-                <img src="/build/assets/img/niveles-academicos/primaria/kid-alex-salta.png" alt="Kid Alex Salta" class="mascot-happy">
+                <img src="/build/assets/img/alex/kid-alex-salta.png" alt="Kid Alex Salta" class="mascot-happy">
                 <div class="cta-content">
                     <h2 class="cta-h2">Ven a conocernos</h2>
                     <p class="cta-p">Si esta forma de entender la primaria resuena contigo, lo mejor es verla en vivo.</p>

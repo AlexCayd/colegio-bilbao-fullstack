@@ -13,7 +13,7 @@
     <!-- INTRO CON MASCOTA -->
     <section class="faq-intro-section">
         <div class="faq-intro-icon">
-            <img src="/build/assets/img/admisiones/preguntas-frecuentes/alex-mano.png" alt="Kid Alex">
+            <img src="/build/assets/img/alex/alex-mano.png" alt="Kid Alex">
         </div>
         <div class="faq-intro-text">
             <p class="faq-intro-lead">Esta página reúne las dudas más comunes de familias que están eligiendo escuela en CDMX.</p>

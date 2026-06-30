@@ -1,6 +1,8 @@
 /* Footer completo del index */
 .footer-site {
-    background-color: var(--bg-global);
+    background-color: #fff;
+    position: relative;
+    z-index: 10;
     border-top: 1px solid var(--col-borde);
     padding-top: 60px;
     font-size: 14px;

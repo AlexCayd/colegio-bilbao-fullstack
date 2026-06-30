@@ -22,7 +22,7 @@
 
         <!-- 3. RESUMEN & MASCOTA (Baby Alex Saluda) -->
         <section id="resumen" class="intro-section">
-            <img src="/build/assets/img/niveles-academicos/preescolar/bby-alex-saluda.png" alt="Baby Alex Saludando" class="mascot-intro">
+            <img src="/build/assets/img/alex/bby-alex-saluda.png" alt="Baby Alex Saludando" class="mascot-intro">
             <div class="intro-text">
                 <p>En el preescolar del <strong>Colegio Bilbao</strong>, la infancia se vive con respeto, curiosidad y mucho juego significativo.</p>
                 <p>Cada niña y cada niño es recibido como una persona única, con historia, ritmo y necesidades propias. Nuestro objetivo es que su primera experiencia escolar sea segura, amorosa y formativa para toda la familia.</p>
@@ -100,7 +100,7 @@
         <!-- 7. VÍNCULOS Y TRANSICIÓN (Bloque Especial) -->
         <section id="vinculos" class="section-container">
             <div class="transition-wrapper">
-                <img src="/build/assets/img/niveles-academicos/preescolar/bby-alex-piensa.png" alt="Baby Alex pensando" class="mascot-thinking">
+                <img src="/build/assets/img/alex/bby-alex-piensa.png" alt="Baby Alex pensando" class="mascot-thinking">
                 
                 <h2 class="section-title text-center" style="margin-bottom: 30px;">Acompañamiento cercano</h2>
                 
@@ -145,7 +145,7 @@
         <!-- 9. CTA FINAL (Baby Alex Feliz) -->
         <section class="cta-section">
             <div class="cta-container">
-                <img src="/build/assets/img/niveles-academicos/preescolar/bby-alex-feliz.png" alt="Baby Alex Feliz" class="mascot-happy">
+                <img src="/build/assets/img/alex/bby-alex-feliz.png" alt="Baby Alex Feliz" class="mascot-happy">
                 <div class="cta-content">
                     <h2 class="cta-h2">Ven a conocernos</h2>
                     <p class="cta-p">Si quieres ver a tu hija o hijo jugando, aprendiendo y tranquilo en preescolar, agenda una visita y vive un día Bilbao.</p>

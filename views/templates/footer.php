@@ -1,5 +1,5 @@
 <!-- FOOTER -->
-    <footer>
+    <footer class="footer-site">
         <div class="footer-container">
             <div class="footer-header">
                 <a href="/" class="footer-logo-link" aria-label="Ir al inicio de Colegio Bilbao">

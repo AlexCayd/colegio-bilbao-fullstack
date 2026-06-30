@@ -222,7 +222,7 @@
                 <p>¡Uy! Busqué por todas partes y <em>esta página no existe</em>. Puede que la URL esté mal escrita o la ruta haya cambiado.</p>
             </div>
             <img
-                src="/build/assets/img/conocenos/certificaciones-y-reconocimientos/alex-espera.png"
+                src="/build/assets/img/alex/alex-espera.png"
                 alt="Alex, mascota del Colegio Bilbao"
                 class="error-alex-img"
                 loading="eager"

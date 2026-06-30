@@ -160,7 +160,7 @@
     <!-- 7. CTA -->
     <section class="adm-cta-section">
         <div class="adm-cta-container">
-            <img src="/build/assets/img/admisiones/inicio/fam-alex-surp.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img">
+            <img src="/build/assets/img/alex/fam-alex-surp.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img">
             <div class="adm-cta-content">
                 <h2>Empecemos bien</h2>
                 <p>Si lo que buscas es una escuela que combine excelencia y humanidad, aquí podemos empezar bien.</p>
