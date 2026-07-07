@@ -55,7 +55,7 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
                             <?= htmlspecialchars($noticia->categoria_nombre ?? '') ?>
                         </a>
                         <?php if ($noticia->destacada): ?>
-                        <span class="nueva-badge">Destacada</span>
+                        <span class="nueva-badge" data-i18n="noticias-detalle.hero.destacadaBadge">Destacada</span>
                         <?php endif; ?>
                         <span class="nd-hero-date"><?= noticia_fecha_larga($fecha_mostrar) ?></span>
                     </div>
@@ -79,17 +79,17 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
                                     <?= noticia_fecha_larga($fecha_mostrar) ?>
                                     <?php if ($noticia->tiempo_lectura): ?>
                                     <span class="nd-sep">·</span>
-                                    <?= (int)$noticia->tiempo_lectura ?> min de lectura
+                                    <?= (int)$noticia->tiempo_lectura ?> <span data-i18n="noticias-detalle.hero.minLectura">min de lectura</span>
                                     <?php endif; ?>
                                 </span>
                             </div>
                         </div>
                         <div class="nd-hero-share">
                             <button class="nd-share-btn" id="copyLinkHero" type="button">
-                                <?= $svg_link ?> <span id="ndCopyTxt">Copiar enlace</span>
+                                <?= $svg_link ?> <span id="ndCopyTxt" data-i18n="noticias-detalle.hero.copiarEnlace">Copiar enlace</span>
                             </button>
                             <button class="nd-share-btn" id="ndShareBtn" type="button">
-                                <?= $svg_share ?> Compartir
+                                <?= $svg_share ?> <span data-i18n="noticias-detalle.hero.compartir">Compartir</span>
                             </button>
                         </div>
                     </div>
@@ -101,11 +101,11 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
         <!-- ══════════════════════════
              BREADCRUMB
         ══════════════════════════ -->
-        <nav class="noticia-detalle-nav" aria-label="Regresar">
+        <nav class="noticia-detalle-nav" data-i18n-attr="aria-label:noticias-detalle.breadcrumb.ariaLabel" aria-label="Regresar">
             <div class="container">
                 <a href="/noticias/">
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-                    Volver a noticias
+                    <span data-i18n="noticias-detalle.breadcrumb.volver">Volver a noticias</span>
                 </a>
                 <span class="nd-breadcrumb-divider" aria-hidden="true">/</span>
                 <span class="nd-breadcrumb-current"><?= htmlspecialchars($noticia->categoria_nombre ?? '') ?></span>
@@ -126,7 +126,7 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
                         <span>Alex</span>
                     </div>
                     <div class="alex-summary-bubble">
-                        <span class="summary-label">En resumen</span>
+                        <span class="summary-label" data-i18n="noticias-detalle.resumen.label">En resumen</span>
                         <p><?= htmlspecialchars($noticia->extracto) ?></p>
                     </div>
                 </div>
@@ -155,8 +155,8 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
         <section class="noticia-relacionadas">
             <div class="container">
                 <div class="noticias-section-head">
-                    <h2 class="noticias-section-title">También en Bilbao</h2>
-                    <p class="noticias-section-copy">Más historias de nuestra comunidad escolar.</p>
+                    <h2 class="noticias-section-title" data-i18n="noticias-detalle.relacionadas.titulo">También en Bilbao</h2>
+                    <p class="noticias-section-copy" data-i18n="noticias-detalle.relacionadas.copy">Más historias de nuestra comunidad escolar.</p>
                 </div>
                 <div class="noticia-relacionadas-grid">
                     <?php
@@ -189,7 +189,7 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
                                 <a href="/noticias/<?= $rslug ?>"><?= htmlspecialchars($r->titulo) ?></a>
                             </h3>
                             <a href="/noticias/<?= $rslug ?>" class="noticia-read-more">
-                                Leer noticia
+                                <span data-i18n="noticias-detalle.relacionadas.leerNoticia">Leer noticia</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                             </a>
                         </div>
@@ -204,10 +204,10 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
         <section class="noticias-cta" style="margin-top:64px;">
             <div class="container">
                 <div class="noticias-cta-box">
-                    <h3>¿Quieres ser parte de esta historia?</h3>
-                    <p>Estas noticias son el reflejo de un proyecto educativo vivo. Visita el Colegio Bilbao y descubre cómo formamos personas para el mundo.</p>
+                    <h3 data-i18n="noticias-detalle.cta.titulo">¿Quieres ser parte de esta historia?</h3>
+                    <p data-i18n="noticias-detalle.cta.copy">Estas noticias son el reflejo de un proyecto educativo vivo. Visita el Colegio Bilbao y descubre cómo formamos personas para el mundo.</p>
                     <a href="https://wa.me/525614612682?text=Hola,%20quiero%20agendar%20una%20visita%20guiada%20al%20Colegio%20Bilbao."
-                       class="btn-terciario" target="_blank" rel="noopener noreferrer">
+                       class="btn-terciario" target="_blank" rel="noopener noreferrer" data-i18n="noticias-detalle.cta.boton">
                         Agenda tu visita
                     </a>
                 </div>
@@ -217,7 +217,7 @@ $svg_share = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" vie
     </main>
 
     <footer class="footer-simple">
-        <p>© 2026 Colegio Bilbao. Todos los derechos reservados. · <a href="/aviso-privacidad/">Aviso de privacidad</a></p>
+        <p><span data-i18n="noticias-detalle.footer.copyright">© 2026 Colegio Bilbao. Todos los derechos reservados. · </span><a href="/aviso-privacidad/" data-i18n="noticias-detalle.footer.avisoPrivacidad">Aviso de privacidad</a></p>
     </footer>
 
     <script src="/build/js/bundle.min.js" defer></script>

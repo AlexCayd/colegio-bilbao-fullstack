@@ -5,6 +5,12 @@ html {
     font-size: 62.5%;
     box-sizing: border-box;
 }
+html.i18n-pending body {
+    visibility: hidden;
+}
+html.i18n-pending.i18n-fallback body {
+    visibility: visible;
+}
 *, *:before, *:after {
     box-sizing: inherit;
 }

@@ -130,7 +130,6 @@ $router->post('/feedback-testimoniales', [EstaticasController::class, 'feedbackT
 $router->get('/aviso-privacidad', [EstaticasController::class, 'avisoprivacidad']);
 $router->get('/terminos-y-condiciones', [EstaticasController::class, 'terminoscondiciones']);
 $router->get('/mapa-del-sitio', [EstaticasController::class, 'mapadelsitio']);
-$router->get('/en', [EstaticasController::class, 'en']);
 
 // Auth público (cuentas de familias/alumnos — ahora bajo /cuenta/*)
 $router->get('/cuenta/login', [AuthController::class, 'login']);

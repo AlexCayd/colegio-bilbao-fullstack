@@ -22,7 +22,7 @@ class BlogController {
 
         $extra_head = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
         $router->render('blog/index', [
-            'seo_titulo'       => 'Voces Bilbao — Artículos',
+            'seo_titulo'       => 'Voces Bilbao - Artículos',
             'seo_descripcion'  => 'Artículos, reflexiones y perspectivas sobre educación, aprendizaje y la vida dentro del Colegio Bilbao.',
             'extra_head'       => $extra_head,
             'articulos'        => $articulos,
@@ -262,7 +262,7 @@ class BlogController {
                     $alertas = Articulo::getAlertas();
                 } else {
                     // Imagen de portada
-                    if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                    if (isset($_FILES['imagen'])) {
                         $alertas = self::subirImagen($_FILES['imagen'], $articulo);
                     }
 
@@ -327,7 +327,7 @@ class BlogController {
             if ($esEditor && in_array($estadoActual, ['publicado', 'programado'], true)) {
                 // Procesar nueva imagen si se subió
                 $imagenPendiente = $articulo->imagen;
-                if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                if (isset($_FILES['imagen'])) {
                     $tmpArticulo = new Articulo();
                     $alertasImg  = self::subirImagen($_FILES['imagen'], $tmpArticulo);
                     if (empty($alertasImg['error'])) {
@@ -375,7 +375,7 @@ class BlogController {
                     Articulo::setAlerta('error', 'Ya existe un artículo con ese slug. Edítalo manualmente.');
                     $alertas = Articulo::getAlertas();
                 } else {
-                    if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                    if (isset($_FILES['imagen'])) {
                         $alertas = self::subirImagen($_FILES['imagen'], $articulo);
                     }
 
@@ -664,10 +664,45 @@ class BlogController {
         return trim($texto, '-');
     }
 
+    /**
+     * Traduce el código de error de una subida ($_FILES[...]['error']) a un
+     * mensaje legible. Devuelve null cuando no hubo error o cuando no se envió
+     * ningún archivo (ambos casos "sin novedad").
+     */
+    private static function mensajeErrorUpload(int $err): ?string {
+        switch ($err) {
+            case UPLOAD_ERR_OK:
+            case UPLOAD_ERR_NO_FILE:
+                return null;
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                return 'La imagen es demasiado pesada para el servidor. Redúcela o comprímela e inténtalo de nuevo.';
+            case UPLOAD_ERR_PARTIAL:
+                return 'La imagen se subió incompleta. Vuelve a intentarlo.';
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'El servidor no tiene carpeta temporal para subir imágenes.';
+            case UPLOAD_ERR_CANT_WRITE:
+                return 'El servidor no pudo escribir la imagen en disco. Revisa los permisos.';
+            default:
+                return 'No se pudo subir la imagen (error ' . $err . ').';
+        }
+    }
+
     private static function subirImagen(array $file, Articulo $articulo): array {
+        // Nada seleccionado: no es un error, simplemente no hay imagen que procesar.
+        $err = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+        if ($err === UPLOAD_ERR_NO_FILE) {
+            return [];
+        }
+        // La subida falló antes de llegar aquí (p.ej. supera upload_max_filesize).
+        if ($err !== UPLOAD_ERR_OK) {
+            Articulo::setAlerta('error', self::mensajeErrorUpload($err));
+            return Articulo::getAlertas();
+        }
+
         $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-        $maxSize = 5 * 1024 * 1024;
+        $maxSize = 20 * 1024 * 1024;
 
         if (!\in_array($ext, $allowed)) {
             Articulo::setAlerta('error', 'Formato de imagen no permitido. Usa JPG, PNG o WebP.');
@@ -675,7 +710,7 @@ class BlogController {
         }
 
         if ($file['size'] > $maxSize) {
-            Articulo::setAlerta('error', 'La imagen supera el límite de 5 MB.');
+            Articulo::setAlerta('error', 'La imagen supera el límite de 20 MB.');
             return Articulo::getAlertas();
         }
 
@@ -1167,7 +1202,7 @@ class BlogController {
                     Noticia::setAlerta('error', 'Ya existe una noticia con ese slug.');
                     $alertas = Noticia::getAlertas();
                 } else {
-                    if (isset($_FILES['portada']) && $_FILES['portada']['error'] === UPLOAD_ERR_OK) {
+                    if (isset($_FILES['portada'])) {
                         $alertas = self::subirPortada($_FILES['portada'], $noticia);
                     }
                     if (empty($alertas['error'])) {
@@ -1229,7 +1264,7 @@ class BlogController {
             // Editor editando noticia ya publicada → guardar como version_pendiente
             if ($esEditor && in_array($estadoActual, ['publicado', 'programado'], true)) {
                 $portadaPendiente = $noticia->portada;
-                if (isset($_FILES['portada']) && $_FILES['portada']['error'] === UPLOAD_ERR_OK) {
+                if (isset($_FILES['portada'])) {
                     $tmpNoticia = new Noticia();
                     $alertasImg = self::subirPortada($_FILES['portada'], $tmpNoticia);
                     if (empty($alertasImg['error'])) {
@@ -1278,7 +1313,7 @@ class BlogController {
                     Noticia::setAlerta('error', 'Ya existe una noticia con ese slug.');
                     $alertas = Noticia::getAlertas();
                 } else {
-                    if (isset($_FILES['portada']) && $_FILES['portada']['error'] === UPLOAD_ERR_OK) {
+                    if (isset($_FILES['portada'])) {
                         $alertas = self::subirPortada($_FILES['portada'], $noticia);
                     }
                     if (empty($alertas['error'])) {
@@ -1433,16 +1468,25 @@ class BlogController {
     // ── Helper portada noticias ───────────────────────────────────────────────
 
     private static function subirPortada(array $file, Noticia $noticia): array {
+        $err = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+        if ($err === UPLOAD_ERR_NO_FILE) {
+            return [];
+        }
+        if ($err !== UPLOAD_ERR_OK) {
+            Noticia::setAlerta('error', self::mensajeErrorUpload($err));
+            return Noticia::getAlertas();
+        }
+
         $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-        $maxSize = 5 * 1024 * 1024;
+        $maxSize = 20 * 1024 * 1024;
 
         if (!in_array($ext, $allowed)) {
             Noticia::setAlerta('error', 'Formato no permitido. Usa JPG, PNG o WebP.');
             return Noticia::getAlertas();
         }
         if ($file['size'] > $maxSize) {
-            Noticia::setAlerta('error', 'La imagen supera el límite de 5 MB.');
+            Noticia::setAlerta('error', 'La imagen supera el límite de 20 MB.');
             return Noticia::getAlertas();
         }
 

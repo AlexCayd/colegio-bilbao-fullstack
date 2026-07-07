@@ -308,6 +308,14 @@ html {
   box-sizing: border-box;
 }
 
+html.i18n-pending body {
+  visibility: hidden;
+}
+
+html.i18n-pending.i18n-fallback body {
+  visibility: visible;
+}
+
 *, *:before, *:after {
   box-sizing: inherit;
 }
@@ -922,10 +930,16 @@ main {
   white-space: nowrap;
 }
 
-.lang-switch span.active {
+.lang-switch__btn {
+  color: inherit;
+  text-decoration: none;
+}
+
+.lang-switch .active {
   color: var(--col-bilbao);
   text-decoration: underline;
   text-underline-offset: 4px;
+  pointer-events: none;
 }
 
 .header-theme-btn {
@@ -975,7 +989,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 12px 8px;
   color: var(--col-bilbao);
 }
 @media (min-width: 1024px) {
@@ -1392,16 +1406,6 @@ main {
     transform: translateX(-50%);
   }
 }
-@keyframes lnd-pulse {
-  0%, 100% {
-    opacity: 0.45;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.35);
-  }
-}
 @keyframes lnd-scroll {
   0% {
     transform: translateY(0);
@@ -1425,14 +1429,6 @@ main {
     opacity: 0;
   }
 }
-@keyframes lnd-shimmer {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
-}
 /* ── FOREST CANVAS ────────────────────────────────────────── */
 .lnd-forest-canvas {
   position: fixed;
@@ -1441,6 +1437,7 @@ main {
   height: 100%;
   z-index: 0;
   pointer-events: none;
+  transition: opacity 0.6s ease;
 }
 
 .lnd-forest-veil {
@@ -1486,10 +1483,15 @@ main {
   padding: clamp(80px, 12vw, 140px) clamp(20px, 5vw, 60px) clamp(60px, 8vw, 100px);
   text-align: center;
   overflow: hidden;
+  /* En móvil el header fijo (80px) tapa la parte superior, así que el
+     padding es asimétrico para centrar el contenido ópticamente en el
+     área visible (debajo del header) */
 }
 @media (max-width: 767px) {
   .lnd-hero {
-    padding-top: 120px;
+    min-height: 100svh;
+    padding-top: 116px;
+    padding-bottom: 44px;
   }
 }
 .lnd-hero__content {
@@ -1514,15 +1516,6 @@ main {
     margin-bottom: 18px;
   }
 }
-.lnd-hero__eyebrow-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--bilbao);
-  flex-shrink: 0;
-  animation: lnd-pulse 2s ease-in-out infinite;
-}
 .lnd-hero__title {
   font-size: clamp(3rem, 9vw, 7.5rem);
   font-weight: 900;
@@ -1532,11 +1525,22 @@ main {
   margin-top: 0;
   margin-bottom: 22px;
   transition: opacity 0.45s ease, transform 0.45s ease;
+  /* Altura FIJA (relativa al tamaño de fuente) para que las frases
+     al rotar —sean de 2 o 3 líneas— no muevan el contenido inferior.
+     El texto se centra verticalmente dentro de la caja reservada. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.4em;
 }
 @media (max-width: 767px) {
   .lnd-hero__title {
-    min-height: 200px;
+    height: 3.1em;
   }
+}
+.lnd-hero__title-inner {
+  display: block;
+  text-align: center;
 }
 .lnd-hero__hi {
   background: linear-gradient(110deg, var(--bilbao), var(--espiritu));
@@ -1903,6 +1907,9 @@ main {
     grid-template-columns: 1fr;
   }
 }
+.lnd-vida__cta {
+  text-align: center;
+}
 
 .lnd-vida-card {
   padding: 24px 20px;
@@ -1944,6 +1951,7 @@ main {
   position: relative;
   z-index: 10;
   padding: 50px clamp(18px, 5vw, 60px);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
 }
 .lnd-descubre__header {
   max-width: var(--container-width);
@@ -1986,12 +1994,22 @@ main {
   position: relative;
   min-height: 380px;
   border-radius: 26px;
-  overflow: hidden;
   text-decoration: none;
   border: 1px solid var(--glass-brd);
   box-shadow: 0 32px 70px -46px var(--glass-sh);
   display: block;
   background: #0b1726;
+}
+@media (max-width: 560px) {
+  .lnd-ex-card {
+    min-height: 300px;
+  }
+}
+.lnd-ex-card__clip {
+  position: absolute;
+  inset: 0;
+  border-radius: 26px;
+  overflow: hidden;
 }
 .lnd-ex-card__photo {
   position: absolute;
@@ -2093,8 +2111,8 @@ main {
   font-weight: 700;
   color: #fff;
   opacity: 0;
-  transform: translateX(-8px);
-  transition: all 0.5s;
+  transform: translateY(6px);
+  transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s;
 }
 .lnd-ex-card__go span {
   display: grid;
@@ -2273,6 +2291,12 @@ main {
   margin: 0 auto 24px;
   padding: 0 clamp(18px, 5vw, 60px);
 }
+@media (max-width: 480px) {
+  .lnd-news__header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
 .lnd-news__header-left {
   display: flex;
   align-items: flex-end;
@@ -2292,13 +2316,15 @@ main {
   font-weight: 800;
   color: var(--espiritu);
 }
-.lnd-news__tag span {
+.lnd-news__tag::before {
+  content: "";
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--espiritu);
-  box-shadow: 0 0 10px var(--espiritu);
-  animation: lnd-shimmer 1.6s infinite;
+  background: #e51022;
+  box-shadow: 0 0 10px rgba(229, 16, 34, 0.55);
+  animation: pulse-live 1.4s ease-in-out infinite;
+  flex-shrink: 0;
 }
 .lnd-news__title-h2 {
   font-weight: 900;
@@ -2317,6 +2343,11 @@ main {
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
+}
+@media (max-width: 480px) {
+  .lnd-news__hint {
+    display: none;
+  }
 }
 .lnd-news__viewport {
   flex: 1;
@@ -2484,11 +2515,13 @@ main {
   font-weight: 800;
   color: var(--bilbao);
 }
-.lnd-articulos__tag span {
+.lnd-articulos__tag::before {
+  content: "";
   width: 8px;
   height: 8px;
   border-radius: 2px;
   background: var(--bilbao);
+  flex-shrink: 0;
 }
 .lnd-articulos__title {
   font-weight: 900;
@@ -2526,7 +2559,7 @@ main {
 .lnd-art-preview {
   position: sticky;
   top: 90px;
-  height: 600px;
+  height: 660px;
 }
 .lnd-art-preview__panel {
   height: 100%;
@@ -2539,8 +2572,8 @@ main {
 }
 .lnd-art-preview__img-wrap {
   position: relative;
-  height: 320px;
-  flex: 0 0 320px;
+  height: 300px;
+  flex: 0 0 300px;
   overflow: hidden;
 }
 .lnd-art-preview__img-wrap img:not(.lnd-art-preview__alex) {
@@ -2587,6 +2620,10 @@ main {
   letter-spacing: -0.025em;
   margin-bottom: 12px;
   color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .lnd-art-preview__excerpt {
   color: var(--ink-soft);
@@ -2746,11 +2783,34 @@ main {
   }
   .lnd-visita__desc {
     max-width: 100%;
+    margin-inline: auto;
+  }
+  .lnd-visita {
+    /* El bloque de datos se centra como conjunto, pero las filas
+       mantienen su alineación a la izquierda para que las etiquetas
+       (Dirección / Horario) queden alineadas entre sí */
+  }
+  .lnd-visita__info {
+    width: -moz-max-content;
+    width: max-content;
+    max-width: 100%;
+    margin-inline: auto;
   }
   .lnd-visita__info-row {
-    justify-content: center;
+    justify-content: flex-start;
+    text-align: left;
   }
   .lnd-visita__ctas {
+    justify-content: center;
+  }
+}
+@media (max-width: 480px) {
+  .lnd-visita__ctas {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lnd-visita__ctas > a {
+    width: 100%;
     justify-content: center;
   }
 }
@@ -2911,6 +2971,92 @@ main {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+@media (max-width: 767px) {
+  .lnd-cta__title {
+    margin-bottom: 24px;
+  }
+}
+.lnd-cta {
+  /* ── Móvil: las mascotas dejan de encimarse con el título/botón ──
+     Se reducen y se anclan a las esquinas inferiores, dentro de una
+     banda de padding reservada debajo del contenido */
+}
+@media (max-width: 767px) {
+  .lnd-cta {
+    padding-top: clamp(56px, 12vw, 80px);
+    padding-bottom: 150px;
+  }
+  .lnd-cta__content {
+    padding-bottom: 8px;
+  }
+  .lnd-cta__alex-left, .lnd-cta__alex-right {
+    width: clamp(86px, 26vw, 118px);
+    bottom: 14px;
+    animation-duration: 7s;
+  }
+  .lnd-cta__alex-left {
+    left: -8px;
+  }
+  .lnd-cta__alex-right {
+    right: -8px;
+  }
+}
+@media (max-width: 360px) {
+  .lnd-cta__alex-left, .lnd-cta__alex-right {
+    display: none;
+  }
+}
+
+/* ── STICKY CTA (solo móvil) — píldora sutil y centrada ───── */
+.lnd-sticky-cta {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 70;
+  text-align: center;
+  transform: translateY(160%);
+  opacity: 0;
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s ease;
+  pointer-events: none;
+}
+.lnd-sticky-cta.is-visible {
+  transform: none;
+  opacity: 1;
+}
+.lnd-sticky-cta__btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 100px;
+  background: var(--glass);
+  border: 1px solid var(--glass-brd);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--col-bilbao);
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  box-shadow: 0 8px 26px -10px var(--glass-sh);
+  transition: background 0.25s ease;
+}
+.lnd-sticky-cta__btn:active {
+  background: var(--card);
+}
+.lnd-sticky-cta__btn svg {
+  flex: 0 0 auto;
+  opacity: 0.9;
+}
+@media (max-width: 767px) {
+  .lnd-sticky-cta {
+    display: block;
+  }
 }
 
 /* =========================================================
@@ -11074,6 +11220,37 @@ h2.section-title::after {
 }
 
 /* ARTICLES TABLE */
+/* Contenedor con scroll horizontal para las tablas del panel.
+   Deja que .admin-table conserve su min-width y se desplace en vez de
+   comprimir las columnas cuando el ancho disponible es menor. */
+.admin-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  /* Scrollbar con la identidad azul del sitio (Bilbao) */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(77, 138, 187, 0.55) transparent;
+}
+.admin-table-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.admin-table-scroll::-webkit-scrollbar-track {
+  background: rgba(55, 76, 105, 0.06);
+  border-radius: 99px;
+  margin: 0 8px;
+}
+.admin-table-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, var(--col-bilbao), var(--col-espiritu));
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.admin-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--col-bilbao);
+  background-clip: padding-box;
+}
+
 .admin-table {
   width: 100%;
   min-width: 680px; /* fuerza scroll horizontal antes de comprimir columnas */
@@ -11144,6 +11321,15 @@ h2.section-title::after {
 .admin-table__actions {
   display: flex;
   gap: 6px;
+  justify-content: flex-end;
+  padding-right: 6px;
+}
+
+/* Respiro a la derecha para que los botones de acción no queden pegados
+   al borde de la tabla (sobre todo con scroll horizontal). */
+.admin-table th:last-child,
+.admin-table td:last-child {
+  padding-right: 28px;
 }
 
 .admin-table__btn {
@@ -13691,6 +13877,11 @@ h2.section-title::after {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.cat-chip.cat-chip--featured {
+  background: #f5b400;
+  color: #fff;
+  gap: 6px;
 }
 
 .nueva-badge {

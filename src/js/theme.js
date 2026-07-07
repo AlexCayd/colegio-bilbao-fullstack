@@ -39,25 +39,6 @@
             });
         }
 
-        /* ES | EN — traducción in-place via Google Translate Widget */
-        function triggerGoogleTranslate() {
-            var sel = document.querySelector('.goog-te-combo');
-            if (sel) {
-                sel.value = 'en';
-                sel.dispatchEvent(new Event('change'));
-                return;
-            }
-            setTimeout(function() {
-                var sel2 = document.querySelector('.goog-te-combo');
-                if (sel2) { sel2.value = 'en'; sel2.dispatchEvent(new Event('change')); }
-            }, 800);
-        }
-        var langBtn = document.getElementById('lang-en-btn');
-        if (langBtn) langBtn.addEventListener('click', function(e) { e.preventDefault(); triggerGoogleTranslate(); });
-        document.querySelectorAll('.lang-en-overlay-btn').forEach(function(el) {
-            el.addEventListener('click', function(e) { e.preventDefault(); triggerGoogleTranslate(); });
-        });
-
         /* Sombra en el header al hacer scroll */
         var headerBar = document.querySelector('.header-bar');
         if (headerBar) {

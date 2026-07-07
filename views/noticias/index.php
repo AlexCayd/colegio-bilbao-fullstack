@@ -43,30 +43,30 @@ $ticker_items = array_map(fn($n) => [
 ], array_slice($all_para_ticker, 0, 8));
 ?>
     <!-- ── SUBNAV ───────────────────────────────────────────── -->
-    <nav class="noticias-subnav" aria-label="Voces Bilbao">
+    <nav class="noticias-subnav" data-i18n-attr="aria-label:noticias.subnav.ariaLabel" aria-label="Voces Bilbao">
         <div class="container">
             <a href="/noticias" class="noticias-subnav-brand">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg>
-                Voces Bilbao
+                <span data-i18n="noticias.subnav.brand">Voces Bilbao</span>
                 <span class="noticias-subnav-sep">/</span>
-                <span class="noticias-subnav-section">Noticias</span>
+                <span class="noticias-subnav-section" data-i18n="noticias.subnav.brandSection">Noticias</span>
             </a>
             <div class="noticias-subnav-links">
                 <a href="/noticias" class="noticias-subnav-link active">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    Noticias
+                    <span data-i18n="noticias.subnav.linkNoticias">Noticias</span>
                 </a>
                 <a href="/blog" class="noticias-subnav-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    Artículos
+                    <span data-i18n="noticias.subnav.linkArticulos">Artículos</span>
                 </a>
                 <a href="/admisiones/" class="noticias-subnav-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    Admisiones
+                    <span data-i18n="noticias.subnav.linkAdmisiones">Admisiones</span>
                 </a>
             </div>
             <div class="noticias-subnav-end">
-                <span class="noticias-subnav-live">En vivo</span>
+                <span class="noticias-subnav-live" data-i18n="noticias.subnav.enVivo">En vivo</span>
             </div>
         </div>
     </nav>
@@ -79,18 +79,18 @@ $ticker_items = array_map(fn($n) => [
             <div class="container">
                 <div class="noticias-hero-body fade-up">
                     <div class="noticias-eyebrow">
-                        <span class="eyebrow-live">En vivo</span>
-                        Al día con nuestra comunidad
+                        <span class="eyebrow-live" data-i18n="noticias.hero.enVivo">En vivo</span>
+                        <span data-i18n="noticias.hero.eyebrowText">Al día con nuestra comunidad</span>
                     </div>
                     <h1 class="noticias-hero-title">
-                        Noticias<br>Bilbao
+                        <span data-i18n="noticias.hero.tituloLinea1">Noticias</span><br><span data-i18n="noticias.hero.tituloLinea2">Bilbao</span>
                     </h1>
-                    <p class="noticias-hero-lead">
+                    <p class="noticias-hero-lead" data-i18n="noticias.hero.lead">
                         Todo lo que pasa en el Colegio Bilbao: logros académicos, eventos culturales, vida deportiva y los momentos que hacen única a nuestra comunidad escolar.
                     </p>
                     <div class="noticias-hero-actions">
-                        <a href="#todas-las-noticias" class="btn-primario">Ver noticias</a>
-                        <a href="/contacto/" class="btn-secundario">Conocer el colegio</a>
+                        <a href="#todas-las-noticias" class="btn-primario" data-i18n="noticias.hero.ctaVerNoticias">Ver noticias</a>
+                        <a href="/contacto/" class="btn-secundario" data-i18n="noticias.hero.ctaConocer">Conocer el colegio</a>
                     </div>
                 </div>
                 <picture class="noticias-hero-mascot-wrap">
@@ -98,6 +98,7 @@ $ticker_items = array_map(fn($n) => [
                     <source srcset="/build/assets/img/alex/alex-periodico.webp" type="image/webp">
                     <img src="/build/assets/img/alex/alex-periodico.png"
                          class="noticias-hero-mascot"
+                         data-i18n-attr="alt:noticias.hero.mascotAlt"
                          alt="Alex reportero de noticias"
                          aria-hidden="true">
                 </picture>
@@ -110,7 +111,7 @@ $ticker_items = array_map(fn($n) => [
             <div class="news-ticker-inner">
                 <div class="ticker-label">
                     <span class="ticker-dot"></span>
-                    Últimas noticias
+                    <span data-i18n="noticias.ticker.label">Últimas noticias</span>
                 </div>
                 <div class="ticker-track-wrap">
                     <div class="ticker-track">
@@ -133,8 +134,8 @@ $ticker_items = array_map(fn($n) => [
         <section class="noticias-featured">
             <div class="container">
                 <div class="noticias-section-head fade-up">
-                    <h2 class="noticias-section-title">Noticia destacada</h2>
-                    <p class="noticias-section-copy">El acontecimiento más relevante de nuestra comunidad en este momento.</p>
+                    <h2 class="noticias-section-title" data-i18n="noticias.destacada.titulo">Noticia destacada</h2>
+                    <p class="noticias-section-copy" data-i18n="noticias.destacada.copy">El acontecimiento más relevante de nuestra comunidad en este momento.</p>
                 </div>
 
                 <?php
@@ -148,18 +149,19 @@ $ticker_items = array_map(fn($n) => [
                          alt="" aria-hidden="true">
                     <div class="featured-noticia-content">
                         <div class="featured-noticia-meta">
-                            <span class="cat-chip cat-<?= htmlspecialchars($featured->categoria_slug ?? '') ?> cat-chip--white">
-                                <?= htmlspecialchars($featured->categoria_nombre ?? '') ?>
+                            <span class="cat-chip cat-chip--featured">
+                                <i class="fa-solid fa-star" aria-hidden="true"></i>
+                                <span data-i18n="noticias.destacada.badge">Destacada</span>
                             </span>
                             <?php if ($featured_nueva): ?>
-                            <span class="nueva-badge">Nuevo</span>
+                            <span class="nueva-badge" data-i18n="noticias.tarjeta.nuevoBadge">Nuevo</span>
                             <?php endif; ?>
                             <span class="featured-noticia-date"><?= noticia_fecha_larga($featured->fecha_publicacion ?? '') ?></span>
                         </div>
                         <h3 class="featured-noticia-title"><?= htmlspecialchars($featured->titulo) ?></h3>
                         <p class="featured-noticia-excerpt"><?= htmlspecialchars($featured->extracto ?? '') ?></p>
                         <a href="/noticias/<?= htmlspecialchars($featured->slug) ?>" class="featured-noticia-cta">
-                            Leer noticia completa
+                            <span data-i18n="noticias.destacada.ctaLeerCompleta">Leer noticia completa</span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                         </a>
                     </div>
@@ -173,8 +175,8 @@ $ticker_items = array_map(fn($n) => [
             <div class="container">
 
                 <div class="noticias-section-head fade-up">
-                    <h2 class="noticias-section-title">Todas las noticias</h2>
-                    <p class="noticias-section-copy">Filtra por área o busca un tema para encontrar lo que te interesa.</p>
+                    <h2 class="noticias-section-title" data-i18n="noticias.listado.titulo">Todas las noticias</h2>
+                    <p class="noticias-section-copy" data-i18n="noticias.listado.copy">Filtra por área o busca un tema para encontrar lo que te interesa.</p>
                 </div>
 
                 <!-- Búsqueda -->
@@ -182,13 +184,14 @@ $ticker_items = array_map(fn($n) => [
                     <div class="noticias-search-input-wrap">
                         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input type="search" id="noticiasSearch" class="noticias-search-input"
+                               data-i18n-attr="placeholder:noticias.listado.buscarPlaceholder;aria-label:noticias.listado.buscarAriaLabel"
                                placeholder="Buscar noticias..." autocomplete="off" aria-label="Buscar noticias">
                     </div>
                 </div>
 
                 <!-- Filtros -->
-                <div class="noticias-filters fade-up" role="group" aria-label="Filtrar por categoría">
-                    <button class="noticias-filter-btn active" type="button" data-noticia-filter="all">Todas</button>
+                <div class="noticias-filters fade-up" role="group" data-i18n-attr="aria-label:noticias.listado.filtrosAriaLabel" aria-label="Filtrar por categoría">
+                    <button class="noticias-filter-btn active" type="button" data-noticia-filter="all" data-i18n="noticias.listado.filtroTodas">Todas</button>
                     <?php foreach ($categorias as $cat): ?>
                     <button class="noticias-filter-btn" type="button" data-noticia-filter="<?= htmlspecialchars($cat['slug']) ?>">
                         <?= htmlspecialchars($cat['nombre']) ?>
@@ -229,7 +232,7 @@ $ticker_items = array_map(fn($n) => [
                                 <?= htmlspecialchars($n->categoria_nombre ?? '') ?>
                             </span>
                             <?php if ($is_nueva): ?>
-                            <span class="noticia-nueva-dot" aria-label="Noticia nueva"></span>
+                            <span class="noticia-nueva-dot" data-i18n-attr="aria-label:noticias.tarjeta.nuevaAriaLabel" aria-label="Noticia nueva"></span>
                             <?php endif; ?>
                         </a>
 
@@ -245,7 +248,7 @@ $ticker_items = array_map(fn($n) => [
                             </h3>
                             <p class="noticia-card-excerpt"><?= htmlspecialchars($n->extracto ?? '') ?></p>
                             <a href="/noticias/<?= $slug ?>" class="noticia-read-more">
-                                Leer noticia
+                                <span data-i18n="noticias.tarjeta.leerNoticia">Leer noticia</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                             </a>
                             <?php if ($n->autor_nombre): ?>
@@ -269,8 +272,8 @@ $ticker_items = array_map(fn($n) => [
                 <!-- Empty state -->
                 <div class="noticias-empty" id="noticiasEmpty" role="status">
                     <img src="/build/assets/img/alex/bby-alex-piensa.png" alt="" aria-hidden="true">
-                    <h3>Sin resultados</h3>
-                    <p>Prueba con otro término o selecciona "Todas".</p>
+                    <h3 data-i18n="noticias.vacio.titulo">Sin resultados</h3>
+                    <p data-i18n="noticias.vacio.copy">Prueba con otro término o selecciona "Todas".</p>
                 </div>
 
             </div>
@@ -280,12 +283,12 @@ $ticker_items = array_map(fn($n) => [
         <section class="noticias-cta">
             <div class="container">
                 <div class="noticias-cta-box fade-up">
-                    <h3>¿Quieres vivir estas noticias en persona?</h3>
-                    <p>
+                    <h3 data-i18n="noticias.cta.titulo">¿Quieres vivir estas noticias en persona?</h3>
+                    <p data-i18n="noticias.cta.copy">
                         Cada evento, logro y celebración sucede dentro de un proyecto educativo pensado para que cada alumno crezca. Agenda una visita y descubre cómo se vive Bilbao.
                     </p>
                     <a href="https://wa.me/525614612682?text=Hola,%20quiero%20agendar%20una%20visita%20guiada%20al%20Colegio%20Bilbao."
-                       class="btn-terciario" target="_blank" rel="noopener noreferrer">
+                       class="btn-terciario" target="_blank" rel="noopener noreferrer" data-i18n="noticias.cta.boton">
                         Agenda tu visita
                     </a>
                 </div>

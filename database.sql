@@ -1,18 +1,10 @@
 -- =====================================================
---  BLOG COLEGIO BILBAO — Seed completo
---  Versión 2 — incluye columnas de flujo de revisión
+--  BLOG COLEGIO BILBAO — Estructura de base de datos
+--  Solo tablas (sin datos). Los INSERT viven en seed_contenido.sql.
 --
---  Cuentas de administrador:
---    admin@bilbao.edu.mx           / Tlalmimilolpan39%
---    alexander.oliva@bilbao.edu.mx / ColegioBilbao13
---
---  Cuentas de editor (datos de ejemplo):
---    maria.gonzalez@bilbao.edu.mx  / EditorBilbao1
---    carlos.ramirez@bilbao.edu.mx  / EditorBilbao1
---
---  Paleta de colores para categorías (escala cromática):
---  #fc6722  #f5b400  #8ac926  #34a853  #46bdc6
---  #4285f4  #4267ac  #aa2296  #ea075a  #e51022
+--  Uso:
+--    mysql -u root -p colegiobilbao < database.sql
+--    mysql -u root -p colegiobilbao < seed_contenido.sql
 -- =====================================================
 
 SET NAMES utf8mb4;
@@ -25,6 +17,7 @@ DROP TABLE IF EXISTS tags;
 DROP TABLE IF EXISTS categorias;
 DROP TABLE IF EXISTS noticias;
 DROP TABLE IF EXISTS categorias_noticias;
+DROP TABLE IF EXISTS testimoniales;
 DROP TABLE IF EXISTS usuarios;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -148,59 +141,7 @@ CREATE TABLE notificaciones (
     CONSTRAINT fk_notif_usuario FOREIGN KEY (usuario_id)
         REFERENCES usuarios (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ── Usuarios ──────────────────────────────────────────────────────────────────
--- id 1 → admin Bilbao  (administrador) — password: Tlalmimilolpan39%
--- id 2 → Alexander     (administrador) — password: ColegioBilbao13
--- id 3 → María         (editor)        — password: EditorBilbao25  — artículo/noticia en revisión pendiente
--- id 4 → Carlos        (editor)        — password: EditorBilbao25  — artículo/noticia rechazados con feedback
-
-INSERT INTO usuarios (nombre, email, password, rol) VALUES
-('Administrador Bilbao',  'admin@bilbao.edu.mx',             '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'administrador'),
-('Alexander Oliva',       'alexander.oliva@bilbao.edu.mx',   '$2y$12$0TtlP9O9HsElGRDauM2CaOLYYAo5Xquik7QqFO2HS6izU7NyVaOMq', 'administrador'),
-('María González',        'maria.gonzalez@bilbao.edu.mx',    '$2y$12$Y7OOx/TShLw3Ypjim4gWIOlNxZFewG.2dc8HJvYlKlSVsjMXiQ6bm',  'editor'),
-('Carlos Ramírez',        'carlos.ramirez@bilbao.edu.mx',    '$2y$12$Y7OOx/TShLw3Ypjim4gWIOlNxZFewG.2dc8HJvYlKlSVsjMXiQ6bm',  'editor');
-
--- ── Categorías de artículos ───────────────────────────────────────────────────
--- Colores en escala cromática: naranja → amarillo → lima → verde → teal → azul → azul marino → morado → rosa → rojo
-
-INSERT INTO categorias (nombre, slug, descripcion, color) VALUES
-('Modelo Educativo',        'modelo-educativo',        'Filosofía, pedagogía y propuesta formativa del Colegio Bilbao.',            '#4267ac'),
-('Vida Escolar',            'vida-escolar',            'Convivencia, rutinas y experiencias dentro del campus.',                    '#46bdc6'),
-('Comunidad y Familias',    'comunidad-y-familias',    'Reflexiones para padres, familias y la comunidad educativa.',               '#f5b400'),
-('Aprendizaje Integral',    'aprendizaje-integral',    'Estrategias, hábitos y ciencia detrás del aprendizaje efectivo.',           '#8ac926'),
-('Arte y Cultura',          'arte-y-cultura',          'Expresión artística, cultura y creatividad en el entorno escolar.',         '#aa2296'),
-('Tecnología e Innovación', 'tecnologia-e-innovacion', 'Educación digital, IA y herramientas tecnológicas en el aula.',             '#4285f4'),
-('Deportes',                'deportes',                'Formación física, valores deportivos y logros en competencias.',            '#34a853'),
-('Internacional',           'internacional',           'Intercambios, certificaciones globales y perspectiva mundial.',             '#e51022');
-
--- ── Tags ─────────────────────────────────────────────────────────────────────
-
-INSERT INTO tags (nombre, slug) VALUES
-('educación integral',      'educacion-integral'),
-('aprendizaje',             'aprendizaje'),
-('familia',                 'familia'),
-('tecnología',              'tecnologia'),
-('deportes',                'deportes'),
-('arte',                    'arte'),
-('bilingüismo',             'bilinguismo'),
-('emociones',               'emociones'),
-('liderazgo',               'liderazgo'),
-('innovación',              'innovacion');
-
--- ── Categorías de noticias ────────────────────────────────────────────────────
-
-INSERT INTO categorias_noticias (nombre, slug, color, descripcion) VALUES
-('Institucional', 'institucional', '#4267ac', 'Comunicados, logros y novedades del colegio como institución.'),
-('Académico',     'academico',     '#4285f4', 'Proyectos, reconocimientos y actividades académicas.'),
-('Cultural',      'cultural',      '#aa2296', 'Eventos artísticos, festivales y vida cultural del campus.'),
-('Deportivo',     'deportivo',     '#34a853', 'Torneos, equipos y logros en el área deportiva.'),
-('Comunidad',     'comunidad',     '#f5b400', 'Actividades que involucran a familias y la comunidad escolar.');
-
 -- ── Testimoniales ─────────────────────────────────────────────────────────────
-
-DROP TABLE IF EXISTS testimoniales;
-
 CREATE TABLE testimoniales (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   nombre     VARCHAR(100) NOT NULL,
@@ -209,11 +150,3 @@ CREATE TABLE testimoniales (
   aprobado   TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO testimoniales (nombre, rol, comentario, aprobado) VALUES
-('Claudia R.',       'Mamá',      'El colegio transformó la manera en que mi hijo entiende el aprendizaje. La naturaleza como aula es algo que no se olvida.', 1),
-('Roberto C.',       'Papá',      'Lo que más valoramos es la atención individual. Los maestros conocen a cada alumno de verdad.', 1),
-('Familia Torres',   'Familia',   'Tres años llevando a nuestros hijos aquí y seguimos eligiendo Bilbao. La comunidad que han construido es única.', 1),
-('Sofía M.',         'Mamá',      'Mi hija llegó tímida y hoy participa en todo. El modelo VIDA realmente transforma a los niños.', 1),
-('Alejandro P.',     'Exalumno',  'Salí del Bilbao con herramientas para la vida, no solo para los exámenes. Eso no tiene precio.', 1),
-('Familia Ramos',    'Familia',   'La comunicación con los maestros es excepcional. Siempre al tanto de cómo van nuestros hijos.', 1);

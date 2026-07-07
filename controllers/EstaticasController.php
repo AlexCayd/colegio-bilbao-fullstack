@@ -245,10 +245,6 @@ class EstaticasController {
         $router->render('estaticas/mapa-del-sitio/mapa-del-sitio', ['titulo' => 'Mapa del Sitio']);
     }
 
-    public static function en(Router $router) {
-        $router->render('estaticas/en/en', ['titulo' => 'Colegio Bilbao — English']);
-    }
-
     public static function feedbackTestimoniales(Router $router) {
         $enviado = false;
         $errores = [];

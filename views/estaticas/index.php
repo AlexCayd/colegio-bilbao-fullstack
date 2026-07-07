@@ -10,14 +10,15 @@
     <section class="lnd-hero" id="inicio">
         <div class="lnd-hero__content">
             <p class="lnd-hero__eyebrow">
-                <span class="lnd-hero__eyebrow-dot"></span>
-                Colegio Bilbao · Preescolar · Primaria · Secundaria · Preparatoria
+                <span data-i18n="home.hero.eyebrow">Colegio Bilbao · Preescolar · Primaria · Secundaria · Preparatoria</span>
             </p>
             <h1 class="lnd-hero__title" id="hero-title">
-                <span id="hero-a">La naturaleza</span><br>
-                <span id="hero-b">es nuestro </span><span class="lnd-hero__hi" id="hero-hi">salón</span>
+                <span class="lnd-hero__title-inner">
+                    <span id="hero-a" data-i18n="home.hero.titleA">La naturaleza</span><br>
+                    <span id="hero-b" data-i18n="home.hero.titleB">es nuestro </span><span class="lnd-hero__hi" id="hero-hi" data-i18n="home.hero.titleHighlight">salón</span>
+                </span>
             </h1>
-            <p class="lnd-hero__sub">30,000 m² de bosque convertidos en aula. Un modelo donde explorar y preguntar pesa más que memorizar.</p>
+            <p class="lnd-hero__sub" data-i18n="home.hero.subtitle">30,000 m² de bosque convertidos en aula. Un modelo donde explorar y preguntar pesa más que memorizar.</p>
             <div class="lnd-hero__ctas">
                 <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada."
                    class="btn-primario lnd-btn-hero"
@@ -27,9 +28,9 @@
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.537 4.068 1.482 5.792L0 24l6.375-1.456C8.067 23.48 10.004 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.859 0-3.584-.509-5.058-1.393l-.362-.215-3.755.857.906-3.641-.236-.374C2.633 15.553 2.182 13.823 2.182 12 2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
                     </svg>
-                    Agenda tu visita
+                    <span data-i18n="home.hero.ctaVisit">Agenda tu visita</span>
                 </a>
-                <a href="#nuestra-oferta" class="lnd-btn-ghost">Conocer el colegio ↓</a>
+                <a href="#nuestra-oferta" class="lnd-btn-ghost" data-i18n="home.hero.ctaExplore">Conocer el colegio ↓</a>
             </div>
         </div>
         <div class="lnd-hero__scroll" aria-hidden="true">
@@ -45,19 +46,19 @@
         <div class="lnd-stats__grid">
             <div class="lnd-stat" data-reveal>
                 <strong class="lnd-stat__num" data-count="38" data-plus="true">0</strong>
-                <p class="lnd-stat__label">Años de experiencia</p>
+                <p class="lnd-stat__label" data-i18n="home.stats.experience.label">Años de experiencia</p>
             </div>
             <div class="lnd-stat" data-reveal style="transition-delay:.1s">
                 <strong class="lnd-stat__num" data-count="30000" data-suffix="m²">0</strong>
-                <p class="lnd-stat__label">de bosque como aula</p>
+                <p class="lnd-stat__label" data-i18n="home.stats.forest.label">de bosque como aula</p>
             </div>
             <div class="lnd-stat" data-reveal style="transition-delay:.2s">
                 <strong class="lnd-stat__num" data-count="3">0</strong>
-                <p class="lnd-stat__label">Idiomas integrados</p>
+                <p class="lnd-stat__label" data-i18n="home.stats.languages.label">Idiomas integrados</p>
             </div>
             <div class="lnd-stat" data-reveal style="transition-delay:.3s">
                 <strong class="lnd-stat__num" data-count="200" data-plus="true">0</strong>
-                <p class="lnd-stat__label">Universidades aliadas</p>
+                <p class="lnd-stat__label" data-i18n="home.stats.universities.label">Universidades aliadas</p>
             </div>
         </div>
     </section>
@@ -68,8 +69,8 @@
     ================================================ -->
     <section class="lnd-niveles" id="nuestra-oferta">
         <div class="lnd-niveles__header" data-reveal>
-            <span class="lnd-niveles__eyebrow">Un proyecto educativo, objetivos claros por nivel</span>
-            <h2 class="lnd-niveles__title">Nuestra oferta educativa</h2>
+            <span class="lnd-niveles__eyebrow" data-i18n="home.niveles.eyebrow">Un proyecto educativo, objetivos claros por nivel</span>
+            <h2 class="lnd-niveles__title" data-i18n="home.niveles.title">Nuestra oferta educativa</h2>
         </div>
         <div class="lnd-niveles__grid">
 
@@ -82,9 +83,9 @@
                      src="/build/assets/img/alex/bby-alex-feliz.png" alt="" loading="lazy">
                 <div class="lnd-level-card__content">
                     <span class="lnd-level-card__num">01</span>
-                    <h3 class="lnd-level-card__title">Preescolar</h3>
-                    <p class="lnd-level-card__desc">Juego, exploración y seguridad emocional para sus primeros pasos.</p>
-                    <span class="lnd-level-card__link">Ver nivel →</span>
+                    <h3 class="lnd-level-card__title" data-i18n="home.niveles.preescolar.title">Preescolar</h3>
+                    <p class="lnd-level-card__desc" data-i18n="home.niveles.preescolar.desc">Juego, exploración y seguridad emocional para sus primeros pasos.</p>
+                    <span class="lnd-level-card__link" data-i18n="home.niveles.viewLevel">Ver nivel →</span>
                 </div>
             </a>
 
@@ -97,9 +98,9 @@
                      src="/build/assets/img/alex/kid-alex-explora.png" alt="" loading="lazy">
                 <div class="lnd-level-card__content">
                     <span class="lnd-level-card__num">02</span>
-                    <h3 class="lnd-level-card__title">Primaria</h3>
-                    <p class="lnd-level-card__desc">Aprendizaje activo, curiosidad y fundamentos sólidos.</p>
-                    <span class="lnd-level-card__link">Ver nivel →</span>
+                    <h3 class="lnd-level-card__title" data-i18n="home.niveles.primaria.title">Primaria</h3>
+                    <p class="lnd-level-card__desc" data-i18n="home.niveles.primaria.desc">Aprendizaje activo, curiosidad y fundamentos sólidos.</p>
+                    <span class="lnd-level-card__link" data-i18n="home.niveles.viewLevel">Ver nivel →</span>
                 </div>
             </a>
 
@@ -112,9 +113,9 @@
                      src="/build/assets/img/alex/teen-alex-camina.png" alt="" loading="lazy">
                 <div class="lnd-level-card__content">
                     <span class="lnd-level-card__num">03</span>
-                    <h3 class="lnd-level-card__title">Secundaria</h3>
-                    <p class="lnd-level-card__desc">Pensamiento crítico, diálogo y acompañamiento en la adolescencia.</p>
-                    <span class="lnd-level-card__link">Ver nivel →</span>
+                    <h3 class="lnd-level-card__title" data-i18n="home.niveles.secundaria.title">Secundaria</h3>
+                    <p class="lnd-level-card__desc" data-i18n="home.niveles.secundaria.desc">Pensamiento crítico, diálogo y acompañamiento en la adolescencia.</p>
+                    <span class="lnd-level-card__link" data-i18n="home.niveles.viewLevel">Ver nivel →</span>
                 </div>
             </a>
 
@@ -127,9 +128,9 @@
                      src="/build/assets/img/alex/alex-medita.png" alt="" loading="lazy">
                 <div class="lnd-level-card__content">
                     <span class="lnd-level-card__num">04</span>
-                    <h3 class="lnd-level-card__title">Preparatoria</h3>
-                    <p class="lnd-level-card__desc">Diseño de futuro, certificación dual y proyección universitaria.</p>
-                    <span class="lnd-level-card__link">Ver nivel →</span>
+                    <h3 class="lnd-level-card__title" data-i18n="home.niveles.preparatoria.title">Preparatoria</h3>
+                    <p class="lnd-level-card__desc" data-i18n="home.niveles.preparatoria.desc">Diseño de futuro, certificación dual y proyección universitaria.</p>
+                    <span class="lnd-level-card__link" data-i18n="home.niveles.viewLevel">Ver nivel →</span>
                 </div>
             </a>
 
@@ -143,32 +144,34 @@
     <section class="lnd-vida" data-reveal>
         <img class="lnd-vida__alex"
              src="/build/assets/img/alex/alex-pinta.png" alt="" loading="lazy" aria-hidden="true">
-        <span class="lnd-vida__eyebrow">La guía de lo que se vive en aulas y comunidad</span>
-        <h2 class="lnd-vida__title">Modelo Educativo VIDA</h2>
-        <p class="lnd-vida__desc">Cuatro verbos que ordenan cada proyecto, cada clase y cada relación dentro del bosque.</p>
+        <span class="lnd-vida__eyebrow" data-i18n="home.vida.eyebrow">La guía de lo que se vive en aulas y comunidad</span>
+        <h2 class="lnd-vida__title" data-i18n="home.vida.title">Modelo Educativo VIDA</h2>
+        <p class="lnd-vida__desc" data-i18n="home.vida.subtitle">Cuatro verbos que ordenan cada proyecto, cada clase y cada relación dentro del bosque.</p>
         <div class="lnd-vida__grid">
             <div class="lnd-vida-card">
                 <span class="lnd-vida-card__letter">V</span>
-                <h3 class="lnd-vida-card__title">Vincula</h3>
-                <p class="lnd-vida-card__desc">Comunidad y lazos fuertes entre personas.</p>
+                <h3 class="lnd-vida-card__title" data-i18n="home.vida.vincula.title">Vincula</h3>
+                <p class="lnd-vida-card__desc" data-i18n="home.vida.vincula.desc">Comunidad y lazos fuertes entre personas.</p>
             </div>
             <div class="lnd-vida-card">
                 <span class="lnd-vida-card__letter">I</span>
-                <h3 class="lnd-vida-card__title">Indaga</h3>
-                <p class="lnd-vida-card__desc">Preguntas que despiertan el pensamiento.</p>
+                <h3 class="lnd-vida-card__title" data-i18n="home.vida.indaga.title">Indaga</h3>
+                <p class="lnd-vida-card__desc" data-i18n="home.vida.indaga.desc">Preguntas que despiertan el pensamiento.</p>
             </div>
             <div class="lnd-vida-card">
                 <span class="lnd-vida-card__letter">D</span>
-                <h3 class="lnd-vida-card__title">Descubre</h3>
-                <p class="lnd-vida-card__desc">Aprender haciendo, con manos y mente.</p>
+                <h3 class="lnd-vida-card__title" data-i18n="home.vida.descubre.title">Descubre</h3>
+                <p class="lnd-vida-card__desc" data-i18n="home.vida.descubre.desc">Aprender haciendo, con manos y mente.</p>
             </div>
             <div class="lnd-vida-card">
                 <span class="lnd-vida-card__letter">A</span>
-                <h3 class="lnd-vida-card__title">Aporta</h3>
-                <p class="lnd-vida-card__desc">Acción con sentido para el mundo.</p>
+                <h3 class="lnd-vida-card__title" data-i18n="home.vida.aporta.title">Aporta</h3>
+                <p class="lnd-vida-card__desc" data-i18n="home.vida.aporta.desc">Acción con sentido para el mundo.</p>
             </div>
         </div>
-        <a href="/modelo-educativo/modelo-vida" class="btn-secundario">Conocer el Modelo VIDA</a>
+        <div class="lnd-vida__cta">
+            <a href="/modelo-educativo/modelo-vida" class="btn-secundario" data-i18n="home.vida.cta">Conocer el Modelo VIDA</a>
+        </div>
     </section>
 
 
@@ -177,98 +180,110 @@
     ================================================ -->
     <section class="lnd-descubre">
         <div class="lnd-descubre__header" data-reveal>
-            <span class="lnd-descubre__eyebrow">Explora a tu ritmo</span>
-            <h2 class="lnd-descubre__title">Descubre el Colegio Bilbao</h2>
+            <span class="lnd-descubre__eyebrow" data-i18n="home.descubre.eyebrow">Explora a tu ritmo</span>
+            <h2 class="lnd-descubre__title" data-i18n="home.descubre.title">Descubre el Colegio Bilbao</h2>
         </div>
         <div class="lnd-descubre__grid">
 
             <a href="/admisiones" class="lnd-ex-card">
-                <?= picture('/build/assets/img/admisiones/inicio/llegando-al-bilbao.jpg', 'Admisiones', 'lnd-ex-card__photo') ?>
-                <div class="lnd-ex-card__overlay"></div>
-                <div class="lnd-ex-card__tint"></div>
+                <div class="lnd-ex-card__clip">
+                    <?= picture('/build/assets/img/admisiones/inicio/llegando-al-bilbao.jpg', 'Admisiones', 'lnd-ex-card__photo') ?>
+                    <div class="lnd-ex-card__overlay"></div>
+                    <div class="lnd-ex-card__tint"></div>
+                </div>
                 <img class="lnd-ex-card__alex"
                      src="/build/assets/img/alex/alex-point.png" alt="" loading="lazy">
                 <div class="lnd-ex-card__body">
                     <span class="lnd-ex-card__num">01</span>
                     <div class="lnd-ex-card__bar"></div>
-                    <h3 class="lnd-ex-card__title">Admisiones</h3>
-                    <div class="lnd-ex-card__desc">Sin examen de admisión. Visita guiada y acompañamiento desde el primer contacto.</div>
-                    <span class="lnd-ex-card__go">Explorar <span>→</span></span>
+                    <h3 class="lnd-ex-card__title" data-i18n="home.descubre.admisiones.title">Admisiones</h3>
+                    <div class="lnd-ex-card__desc" data-i18n="home.descubre.admisiones.desc">Sin examen de admisión. Visita guiada y acompañamiento desde el primer contacto.</div>
+                    <span class="lnd-ex-card__go"><span aria-hidden="true">→</span></span>
                 </div>
             </a>
 
             <a href="/conocenos/equipo-educativo" class="lnd-ex-card">
-                <?= picture('/build/assets/img/conocenos/equipo-educativo/maestro-escucha.jpg', 'Equipo educativo', 'lnd-ex-card__photo') ?>
-                <div class="lnd-ex-card__overlay"></div>
-                <div class="lnd-ex-card__tint"></div>
+                <div class="lnd-ex-card__clip">
+                    <?= picture('/build/assets/img/conocenos/equipo-educativo/maestro-escucha.jpg', 'Equipo educativo', 'lnd-ex-card__photo') ?>
+                    <div class="lnd-ex-card__overlay"></div>
+                    <div class="lnd-ex-card__tint"></div>
+                </div>
                 <img class="lnd-ex-card__alex"
                      src="/build/assets/img/alex/teen-alex-escucha.png" alt="" loading="lazy">
                 <div class="lnd-ex-card__body">
                     <span class="lnd-ex-card__num">02</span>
                     <div class="lnd-ex-card__bar"></div>
-                    <h3 class="lnd-ex-card__title">Equipo educativo</h3>
-                    <div class="lnd-ex-card__desc">Maestros que escuchan, preguntan y construyen junto con sus alumnos.</div>
-                    <span class="lnd-ex-card__go">Explorar <span>→</span></span>
+                    <h3 class="lnd-ex-card__title" data-i18n="home.descubre.equipoEducativo.title">Equipo educativo</h3>
+                    <div class="lnd-ex-card__desc" data-i18n="home.descubre.equipoEducativo.desc">Maestros que escuchan, preguntan y construyen junto con sus alumnos.</div>
+                    <span class="lnd-ex-card__go"><span aria-hidden="true">→</span></span>
                 </div>
             </a>
 
             <a href="/modelo-educativo/idiomas" class="lnd-ex-card">
-                <?= picture('/build/assets/img/modelo-educativo/idiomas/reading.jpg', 'Idiomas', 'lnd-ex-card__photo') ?>
-                <div class="lnd-ex-card__overlay"></div>
-                <div class="lnd-ex-card__tint"></div>
+                <div class="lnd-ex-card__clip">
+                    <?= picture('/build/assets/img/modelo-educativo/idiomas/reading.jpg', 'Idiomas', 'lnd-ex-card__photo') ?>
+                    <div class="lnd-ex-card__overlay"></div>
+                    <div class="lnd-ex-card__tint"></div>
+                </div>
                 <img class="lnd-ex-card__alex"
                      src="/build/assets/img/alex/alex-lee.png" alt="" loading="lazy">
                 <div class="lnd-ex-card__body">
                     <span class="lnd-ex-card__num">03</span>
                     <div class="lnd-ex-card__bar"></div>
-                    <h3 class="lnd-ex-card__title">Idiomas</h3>
-                    <div class="lnd-ex-card__desc">Español, inglés y alemán integrados al currículo desde preescolar.</div>
-                    <span class="lnd-ex-card__go">Explorar <span>→</span></span>
+                    <h3 class="lnd-ex-card__title" data-i18n="home.descubre.idiomas.title">Idiomas</h3>
+                    <div class="lnd-ex-card__desc" data-i18n="home.descubre.idiomas.desc">Español, inglés y alemán integrados al currículo desde preescolar.</div>
+                    <span class="lnd-ex-card__go"><span aria-hidden="true">→</span></span>
                 </div>
             </a>
 
             <a href="/modelo-educativo/aprendizaje-integral" class="lnd-ex-card">
-                <?= picture('/build/assets/img/modelo-educativo/aprendizaje-integral/ciencia.jpg', 'Aprendizaje Integral', 'lnd-ex-card__photo') ?>
-                <div class="lnd-ex-card__overlay"></div>
-                <div class="lnd-ex-card__tint"></div>
+                <div class="lnd-ex-card__clip">
+                    <?= picture('/build/assets/img/modelo-educativo/aprendizaje-integral/ciencia.jpg', 'Aprendizaje Integral', 'lnd-ex-card__photo') ?>
+                    <div class="lnd-ex-card__overlay"></div>
+                    <div class="lnd-ex-card__tint"></div>
+                </div>
                 <img class="lnd-ex-card__alex"
                      src="/build/assets/img/alex/alex-ciencia.png" alt="" loading="lazy">
                 <div class="lnd-ex-card__body">
                     <span class="lnd-ex-card__num">04</span>
                     <div class="lnd-ex-card__bar"></div>
-                    <h3 class="lnd-ex-card__title">Aprendizaje Integral</h3>
-                    <div class="lnd-ex-card__desc">Arte, ciencia, tecnología, deporte y humanidades en un proyecto.</div>
-                    <span class="lnd-ex-card__go">Explorar <span>→</span></span>
+                    <h3 class="lnd-ex-card__title" data-i18n="home.descubre.aprendizajeIntegral.title">Aprendizaje Integral</h3>
+                    <div class="lnd-ex-card__desc" data-i18n="home.descubre.aprendizajeIntegral.desc">Arte, ciencia, tecnología, deporte y humanidades en un proyecto.</div>
+                    <span class="lnd-ex-card__go"><span aria-hidden="true">→</span></span>
                 </div>
             </a>
 
             <a href="/vida-escolar/futuro-universitario-becas" class="lnd-ex-card">
-                <?= picture('/build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg', 'Futuro universitario', 'lnd-ex-card__photo') ?>
-                <div class="lnd-ex-card__overlay"></div>
-                <div class="lnd-ex-card__tint"></div>
+                <div class="lnd-ex-card__clip">
+                    <?= picture('/build/assets/img/niveles-academicos/preparatoria/alumnos-anotando.jpg', 'Futuro universitario', 'lnd-ex-card__photo') ?>
+                    <div class="lnd-ex-card__overlay"></div>
+                    <div class="lnd-ex-card__tint"></div>
+                </div>
                 <img class="lnd-ex-card__alex"
                      src="/build/assets/img/alex/teen-alex-debate.png" alt="" loading="lazy">
                 <div class="lnd-ex-card__body">
                     <span class="lnd-ex-card__num">05</span>
                     <div class="lnd-ex-card__bar"></div>
-                    <h3 class="lnd-ex-card__title">Futuro universitario</h3>
-                    <div class="lnd-ex-card__desc">+200 universidades aliadas en México y el mundo para egresados.</div>
-                    <span class="lnd-ex-card__go">Explorar <span>→</span></span>
+                    <h3 class="lnd-ex-card__title" data-i18n="home.descubre.futuroUniversitario.title">Futuro universitario</h3>
+                    <div class="lnd-ex-card__desc" data-i18n="home.descubre.futuroUniversitario.desc">+200 universidades aliadas en México y el mundo para egresados.</div>
+                    <span class="lnd-ex-card__go"><span aria-hidden="true">→</span></span>
                 </div>
             </a>
 
             <a href="/conocenos/instalaciones" class="lnd-ex-card">
-                <?= picture('/build/assets/img/conocenos/instalaciones/cancha-futbol.jpg', 'Instalaciones', 'lnd-ex-card__photo') ?>
-                <div class="lnd-ex-card__overlay"></div>
-                <div class="lnd-ex-card__tint"></div>
+                <div class="lnd-ex-card__clip">
+                    <?= picture('/build/assets/img/conocenos/instalaciones/cancha-futbol.jpg', 'Instalaciones', 'lnd-ex-card__photo') ?>
+                    <div class="lnd-ex-card__overlay"></div>
+                    <div class="lnd-ex-card__tint"></div>
+                </div>
                 <img class="lnd-ex-card__alex"
                      src="/build/assets/img/alex/alex-recicla.png" alt="" loading="lazy">
                 <div class="lnd-ex-card__body">
                     <span class="lnd-ex-card__num">06</span>
                     <div class="lnd-ex-card__bar"></div>
-                    <h3 class="lnd-ex-card__title">Instalaciones</h3>
-                    <div class="lnd-ex-card__desc">30,000 m² para aprender en movimiento y en contacto con la naturaleza.</div>
-                    <span class="lnd-ex-card__go">Explorar <span>→</span></span>
+                    <h3 class="lnd-ex-card__title" data-i18n="home.descubre.instalaciones.title">Instalaciones</h3>
+                    <div class="lnd-ex-card__desc" data-i18n="home.descubre.instalaciones.desc">30,000 m² para aprender en movimiento y en contacto con la naturaleza.</div>
+                    <span class="lnd-ex-card__go"><span aria-hidden="true">→</span></span>
                 </div>
             </a>
 
@@ -281,9 +296,9 @@
     ================================================ -->
     <section class="lnd-voces">
         <div class="lnd-voces__header" data-reveal>
-            <span class="lnd-voces__eyebrow">Lo que dicen las familias del Colegio Bilbao</span>
-            <h2 class="lnd-voces__title">Familias Bilbao</h2>
-            <span class="lnd-voces__stars" aria-label="5 estrellas de 5">★★★★★</span>
+            <span class="lnd-voces__eyebrow" data-i18n="home.voces.eyebrow">Lo que dicen las familias del Colegio Bilbao</span>
+            <h2 class="lnd-voces__title" data-i18n="home.voces.title">Familias Bilbao</h2>
+            <span class="lnd-voces__stars" aria-label="5 estrellas de 5" data-i18n-attr="aria-label:home.voces.starsAriaLabel">★★★★★</span>
         </div>
 
         <div class="lnd-voces__marquee-wrap">
@@ -328,7 +343,7 @@
         </div>
 
         <div class="lnd-voces__cta-wrap">
-            <a href="/feedback-testimoniales" class="lnd-btn-ghost" style="margin-top:28px; display:inline-flex;">
+            <a href="/feedback-testimoniales" class="lnd-btn-ghost" style="margin-top:28px; display:inline-flex;" data-i18n="home.voces.cta">
                 Deja tu testimonio →
             </a>
         </div>
@@ -363,15 +378,15 @@
                 <div class="lnd-news__header-left">
                     <img class="lnd-news__alex"
                          src="/build/assets/img/alex/teen-alex-debate.png"
-                         alt="Alex reportero" loading="lazy">
+                         alt="Alex reportero" loading="lazy" data-i18n-attr="alt:home.news.alexAlt">
                     <div>
                         <span class="lnd-news__tag">
-                            <span></span> Noticias
+                            <span data-i18n="home.news.tag">Noticias</span>
                         </span>
-                        <h2 class="lnd-news__title-h2">Momentos Bilbao</h2>
+                        <h2 class="lnd-news__title-h2" data-i18n="home.news.title">Momentos Bilbao</h2>
                     </div>
                 </div>
-                <span class="lnd-news__hint">Desliza →</span>
+                <span class="lnd-news__hint" data-i18n="home.news.hint">Desliza →</span>
             </div>
 
             <div class="lnd-news__viewport" id="news-viewport">
@@ -400,7 +415,7 @@
                             <?php if (!empty($noticia_destacada->extracto)): ?>
                             <p class="lnd-news-card__excerpt"><?= s(mb_substr($noticia_destacada->extracto, 0, 120)) ?>…</p>
                             <?php endif; ?>
-                            <span class="lnd-news-card__read">Leer noticia →</span>
+                            <span class="lnd-news-card__read" data-i18n="home.news.readMore">Leer noticia →</span>
                         </div>
                     </a>
                     <?php endif; ?>
@@ -427,7 +442,7 @@
                         </div>
                         <div class="lnd-news-card__body">
                             <h3 class="lnd-news-card__title"><?= s($n->titulo) ?></h3>
-                            <span class="lnd-news-card__read">Leer noticia →</span>
+                            <span class="lnd-news-card__read" data-i18n="home.news.readMore">Leer noticia →</span>
                         </div>
                     </a>
                     <?php endforeach; ?>
@@ -437,7 +452,7 @@
         </div>
 
         <div class="lnd-news__cta">
-            <a href="/noticias">Ver todas las noticias →</a>
+            <a href="/noticias" data-i18n="home.news.viewAll">Ver todas las noticias →</a>
         </div>
     </section>
     <?php endif; ?>
@@ -453,11 +468,11 @@
             <div class="lnd-articulos__header" data-reveal>
                 <div>
                     <span class="lnd-articulos__tag">
-                        <span></span> Artículos · Lectura
+                        <span data-i18n="home.articulos.tag">Artículos · Lectura</span>
                     </span>
-                    <h2 class="lnd-articulos__title">Perspectivas Bilbao</h2>
+                    <h2 class="lnd-articulos__title" data-i18n="home.articulos.title">Perspectivas Bilbao</h2>
                 </div>
-                <p class="lnd-articulos__intro">Ideas y reflexiones escritas desde adentro del colegio. Para leer con calma.</p>
+                <p class="lnd-articulos__intro" data-i18n="home.articulos.intro">Ideas y reflexiones escritas desde adentro del colegio. Para leer con calma.</p>
             </div>
 
             <div class="lnd-articulos__grid">
@@ -523,7 +538,7 @@
             </div>
 
             <div class="lnd-articulos__cta">
-                <a href="/blog" class="btn-primario">Ver todos los artículos →</a>
+                <a href="/blog" class="btn-primario" data-i18n="home.articulos.viewAll">Ver todos los artículos →</a>
             </div>
         </div>
     </section>
@@ -536,16 +551,16 @@
     <section class="lnd-visita" id="visita">
         <div class="lnd-visita__grid" data-reveal>
             <div>
-                <span class="lnd-visita__eyebrow">Ven a conocernos</span>
-                <h2 class="lnd-visita__title">Visita el bosque</h2>
-                <p class="lnd-visita__desc">Estamos en la zona poniente de la Ciudad de México, a minutos de Santa Fe. Agenda tu visita y recorre los 30,000 m² en persona.</p>
+                <span class="lnd-visita__eyebrow" data-i18n="home.visita.eyebrow">Ven a conocernos</span>
+                <h2 class="lnd-visita__title" data-i18n="home.visita.title">Visita el bosque</h2>
+                <p class="lnd-visita__desc" data-i18n="home.visita.subtitle">Estamos en la zona poniente de la Ciudad de México, a minutos de Santa Fe. Agenda tu visita y recorre los 30,000 m² en persona.</p>
                 <div class="lnd-visita__info">
                     <div class="lnd-visita__info-row">
                         <span class="lnd-visita__info-icon" aria-hidden="true">
                             <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
                         </span>
                         <div>
-                            <p class="lnd-visita__info-label">Dirección</p>
+                            <p class="lnd-visita__info-label" data-i18n="home.visita.addressLabel">Dirección</p>
                             <p class="lnd-visita__info-val">Tlalmimilolpan 39, San Mateo Tlaltenango,<br>Cuajimalpa de Morelos, 05600 CDMX</p>
                         </div>
                     </div>
@@ -554,8 +569,8 @@
                             <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.59 4 2.31-.75 1.3L11 13V7h2z"/></svg>
                         </span>
                         <div>
-                            <p class="lnd-visita__info-label">Horario de visitas</p>
-                            <p class="lnd-visita__info-val">Lunes a viernes · 8:00 – 15:00 h</p>
+                            <p class="lnd-visita__info-label" data-i18n="home.visita.hoursLabel">Horario de visitas</p>
+                            <p class="lnd-visita__info-val" data-i18n="home.visita.hoursValue">Lunes a viernes · 8:00 – 15:00 h</p>
                         </div>
                     </div>
                 </div>
@@ -565,11 +580,12 @@
                        class="btn-primario"
                        data-magnetic>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
-                        Cómo llegar
+                        <span data-i18n="home.visita.directionsCta">Cómo llegar</span>
                     </a>
                     <a href="https://wa.me/525614612682?text=Hola,%20quiero%20agendar%20una%20visita%20guiada%20al%20Colegio%20Bilbao."
                        class="lnd-btn-ghost"
-                       target="_blank" rel="noopener">
+                       target="_blank" rel="noopener"
+                       data-i18n="home.visita.scheduleCta">
                         Agendar visita
                     </a>
                 </div>
@@ -578,7 +594,8 @@
             <div>
                 <a href="https://www.google.com/maps/search/Colegio+Bilbao+Tlalmimilolpan"
                    target="_blank" rel="noopener" class="lnd-visita__map-link"
-                   aria-label="Ver Colegio Bilbao en Google Maps">
+                   aria-label="Ver Colegio Bilbao en Google Maps"
+                   data-i18n-attr="aria-label:home.visita.mapAriaLabel">
                 <div class="lnd-visita__map-wrap">
                     <svg viewBox="0 0 800 560" width="100%" style="display:block;" xmlns="http://www.w3.org/2000/svg">
                         <rect width="800" height="560" fill="#DCEBF7"/>
@@ -618,7 +635,7 @@
                     </div>
                     <img class="lnd-visita__map-alex"
                          src="/build/assets/img/alex/alex-point.png"
-                         alt="Alex señalando el mapa" loading="lazy">
+                         alt="Alex señalando el mapa" loading="lazy" data-i18n-attr="alt:home.visita.mapAlexAlt">
                 </div>
                 </a>
             </div>
@@ -638,9 +655,9 @@
              alt="" loading="lazy" data-parallax="0.26" aria-hidden="true">
 
         <div class="lnd-cta__content" data-reveal>
-            <span class="lnd-cta__eyebrow">¿Listo para conocernos?</span>
+            <span class="lnd-cta__eyebrow" data-i18n="home.ctaFinal.eyebrow">¿Listo para conocernos?</span>
             <h2 class="lnd-cta__title">
-                El futuro de tus hijos<br>comienza <span>aquí</span>.
+                <span data-i18n="home.ctaFinal.titlePre">El futuro de tus hijos</span><br><span data-i18n="home.ctaFinal.titleMid">comienza </span><span data-i18n="home.ctaFinal.titleHighlight">aquí</span><span data-i18n="home.ctaFinal.titlePost">.</span>
             </h2>
             <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada."
                class="btn-primario"
@@ -651,9 +668,25 @@
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                     <path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.537 4.068 1.482 5.792L0 24l6.375-1.456C8.067 23.48 10.004 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.859 0-3.584-.509-5.058-1.393l-.362-.215-3.755.857.906-3.641-.236-.374C2.633 15.553 2.182 13.823 2.182 12 2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
                 </svg>
-                Agenda una visita hoy
+                <span data-i18n="home.ctaFinal.cta">Agenda una visita hoy</span>
             </a>
         </div>
     </section>
+
+
+    <!-- ================================================
+         STICKY CTA (solo móvil) — se muestra al hacer scroll
+    ================================================ -->
+    <div class="lnd-sticky-cta" id="lnd-sticky-cta">
+        <a href="https://wa.me/525614612682?text=Hola,%20quiero%20agendar%20una%20visita%20guiada%20al%20Colegio%20Bilbao."
+           class="lnd-sticky-cta__btn"
+           target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.537 4.068 1.482 5.792L0 24l6.375-1.456C8.067 23.48 10.004 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.859 0-3.584-.509-5.058-1.393l-.362-.215-3.755.857.906-3.641-.236-.374C2.633 15.553 2.182 13.823 2.182 12 2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
+            </svg>
+            <span data-i18n="home.stickyCta.cta">Agenda una visita</span>
+        </a>
+    </div>
 
 </div><!-- /.landing-root -->

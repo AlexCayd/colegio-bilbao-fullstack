@@ -41,6 +41,32 @@
         setPhrase(phraseIdx);
     }, 3800);
 
+    /* ---- STICKY CTA MÓVIL (mostrar al pasar el hero, ocultar cerca del pie) ---- */
+    var stickyCta = document.getElementById('lnd-sticky-cta');
+    var heroEl    = document.querySelector('.lnd-hero');
+    if (stickyCta && heroEl) {
+        var stickyOn  = false;
+        var stickyRaf = 0;
+        function evalStickyCta() {
+            stickyRaf = 0;
+            var y      = window.scrollY || window.pageYOffset || 0;
+            var heroH  = heroEl.offsetHeight || window.innerHeight;
+            var docH   = document.documentElement.scrollHeight;
+            var atBottom = (y + window.innerHeight) >= (docH - 220);
+            var show   = y > heroH * 0.55 && !atBottom;
+            if (show !== stickyOn) {
+                stickyOn = show;
+                stickyCta.classList.toggle('is-visible', show);
+            }
+        }
+        function onStickyScroll() {
+            if (!stickyRaf) stickyRaf = requestAnimationFrame(evalStickyCta);
+        }
+        window.addEventListener('scroll', onStickyScroll, { passive: true });
+        window.addEventListener('resize', onStickyScroll, { passive: true });
+        evalStickyCta();
+    }
+
     /* ---- DARK MODE (forest recoloring — toggle handled by theme.js) ---- */
     document.addEventListener('bilbao:theme', function (e) {
         if (three) recolorForest(e.detail === 'dark');
@@ -71,6 +97,24 @@
         });
     }, { threshold: 0.5 });
     document.querySelectorAll('.lnd-stat__num').forEach(function (el) { cio.observe(el); });
+
+    /* ---- CORTE DEL BOSQUE AL LLEGAR A "DESCUBRE" (rendimiento) ---- */
+    var descubreSection = document.querySelector('.lnd-descubre');
+    var forestCanvasEl  = document.getElementById('forest-canvas');
+    if (descubreSection && forestCanvasEl) {
+        var fio = new IntersectionObserver(function (entries) {
+            var e = entries[0];
+            if (e.isIntersecting || e.boundingClientRect.top <= 0) {
+                forestPaused = true;
+                forestCanvasEl.style.opacity = '0';
+            } else if (forestPaused) {
+                forestPaused = false;
+                forestCanvasEl.style.opacity = '';
+                if (forestLoop) forestLoop();
+            }
+        }, { threshold: 0, rootMargin: '0px 0px -45% 0px' });
+        fio.observe(descubreSection);
+    }
 
     /* ---- REVEALS (IntersectionObserver) ---- */
     var rEls = document.querySelectorAll('[data-reveal]');
@@ -157,10 +201,12 @@
     }
 
     /* ---- THREE.JS FOREST ---- */
-    var three      = null;
-    var scrollP    = 0;
-    var mouse      = { x: 0, y: 0 };
-    var tmouse     = { x: 0, y: 0 };
+    var three         = null;
+    var scrollP       = 0;
+    var mouse         = { x: 0, y: 0 };
+    var tmouse        = { x: 0, y: 0 };
+    var forestPaused  = false;
+    var forestLoop     = null;
 
     function glowTex() {
         var c = document.createElement('canvas'); c.width = c.height = 64;
@@ -174,7 +220,7 @@
     }
     function treeTex(kind) {
         var c = document.createElement('canvas'); c.width = 160; c.height = 320;
-        var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(72, 250, 16, 70);
+        var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(72, 180, 16, 140);
         if (kind === 'pine') {
             [[80,20,66],[80,90,80],[80,160,94]].forEach(function (a) {
                 x.beginPath(); x.moveTo(a[0],a[1]); x.lineTo(a[0]-a[2],a[1]+120); x.lineTo(a[0]+a[2],a[1]+120); x.closePath(); x.fill();
@@ -301,7 +347,8 @@
             }, { passive: true });
 
             var clock = new THREE.Clock();
-            (function loop() {
+            forestLoop = function loop() {
+                if (forestPaused) return;
                 var t = clock.getElapsedTime(), T = three;
                 for (var i = 0; i < T.N; i++) {
                     T.pos[i*3+1] += Math.sin(t * 0.7 + T.ph[i]) * 0.01 + T.spd[i] * 0.02;
@@ -320,8 +367,9 @@
                 T.camera.position.y += ((1 - mouse.y * 2.5) - T.camera.position.y) * 0.05;
                 T.camera.lookAt(mouse.x * 2, 0.5, T.camera.position.z - 20);
                 T.renderer.render(T.scene, T.camera);
-                requestAnimationFrame(loop);
-            })();
+                requestAnimationFrame(forestLoop);
+            };
+            forestLoop();
         } catch (err) {
             console.warn('Forest canvas init failed:', err);
         }
