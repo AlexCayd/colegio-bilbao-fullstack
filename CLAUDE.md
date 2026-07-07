@@ -54,7 +54,19 @@ Conexión MySQLi en `includes/database.php`, instancia global via `ActiveRecord:
 **Tablas del blog:** `articulos`, `categorias`, `tags`, `articulo_tags`, `usuarios` (UsuarioBlog)  
 **Tablas del sitio:** `usuarios` (Usuario — registro/auth público)
 
-Seed completo: `blog_seed_minimo.sql` — incluye 2 admins, 2 editores, 8 categorías de artículos, 5 categorías de noticias, 12 artículos y 12 noticias.
+### Estructura de archivos SQL (`database/`)
+
+```
+database/
+├── database.sql                    # creación de todas las tablas (sin datos)
+├── deploy/
+│   └── deploy.sql                  # registros reales de producción (solo INSERT)
+└── development/
+    └── development.sql             # registros de prueba para desarrollo
+```
+
+Ejecutar siempre `database.sql` primero, luego el archivo de datos según el entorno
+(`deploy/deploy.sql` para producción, `development/development.sql` para desarrollo local).
 
 ### Cuentas del seed
 
@@ -175,5 +187,8 @@ npx gulp optimizar             # optimiza uploads y genera .webp
 npx gulp build                 # compilación de producción (CSS minificado)
 
 # Base de datos
-mysql -u root -p colegiobilbao < blog_seed_minimo.sql
+mysql -u root -p colegiobilbao < database/database.sql                    # estructura
+mysql -u root -p colegiobilbao < database/development/development.sql     # datos de prueba
+# En producción, en vez del seed:
+# mysql -u root -p colegiobilbao < database/deploy/deploy.sql
 ```

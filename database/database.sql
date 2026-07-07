@@ -1,12 +1,3 @@
--- =====================================================
---  BLOG COLEGIO BILBAO — Estructura de base de datos
---  Solo tablas (sin datos). Los INSERT viven en seed_contenido.sql.
---
---  Uso:
---    mysql -u root -p colegiobilbao < database.sql
---    mysql -u root -p colegiobilbao < seed_contenido.sql
--- =====================================================
-
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -21,8 +12,6 @@ DROP TABLE IF EXISTS testimoniales;
 DROP TABLE IF EXISTS usuarios;
 
 SET FOREIGN_KEY_CHECKS = 1;
-
--- ── Tablas ────────────────────────────────────────────────────────────────────
 
 CREATE TABLE usuarios (
     id            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
@@ -141,7 +130,6 @@ CREATE TABLE notificaciones (
     CONSTRAINT fk_notif_usuario FOREIGN KEY (usuario_id)
         REFERENCES usuarios (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- ── Testimoniales ─────────────────────────────────────────────────────────────
 CREATE TABLE testimoniales (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   nombre     VARCHAR(100) NOT NULL,
