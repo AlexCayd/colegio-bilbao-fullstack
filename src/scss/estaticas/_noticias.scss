@@ -178,7 +178,7 @@
 
 .noticias-hero {
     position: relative;
-    padding: 40px 24px 52px;
+    padding: 48px 24px 0;   /* estandarizado con /blog: mascota a ras del borde inferior */
     overflow: hidden;
     background: linear-gradient(160deg, #0b1f3d 0%, #163a70 55%, #1d5ab0 100%);
 
@@ -196,19 +196,20 @@
         position: relative;
         z-index: 2;
         display: flex;
-        align-items: center;
-        gap: 32px;
+        align-items: flex-end;   /* estandarizado con /blog */
+        gap: 40px;
     }
 }
 
 .noticias-hero-body {
     flex: 1 1 0;
     min-width: 0;
+    padding-bottom: 52px;   /* estandarizado con /blog */
 }
 
 .noticias-hero-mascot {
     flex: 0 0 auto;
-    width: clamp(140px, 17vw, 240px);
+    width: clamp(200px, 30vw, 420px);   /* más grande: aprovecha el espacio (imagen apaisada) */
     display: none;
     align-self: flex-end;
     pointer-events: none;
@@ -2042,4 +2043,14 @@
 @keyframes mascot-float {
     0%, 100% { transform: translateY(0px); }
     50%       { transform: translateY(-10px); }
+}
+
+/* ── Móvil: menos margen horizontal para aprovechar el ancho ── */
+@media (max-width: 600px) {
+    .noticias-hero { padding-left: 14px; padding-right: 14px; }
+
+    .noticias-home .container {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
 }

@@ -144,7 +144,7 @@
 
 .blog-home-hero {
     position: relative;
-    padding: 52px 0 0;
+    padding: 48px 0 0;   /* estandarizado con /noticias */
     overflow: hidden;
     background: #fff;
 
@@ -179,22 +179,22 @@
         position: relative;
         z-index: 2;
         display: flex;
-        align-items: center;
-        gap: 32px;
-        padding-left: 24px;
-        padding-right: 24px;
+        align-items: flex-end;   /* estandarizado con /noticias */
+        gap: 40px;
+        /* Sin override de padding: usa el gutter del .container global,
+           idéntico al de .blog-featured / .blog-posts → alineados. */
     }
 }
 
 .blog-home-hero-body {
     flex: 1 1 0;
     min-width: 0;
-    padding-bottom: 44px;
+    padding-bottom: 52px;   /* estandarizado con /noticias */
 }
 
 .blog-hero-mascot {
     flex: 0 0 auto;
-    width: clamp(180px, 22vw, 340px);
+    width: clamp(200px, 26vw, 400px);   /* más grande: aprovecha el espacio (imagen vertical) */
     display: none;
     align-self: flex-end;
     pointer-events: none;
@@ -366,7 +366,9 @@
 
 /* ARTÍCULO DESTACADO */
 .blog-featured {
-    padding: 24px 24px 36px;
+    /* Sin padding horizontal: el .container interno ya aporta el gutter,
+       así queda alineado con el hero (que solo usa .container). */
+    padding: 24px 0 36px;
 }
 
 .blog-section-head {
@@ -526,7 +528,18 @@
 
 /* GRID DE POSTS */
 .blog-posts {
-    padding: 24px 24px 80px;
+    /* Igual que .blog-featured: alineado al gutter del .container */
+    padding: 24px 0 80px;
+}
+
+/* Móvil: menos margen horizontal para aprovechar el ancho */
+@media (max-width: 600px) {
+    .blog-home-hero .container,
+    .blog-featured .container,
+    .blog-posts .container {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
 }
 
 .posts-grid {

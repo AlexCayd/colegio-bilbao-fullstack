@@ -18,13 +18,62 @@
             <a href="/" class="logo-link"><img src="/build/assets/img/global/logo-bilbao-horizontal-azul.png" alt="Colegio Bilbao" class="logo-img" loading="lazy"></a>
 
             <nav class="header-nav" data-i18n-attr="aria-label:chrome.header.nav.ariaLabel" aria-label="Navegación principal">
-                <a href="/conocenos/quienes-somos"  class="header-nav__link" data-i18n="chrome.header.nav.conocenos">Conócenos</a>
-                <a href="/niveles"                  class="header-nav__link" data-i18n="chrome.header.nav.niveles">Niveles</a>
-                <a href="/modelo-educativo/modelo-vida" class="header-nav__link" data-i18n="chrome.header.nav.modeloEducativo">Modelo educativo</a>
-                <a href="/admisiones"               class="header-nav__link" data-i18n="chrome.header.nav.admisiones">Admisiones</a>
-                <a href="/noticias"                 class="header-nav__link" data-i18n="chrome.header.nav.noticias">Noticias</a>
-                <a href="/blog"                     class="header-nav__link" data-i18n="chrome.header.nav.blog">Blog</a>
-                <a href="/contacto"                 class="header-nav__link" data-i18n="chrome.header.nav.visitanos">Visítanos</a>
+
+                <div class="header-nav__item">
+                    <a href="/conocenos/quienes-somos" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.conocenos" aria-haspopup="true">Conócenos <span class="header-nav__caret" aria-hidden="true"></span></a>
+                    <div class="header-nav__dropdown">
+                        <a href="/conocenos/quienes-somos" class="header-nav__sublink" data-i18n="chrome.overlay.conocenos.quienesSomos">Quiénes somos</a>
+                        <a href="/conocenos/equipo-educativo" class="header-nav__sublink" data-i18n="chrome.overlay.conocenos.equipoEducativo">Equipo educativo</a>
+                        <a href="/conocenos/instalaciones" class="header-nav__sublink" data-i18n="chrome.overlay.conocenos.instalaciones">Instalaciones</a>
+                        <a href="/conocenos/certificaciones-y-reconocimientos" class="header-nav__sublink" data-i18n="chrome.overlay.conocenos.certificaciones">Certificaciones y reconocimientos</a>
+                    </div>
+                </div>
+
+                <div class="header-nav__item">
+                    <a href="/niveles" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.niveles" aria-haspopup="true">Niveles <span class="header-nav__caret" aria-hidden="true"></span></a>
+                    <div class="header-nav__dropdown">
+                        <a href="/niveles-academicos/preescolar" class="header-nav__sublink" data-i18n="chrome.overlay.niveles.preescolar">Preescolar</a>
+                        <a href="/niveles-academicos/primaria" class="header-nav__sublink" data-i18n="chrome.overlay.niveles.primaria">Primaria</a>
+                        <a href="/niveles-academicos/secundaria" class="header-nav__sublink" data-i18n="chrome.overlay.niveles.secundaria">Secundaria</a>
+                        <a href="/niveles-academicos/preparatoria" class="header-nav__sublink" data-i18n="chrome.overlay.niveles.preparatoria">Preparatoria</a>
+                    </div>
+                </div>
+
+                <div class="header-nav__item">
+                    <a href="/modelo-educativo/modelo-vida" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.modeloEducativo" aria-haspopup="true">Modelo educativo <span class="header-nav__caret" aria-hidden="true"></span></a>
+                    <div class="header-nav__dropdown">
+                        <a href="/modelo-educativo/modelo-vida" class="header-nav__sublink" data-i18n="chrome.overlay.modeloEducativo.modeloVida">Modelo VIDA</a>
+                        <a href="/modelo-educativo/filosofia-y-metodologia" class="header-nav__sublink" data-i18n="chrome.overlay.modeloEducativo.filosofia">Filosofía</a>
+                        <a href="/modelo-educativo/aprendizaje-integral" class="header-nav__sublink" data-i18n="chrome.overlay.modeloEducativo.aprendizajeIntegral">Aprendizaje integral</a>
+                        <a href="/modelo-educativo/idiomas" class="header-nav__sublink" data-i18n="chrome.overlay.modeloEducativo.idiomas">Idiomas</a>
+                    </div>
+                </div>
+
+                <div class="header-nav__item">
+                    <a href="/admisiones" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.admisiones" aria-haspopup="true">Admisiones <span class="header-nav__caret" aria-hidden="true"></span></a>
+                    <div class="header-nav__dropdown">
+                        <a href="/admisiones" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.inicio">Inicio</a>
+                        <a href="/admisiones/proceso" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.proceso">Proceso</a>
+                        <a href="/admisiones/preguntas-frecuentes" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.faq">FAQ</a>
+                        <a href="/admisiones/convenios" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.convenios">Convenios</a>
+                        <a href="/admisiones/convocatoria-becas" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.becas">Becas</a>
+                        <a href="/admisiones/contacto" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.contacto">Contacto</a>
+                    </div>
+                </div>
+
+                <a href="/noticias" class="header-nav__link" data-i18n="chrome.header.nav.noticias">Noticias</a>
+                <a href="/blog"     class="header-nav__link" data-i18n="chrome.header.nav.blog">Blog</a>
+
+                <div class="header-nav__item">
+                    <a href="/contacto" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.visitanos" aria-haspopup="true">Visítanos <span class="header-nav__caret" aria-hidden="true"></span></a>
+                    <div class="header-nav__dropdown">
+                        <a href="/contacto" class="header-nav__sublink" data-i18n="chrome.overlay.contacto.contacto">Contacto</a>
+                        <a href="/contacto/directorio" class="header-nav__sublink" data-i18n="chrome.overlay.contacto.directorio">Directorio</a>
+                        <a href="/contacto/cultura-y-talento" class="header-nav__sublink" data-i18n="chrome.overlay.contacto.culturaTalento">Cultura y talento</a>
+                        <a href="/contacto/proveedores" class="header-nav__sublink" data-i18n="chrome.overlay.contacto.proveedores">Proveedores</a>
+                    </div>
+                </div>
+
             </nav>
 
             <div class="header-controls">
@@ -67,7 +116,7 @@
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.vidaEscolar">Vida escolar</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/vida-escolar/afterschool-extracurriculares" data-i18n="chrome.overlay.vidaEscolar.afterschool">Afterschool</a></li><li><a href="/vida-escolar/futuro-universitario-becas" data-i18n="chrome.overlay.vidaEscolar.futuroUniversitario">Futuro universitario</a></li><li><a href="/vida-escolar/programa-dual" data-i18n="chrome.overlay.vidaEscolar.programaDual">Programa Dual</a></li><li><a href="/vida-escolar/servicios-para-familias" data-i18n="chrome.overlay.vidaEscolar.servicios">Servicios</a></li><li><a href="/vida-escolar/cuidado-y-bienestar" data-i18n="chrome.overlay.vidaEscolar.cuidadoBienestar">Cuidado y bienestar</a></li><li><a href="/vida-escolar/eventos-y-tradiciones" data-i18n="chrome.overlay.vidaEscolar.eventos">Eventos</a></li></ul></li>
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.admisiones">Admisiones</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/admisiones" data-i18n="chrome.overlay.admisiones.inicio">Inicio</a></li><li><a href="/admisiones/proceso" data-i18n="chrome.overlay.admisiones.proceso">Proceso</a></li><li><a href="/admisiones/preguntas-frecuentes" data-i18n="chrome.overlay.admisiones.faq">FAQ</a></li><li><a href="/admisiones/convenios" data-i18n="chrome.overlay.admisiones.convenios">Convenios</a></li><li><a href="/admisiones/convocatoria-becas" data-i18n="chrome.overlay.admisiones.becas">Becas</a></li><li><a href="/admisiones/contacto" data-i18n="chrome.overlay.admisiones.contacto">Contacto</a></li></ul></li>
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.comunidad">Comunidad</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/comunidad/estudiantes" data-i18n="chrome.overlay.comunidad.estudiantes">Estudiantes</a></li><li><a href="/comunidad/familias" data-i18n="chrome.overlay.comunidad.familias">Familias</a></li><li><a href="/comunidad/exalumnos" data-i18n="chrome.overlay.comunidad.exalumnos">Exalumnos</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.vocesBilbao">Voces Bilbao</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/voces-bilbao/noticias" data-i18n="chrome.overlay.voces.noticias">Noticias</a></li><li><a href="/voces-bilbao/entrevistas" data-i18n="chrome.overlay.voces.entrevistas">Entrevistas</a></li><li><a href="/voces-bilbao/articulos" data-i18n="chrome.overlay.voces.articulos">Artículos</a></li><li><a href="/voces-bilbao/testimonios" data-i18n="chrome.overlay.voces.testimonios">Testimonios</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.vocesBilbao">Voces Bilbao</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/noticias" data-i18n="chrome.overlay.voces.noticias">Noticias</a></li><li><a href="/blog" data-i18n="chrome.overlay.voces.articulos">Artículos</a></li><li><a href="/feedback-testimoniales" data-i18n="chrome.overlay.voces.testimonios">Testimonios</a></li></ul></li>
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.contacto">Contacto</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/contacto" data-i18n="chrome.overlay.contacto.contacto">Contacto</a></li><li><a href="/contacto/directorio" data-i18n="chrome.overlay.contacto.directorio">Directorio</a></li><li><a href="/contacto/cultura-y-talento" data-i18n="chrome.overlay.contacto.culturaTalento">Cultura y talento</a></li><li><a href="/contacto/proveedores" data-i18n="chrome.overlay.contacto.proveedores">Proveedores</a></li></ul></li>
             </ul>
         </nav>

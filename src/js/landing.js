@@ -4,13 +4,24 @@
 
     if (!document.getElementById('forest-canvas')) return;
 
-    /* ---- HERO PHRASE ROTATION ---- */
-    const phrases = [
-        { a: 'La naturaleza', b: 'es nuestro ', hi: 'salón' },
-        { a: 'El bosque',     b: 'es nuestro ', hi: 'maestro' },
-        { a: 'Aquí se aprende', b: 'a base de ', hi: 'asombro' },
-        { a: 'Crecer',        b: 'también es ', hi: 'explorar' },
-    ];
+    /* ---- HERO PHRASE ROTATION (bilingüe ES/EN) ---- */
+    var PHRASES = {
+        es: [
+            { a: 'La naturaleza',   b: 'es nuestro ', hi: 'salón' },
+            { a: 'El bosque',       b: 'es nuestro ', hi: 'maestro' },
+            { a: 'Aquí se aprende', b: 'a base de ',  hi: 'asombro' },
+            { a: 'Crecer',          b: 'también es ', hi: 'explorar' },
+        ],
+        en: [
+            { a: 'Nature is',    b: 'our ',      hi: 'classroom' },
+            { a: 'The forest is', b: 'our ',     hi: 'teacher' },
+            { a: 'Here we learn', b: 'through ', hi: 'wonder' },
+            { a: 'To grow',      b: 'is to ',    hi: 'explore' },
+        ],
+    };
+    var lang = 'es';
+    try { lang = localStorage.getItem('bilbao_lang') || 'es'; } catch (e) {}
+    var phrases   = PHRASES[lang] || PHRASES.es;
     var phraseIdx = 0;
     var elA   = document.getElementById('hero-a');
     var elB   = document.getElementById('hero-b');
@@ -40,6 +51,167 @@
         phraseIdx = (phraseIdx + 1) % phrases.length;
         setPhrase(phraseIdx);
     }, 3800);
+
+    /* Cambio de idioma en caliente: i18n.js emite 'bilbao:lang' al alternar ES/EN */
+    document.addEventListener('bilbao:lang', function (e) {
+        var next = (e && e.detail) || 'es';
+        phrases = PHRASES[next] || PHRASES.es;
+        setPhrase(phraseIdx, true);   // re-render inmediato de la frase actual en el nuevo idioma
+    });
+
+    /* ---- CARRUSEL DEL POSTER DEL HERO (imágenes + badge rotativos + lightbox) ---- */
+    (function initHeroCarousel() {
+        var fig    = document.querySelector('[data-hero-carousel]');
+        if (!fig) return;
+        var slides = [].slice.call(fig.querySelectorAll('.lnd-hero__slide'));
+        var dots   = [].slice.call(fig.querySelectorAll('[data-hero-dots] span'));
+        var badgeV = fig.querySelector('[data-hero-badge-value]');
+        var badgeL = fig.querySelector('[data-hero-badge-label]');
+        var prev   = fig.querySelector('[data-hero-prev]');
+        var next   = fig.querySelector('[data-hero-next]');
+        var zoom   = fig.querySelector('[data-hero-zoom]');
+        if (!slides.length) return;
+
+        /* Badge por imagen, bilingüe (mismo patrón que las frases del título) */
+        var BADGES = {
+            es: [
+                { v: '30,000 m²',   l: 'de bosque como salón' },
+                { v: 'Atención 1 a 1',   l: 'seguimiento académico' },
+                { v: 'Aprender jugando', l: 'recreo y exploración' },
+                { v: 'Deporte',          l: 'cuerpo y mente sanos' }
+            ],
+            en: [
+                { v: '30,000 m²',    l: 'of forest as a classroom' },
+                { v: '1-to-1 support',    l: 'academic follow-up' },
+                { v: 'Learning by play',  l: 'recess & exploration' },
+                { v: 'Sports',            l: 'healthy body & mind' }
+            ]
+        };
+        var cLang = 'es';
+        try { cLang = localStorage.getItem('bilbao_lang') || 'es'; } catch (e) {}
+        var badges = BADGES[cLang] || BADGES.es;
+
+        var idx = 0;
+        var timer = null;
+        var DELAY = 5000;
+
+        function paintBadge() {
+            var b = badges[idx];
+            if (b && badgeV) badgeV.innerHTML = b.v;
+            if (b && badgeL) badgeL.textContent = b.l;
+        }
+
+        var prevTimer = null;
+        function go(n) {
+            var target = (n + slides.length) % slides.length;
+            if (target === idx) return;
+            var outgoing = slides[idx];
+            idx = target;
+            /* La imagen saliente queda opaca DEBAJO (.is-prev) mientras la
+               entrante se funde encima → crossfade sin parpadeo. */
+            slides.forEach(function (s) { s.classList.remove('is-prev'); });
+            if (outgoing) outgoing.classList.add('is-prev');
+            slides.forEach(function (s, i) { s.classList.toggle('is-active', i === idx); });
+            dots.forEach(function (d, i) { d.classList.toggle('is-active', i === idx); });
+            paintBadge();
+            if (boxImg && box && box.classList.contains('is-open')) syncLightbox();
+            if (prevTimer) clearTimeout(prevTimer);
+            prevTimer = setTimeout(function () {
+                if (outgoing) outgoing.classList.remove('is-prev');
+            }, 1200);
+        }
+        function nextSlide() { go(idx + 1); }
+        function prevSlide() { go(idx - 1); }
+
+        function start() { stop(); timer = setInterval(nextSlide, DELAY); }
+        function stop()  { if (timer) { clearInterval(timer); timer = null; } }
+        function restart() { start(); }
+
+        if (next) next.addEventListener('click', function () { nextSlide(); restart(); });
+        if (prev) prev.addEventListener('click', function () { prevSlide(); restart(); });
+        dots.forEach(function (d, i) { d.addEventListener('click', function () { go(i); restart(); }); });
+
+        /* Pausar auto-avance al interactuar */
+        fig.addEventListener('mouseenter', stop);
+        fig.addEventListener('mouseleave', start);
+        fig.addEventListener('focusin', stop);
+        fig.addEventListener('focusout', start);
+
+        /* Idioma en caliente */
+        document.addEventListener('bilbao:lang', function (e) {
+            var nx = (e && e.detail) || 'es';
+            badges = BADGES[nx] || BADGES.es;
+            paintBadge();
+        });
+
+        /* ---- Lightbox (ampliar + navegar entre imágenes) ---- */
+        var isEn = (document.documentElement.lang || 'es').indexOf('en') === 0;
+        var box, boxImg, closeBtn, lbPrev, lbNext, lastFocus;
+        function activeImg() {
+            var s = slides[idx];
+            return s && s.querySelector('img');
+        }
+        function syncLightbox() {
+            var im = activeImg();
+            if (im && boxImg) { boxImg.src = im.currentSrc || im.src; boxImg.alt = im.alt || ''; }
+        }
+        function mkBtn(cls, label, svg) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = cls;
+            b.setAttribute('aria-label', label);
+            b.innerHTML = svg;
+            return b;
+        }
+        function build() {
+            box = document.createElement('div');
+            box.className = 'lnd-lightbox';
+            box.setAttribute('role', 'dialog');
+            box.setAttribute('aria-modal', 'true');
+            closeBtn = mkBtn('lnd-lightbox__close', isEn ? 'Close' : 'Cerrar', '');
+            var chev = 'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+            lbPrev = mkBtn('lnd-lightbox__nav lnd-lightbox__nav--prev', isEn ? 'Previous image' : 'Imagen anterior', '<svg viewBox="0 0 24 24" ' + chev + '><polyline points="15 18 9 12 15 6"/></svg>');
+            lbNext = mkBtn('lnd-lightbox__nav lnd-lightbox__nav--next', isEn ? 'Next image' : 'Imagen siguiente', '<svg viewBox="0 0 24 24" ' + chev + '><polyline points="9 18 15 12 9 6"/></svg>');
+            boxImg = document.createElement('img');
+            boxImg.className = 'lnd-lightbox__img';
+            box.appendChild(closeBtn);
+            box.appendChild(lbPrev);
+            box.appendChild(lbNext);
+            box.appendChild(boxImg);
+            document.body.appendChild(box);
+            box.addEventListener('click', function (ev) { if (ev.target === box) closeLb(); });
+            closeBtn.addEventListener('click', closeLb);
+            lbPrev.addEventListener('click', function () { prevSlide(); restart(); });
+            lbNext.addEventListener('click', function () { nextSlide(); restart(); });
+        }
+        function onKey(ev) {
+            if (ev.key === 'Escape') closeLb();
+            else if (ev.key === 'ArrowLeft')  { prevSlide(); restart(); }
+            else if (ev.key === 'ArrowRight') { nextSlide(); restart(); }
+        }
+        function openLb() {
+            var im = activeImg();
+            if (!im) return;
+            if (!box) build();
+            syncLightbox();
+            lastFocus = document.activeElement;
+            document.body.classList.add('no-scroll');
+            box.classList.add('is-open');
+            closeBtn.focus();
+            document.addEventListener('keydown', onKey);
+        }
+        function closeLb() {
+            if (!box) return;
+            box.classList.remove('is-open');
+            document.body.classList.remove('no-scroll');
+            document.removeEventListener('keydown', onKey);
+            if (lastFocus && lastFocus.focus) lastFocus.focus();
+        }
+        if (zoom) zoom.addEventListener('click', openLb);
+
+        paintBadge();   // pinta el badge del slide inicial en el idioma actual
+        start();
+    })();
 
     /* ---- STICKY CTA MÓVIL (mostrar al pasar el hero, ocultar cerca del pie) ---- */
     var stickyCta = document.getElementById('lnd-sticky-cta');
@@ -159,9 +331,9 @@
     function activateArtRow(idx) {
         artRows.forEach(function (r, j) {
             var on  = j === idx;
-            r.style.borderLeftColor = on ? 'var(--bilbao)' : 'transparent';
-            r.style.background      = on ? 'var(--card)'   : 'transparent';
-            r.style.paddingLeft     = on ? '22px'          : '14px';
+            r.style.borderLeftColor = on ? 'var(--espiritu)'      : 'transparent';
+            r.style.background      = on ? 'rgba(255,255,255,.06)' : 'transparent';
+            r.style.paddingLeft     = on ? '22px'                 : '14px';
             var arr = r.querySelector('.lnd-art-row__arrow');
             if (arr) {
                 arr.style.opacity   = on ? '1'    : '0';

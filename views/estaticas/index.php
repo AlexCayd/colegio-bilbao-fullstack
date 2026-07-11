@@ -8,31 +8,73 @@
          1. HERO
     ================================================ -->
     <section class="lnd-hero" id="inicio">
-        <div class="lnd-hero__content">
-            <p class="lnd-hero__eyebrow">
-                <span data-i18n="home.hero.eyebrow">Colegio Bilbao · Preescolar · Primaria · Secundaria · Preparatoria</span>
-            </p>
-            <h1 class="lnd-hero__title" id="hero-title">
-                <span class="lnd-hero__title-inner">
-                    <span id="hero-a" data-i18n="home.hero.titleA">La naturaleza</span><br>
-                    <span id="hero-b" data-i18n="home.hero.titleB">es nuestro </span><span class="lnd-hero__hi" id="hero-hi" data-i18n="home.hero.titleHighlight">salón</span>
-                </span>
-            </h1>
-            <p class="lnd-hero__sub" data-i18n="home.hero.subtitle">30,000 m² de bosque convertidos en aula. Un modelo donde explorar y preguntar pesa más que memorizar.</p>
-            <div class="lnd-hero__ctas">
-                <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada."
-                   class="btn-primario lnd-btn-hero"
-                   data-magnetic
-                   target="_blank" rel="noopener">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.537 4.068 1.482 5.792L0 24l6.375-1.456C8.067 23.48 10.004 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.859 0-3.584-.509-5.058-1.393l-.362-.215-3.755.857.906-3.641-.236-.374C2.633 15.553 2.182 13.823 2.182 12 2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
-                    </svg>
-                    <span data-i18n="home.hero.ctaVisit">Agenda tu visita</span>
-                </a>
-                <a href="#nuestra-oferta" class="lnd-btn-ghost" data-i18n="home.hero.ctaExplore">Conocer el colegio ↓</a>
+        <div class="lnd-hero__grid">
+            <div class="lnd-hero__content">
+                <p class="lnd-hero__eyebrow">
+                    <span data-i18n="home.hero.eyebrow">Colegio Bilbao · Preescolar · Primaria · Secundaria · Preparatoria</span>
+                </p>
+                <h1 class="lnd-hero__title" id="hero-title">
+                    <span class="lnd-hero__title-inner">
+                        <span id="hero-a">La naturaleza</span><br>
+                        <span id="hero-b">es nuestro </span><span class="lnd-hero__hi" id="hero-hi">salón</span>
+                    </span>
+                </h1>
+                <p class="lnd-hero__sub" data-i18n="home.hero.subtitle">30,000 m² de bosque convertidos en aula. Un modelo donde explorar y preguntar pesa más que memorizar.</p>
+                <div class="lnd-hero__ctas">
+                    <a href="https://wa.me/525614612682?text=Hola,%20acabo%20de%20ver%20la%20página%20del%20colegio,%20me%20gustó%20y%20quiero%20conocerlos%20en%20una%20visita%20guiada."
+                       class="btn-primario lnd-btn-hero"
+                       data-magnetic
+                       target="_blank" rel="noopener">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.537 4.068 1.482 5.792L0 24l6.375-1.456C8.067 23.48 10.004 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.859 0-3.584-.509-5.058-1.393l-.362-.215-3.755.857.906-3.641-.236-.374C2.633 15.553 2.182 13.823 2.182 12 2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
+                        </svg>
+                        <span data-i18n="home.hero.ctaVisit">Agenda tu visita</span>
+                    </a>
+                    <a href="#nuestra-oferta" class="lnd-btn-ghost" data-i18n="home.hero.ctaExplore">Conocer el colegio ↓</a>
+                </div>
+            </div>
+
+            <div class="lnd-hero__media" data-parallax="0.06">
+                <figure class="lnd-hero__poster" data-hero-carousel>
+                    <div class="lnd-hero__slides">
+                        <div class="lnd-hero__slide is-active">
+                            <?= picture('/build/assets/img/home/hero/poster1.jpg', 'Colegio Bilbao — el bosque como salón', 'lnd-hero__slide-img', 'eager') ?>
+                        </div>
+                        <div class="lnd-hero__slide">
+                            <?= picture('/build/assets/img/home/hero/oficinas-academicas.jpg', 'Oficinas académicas del Colegio Bilbao', 'lnd-hero__slide-img', 'lazy') ?>
+                        </div>
+                        <div class="lnd-hero__slide">
+                            <?= picture('/build/assets/img/home/hero/juegos.jpg', 'Áreas de juego del Colegio Bilbao', 'lnd-hero__slide-img', 'lazy') ?>
+                        </div>
+                        <div class="lnd-hero__slide">
+                            <?= picture('/build/assets/img/home/hero/cancha-basket.jpg', 'Cancha de básquetbol del Colegio Bilbao', 'lnd-hero__slide-img', 'lazy') ?>
+                        </div>
+                    </div>
+
+                    <figcaption class="lnd-hero__poster-badge">
+                        <strong data-hero-badge-value>30,000&nbsp;m²</strong>
+                        <span data-hero-badge-label>de bosque como salón</span>
+                    </figcaption>
+
+                    <button type="button" class="lnd-hero__nav lnd-hero__nav--prev" data-hero-prev aria-label="Imagen anterior">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <button type="button" class="lnd-hero__nav lnd-hero__nav--next" data-hero-next aria-label="Imagen siguiente">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+
+                    <button type="button" class="lnd-hero__zoom" data-hero-zoom aria-label="Ampliar imagen">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    </button>
+
+                    <div class="lnd-hero__dots" data-hero-dots aria-hidden="true">
+                        <span class="is-active"></span><span></span><span></span><span></span>
+                    </div>
+                </figure>
             </div>
         </div>
+
         <div class="lnd-hero__scroll" aria-hidden="true">
             <span class="lnd-hero__scroll-dot"></span>
         </div>
@@ -401,13 +443,14 @@
                             <?php if (!empty($noticia_destacada->portada)): ?>
                             <img src="<?= s($noticia_destacada->portada) ?>"
                                  alt="<?= s($noticia_destacada->portada_alt ?? $noticia_destacada->titulo) ?>"
+                                 style="view-transition-name: noticia-img-<?= s($noticia_destacada->slug) ?>"
                                  draggable="false" loading="eager">
                             <?php else: ?>
-                            <img src="/build/assets/img/blog/blog-placeholder.png" alt="" draggable="false" loading="lazy">
+                            <img src="/build/assets/img/blog/blog-placeholder.png" alt="" style="view-transition-name: noticia-img-<?= s($noticia_destacada->slug) ?>" draggable="false" loading="lazy">
                             <?php endif; ?>
                             <div class="lnd-news-card__overlay"></div>
-                            <span class="lnd-news-card__cat"<?= !empty($noticia_destacada->categoria_color) ? ' style="background:' . s($noticia_destacada->categoria_color) . '"' : '' ?>>
-                                ★ <?= !empty($noticia_destacada->categoria_nombre) ? s($noticia_destacada->categoria_nombre) : 'Destacada' ?>
+                            <span class="lnd-news-card__cat">
+                                ★ <span data-i18n="home.news.featured">Destacada</span>
                             </span>
                         </div>
                         <div class="lnd-news-card__body">
@@ -429,9 +472,10 @@
                             <?php if (!empty($n->portada)): ?>
                             <img src="<?= s($n->portada) ?>"
                                  alt="<?= s($n->portada_alt ?? $n->titulo) ?>"
+                                 style="view-transition-name: noticia-img-<?= s($n->slug) ?>"
                                  draggable="false" loading="lazy">
                             <?php else: ?>
-                            <img src="/build/assets/img/blog/blog-placeholder.png" alt="" draggable="false" loading="lazy">
+                            <img src="/build/assets/img/blog/blog-placeholder.png" alt="" style="view-transition-name: noticia-img-<?= s($n->slug) ?>" draggable="false" loading="lazy">
                             <?php endif; ?>
                             <div class="lnd-news-card__overlay"></div>
                             <?php if (!empty($n->categoria_nombre)): ?>
@@ -470,7 +514,7 @@
                     <span class="lnd-articulos__tag">
                         <span data-i18n="home.articulos.tag">Artículos · Lectura</span>
                     </span>
-                    <h2 class="lnd-articulos__title" data-i18n="home.articulos.title">Perspectivas Bilbao</h2>
+                    <h2 class="lnd-articulos__title" data-i18n="home.articulos.title">Blog Bilbao</h2>
                 </div>
                 <p class="lnd-articulos__intro" data-i18n="home.articulos.intro">Ideas y reflexiones escritas desde adentro del colegio. Para leer con calma.</p>
             </div>
@@ -480,8 +524,9 @@
                 <!-- Preview sticky -->
                 <div class="lnd-art-preview" id="art-preview">
                     <?php foreach ($articulos_recientes as $i => $art): ?>
-                    <div class="lnd-art-preview__panel" data-art-panel
-                         style="display:<?= $i === 0 ? 'flex' : 'none' ?>">
+                    <a class="lnd-art-preview__panel" data-art-panel
+                       href="/blog/<?= s($art->slug) ?>"
+                       style="display:<?= $i === 0 ? 'flex' : 'none' ?>">
                         <div class="lnd-art-preview__img-wrap">
                             <img src="<?= $art->imagen ? s($art->imagen) : '/build/assets/img/blog/blog-placeholder.png' ?>"
                                  alt="<?= s($art->titulo) ?>"
@@ -510,7 +555,7 @@
                                 <?php endif; ?>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     <?php endforeach; ?>
                 </div>
 
