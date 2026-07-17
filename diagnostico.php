@@ -79,3 +79,16 @@ if (extension_loaded('mysqli')) {
 } else {
     echo "No se puede probar — mysqli no disponible<br>";
 }
+
+$host = "localhost";
+$user = "bilbaocp_admin";
+$pass = "Tlalmimilolpan39%"; // Contraseña exacta sin espacios
+$db   = "bilbaocp_colegiobilbao";
+
+try {
+    $conexion = new mysqli($host, $user, $pass, $db);
+    echo "¡Conexión exitosa a la base de datos!";
+} catch (mysqli_sql_exception $e) {
+    echo "Error de conexión: " . $e->getMessage();
+}
+?>
