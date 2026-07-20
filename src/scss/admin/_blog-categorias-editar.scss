@@ -1,0 +1,31 @@
+/* =========================================================
+   blog-categorias-editar
+   Migrado desde el <style> embebido de views/blog/categorias/editar.php
+========================================================= */
+body[data-page="blog-categorias-editar"] {
+    .ubm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s ease}
+    .ubm-backdrop.is-open{opacity:1;pointer-events:all}
+    .ubm-card{background:#fff;border-radius:20px;padding:40px 32px 32px;max-width:420px;width:92%;text-align:center;box-shadow:0 40px 80px rgba(15,23,42,.22),0 8px 24px rgba(15,23,42,.1);transform:scale(.84) translateY(20px);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .22s ease}
+    .ubm-backdrop.is-open .ubm-card{transform:scale(1) translateY(0);opacity:1}
+    .ubm-icon{width:68px;height:68px;border-radius:50%;background:#fff5f5;border:2px solid #fed7d7;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.7rem;color:#c53030}
+    .ubm-backdrop.is-open .ubm-icon{animation:ubm-shake .45s .18s ease-in-out both}
+    .ubm-title{font-size:1.3rem;font-weight:800;color:var(--col-herencia);margin-bottom:10px;letter-spacing:-.02em}
+    .ubm-text{font-size:.9rem;color:var(--text-gray);line-height:1.65;margin-bottom:20px}
+    .ubm-text strong{color:var(--col-herencia)}
+    .ubm-field{margin-bottom:22px;text-align:left}
+    .ubm-field__label{display:block;font-size:.75rem;font-weight:700;color:var(--text-gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em}
+    .ubm-field__wrap{position:relative}
+    .ubm-field__input{width:100%;padding:11px 40px 11px 14px;border:1.5px solid #E2E8F0;border-radius:10px;font-family:'Outfit',sans-serif;font-size:.95rem;color:var(--col-herencia);background:#f8fafc;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;box-sizing:border-box}
+    .ubm-field__input:focus{border-color:var(--col-bilbao);box-shadow:0 0 0 3px rgba(77,138,187,.12);background:#fff}
+    .ubm-field__input.is-valid{border-color:#38a169;box-shadow:0 0 0 3px rgba(56,161,105,.12);background:#f0fff4}
+    .ubm-field__check{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#38a169;font-size:.9rem;opacity:0;transition:opacity .2s}
+    .ubm-field__input.is-valid~.ubm-field__check{opacity:1}
+    .ubm-actions{display:flex;gap:10px;margin-top:4px}
+    .ubm-actions .admin-btn{flex:1}
+    .ubm-confirm{background:#e53e3e;color:#fff;border:none;box-shadow:0 4px 16px rgba(229,62,62,.28);transition:all .2s}
+    .ubm-confirm:not([disabled]):hover{background:#c53030;transform:translateY(-2px);box-shadow:0 8px 24px rgba(229,62,62,.4)}
+    .ubm-confirm[disabled]{opacity:.42;cursor:not-allowed;box-shadow:none;transform:none}
+}
+
+/* Fuera del scope: keyframes / variables */
+@keyframes ubm-shake{0%,100%{transform:rotate(0) scale(1)}20%{transform:rotate(-10deg) scale(1.08)}50%{transform:rotate(8deg) scale(1.06)}75%{transform:rotate(-4deg) scale(1.03)}}

@@ -4,7 +4,8 @@ namespace Model;
 class UsuarioBlog extends ActiveRecord {
 
     protected static $tabla      = 'usuarios';
-    protected static $columnasDB = ['id', 'nombre', 'email', 'password', 'rol', 'avatar'];
+    // fecha_nacimiento se persiste aparte (columna DATE) para poder guardar NULL real.
+    protected static $columnasDB = ['id', 'nombre', 'email', 'password', 'rol', 'modulos', 'avatar'];
 
     public $id;
     public $nombre;
@@ -12,10 +13,16 @@ class UsuarioBlog extends ActiveRecord {
     public $password;
     public $password2;       // confirmación — no va a BD
     public $rol;
+    public $modulos;         // CSV de módulos para rol 'usuario' (admin = todos)
+    public $fecha_nacimiento;// DATE — para el calendario de cumpleaños
     public $avatar;
     public $ultimo_acceso;   // read-only desde BD (DEFAULT CURRENT_TIMESTAMP)
     public $creado_en;       // read-only desde BD
     public $total_articulos  = 0;
+
+    // Aliases calculados por SQL (MONTH()/DAY()) en las consultas de cumpleaños
+    public $mes;
+    public $dia;
 
     // Conteos calculados por JOIN en conArticulosYNoticias()
     public $art_publicados   = 0;
@@ -60,11 +67,47 @@ class UsuarioBlog extends ActiveRecord {
         }
 
         // Rol
-        if (!\in_array($this->rol ?? '', ['administrador', 'editor'])) {
+        if (!\in_array($this->rol ?? '', ['administrador', 'usuario'])) {
             static::setAlerta('error', 'Selecciona un rol válido');
         }
 
+        // Módulos (obligatorios si es 'usuario')
+        $this->normalizarModulos();
+        if (($this->rol ?? '') === 'usuario' && empty($this->modulos)) {
+            static::setAlerta('error', 'Selecciona al menos un módulo para el usuario');
+        }
+
+        // Fecha de nacimiento (opcional, pero si viene debe ser válida)
+        $this->validarFechaNacimiento();
+
         return static::$alertas;
+    }
+
+    /** Normaliza $modulos: admin no guarda módulos; usuario guarda CSV limpio. */
+    private function normalizarModulos(): void {
+        $permitidos = ['redaccion', 'suplencias', 'usuarios'];
+        if (($this->rol ?? '') === 'administrador') {
+            $this->modulos = null;
+            return;
+        }
+        $raw = $this->modulos;
+        if (\is_array($raw)) {
+            $lista = $raw;
+        } else {
+            $lista = array_filter(array_map('trim', explode(',', (string) $raw)));
+        }
+        $lista = array_values(array_intersect($permitidos, $lista));
+        $this->modulos = $lista ? implode(',', $lista) : null;
+    }
+
+    /** Valida el formato de fecha_nacimiento (Y-m-d) si se proporcionó. */
+    private function validarFechaNacimiento(): void {
+        $f = trim((string) ($this->fecha_nacimiento ?? ''));
+        if ($f === '') { $this->fecha_nacimiento = null; return; }
+        $d = \DateTime::createFromFormat('Y-m-d', $f);
+        if (!$d || $d->format('Y-m-d') !== $f) {
+            static::setAlerta('error', 'La fecha de nacimiento no es válida');
+        }
     }
 
     public function hashPassword(): void {
@@ -111,6 +154,32 @@ class UsuarioBlog extends ActiveRecord {
     public static function contarTotal(): int {
         $r = self::$db->query("SELECT COUNT(*) AS total FROM " . static::$tabla);
         return ($r) ? (int) $r->fetch_assoc()['total'] : 0;
+    }
+
+    /** Búsqueda de colaboradores por nombre/email para autocompletado (módulo Suplencias). */
+    public static function buscar(string $q, int $limite = 8): array {
+        $q = trim($q);
+        if ($q === '') return [];
+        $safe   = self::$db->escape_string($q);
+        $limite = max(1, min(20, $limite));
+        $query = "SELECT id, nombre, email, avatar
+                  FROM " . static::$tabla . "
+                  WHERE nombre LIKE '%{$safe}%' OR email LIKE '%{$safe}%'
+                  ORDER BY nombre ASC
+                  LIMIT {$limite}";
+        $r = self::$db->query($query);
+        $out = [];
+        if ($r) {
+            while ($row = $r->fetch_assoc()) {
+                $out[] = [
+                    'id'     => (int)$row['id'],
+                    'nombre' => $row['nombre'],
+                    'email'  => $row['email'],
+                    'avatar' => $row['avatar'] ?? '',
+                ];
+            }
+        }
+        return $out;
     }
 
     public static function findByEmail(string $email): ?self {
@@ -209,10 +278,71 @@ class UsuarioBlog extends ActiveRecord {
             static::setAlerta('error', 'El correo electrónico no tiene un formato válido');
         }
 
-        if (!\in_array($this->rol ?? '', ['administrador', 'editor'])) {
+        if (!\in_array($this->rol ?? '', ['administrador', 'usuario'])) {
             static::setAlerta('error', 'Selecciona un rol válido');
         }
 
+        $this->normalizarModulos();
+        if (($this->rol ?? '') === 'usuario' && empty($this->modulos)) {
+            static::setAlerta('error', 'Selecciona al menos un módulo para el usuario');
+        }
+
+        $this->validarFechaNacimiento();
+
         return static::$alertas;
+    }
+
+    /**
+     * Persiste fecha_nacimiento con soporte de NULL real (el ORM base no lo permite).
+     * Llamar tras guardar() con el id ya disponible.
+     */
+    public static function guardarFechaNacimiento(int $id, ?string $fecha): void {
+        $id = (int) $id;
+        if ($id <= 0) return;
+        $fecha = trim((string) $fecha);
+        if ($fecha !== '' && \DateTime::createFromFormat('Y-m-d', $fecha)) {
+            $f = self::$db->escape_string($fecha);
+            self::$db->query("UPDATE " . static::$tabla . " SET fecha_nacimiento = '{$f}' WHERE id = {$id} LIMIT 1");
+        } else {
+            self::$db->query("UPDATE " . static::$tabla . " SET fecha_nacimiento = NULL WHERE id = {$id} LIMIT 1");
+        }
+    }
+
+    /** ¿Este usuario puede acceder al módulo indicado? Admin = todos. */
+    public function puedeModulo(string $modulo): bool {
+        if (($this->rol ?? '') === 'administrador') return true;
+        $lista = array_filter(array_map('trim', explode(',', (string) $this->modulos)));
+        return \in_array($modulo, $lista, true);
+    }
+
+    /**
+     * Próximos cumpleaños de colaboradores (ignora el año).
+     * Devuelve filas con nombre, avatar, fecha_nacimiento, mes, dia y edad que cumplirá.
+     */
+    public static function proximosCumpleanos(int $limite = 8): array {
+        $query = "
+            SELECT id, nombre, email, avatar, rol, fecha_nacimiento,
+                   MONTH(fecha_nacimiento) AS mes,
+                   DAY(fecha_nacimiento)   AS dia
+            FROM " . static::$tabla . "
+            WHERE fecha_nacimiento IS NOT NULL
+            ORDER BY
+                (DAYOFYEAR(fecha_nacimiento) - DAYOFYEAR(CURDATE()) + 366) % 366 ASC
+            LIMIT {$limite}
+        ";
+        return static::consultarSQL($query);
+    }
+
+    /** Todos los colaboradores con fecha de nacimiento (para el calendario). */
+    public static function conCumpleanos(): array {
+        $query = "
+            SELECT id, nombre, avatar, rol, fecha_nacimiento,
+                   MONTH(fecha_nacimiento) AS mes,
+                   DAY(fecha_nacimiento)   AS dia
+            FROM " . static::$tabla . "
+            WHERE fecha_nacimiento IS NOT NULL
+            ORDER BY mes ASC, dia ASC
+        ";
+        return static::consultarSQL($query);
     }
 }

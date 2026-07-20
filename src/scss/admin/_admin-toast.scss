@@ -1,0 +1,16 @@
+/* =========================================================
+   PANEL · TOAST DE ALEX (notificaciones)
+========================================================= */
+.at-wrap{position:fixed;top:-160px;right:24px;z-index:8500;background:#fff;border-radius:18px;box-shadow:0 24px 56px rgba(15,23,42,.16),0 4px 14px rgba(15,23,42,.08);border:1px solid #E8EDF3;display:flex;align-items:center;gap:14px;padding:18px 48px 22px 0;max-width:360px;min-width:300px;overflow:hidden;transition:top .5s cubic-bezier(.34,1.56,.64,1),opacity .35s ease}
+.at-wrap.is-visible{top:24px}
+.at-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:18px 0 0 18px}
+.at-alex{width:72px;flex-shrink:0;margin-left:14px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.15));animation:alexBounce .6s .35s ease-in-out both}
+@keyframes alexBounce{0%{transform:scale(.7) translateY(8px);opacity:0}60%{transform:scale(1.08) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+.at-body{flex:1}
+.at-title{font-size:.9rem;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.at-title i{font-size:.85rem}
+.at-msg{font-size:.8rem;color:#64748b;line-height:1.5;margin:0}
+.at-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#CBD5E0;cursor:pointer;font-size:.82rem;padding:4px;line-height:1;transition:color .15s}
+.at-close:hover{color:#334155}
+.at-bar{position:absolute;bottom:0;left:0;height:3px;width:100%;border-radius:0 0 18px 0;transform-origin:left;animation:atBar 5s linear .5s both}
+@keyframes atBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}

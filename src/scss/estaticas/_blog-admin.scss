@@ -3023,3 +3023,176 @@
     .alex-modal__img { width: 100px; align-self: center; }
     .alex-modal__actions { justify-content: center; }
 }
+
+/* =========================================================
+   MÓDULOS · checkboxes de permisos (crear/editar usuario)
+========================================================= */
+.admin-modulos {
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 20px;
+}
+.admin-modulos__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+.admin-modulo-check {
+    display: block;
+    cursor: pointer;
+
+    input { position: absolute; opacity: 0; pointer-events: none; }
+}
+.admin-modulo-check__box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.admin-modulo-check:hover .admin-modulo-check__box { border-color: #c7d6ea; }
+.admin-modulo-check__icon {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    color: #4267ac;
+    background: #eef3fb;
+    flex-shrink: 0;
+    transition: background .18s ease, color .18s ease;
+}
+.admin-modulo-check__text  { display: flex; flex-direction: column; min-width: 0; }
+.admin-modulo-check__name  { font-size: 13.5px; font-weight: 700; color: #1E293B; }
+.admin-modulo-check__desc  { font-size: 11.5px; color: #94A3B8; line-height: 1.4; }
+.admin-modulo-check__tick {
+    margin-left: auto;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    color: #fff;
+    flex-shrink: 0;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+
+    i { opacity: 0; transition: opacity .15s ease; }
+}
+.admin-modulo-check input:checked + .admin-modulo-check__box {
+    border-color: #4267ac;
+    background: #f5f9ff;
+    box-shadow: 0 6px 18px -10px rgba(66, 103, 172, .5);
+}
+.admin-modulo-check input:checked + .admin-modulo-check__box .admin-modulo-check__icon {
+    background: linear-gradient(135deg, #2e4b8a, #4267ac);
+    color: #fff;
+}
+.admin-modulo-check input:checked + .admin-modulo-check__box .admin-modulo-check__tick {
+    background: #4267ac;
+    border-color: #4267ac;
+    transform: scale(1.05);
+
+    i { opacity: 1; }
+}
+.admin-modulo-check input:focus-visible + .admin-modulo-check__box {
+    outline: 2px solid #4267ac;
+    outline-offset: 2px;
+}
+
+/* =========================================================
+   SIDEBAR · botón Inicio (home de módulos) + topbar sitio
+========================================================= */
+.admin-nav__home {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background var(--transition-fast), color var(--transition-fast);
+
+    i:first-child { width: 18px; text-align: center; font-size: 0.9rem; flex-shrink: 0; }
+
+    &:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+    &.active {
+        background: var(--col-bilbao);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(77, 138, 187, 0.4);
+    }
+
+    .admin-nav__home-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+}
+.admin-sidebar--collapsed .admin-nav__home {
+    justify-content: center;
+    margin-bottom: 12px;
+    .admin-nav__label, .admin-nav__home-arrow { display: none; }
+}
+
+/* ── Breadcrumb del topbar ── */
+.admin-topbar__left.has-crumbs .admin-topbar__title,
+.admin-topbar__left.has-crumbs .admin-breadcrumb { display: none; }
+
+.admin-crumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.admin-crumbs__link {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color .15s ease;
+
+    &:hover { color: var(--col-bilbao, #4267ac); }
+}
+.admin-crumbs__sep { font-size: 9px; color: #cbd5e1; }
+.admin-crumbs__cur { font-size: 0.9rem; font-weight: 800; color: #0B1F3D; }
+
+.admin-topbar__site {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--col-borde, #e2e8f0);
+    background: #fff;
+    color: #4267ac;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background .18s ease, transform .18s ease, color .18s ease;
+
+    &:hover { background: #eef4ff; transform: translateY(-2px); }
+}
+
+/* =========================================================
+   SIDEBAR · cabecera (marca + colapso)
+   Migrado desde el <style> embebido de views/blog/_sidebar.php
+========================================================= */
+.admin-sidebar__top { display: flex; flex-direction: column; gap: 0; }
+.admin-sidebar__top-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.admin-sidebar__brand { flex: 1; min-width: 0; }
+.admin-sidebar--collapsed .admin-sidebar__top-row { justify-content: center; }
+.admin-sidebar--collapsed .admin-sidebar__brand { display: none; }
+.admin-sidebar__brand-label {
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #94A3B8;
+    padding: 4px 2px 2px;
+    white-space: nowrap;
+    text-align: left;
+    align-self: flex-start;
+}
+.admin-sidebar--collapsed .admin-sidebar__brand-label { display: none; }

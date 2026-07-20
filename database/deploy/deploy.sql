@@ -1,13 +1,13 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `avatar`, `ultimo_acceso`, `creado_en`) VALUES
-(1, 'Administrador Bilbao', 'admin@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'administrador', NULL, '2026-07-03 12:44:18', '2026-06-19 18:00:53'),
-(2, 'Alexander Oliva', 'alexander.oliva@bilbao.edu.mx', '$2y$10$0ew3iDz6l3TsvPHfIT2ne.ZrPckXhPHokP9nBEkrKomG8Gc5YtE7C', 'editor', '', '2026-06-26 11:52:28', '2026-06-19 18:00:53'),
-(5, 'Alfonso Ludlow', 'dr.ludlow@bilbao.edu.mx', '$2y$10$IsfrLUH0et2SwvzglddBaOQiXVDRIqnQlgDzw9wehEBxjrcWb28nC', 'administrador', '', '2026-06-29 08:11:49', '2026-06-26 18:39:15'),
-(6, 'María José Soberon Díaz', 'majo.soberon@bilbao.edu.mx', '$2y$10$lnPi5ativUMRTxkdyYTegOOnCENB.K5mGSWUqbmwb9mtfe2w31Ds6', 'editor', '', '2026-06-26 12:43:43', '2026-06-26 18:42:01'),
-(7, 'Sasha Klainer Berkowitz', 'sasha@bilbao.edu.mx', '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'editor', '', '2026-06-26 14:32:10', '2026-06-26 19:03:14'),
-(8, 'Mauricio Absalón', 'mauricio@bilbao.edu.mx', '$2y$10$ts7hTGovnGRHk7I6yQgu.OEBCWqSAb7tQ/Y8J89x3VzxRkfg447X2', 'editor', '', '2026-06-26 13:29:53', '2026-06-26 19:29:08');
+INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `modulos`, `fecha_nacimiento`, `avatar`, `ultimo_acceso`, `creado_en`) VALUES
+(1, 'Administrador Bilbao', 'admin@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'administrador', NULL, '1980-05-12', NULL, '2026-07-03 12:44:18', '2026-06-19 18:00:53'),
+(2, 'Alexander Oliva', 'alexander.oliva@bilbao.edu.mx', '$2y$10$0ew3iDz6l3TsvPHfIT2ne.ZrPckXhPHokP9nBEkrKomG8Gc5YtE7C', 'usuario', 'redaccion,suplencias', '2004-03-25', '', '2026-06-26 11:52:28', '2026-06-19 18:00:53'),
+(5, 'Alfonso Ludlow', 'dr.ludlow@bilbao.edu.mx', '$2y$10$IsfrLUH0et2SwvzglddBaOQiXVDRIqnQlgDzw9wehEBxjrcWb28nC', 'administrador', NULL, '1975-09-08', '', '2026-06-29 08:11:49', '2026-06-26 18:39:15'),
+(6, 'María José Soberon Díaz', 'majo.soberon@bilbao.edu.mx', '$2y$10$lnPi5ativUMRTxkdyYTegOOnCENB.K5mGSWUqbmwb9mtfe2w31Ds6', 'usuario', 'redaccion', '1990-07-19', '', '2026-06-26 12:43:43', '2026-06-26 18:42:01'),
+(7, 'Sasha Klainer Berkowitz', 'sasha@bilbao.edu.mx', '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'redaccion', '1988-11-30', '', '2026-06-26 14:32:10', '2026-06-26 19:03:14'),
+(8, 'Mauricio Absalón', 'mauricio@bilbao.edu.mx', '$2y$10$ts7hTGovnGRHk7I6yQgu.OEBCWqSAb7tQ/Y8J89x3VzxRkfg447X2', 'usuario', 'suplencias', '1992-02-14', '', '2026-06-26 13:29:53', '2026-06-26 19:29:08');
 
 INSERT INTO `categorias` (`id`, `nombre`, `slug`, `descripcion`, `color`, `creado_en`) VALUES
 (1, 'Modelo Educativo', 'modelo-educativo', 'Filosofía, pedagogía y propuesta formativa del Colegio Bilbao.', '#4267ac', '2026-06-19 18:00:53'),

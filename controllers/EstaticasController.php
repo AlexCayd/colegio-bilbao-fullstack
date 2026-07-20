@@ -145,16 +145,36 @@ class EstaticasController {
     }
 
     // ---- COMUNIDAD ----
+    /** Three.js para los fondos animados de Comunidad (GSAP ya es global en header.php). */
+    private static function comunidadThree(): string {
+        return '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
+    }
+
     public static function estudiantes(Router $router) {
-        $router->render('estaticas/comunidad/estudiantes', ['titulo' => 'Estudiantes']);
+        $router->render('estaticas/comunidad/estudiantes', [
+            'titulo'          => 'Estudiantes',
+            'seo_titulo'      => 'Comunidad estudiantil',
+            'seo_descripcion' => 'Proyectos, deportes, arte y la vida diaria de los estudiantes del Colegio Bilbao.',
+            'extra_head'      => self::comunidadThree(),
+        ]);
     }
 
     public static function familias(Router $router) {
-        $router->render('estaticas/comunidad/familias', ['titulo' => 'Familias']);
+        $router->render('estaticas/comunidad/familias', [
+            'titulo'          => 'Familias',
+            'seo_titulo'      => 'Familias Bilbao',
+            'seo_descripcion' => 'Avisos y calendario escolar del Colegio Bilbao para nuestras familias.',
+            'extra_head'      => self::comunidadThree(),
+        ]);
     }
 
-    public static function exalumnos(Router $router) {
-        $router->render('estaticas/comunidad/exalumnos', ['titulo' => 'Exalumnos']);
+    public static function colaboradores(Router $router) {
+        $router->render('estaticas/comunidad/colaboradores', [
+            'titulo'          => 'Colaboradores',
+            'seo_titulo'      => 'Portal de Colaboradores',
+            'seo_descripcion' => 'Acceso al portal interno para el personal y colaboradores del Colegio Bilbao.',
+            'extra_head'      => self::comunidadThree(),
+        ]);
     }
 
     // ---- VOCES BILBAO ----

@@ -1,11 +1,5 @@
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8XVWCDM02P"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-8XVWCDM02P');
-    </script>
 
     <!-- GSAP — defer evita bloqueo de renderizado; preconnect adelanta la conexión -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -50,6 +44,18 @@
                 </div>
 
                 <div class="header-nav__item">
+                    <a href="/vida-escolar/afterschool-extracurriculares" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.vidaEscolar" aria-haspopup="true">Vida escolar <span class="header-nav__caret" aria-hidden="true"></span></a>
+                    <div class="header-nav__dropdown">
+                        <a href="/vida-escolar/afterschool-extracurriculares" class="header-nav__sublink" data-i18n="chrome.overlay.vidaEscolar.afterschool">Afterschool</a>
+                        <a href="/vida-escolar/futuro-universitario-becas" class="header-nav__sublink" data-i18n="chrome.overlay.vidaEscolar.futuroUniversitario">Futuro universitario</a>
+                        <a href="/vida-escolar/programa-dual" class="header-nav__sublink" data-i18n="chrome.overlay.vidaEscolar.programaDual">Programa Dual</a>
+                        <a href="/vida-escolar/servicios-para-familias" class="header-nav__sublink" data-i18n="chrome.overlay.vidaEscolar.servicios">Servicios para familias</a>
+                        <a href="/vida-escolar/cuidado-y-bienestar" class="header-nav__sublink" data-i18n="chrome.overlay.vidaEscolar.cuidadoBienestar">Cuidado y bienestar</a>
+                        <a href="/vida-escolar/eventos-y-tradiciones" class="header-nav__sublink" data-i18n="chrome.overlay.vidaEscolar.eventos">Eventos y tradiciones</a>
+                    </div>
+                </div>
+
+                <div class="header-nav__item">
                     <a href="/admisiones" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.admisiones" aria-haspopup="true">Admisiones <span class="header-nav__caret" aria-hidden="true"></span></a>
                     <div class="header-nav__dropdown">
                         <a href="/admisiones" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.inicio">Inicio</a>
@@ -58,6 +64,15 @@
                         <a href="/admisiones/convenios" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.convenios">Convenios</a>
                         <a href="/admisiones/convocatoria-becas" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.becas">Becas</a>
                         <a href="/admisiones/contacto" class="header-nav__sublink" data-i18n="chrome.overlay.admisiones.contacto">Contacto</a>
+                    </div>
+                </div>
+
+                <div class="header-nav__item">
+                    <a href="/comunidad/estudiantes" class="header-nav__link header-nav__link--has-menu" data-i18n="chrome.header.nav.comunidad" aria-haspopup="true">Comunidad <span class="header-nav__caret" aria-hidden="true"></span></a>
+                    <div class="header-nav__dropdown">
+                        <a href="/comunidad/estudiantes" class="header-nav__sublink" data-i18n="chrome.overlay.comunidad.estudiantes">Estudiantes</a>
+                        <a href="/comunidad/familias" class="header-nav__sublink" data-i18n="chrome.overlay.comunidad.familias">Familias</a>
+                        <a href="/comunidad/colaboradores" class="header-nav__sublink" data-i18n="chrome.overlay.comunidad.colaboradores">Colaboradores</a>
                     </div>
                 </div>
 
@@ -115,7 +130,7 @@
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.nivelesAcademicos">Niveles académicos</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/niveles-academicos/preescolar" data-i18n="chrome.overlay.niveles.preescolar">Preescolar</a></li><li><a href="/niveles-academicos/primaria" data-i18n="chrome.overlay.niveles.primaria">Primaria</a></li><li><a href="/niveles-academicos/secundaria" data-i18n="chrome.overlay.niveles.secundaria">Secundaria</a></li><li><a href="/niveles-academicos/preparatoria" data-i18n="chrome.overlay.niveles.preparatoria">Preparatoria</a></li></ul></li>
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.vidaEscolar">Vida escolar</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/vida-escolar/afterschool-extracurriculares" data-i18n="chrome.overlay.vidaEscolar.afterschool">Afterschool</a></li><li><a href="/vida-escolar/futuro-universitario-becas" data-i18n="chrome.overlay.vidaEscolar.futuroUniversitario">Futuro universitario</a></li><li><a href="/vida-escolar/programa-dual" data-i18n="chrome.overlay.vidaEscolar.programaDual">Programa Dual</a></li><li><a href="/vida-escolar/servicios-para-familias" data-i18n="chrome.overlay.vidaEscolar.servicios">Servicios</a></li><li><a href="/vida-escolar/cuidado-y-bienestar" data-i18n="chrome.overlay.vidaEscolar.cuidadoBienestar">Cuidado y bienestar</a></li><li><a href="/vida-escolar/eventos-y-tradiciones" data-i18n="chrome.overlay.vidaEscolar.eventos">Eventos</a></li></ul></li>
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.admisiones">Admisiones</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/admisiones" data-i18n="chrome.overlay.admisiones.inicio">Inicio</a></li><li><a href="/admisiones/proceso" data-i18n="chrome.overlay.admisiones.proceso">Proceso</a></li><li><a href="/admisiones/preguntas-frecuentes" data-i18n="chrome.overlay.admisiones.faq">FAQ</a></li><li><a href="/admisiones/convenios" data-i18n="chrome.overlay.admisiones.convenios">Convenios</a></li><li><a href="/admisiones/convocatoria-becas" data-i18n="chrome.overlay.admisiones.becas">Becas</a></li><li><a href="/admisiones/contacto" data-i18n="chrome.overlay.admisiones.contacto">Contacto</a></li></ul></li>
-                <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.comunidad">Comunidad</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/comunidad/estudiantes" data-i18n="chrome.overlay.comunidad.estudiantes">Estudiantes</a></li><li><a href="/comunidad/familias" data-i18n="chrome.overlay.comunidad.familias">Familias</a></li><li><a href="/comunidad/exalumnos" data-i18n="chrome.overlay.comunidad.exalumnos">Exalumnos</a></li></ul></li>
+                <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.comunidad">Comunidad</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/comunidad/estudiantes" data-i18n="chrome.overlay.comunidad.estudiantes">Estudiantes</a></li><li><a href="/comunidad/familias" data-i18n="chrome.overlay.comunidad.familias">Familias</a></li><li><a href="/comunidad/colaboradores" data-i18n="chrome.overlay.comunidad.colaboradores">Colaboradores</a></li></ul></li>
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.vocesBilbao">Voces Bilbao</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/noticias" data-i18n="chrome.overlay.voces.noticias">Noticias</a></li><li><a href="/blog" data-i18n="chrome.overlay.voces.articulos">Artículos</a></li><li><a href="/feedback-testimoniales" data-i18n="chrome.overlay.voces.testimonios">Testimonios</a></li></ul></li>
                 <li class="nav-accordion-item"><button class="nav-accordion-trigger"><span data-i18n="chrome.overlay.accordion.contacto">Contacto</span> <span class="chevron">▼</span></button><ul class="nav-submenu"><li><a href="/contacto" data-i18n="chrome.overlay.contacto.contacto">Contacto</a></li><li><a href="/contacto/directorio" data-i18n="chrome.overlay.contacto.directorio">Directorio</a></li><li><a href="/contacto/cultura-y-talento" data-i18n="chrome.overlay.contacto.culturaTalento">Cultura y talento</a></li><li><a href="/contacto/proveedores" data-i18n="chrome.overlay.contacto.proveedores">Proveedores</a></li></ul></li>
             </ul>

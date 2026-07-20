@@ -1,0 +1,65 @@
+/* =========================================================
+   blog-articulos-index
+   Migrado desde el <style> embebido de views/blog/articulos/index.php
+========================================================= */
+body[data-page="blog-articulos-index"] {
+    .ubm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s ease}
+    .ubm-backdrop.is-open{opacity:1;pointer-events:all}
+    .ubm-card{background:#fff;border-radius:20px;padding:40px 32px 32px;max-width:420px;width:92%;text-align:center;box-shadow:0 40px 80px rgba(15,23,42,.22),0 8px 24px rgba(15,23,42,.1);transform:scale(.84) translateY(20px);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .22s ease}
+    .ubm-backdrop.is-open .ubm-card{transform:scale(1) translateY(0);opacity:1}
+    .ubm-icon{width:68px;height:68px;border-radius:50%;background:#fff5f5;border:2px solid #fed7d7;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.7rem;color:#c53030}
+    .ubm-backdrop.is-open .ubm-icon{animation:ubm-shake .45s .18s ease-in-out both}
+    .ubm-title{font-size:1.3rem;font-weight:800;color:var(--col-herencia);margin-bottom:10px;letter-spacing:-.02em}
+    .ubm-text{font-size:.9rem;color:var(--text-gray);line-height:1.65;margin-bottom:20px}
+    .ubm-text strong{color:var(--col-herencia)}
+    .ubm-field{margin-bottom:22px;text-align:left}
+    .ubm-field__label{display:block;font-size:.75rem;font-weight:700;color:var(--text-gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em}
+    .ubm-field__wrap{position:relative}
+    .ubm-field__input{width:100%;padding:11px 40px 11px 14px;border:1.5px solid #E2E8F0;border-radius:10px;font-family:'Outfit',sans-serif;font-size:.95rem;color:var(--col-herencia);background:#f8fafc;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;box-sizing:border-box}
+    .ubm-field__input:focus{border-color:var(--col-bilbao);box-shadow:0 0 0 3px rgba(77,138,187,.12);background:#fff}
+    .ubm-field__input.is-valid{border-color:#38a169;box-shadow:0 0 0 3px rgba(56,161,105,.12);background:#f0fff4}
+    .ubm-field__check{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#38a169;font-size:.9rem;opacity:0;transition:opacity .2s}
+    .ubm-field__input.is-valid~.ubm-field__check{opacity:1}
+    .ubm-actions{display:flex;gap:10px;margin-top:4px}
+    .ubm-actions .admin-btn{flex:1}
+    .ubm-confirm{background:#e53e3e;color:#fff;border:none;box-shadow:0 4px 16px rgba(229,62,62,.28);transition:all .2s}
+    .ubm-confirm:not([disabled]):hover{background:#c53030;transform:translateY(-2px);box-shadow:0 8px 24px rgba(229,62,62,.4)}
+    .ubm-confirm[disabled]{opacity:.42;cursor:not-allowed;box-shadow:none;transform:none}
+    th.sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+    th.sortable:hover{background:rgba(66,103,172,.07);}
+    th.sortable .sort-icon{font-size:.7rem;opacity:.35;margin-left:4px;}
+    th.sortable.sort-asc .sort-icon{opacity:1;color:#4267ac;}
+    th.sortable.sort-asc .sort-icon::before{content:'↑';}
+    th.sortable.sort-desc .sort-icon{opacity:1;color:#4267ac;}
+    th.sortable.sort-desc .sort-icon::before{content:'↓';}
+    th.sortable .sort-icon{font-style:normal;}
+    .at-fixed{table-layout:fixed;width:100%;}
+    .at-cell-truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0;}
+    .at-title-line{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:.87rem;color:#0F172A;}
+    .at-feedback-pill{display:inline-flex;align-items:center;gap:4px;margin-top:4px;background:#fef3c7;color:#92400e;font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:99px;border:1px solid #fcd34d;cursor:default;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .at-feedback-pill i{flex-shrink:0;}
+    /* Botones de acción coloreados */
+    .admin-table__btn{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:8px;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;cursor:pointer;font-size:.8rem;text-decoration:none;}
+    .admin-table__btn:hover{background:#fde68a;border-color:#f59e0b;}
+    .admin-table__btn--danger{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+    .admin-table__btn--danger:hover{background:#fca5a5;border-color:#f87171;}
+    .admin-main{animation:pageIn .4s ease both}
+    .at-wrap{position:fixed;top:-160px;right:24px;z-index:8500;background:#fff;border-radius:18px;box-shadow:0 24px 56px rgba(15,23,42,.16),0 4px 14px rgba(15,23,42,.08);border:1px solid #E8EDF3;display:flex;align-items:center;gap:14px;padding:18px 48px 22px 0;max-width:360px;min-width:300px;overflow:hidden;transition:top .5s cubic-bezier(.34,1.56,.64,1),opacity .35s ease}
+    .at-wrap.is-visible{top:24px}
+    .at-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:18px 0 0 18px}
+    .at-alex{width:72px;flex-shrink:0;margin-left:14px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.15));animation:alexBounce .6s .35s ease-in-out both}
+    .at-body{flex:1}
+    .at-title{font-size:.9rem;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+    .at-title i{font-size:.85rem}
+    .at-msg{font-size:.8rem;color:var(--text-gray);line-height:1.5;margin:0}
+    .at-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#CBD5E0;cursor:pointer;font-size:.82rem;padding:4px;line-height:1;transition:color .15s}
+    .at-close:hover{color:var(--col-herencia)}
+    .at-bar{position:absolute;bottom:0;left:0;height:3px;width:100%;border-radius:0 0 18px 0;transform-origin:left;animation:atBar 5s linear .5s both}
+}
+
+/* Fuera del scope: keyframes / variables */
+@keyframes ubm-shake{0%,100%{transform:rotate(0) scale(1)}20%{transform:rotate(-10deg) scale(1.08)}50%{transform:rotate(8deg) scale(1.06)}75%{transform:rotate(-4deg) scale(1.03)}}
+
+@keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes alexBounce{0%{transform:scale(.7) translateY(8px);opacity:0}60%{transform:scale(1.08) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes atBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}

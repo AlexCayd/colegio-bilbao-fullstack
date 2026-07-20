@@ -48,24 +48,29 @@
 .header-nav {
     display: none;
     align-items: center;
-    gap: 4px;
+    gap: 1px;
     flex: 1;
     justify-content: center;
 
     @include m.desktop { display: flex; }
 
+    // A partir de pantallas grandes hay espacio de sobra para respirar
+    @include m.xl_desktop { gap: 3px; }
+
     &__link {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        padding: 8px 12px;
-        font-size: 0.875rem;
+        gap: 4px;
+        padding: 8px 8px;
+        font-size: 0.8rem;
         font-weight: 600;
         color: var(--col-herencia);
         text-decoration: none;
         border-radius: 8px;
         transition: color .2s, background .2s;
         white-space: nowrap;
+
+        @include m.xl_desktop { padding: 8px 11px; font-size: 0.86rem; }
 
         &:hover {
             color: var(--col-bilbao);

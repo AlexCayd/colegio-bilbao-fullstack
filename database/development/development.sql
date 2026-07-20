@@ -1,13 +1,21 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `avatar`, `ultimo_acceso`, `creado_en`) VALUES
-(1, 'Administrador Bilbao', 'admin@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'administrador', NULL, '2026-07-03 12:44:18', '2026-06-19 18:00:53'),
-(2, 'Alexander Oliva', 'alexander.oliva@bilbao.edu.mx', '$2y$10$0ew3iDz6l3TsvPHfIT2ne.ZrPckXhPHokP9nBEkrKomG8Gc5YtE7C', 'editor', '', '2026-06-26 11:52:28', '2026-06-19 18:00:53'),
-(5, 'Alfonso Ludlow', 'dr.ludlow@bilbao.edu.mx', '$2y$10$IsfrLUH0et2SwvzglddBaOQiXVDRIqnQlgDzw9wehEBxjrcWb28nC', 'administrador', '', '2026-06-29 08:11:49', '2026-06-26 18:39:15'),
-(6, 'María José Soberon Díaz', 'majo.soberon@bilbao.edu.mx', '$2y$10$lnPi5ativUMRTxkdyYTegOOnCENB.K5mGSWUqbmwb9mtfe2w31Ds6', 'editor', '', '2026-06-26 12:43:43', '2026-06-26 18:42:01'),
-(7, 'Sasha Klainer Berkowitz', 'sasha@bilbao.edu.mx', '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'editor', '', '2026-06-26 14:32:10', '2026-06-26 19:03:14'),
-(8, 'Mauricio Absalón', 'mauricio@bilbao.edu.mx', '$2y$10$ts7hTGovnGRHk7I6yQgu.OEBCWqSAb7tQ/Y8J89x3VzxRkfg447X2', 'editor', '', '2026-06-26 13:29:53', '2026-06-26 19:29:08');
+INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `modulos`, `fecha_nacimiento`, `avatar`, `ultimo_acceso`, `creado_en`) VALUES
+(1, 'Administrador Bilbao', 'admin@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'administrador', NULL, '1980-05-12', NULL, '2026-07-03 12:44:18', '2026-06-19 18:00:53'),
+(2, 'Alexander Oliva', 'alexander.oliva@bilbao.edu.mx', '$2y$10$0ew3iDz6l3TsvPHfIT2ne.ZrPckXhPHokP9nBEkrKomG8Gc5YtE7C', 'usuario', 'redaccion,suplencias', '2004-03-25', '', '2026-06-26 11:52:28', '2026-06-19 18:00:53'),
+(5, 'Alfonso Ludlow', 'dr.ludlow@bilbao.edu.mx', '$2y$10$IsfrLUH0et2SwvzglddBaOQiXVDRIqnQlgDzw9wehEBxjrcWb28nC', 'administrador', NULL, '1975-09-08', '', '2026-06-29 08:11:49', '2026-06-26 18:39:15'),
+(6, 'María José Soberon Díaz', 'majo.soberon@bilbao.edu.mx', '$2y$10$lnPi5ativUMRTxkdyYTegOOnCENB.K5mGSWUqbmwb9mtfe2w31Ds6', 'usuario', 'redaccion', '1990-07-19', '', '2026-06-26 12:43:43', '2026-06-26 18:42:01'),
+(7, 'Sasha Klainer Berkowitz', 'sasha@bilbao.edu.mx', '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'redaccion', '1988-11-30', '', '2026-06-26 14:32:10', '2026-06-26 19:03:14'),
+(8, 'Mauricio Absalón', 'mauricio@bilbao.edu.mx', '$2y$10$ts7hTGovnGRHk7I6yQgu.OEBCWqSAb7tQ/Y8J89x3VzxRkfg447X2', 'usuario', 'suplencias', '1992-02-14', '', '2026-06-26 13:29:53', '2026-06-26 19:29:08'),
+(9,  'Laura Méndez',       'laura.mendez@bilbao.edu.mx',   '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'suplencias',           '1991-04-07', '', NULL, '2026-06-26 19:29:08'),
+(10, 'Diego Fuentes',      'diego.fuentes@bilbao.edu.mx',  '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'suplencias',           '1985-08-23', '', NULL, '2026-06-26 19:29:08'),
+(11, 'Paola Ríos',         'paola.rios@bilbao.edu.mx',     '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'redaccion,suplencias', '1993-12-02', '', NULL, '2026-06-26 19:29:08'),
+(12, 'Ernesto Villalobos', 'ernesto.villa@bilbao.edu.mx',  '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'suplencias',           '1979-01-15', '', NULL, '2026-06-26 19:29:08'),
+(13, 'Regina Castro',      'regina.castro@bilbao.edu.mx',  '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'suplencias',           '1996-06-11', '', NULL, '2026-06-26 19:29:08'),
+(14, 'Tomás Herrera',      'tomas.herrera@bilbao.edu.mx',  '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'suplencias',           '1987-10-28', '', NULL, '2026-06-26 19:29:08'),
+(15, 'Valeria Nava',       'valeria.nava@bilbao.edu.mx',   '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'redaccion',            '1994-03-25', '', NULL, '2026-06-26 19:29:08'),
+(16, 'Gabriel Ponce',      'gabriel.ponce@bilbao.edu.mx',  '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'suplencias',           '1982-09-19', '', NULL, '2026-06-26 19:29:08');
 
 INSERT INTO `categorias` (`id`, `nombre`, `slug`, `descripcion`, `color`, `creado_en`) VALUES
 (1, 'Modelo Educativo', 'modelo-educativo', 'Filosofía, pedagogía y propuesta formativa del Colegio Bilbao.', '#4267ac', '2026-06-19 18:00:53'),
@@ -121,5 +129,16 @@ INSERT INTO testimoniales (nombre, rol, comentario, aprobado) VALUES
 ('Sofía M.',         'Mamá',      'Mi hija llegó tímida y hoy participa en todo. El modelo VIDA realmente transforma a los niños.', 1),
 ('Alejandro P.',     'Exalumno',  'Salí del Bilbao con herramientas para la vida, no solo para los exámenes. Eso no tiene precio.', 1),
 ('Familia Ramos',    'Familia',   'La comunicación con los maestros es excepcional. Siempre al tanto de cómo van nuestros hijos.', 1);
+
+-- Suplencias de ejemplo (ausente/suplente referencian usuarios)
+INSERT INTO `suplencias` (`fecha`, `ausente_id`, `suplente_id`, `grupo`, `materia`, `motivo`, `notas`, `estado`) VALUES
+('2026-07-20', 6,  7,    '3° Primaria A', 'Matemáticas', 'Cita médica',        'Dejó guía de ejercicios en el escritorio.', 'confirmada'),
+('2026-07-20', 8,  NULL, '1° Secundaria', 'Ciencias',    'Incapacidad',        'Falta asignar suplente.',                    'pendiente'),
+('2026-07-21', 9,  10,   '5° Primaria B', 'Historia',    'Curso de formación', '',                                           'confirmada'),
+('2026-07-22', 12, 13,   '2° Preescolar', 'Arte',        'Asunto personal',    'Material listo en el salón de arte.',        'confirmada'),
+('2026-07-23', 14, NULL, '6° Primaria',   'Inglés',      'Cita médica',        '',                                           'pendiente'),
+('2026-07-24', 11, 16,   '4° Primaria A', 'Educación Física', 'Comisión externa', 'Llevar balones y conos.',                  'confirmada'),
+('2026-07-27', 7,  9,    'Prepa 1',       'Literatura',  'Congreso',           '',                                           'pendiente'),
+('2026-07-15', 10, 12,   '3° Secundaria', 'Geografía',   'Incapacidad',        'Suplencia ya cubierta.',                     'confirmada');
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -86,7 +86,7 @@
                 <ul class="sitemap-list">
                     <li class="sitemap-item"><a href="comunidad/estudiantes/" class="sitemap-link" data-i18n="mapa-del-sitio.comunidad.estudiantes">Estudiantes</a></li>
                     <li class="sitemap-item"><a href="comunidad/familias/" class="sitemap-link" data-i18n="mapa-del-sitio.comunidad.familias">Familias</a></li>
-                    <li class="sitemap-item"><a href="comunidad/exalumnos/" class="sitemap-link" data-i18n="mapa-del-sitio.comunidad.exalumnos">Exalumnos</a></li>
+                    <li class="sitemap-item"><a href="/comunidad/colaboradores" class="sitemap-link" data-i18n="mapa-del-sitio.comunidad.colaboradores">Colaboradores</a></li>
                 </ul>
             </div>
 

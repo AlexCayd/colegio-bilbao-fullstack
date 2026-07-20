@@ -13,13 +13,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css" integrity="sha512-1sCRPdkRXhBV2PBLUdRb4tMg1w2YPf37qatUFeS7zlBy7jJI8Lf4VHwWfZZfpXtYSLy85pkm9GaYVYMfw5BC1A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/build/css/app.css">
 </head>
-<body class="admin-body">
+<body class="admin-body"<?= !empty($paginaVista) ? ' data-page="' . htmlspecialchars($paginaVista) . '"' : '' ?>>
     <?php echo $contenido; ?>
 
 <?php
 // Alex notification modal — shown once per unread notification
 $_alexNotif = null;
-if (!empty($_SESSION['blog_usuario']) && ($_SESSION['blog_usuario']['rol'] ?? '') === 'editor') {
+if (!empty($_SESSION['blog_usuario']) && ($_SESSION['blog_usuario']['rol'] ?? '') === 'usuario') {
     if (class_exists(\Model\Notificacion::class)) {
         $uid = (int)$_SESSION['blog_usuario']['id'];
         $recientes = \Model\Notificacion::porUsuario($uid, 5);
@@ -59,28 +59,7 @@ if (!empty($_alexNotif->referencia_id) && !empty($_alexNotif->referencia_tipo)) 
         </div>
     </div>
 </div>
-<script>
-(function() {
-    const modal = document.getElementById('alexModal');
-    const close = document.getElementById('alexModalClose');
-    if (!modal || !close) return;
-
-    setTimeout(() => modal.classList.add('is-open'), 300);
-
-    function dismiss() {
-        modal.classList.remove('is-open');
-        setTimeout(() => modal.remove(), 350);
-        fetch('/dashboard/notificaciones/leer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-            body: 'id=' + encodeURIComponent(modal.dataset.notifId)
-        });
-    }
-
-    close.addEventListener('click', dismiss);
-    modal.addEventListener('click', function(e) { if (e.target === modal) dismiss(); });
-})();
-</script>
 <?php endif; ?>
+<script defer src="/build/js/admin.min.js"></script>
 </body>
 </html>

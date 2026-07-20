@@ -1,0 +1,61 @@
+/* =========================================================
+   blog-revisiones-index
+   Migrado desde el <style> embebido de views/blog/revisiones/index.php
+========================================================= */
+body[data-page="blog-revisiones-index"] {
+    /* Diferenciación de secciones */
+    .admin-panel--articulos { border-top:3px solid #4267ac; }
+    .admin-panel--noticias  { border-top:3px solid #f59e0b; }
+    .admin-panel__header--articulos { background:#f0f4fc; }
+    .admin-panel__header--noticias  { background:#fffbeb; }
+
+    /* Layout de cada elemento */
+    .revision-list { display:flex; flex-direction:column; gap:1px; }
+    .revision-item {
+        display:grid; grid-template-columns:120px 1fr auto; gap:18px;
+        padding:20px 24px; border-bottom:1px solid #F1F5F9;
+        align-items:center; transition:background .15s;
+    }
+    .revision-item:last-child { border-bottom:none; }
+    .revision-item:hover { background:#fafbfc; }
+    .revision-item__cta { display:flex; align-items:center; justify-content:flex-end; }
+
+    /* Portada */
+    .revision-item__portada {
+        width:120px; height:80px; border-radius:10px; overflow:hidden;
+        flex-shrink:0; background:#F1F5F9;
+    }
+    .revision-item__portada img { width:100%; height:100%; object-fit:cover; display:block; }
+
+    /* Metadatos */
+    .revision-item__meta { display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
+    .revision-item__avatar { width:24px; height:24px; border-radius:50%; object-fit:cover; }
+    .revision-item__autor { font-size:.84rem; font-weight:700; color:#4267ac; }
+    .revision-item__fecha { font-size:.76rem; color:#94A3B8; }
+    .revision-item__titulo { font-weight:700; font-size:1.05rem; color:#0F172A; margin-bottom:4px; line-height:1.35; }
+    .revision-item__extracto { font-size:.82rem; color:#475569; margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+    /* Botón revisar */
+    .revision-item__read {
+        font-size:.84rem; font-weight:700; color:#fff; background:var(--col-bilbao);
+        text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+        padding:9px 20px; border-radius:99px; min-width:100px; white-space:nowrap;
+        box-shadow:0 2px 8px rgba(66,103,172,.3); transition:background .15s, transform .15s, box-shadow .15s;
+    }
+    .revision-item__read:hover { background:var(--col-herencia); transform:translateY(-1px); box-shadow:0 4px 12px rgba(66,103,172,.4); }
+
+    /* Alerta de estado */
+    .admin-alert {
+        display:flex; align-items:center; gap:10px;
+        padding:12px 18px; border-radius:10px; margin-bottom:20px;
+        font-size:.88rem; font-weight:600;
+    }
+    .admin-alert--success { background:#ecfdf5; color:#065f46; border:1px solid #6ee7b7; }
+    .admin-alert--info    { background:#eff6ff; color:#1e40af; border:1px solid #93c5fd; }
+
+    @media (max-width:768px) {
+        .revision-item { grid-template-columns:80px 1fr; }
+        .revision-item__portada { width:80px; height:60px; }
+        .revision-item__cta { grid-column:1/-1; justify-content:flex-start; }
+    }
+}

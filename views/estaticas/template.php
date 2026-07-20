@@ -1,3 +1,4 @@
+<?php $paginaVista = 'estaticas-template'; ?>
 <!DOCTYPE html>
 <html lang="es-MX">
 <head>
@@ -14,12 +15,6 @@
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8XVWCDM02P"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-8XVWCDM02P');
-    </script>
 
     <!-- Tipografía Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -1,0 +1,86 @@
+/* =========================================================
+   PANEL · HOME DE MÓDULOS (/dashboard)
+========================================================= */
+/* ── Hero claro con tile de fecha ── */
+.mh-hero {
+    display:flex; align-items:center; justify-content:space-between; gap:24px;
+    background:#fff; border:1px solid #eef2f7; border-radius:22px;
+    padding:26px 30px; margin-bottom:26px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05), 0 12px 30px -22px rgba(11,31,61,.4);
+    position:relative; overflow:hidden;
+}
+.mh-hero::after { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle,rgba(66,103,172,.06),transparent 70%); }
+.mh-hero__left { display:flex; align-items:center; gap:22px; position:relative; z-index:1; }
+.mh-datetile {
+    width:118px; height:118px; border-radius:24px; flex-shrink:0;
+    background:linear-gradient(150deg,#2e4b8a,#4267ac); color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;
+    box-shadow:0 16px 32px -12px rgba(66,103,172,.65);
+}
+.mh-datetile__dow { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; opacity:.85; }
+.mh-datetile__d   { font-size:50px; font-weight:800; margin:4px 0; }
+.mh-datetile__mo  { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; opacity:.85; }
+.mh-hero__eyebrow { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#94A3B8; margin-bottom:5px; display:flex; align-items:center; gap:7px; }
+.mh-hero__title   { font-size:26px; font-weight:800; color:#0B1F3D; margin:0 0 5px; }
+.mh-hero__sub     { font-size:13.5px; color:#64748B; }
+.mh-hero__sub strong { color:#4267ac; }
+.mh-hero__alex    { width:120px; height:auto; position:relative; z-index:1; flex-shrink:0; filter:drop-shadow(0 12px 22px rgba(11,31,61,.28)); animation:mh-float 3.4s ease-in-out infinite; }
+@keyframes mh-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+.mh-today-banner { display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#fff1e6,#fff8f2); border:1px solid #ffd8b8; border-radius:14px; padding:13px 18px; margin-bottom:24px; }
+.mh-today-banner i { color:#fc6722; font-size:18px; }
+.mh-today-banner p { font-size:13.5px; color:#8a4b1f; margin:0; font-weight:600; }
+
+.mh-section-label { font-size:12px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:#94A3B8; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+
+/* ── Módulos (fondo de color completo, contenido en blanco) ── */
+.mh-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(285px,1fr)); gap:20px; margin-bottom:34px; }
+.mh-card {
+    position:relative; display:block; text-decoration:none; border-radius:18px;
+    padding:20px 22px; overflow:hidden; color:#fff;
+    box-shadow:0 14px 34px -18px rgba(11,31,61,.5);
+    transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s;
+}
+.mh-card::after { content:''; position:absolute; right:-34px; bottom:-34px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.12); transition:transform .3s ease; }
+.mh-card:hover { transform:translateY(-6px); box-shadow:0 28px 56px -22px rgba(11,31,61,.6); }
+.mh-card:hover::after { transform:scale(1.5); }
+.mh-card__num { position:absolute; top:18px; right:20px; font-size:28px; font-weight:800; color:rgba(255,255,255,.22); line-height:1; }
+.mh-card__icon { width:46px; height:46px; border-radius:13px; display:grid; place-items:center; font-size:18px; color:#fff; background:rgba(255,255,255,.18); margin-bottom:12px; }
+.mh-card__name { font-size:18px; font-weight:800; color:#fff; margin-bottom:4px; }
+.mh-card__desc { font-size:12.5px; color:rgba(255,255,255,.82); line-height:1.5; margin-bottom:12px; max-width:92%; }
+.mh-card__go   { font-size:13px; font-weight:700; color:#fff; display:inline-flex; align-items:center; gap:7px; }
+.mh-card__go i { transition:transform .2s; }
+.mh-card:hover .mh-card__go i { transform:translateX(5px); }
+.mh-card--blue   { background:linear-gradient(145deg,#2e4b8a 0%,#4267ac 100%); }
+.mh-card--amber  { background:linear-gradient(145deg,#b88200 0%,#f5b400 100%); }
+.mh-card--purple { background:linear-gradient(145deg,#6e0f61 0%,#aa2296 100%); }
+
+/* ── Calendario + cumpleaños ── */
+.mh-cal-row { display:grid; grid-template-columns:1.35fr 1fr; gap:20px; align-items:start; }
+.mh-panel { background:#fff; border:1px solid #eef2f7; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); overflow:hidden; display:flex; flex-direction:column; }
+.mh-panel__head { padding:20px 22px 4px; }
+.mh-panel__title{ font-size:14px; font-weight:800; color:#0B1F3D; display:flex; align-items:center; gap:8px; }
+.mh-panel__title i { color:#fc6722; }
+.mh-panel__sub  { font-size:11px; color:#94A3B8; margin-top:3px; }
+.mh-panel__body { padding:18px 22px 20px; }
+.mh-bday-list { display:flex; flex-direction:column; gap:6px; min-height:298px; }
+.mh-bday-item { display:flex; align-items:center; gap:12px; padding:9px 10px; border-radius:12px; transition:background .15s; }
+.mh-bday-item:hover { background:#f8fafc; }
+.mh-bday-item.is-today { background:#fff1e6; }
+.mh-bday-item.is-hidden { display:none; }
+.mh-bday-ava { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#fc6722,#f5b400); color:#fff; font-weight:800; display:grid; place-items:center; font-size:15px; flex-shrink:0; overflow:hidden; }
+.mh-bday-ava img { width:100%; height:100%; object-fit:cover; }
+.mh-bday-name { font-size:13px; font-weight:700; color:#1E293B; }
+.mh-bday-date { font-size:11px; color:#94A3B8; }
+.mh-bday-chip { margin-left:auto; font-size:11px; font-weight:700; color:#fc6722; background:#fff1e6; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+.mh-bday-chip--today { background:#fc6722; color:#fff; }
+.mh-pager { display:flex; align-items:center; justify-content:space-between; padding:12px 22px 18px; border-top:1px solid #f1f5f9; margin-top:auto; }
+.mh-pager__info { font-size:12px; color:#94A3B8; font-weight:600; }
+.mh-pager__btns { display:flex; gap:6px; }
+.mh-pager__btn { width:32px; height:32px; border-radius:8px; border:1px solid #e2e8f0; background:#fff; color:#64748b; cursor:pointer; display:grid; place-items:center; font-size:12px; transition:.15s; }
+.mh-pager__btn:hover:not(:disabled) { background:#f1f5f9; color:#0B1F3D; }
+.mh-pager__btn:disabled { opacity:.4; cursor:default; }
+.mh-empty { text-align:center; padding:30px 16px; color:#94A3B8; font-size:13px; }
+
+@media (max-width:1050px){ .mh-cal-row { grid-template-columns:1fr; } }
+@media (max-width:640px){ .mh-hero{flex-direction:column; align-items:flex-start;} .mh-hero__alex{align-self:center;} }

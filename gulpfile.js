@@ -20,7 +20,9 @@ const rename = require('gulp-rename');
 
 const paths = {
     scss:            'src/scss/**/*.scss',
-    js:              'src/js/**/*.js',
+    // Dos bundles: público (layout.php) y panel de administración (layout-admin.php)
+    js:              'src/js/public/**/*.js',
+    jsAdmin:         'src/js/admin/**/*.js',
     imagenes:        'src/img/**/*',
     // Imágenes subidas dinámicamente por PHP
     uploadsBlog:     'public/build/assets/blog/**/*.{jpg,jpeg,png}',
@@ -48,6 +50,17 @@ function javascript() {
     return src(paths.js)
         .pipe(sourcemaps.init())
         .pipe(concat('bundle.js'))
+        .pipe(terser())
+        .pipe(sourcemaps.write('.'))
+        .pipe(rename({ suffix: '.min' }))
+        .pipe(dest('./public/build/js'));
+}
+
+/* Bundle del panel de administración (se carga en layout-admin.php) */
+function javascriptAdmin() {
+    return src(paths.jsAdmin)
+        .pipe(sourcemaps.init())
+        .pipe(concat('admin.js'))
         .pipe(terser())
         .pipe(sourcemaps.write('.'))
         .pipe(rename({ suffix: '.min' }))
@@ -105,6 +118,7 @@ const optimizarImagenes = series(optimizarUploads, uploadsAWebp);
 function dev(done) {
     watch(paths.scss, css);
     watch(paths.js, javascript);
+    watch(paths.jsAdmin, javascriptAdmin);
     watch(paths.imagenes, imagenes);
     watch(paths.imagenes, versionWebp);
     watch(paths.imagenes, versionAvif);
@@ -115,12 +129,13 @@ function dev(done) {
 
 exports.css              = css;
 exports.cssProd          = cssProd;
-exports.js               = javascript;
+exports.js               = parallel(javascript, javascriptAdmin);
+exports.jsAdmin          = javascriptAdmin;
 exports.imagenes         = imagenes;
 exports.versionWebp      = versionWebp;
 exports.versionAvif      = versionAvif;
 exports.staticWebp       = staticAssetsWebp;   // npx gulp staticWebp
 exports.staticAvif       = staticAssetsAvif;   // npx gulp staticAvif
 exports.optimizar        = optimizarImagenes;  // npx gulp optimizar
-exports.dev              = parallel(css, imagenes, versionWebp, versionAvif, javascript, dev);
-exports.build            = parallel(cssProd, imagenes, versionWebp, versionAvif, staticAssetsWebp, staticAssetsAvif, javascript);
+exports.dev              = parallel(css, imagenes, versionWebp, versionAvif, javascript, javascriptAdmin, dev);
+exports.build            = parallel(cssProd, imagenes, versionWebp, versionAvif, staticAssetsWebp, staticAssetsAvif, javascript, javascriptAdmin);

@@ -1,0 +1,9 @@
+/* =========================================================
+   blog-perfil
+   Migrado desde el <style> embebido de views/blog/perfil.php
+========================================================= */
+body[data-page="blog-perfil"] {
+    .admin-form__eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;padding:6px;line-height:1;font-size:.9rem;}
+    .admin-form__eye-btn:hover{color:#4267ac;}
+    .sp-seg{flex:1;height:4px;border-radius:4px;background:#E2E8F0;transition:background .2s;}
+}

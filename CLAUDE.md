@@ -54,6 +54,26 @@ Conexión MySQLi en `includes/database.php`, instancia global via `ActiveRecord:
 **Tablas del blog:** `articulos`, `categorias`, `tags`, `articulo_tags`, `usuarios` (UsuarioBlog)  
 **Tablas del sitio:** `usuarios` (Usuario — registro/auth público)
 
+**Tabla `usuarios` (panel) — columnas clave:** `rol ENUM('administrador','usuario')`,
+`modulos VARCHAR(255)` (CSV de módulos para rol `usuario`, ej. `redaccion,suplencias`; NULL para admin),
+`fecha_nacimiento DATE` (calendario de cumpleaños). La `fecha_nacimiento` **no** está en `$columnasDB`
+del modelo: se persiste con `UsuarioBlog::guardarFechaNacimiento()` para poder guardar `NULL` real
+(el ActiveRecord base envuelve todos los valores en comillas y no soporta NULL). `UsuarioBlog::buscar()`
+alimenta el autocompletado de colaboradores.
+
+**Tabla `suplencias`:** `fecha`, `ausente_id`/`suplente_id` (FK a `usuarios`, ON DELETE SET NULL),
+`grupo`, `materia`, `motivo`, `notas`, `estado ENUM('pendiente','confirmada','cancelada')`. El modelo
+`Suplencia` **sobrescribe `guardar()`** con soporte de NULL real (suplente sin asignar, FKs nulas).
+
+**ORM · cuidado con NULL y aliases:** `ActiveRecord::crearObjeto()` solo copia columnas que sean
+**propiedades declaradas** — cualquier alias de SQL (`MONTH() AS mes`, JOINs `ausente_nombre`, etc.) debe
+declararse como `public $prop` en el modelo o se pierde. Y como el ORM base envuelve todo en comillas, las
+columnas que necesiten `NULL` real (DATE, FKs) requieren persistencia manual (ver overrides arriba).
+
+**SQL:** todo el esquema y los datos viven en **3 archivos** (`database/database.sql` = estructura,
+`database/development/development.sql` = datos de prueba, `database/deploy/deploy.sql` = producción). No
+hay carpeta de migraciones: para actualizar una BD existente se re-ejecutan estos archivos.
+
 ### Estructura de archivos SQL (`database/`)
 
 ```
@@ -70,12 +90,16 @@ Ejecutar siempre `database.sql` primero, luego el archivo de datos según el ent
 
 ### Cuentas del seed
 
-| Email | Contraseña | Rol |
-|-------|-----------|-----|
-| `admin@bilbao.edu.mx` | `Tlalmimilolpan39%` | administrador |
-| `alexander.oliva@bilbao.edu.mx` | `ColegioBilbao13` | administrador |
-| `maria.gonzalez@bilbao.edu.mx` | `EditorBilbao25` | editor (artículo/noticia en revisión) |
-| `carlos.ramirez@bilbao.edu.mx` | `EditorBilbao25` | editor (artículo/noticia rechazado con feedback) |
+| Email | Contraseña | Rol | Módulos |
+|-------|-----------|-----|---------|
+| `admin@bilbao.edu.mx` | `Tlalmimilolpan39%` | administrador | todos (implícito) |
+| `alexander.oliva@bilbao.edu.mx` | `ColegioBilbao13` | administrador | todos (implícito) |
+| `maria.gonzalez@bilbao.edu.mx` | `EditorBilbao25` | usuario | `redaccion` (artículo/noticia en revisión) |
+| `carlos.ramirez@bilbao.edu.mx` | `EditorBilbao25` | usuario | `redaccion` (artículo/noticia rechazado con feedback) |
+
+> **Roles:** solo existen `administrador` (**Admin** en la UI, acceso a todos los módulos) y
+> `usuario` (**Usuario**, acceso solo a los módulos listados en la columna `modulos`). El antiguo rol
+> `editor` fue renombrado a `usuario`; conserva el mismo flujo de revisión editorial en Redacción.
 
 ### Paleta de colores para categorías
 
@@ -97,13 +121,63 @@ Los selectores de color en `views/blog/categorias/crear.php`, `editar.php`, `vie
 - **No editar** nada dentro de `public/build/` directamente; se sobreescribe con Gulp
 - Comando de watch: `npm run dev`
 
+### ⚠️ Nada de `<style>` ni `<script>` embebidos en las vistas
+
+Todo el CSS y JS vive en `src/`. Las vistas solo llevan HTML/PHP. Estructura:
+
+```
+src/scss/
+├── base/         tokens, mixins, tipografía
+├── estaticas/    componentes y páginas públicas
+├── publico/      estilos migrados de vistas públicas (1 partial por vista)
+└── admin/        estilos migrados del panel (1 partial por vista)
+
+src/js/
+├── public/  → public/build/js/bundle.min.js   (lo carga views/templates/footer.php)
+└── admin/   → public/build/js/admin.min.js    (lo carga views/layout-admin.php)
+```
+
+**Cómo se aísla cada página.** Cada vista declara su identificador en la primera línea:
+
+```php
+<?php $paginaVista = 'blog-usuarios-index'; ?>
+```
+
+Los layouts lo emiten como `<body data-page="blog-usuarios-index">`. Con eso:
+
+- **CSS:** el partial correspondiente se envuelve en `body[data-page="..."] { … }`, así los estilos de una
+  vista no se filtran a otras (varias vistas reutilizan nombres como `.wysiwyg-editor` o `.at-wrap` con
+  valores distintos). Los `@keyframes` y `:root` quedan fuera del scope.
+- **JS:** cada módulo arranca con la guarda
+  `if (!document.body || document.body.dataset.page !== '...') return;`
+  Los módulos de partials compartidos (`_sidebar`, `_form`, `_bg`, `layout-admin`, `header`) **no** llevan
+  guarda de página: se activan por existencia de sus elementos, porque se usan en varias vistas.
+
+**Reglas al crear una vista nueva:** añade `$paginaVista`, crea `src/scss/<admin|publico>/_<nombre>.scss`
+(envuelto en `body[data-page="<nombre>"]`), regístralo en el `_index.scss` de esa carpeta, y pon el JS en
+`src/js/<admin|public>/<nombre>.js` con su guarda.
+
+**Datos de PHP hacia JS:** nunca interpolar PHP dentro de JS. Usar `data-*` en el elemento
+(`data-events`, `data-titulo-ref`) o una isla JSON
+(`<script type="application/json" id="dashboardChartData">` en `dashboard.php`) y leerla con `JSON.parse`.
+
+**Funciones usadas por `onclick=` inline** (p. ej. `cerrarModalEliminar`, `togglePassword`) deben
+exponerse con `window.miFuncion = miFuncion;` dentro del módulo, o dejarán de existir al quedar
+encapsuladas en el bundle.
+
+> Única excepción: el guard anti-FOUC de i18n en el `<head>` de `views/layout.php` sigue inline
+> porque debe ejecutarse antes de pintar.
+
 ### Imágenes subidas por PHP
 
 Los uploads de blog, noticias y avatares van a `public/build/assets/{blog,noticias,usuarios}/`. Para optimizar y generar versiones WebP:
 
 ```bash
 npx gulp optimizar   # optimiza todas las imágenes subidas + genera .webp
-npx gulp build       # CSS minificado + JS + imágenes de src/ para producción
+npx gulp build       # CSS minificado + ambos bundles JS + imágenes de src/ para producción
+npx gulp css         # solo CSS
+npx gulp js          # ambos bundles (público + admin)
+npx gulp jsAdmin     # solo el bundle del panel
 ```
 
 El watcher `npm run dev` también observa los directorios de uploads y los optimiza al detectar nuevos archivos.
@@ -116,7 +190,8 @@ El watcher `npm run dev` también observa los directorios de uploads y los optim
 - **PHP:** snake_case para variables y métodos; PascalCase para clases
 - **Vistas:** archivos `.php` simples; datos pasados como array desde el controller
 - **Validaciones:** definidas en cada Model como método `validar()`; errores en `$this->errores`
-- **Sesiones:** autenticación del blog en `$_SESSION['blog']`; sitio público en `$_SESSION['usuario']`
+- **Sesiones:** autenticación del panel en `$_SESSION['blog_usuario']` (`['id','nombre','rol','avatar','modulos']`); sitio público en `$_SESSION['usuario']`
+- **i18n (ES/EN):** el texto del chrome (header/footer) usa atributos `data-i18n` / `data-i18n-attr`. Toda etiqueta nueva necesita su clave en el diccionario `DICT.en` de `src/js/i18n.js`, o el modo EN cae a español y emite `[i18n] missing key` en consola. El contenido de páginas nuevas puede ir sin `data-i18n` (no genera warning). Recompilar tras editar (`npx gulp js`).
 
 ---
 
@@ -167,9 +242,59 @@ Variables críticas: `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `HOST`, `EMAIL_
 
 Las vistas públicas de noticias y blog tienen sus propios `<head>` con OG tags completos.
 
-## Rutas del panel (protección)
+## Panel de administración — módulos
 
-Todas las rutas bajo `/dashboard/*` y `/blog/articulos*`, `/blog/categorias*`, `/blog/usuarios*` requieren sesión activa. La guard `requireAuth()` en `BlogController` redirige a `/` si `$_SESSION['blog_usuario']` está vacío. `requireAdmin()` es para operaciones destructivas; los editores pueden crear/editar pero no eliminar usuarios ni categorías.
+El panel está organizado en **módulos**. Tras iniciar sesión se llega a un **home de módulos**:
+
+| Ruta | Método | Módulo / rol |
+|------|--------|--------------|
+| `/dashboard` | `BlogController::home` | Home: tarjetas de módulos permitidos + widget "Próximos cumpleaños" |
+| `/dashboard/redaccion` | `BlogController::redaccion` | **Redacción** (dashboard analítico; requiere módulo `redaccion`) |
+| `/dashboard/articulos*`, `/dashboard/categorias*`, `/dashboard/noticias*`, `/dashboard/revisiones`, `/dashboard/testimoniales`, `/dashboard/autores`, `/dashboard/notificaciones` | varios | Pertenecen a **Redacción** |
+| `/dashboard/suplencias*` | `BlogController::suplencias`, `crearSuplencia`, `editarSuplencia`, `eliminarSuplencia` | **Suplencias** — CRUD completo (requiere módulo `suplencias`) |
+| `/dashboard/suplencias/buscar-colaboradores` | `BlogController::buscarColaboradores` | Endpoint JSON de autocompletado (ausente/suplente desde `usuarios`) |
+| `/dashboard/usuarios*` | varios | **Usuarios** (requiere módulo `usuarios`) |
+| `/dashboard/usuarios/cumpleanos` | `BlogController::cumpleanos` | Calendario de cumpleaños (módulo Usuarios) |
+
+**Módulo Suplencias:** modelo `Suplencia` (`listar($filtros)` con JOIN a usuarios, `conteos()`), vistas en
+`views/blog/suplencias/` (`index` con búsqueda inteligente en vivo + filtros; `_form.php` compartido por
+`crear`/`editar` con **pickers autocompletados** que consultan el endpoint JSON). El home `/dashboard`
+muestra un **calendario interactivo** (`.bilbao-cal`) junto a los próximos cumpleaños.
+
+### Protección y permisos
+
+- `requireAuth()` redirige a `/` si `$_SESSION['blog_usuario']` está vacío. La sesión guarda
+  `['id','nombre','rol','avatar','modulos']`.
+- `puede(string $modulo)` → `true` si el rol es `administrador`, o si el módulo está en el CSV `modulos`.
+- `requireModulo(string $modulo)` → guard de entrada a cada módulo; redirige a `/dashboard` si no tiene acceso.
+- `requireAdmin()` sigue reservado a operaciones sensibles/destructivas (crear/eliminar usuarios,
+  eliminar categorías, aprobar/rechazar contenido). Los usuarios con módulo `redaccion` conservan el
+  flujo borrador → revisión → aprobación (antes rol `editor`; en el código la variable `$esEditor`
+  significa "no es admin").
+- El **sidebar** (`views/blog/_sidebar.php`) es contextual: detecta el módulo activo por la URL y
+  muestra solo la navegación de ese módulo + los módulos permitidos en el home. Un botón **Inicio**
+  (icono casa) vuelve al home de módulos. El **perfil** y **Ver sitio público** ya no están en el
+  sidebar: viven en el topbar (`_topbar-avatar.php` → avatar = perfil, botón flecha = sitio público).
+- **Breadcrumb global:** `_sidebar.php` construye la ruta (`Inicio › Módulo › Subpágina`) desde la URL y
+  el JS la mueve al `.admin-topbar__left` (ocultando el `.admin-topbar__title`). Vive en un solo lugar.
+- **⚠️ Clases `db-stat`/`db-table`/`db-badge`/`db-card` son inline SOLO en `views/blog/dashboard.php`**
+  (no están en el CSS compilado). No reutilizarlas en otras vistas del panel: cada vista define sus
+  estilos con un `<style>` propio (ver `views/blog/suplencias/index.php` como referencia).
+
+### Comunidad — visual (Three.js + GSAP)
+
+Las páginas de Comunidad usan un fondo Three.js reutilizable (`views/estaticas/comunidad/_bg.php`,
+partículas en colores institucionales, solo en el hero) inyectando `three.min.js` vía `$extra_head` desde
+el `EstaticasController`, y animaciones GSAP (ya global en `header.php`). Todo respeta
+`prefers-reduced-motion` y degrada sin WebGL. **Colaboradores** es una pantalla única `100vh` con CTA a
+`/login`. El componente calendario `.bilbao-cal` se comparte entre Familias (eventos) y el panel (cumpleaños).
+
+### Comunidad (público)
+
+`views/estaticas/comunidad/`: **Estudiantes** (embeds oficiales de Instagram), **Familias** (avisos de
+prueba + calendario interactivo infantil con mascotas Alex), **Colaboradores** (landing de acceso al
+panel, enlaza a `/login`). *Exalumnos fue eliminado.* El calendario usa el componente reutilizable
+`.bilbao-cal` (definido en `_comunidad-familias.scss`, disponible también en el panel para cumpleaños).
 
 ## Comandos frecuentes
 

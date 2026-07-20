@@ -10,6 +10,7 @@ use Model\Noticia;
 use Model\CategoriaNoticia;
 use Model\Notificacion;
 use Model\Testimonial;
+use Model\Suplencia;
 
 class BlogController {
 
@@ -80,6 +81,30 @@ class BlogController {
         }
     }
 
+    /** ¿El usuario en sesión puede acceder al módulo indicado? Admin = todos. */
+    private static function puede(string $modulo): bool {
+        $u = $_SESSION['blog_usuario'] ?? null;
+        if (!$u) return false;
+        if (($u['rol'] ?? '') === 'administrador') return true;
+        $lista = array_filter(array_map('trim', explode(',', (string) ($u['modulos'] ?? ''))));
+        return \in_array($modulo, $lista, true);
+    }
+
+    /** Guard de módulo: redirige al home de módulos si no tiene acceso. */
+    private static function requireModulo(string $modulo): void {
+        self::requireAuth();
+        if (!self::puede($modulo)) {
+            header('Location: /dashboard');
+            exit;
+        }
+    }
+
+    /** Lista de módulos disponibles para el usuario en sesión (para el home/sidebar). */
+    private static function modulosDisponibles(): array {
+        $todos = ['redaccion', 'suplencias', 'usuarios'];
+        return array_values(array_filter($todos, fn($m) => self::puede($m)));
+    }
+
     // ── ADMIN ──────────────────────────────────────────────────────────────────
 
     public static function login(Router $router) {
@@ -106,10 +131,11 @@ class BlogController {
                 if ($usuario && password_verify($password, $usuario->password)) {
                     UsuarioBlog::registrarAcceso($usuario->id);
                     $_SESSION['blog_usuario'] = [
-                        'id'     => $usuario->id,
-                        'nombre' => $usuario->nombre,
-                        'rol'    => $usuario->rol,
-                        'avatar' => $usuario->avatar ?? '',
+                        'id'      => $usuario->id,
+                        'nombre'  => $usuario->nombre,
+                        'rol'     => $usuario->rol,
+                        'avatar'  => $usuario->avatar ?? '',
+                        'modulos' => $usuario->modulos ?? '',
                     ];
                     header('Location: /dashboard');
                     exit;
@@ -135,8 +161,22 @@ class BlogController {
         exit;
     }
 
-    public static function dashboard(Router $router) {
+    // ── HOME DE MÓDULOS ────────────────────────────────────────────────────────
+    public static function home(Router $router) {
         self::requireAuth();
+
+        $verUsuarios = self::puede('usuarios');
+        $router->renderAdmin('blog/home', [
+            'titulo'        => 'Inicio',
+            'modulos'       => self::modulosDisponibles(),
+            'cumpleanos'    => $verUsuarios ? UsuarioBlog::proximosCumpleanos(6) : [],
+            'cumpleanosAll' => $verUsuarios ? UsuarioBlog::conCumpleanos() : [],
+        ]);
+    }
+
+    // ── MÓDULO REDACCIÓN (dashboard analítico) ──────────────────────────────────
+    public static function redaccion(Router $router) {
+        self::requireModulo('redaccion');
         // Artículos
         $publicados  = Articulo::contarPorEstado('publicado');
         $borradores  = Articulo::contarPorEstado('borrador');
@@ -156,7 +196,7 @@ class BlogController {
         $nPorCat     = CategoriaNoticia::noticiasPorCategoria();
 
         $router->renderAdmin('blog/dashboard', [
-            'titulo'      => 'Dashboard',
+            'titulo'      => 'Redacción',
             'publicados'  => $publicados,
             'borradores'  => $borradores,
             'programados' => $programados,
@@ -174,6 +214,95 @@ class BlogController {
             'nPorMes'     => $nPorMes,
             'nPorCat'     => $nPorCat,
         ]);
+    }
+
+    // ── MÓDULO SUPLENCIAS (CRUD) ────────────────────────────────────────────────
+    public static function suplencias(Router $router) {
+        self::requireModulo('suplencias');
+        $filtros = [
+            'q'      => trim($_GET['q'] ?? ''),
+            'estado' => $_GET['estado'] ?? '',
+            'desde'  => $_GET['desde'] ?? '',
+            'hasta'  => $_GET['hasta'] ?? '',
+        ];
+        $router->renderAdmin('blog/suplencias/index', [
+            'titulo'      => 'Suplencias',
+            'suplencias'  => Suplencia::listar($filtros),
+            'conteos'     => Suplencia::conteos(),
+            'filtros'     => $filtros,
+        ]);
+    }
+
+    /** Endpoint JSON: autocompletado de colaboradores (ausente/suplente). */
+    public static function buscarColaboradores(Router $router) {
+        self::requireModulo('suplencias');
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(UsuarioBlog::buscar($_GET['q'] ?? '', 8));
+        exit;
+    }
+
+    public static function crearSuplencia(Router $router) {
+        self::requireModulo('suplencias');
+        $suplencia = new Suplencia();
+        $alertas   = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $suplencia->sincronizar($_POST);
+            $alertas = $suplencia->validar();
+            if (empty($alertas['error'])) {
+                $r = $suplencia->guardar();
+                if ($r['resultado']) {
+                    header('Location: /dashboard/suplencias?success=1');
+                    exit;
+                }
+                Suplencia::setAlerta('error', 'No se pudo guardar la suplencia. Intenta de nuevo.');
+                $alertas = Suplencia::getAlertas();
+            }
+        }
+
+        $router->renderAdmin('blog/suplencias/crear', [
+            'titulo'    => 'Nueva suplencia',
+            'suplencia' => $suplencia,
+            'alertas'   => $alertas,
+        ]);
+    }
+
+    public static function editarSuplencia(Router $router) {
+        self::requireModulo('suplencias');
+        $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+        $suplencia = Suplencia::encontrarConNombres($id);
+        if (!$suplencia) {
+            header('Location: /dashboard/suplencias');
+            exit;
+        }
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $suplencia->sincronizar($_POST);
+            $alertas = $suplencia->validar();
+            if (empty($alertas['error'])) {
+                $suplencia->guardar();
+                header('Location: /dashboard/suplencias?edited=1');
+                exit;
+            }
+        }
+
+        $router->renderAdmin('blog/suplencias/editar', [
+            'titulo'    => 'Editar suplencia',
+            'suplencia' => $suplencia,
+            'alertas'   => $alertas,
+        ]);
+    }
+
+    public static function eliminarSuplencia(Router $router) {
+        self::requireModulo('suplencias');
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = (int)($_POST['id'] ?? 0);
+            $s  = Suplencia::find($id);
+            if ($s) $s->eliminar();
+        }
+        header('Location: /dashboard/suplencias?deleted=1');
+        exit;
     }
 
     // ── AUTORES ────────────────────────────────────────────────────────────────
@@ -202,7 +331,7 @@ class BlogController {
         $usuario        = self::requireAuth();
         $estadosValidos = ['publicado', 'borrador', 'programado'];
         $estado    = in_array($_GET['estado'] ?? '', $estadosValidos, true) ? $_GET['estado'] : '';
-        $esEditor  = ($usuario['rol'] ?? '') === 'editor';
+        $esEditor  = ($usuario['rol'] ?? '') === 'usuario';
         $articulos = Articulo::allConDetalles($estado);
         $success   = isset($_GET['success']);
         $edited    = isset($_GET['edited']);
@@ -226,7 +355,7 @@ class BlogController {
         $usuarios   = UsuarioBlog::all();
         $alertas    = [];
 
-        $esEditor = ($usuario['rol'] ?? '') === 'editor';
+        $esEditor = ($usuario['rol'] ?? '') === 'usuario';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $articulo->sincronizar($_POST);
@@ -311,7 +440,7 @@ class BlogController {
             exit;
         }
 
-        $esEditor = ($usuario['rol'] ?? '') === 'editor';
+        $esEditor = ($usuario['rol'] ?? '') === 'usuario';
 
         $categorias  = Categoria::all();
         $usuarios    = UsuarioBlog::all();
@@ -736,8 +865,8 @@ class BlogController {
 
     public static function usuarios(Router $router) {
         $sesion = self::requireAuth();
-        // Los editores no ven la lista: van directo a su propio perfil
-        if (($sesion['rol'] ?? '') === 'editor') {
+        // Sin acceso al módulo Usuarios: van directo a su propio perfil
+        if (!self::puede('usuarios')) {
             header('Location: /dashboard/usuarios/editar?id=' . (int)$sesion['id']);
             exit;
         }
@@ -748,6 +877,14 @@ class BlogController {
             'titulo'   => 'Usuarios',
             'usuarios' => $usuarios,
             'success'  => $success,
+        ]);
+    }
+
+    public static function cumpleanos(Router $router) {
+        self::requireModulo('usuarios');
+        $router->renderAdmin('blog/usuarios/cumpleanos', [
+            'titulo'     => 'Cumpleaños',
+            'cumpleanos' => UsuarioBlog::conCumpleanos(),
         ]);
     }
 
@@ -794,6 +931,7 @@ class BlogController {
                         $resultado = $usuario->guardar();
 
                         if ($resultado['resultado']) {
+                            UsuarioBlog::guardarFechaNacimiento((int)($resultado['id'] ?? 0), $usuario->fecha_nacimiento);
                             header('Location: /dashboard/usuarios?success=1');
                             exit;
                         }
@@ -813,7 +951,7 @@ class BlogController {
 
     public static function editarUsuario(Router $router) {
         $sesion = self::requireAuth();
-        $esEditor = ($sesion['rol'] ?? '') === 'editor';
+        $esEditor = ($sesion['rol'] ?? '') === 'usuario';
 
         $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 
@@ -844,7 +982,7 @@ class BlogController {
 
             // Editores no pueden cambiar su rol
             if ($esEditor) {
-                $usuario->rol = 'editor';
+                $usuario->rol = 'usuario';
             }
 
             $alertas = $usuario->validarEdicion();
@@ -892,6 +1030,7 @@ class BlogController {
 
                         if (empty($alertas['error'])) {
                             $usuario->guardar();
+                            UsuarioBlog::guardarFechaNacimiento((int)$usuario->id, $usuario->fecha_nacimiento);
                             $redirect = $esEditor
                                 ? '/dashboard/usuarios/editar?id=' . (int)$usuario->id . '&edited=1'
                                 : '/dashboard/usuarios?edited=1';
@@ -1147,7 +1286,7 @@ class BlogController {
         $usuario        = self::requireAuth();
         $estadosValidos = ['publicado', 'borrador', 'programado'];
         $estado   = in_array($_GET['estado'] ?? '', $estadosValidos, true) ? $_GET['estado'] : '';
-        $esEditor = ($usuario['rol'] ?? '') === 'editor';
+        $esEditor = ($usuario['rol'] ?? '') === 'usuario';
         $noticias = Noticia::allConDetalles($estado);
         $success  = isset($_GET['success']);
         $edited   = isset($_GET['edited']);
@@ -1165,7 +1304,7 @@ class BlogController {
 
     public static function crearNoticia(Router $router) {
         $usuario             = self::requireAuth();
-        $esEditor            = ($usuario['rol'] ?? '') === 'editor';
+        $esEditor            = ($usuario['rol'] ?? '') === 'usuario';
         $noticia             = new Noticia();
         $noticia->autor_id   = $usuario['id'] ?? null;
         $categorias = CategoriaNoticia::all();
@@ -1238,7 +1377,7 @@ class BlogController {
 
     public static function editarNoticia(Router $router) {
         $usuario  = self::requireAuth();
-        $esEditor = ($usuario['rol'] ?? '') === 'editor';
+        $esEditor = ($usuario['rol'] ?? '') === 'usuario';
         $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
         if (!$id) {
             header('Location: /dashboard/noticias');

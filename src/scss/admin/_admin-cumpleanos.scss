@@ -1,0 +1,19 @@
+/* =========================================================
+   PANEL · CALENDARIO DE CUMPLEAÑOS
+========================================================= */
+.cb-wrap { display:grid; grid-template-columns: 1.5fr 1fr; gap:22px; align-items:start; }
+.cb-side { background:#fff; border:1px solid #eef2f7; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); overflow:hidden; }
+.cb-side__head { padding:20px 22px 6px; }
+.cb-side__title{ font-size:14px; font-weight:800; color:#0B1F3D; display:flex; align-items:center; gap:8px; }
+.cb-side__title i { color:#fc6722; }
+.cb-side__sub  { font-size:11px; color:#94A3B8; margin-top:3px; }
+.cb-list { padding:12px 14px 18px; display:flex; flex-direction:column; gap:6px; max-height:520px; overflow-y:auto; }
+.cb-item { display:flex; align-items:center; gap:12px; padding:9px 10px; border-radius:12px; transition:background .15s; }
+.cb-item:hover { background:#f8fafc; }
+.cb-ava  { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#fc6722,#f5b400); color:#fff; font-weight:800; display:grid; place-items:center; font-size:16px; flex-shrink:0; overflow:hidden; }
+.cb-ava img { width:100%; height:100%; object-fit:cover; }
+.cb-name { font-size:13px; font-weight:700; color:#1E293B; }
+.cb-date { font-size:11px; color:#94A3B8; }
+.cb-chip { margin-left:auto; font-size:11px; font-weight:700; color:#fc6722; background:#fff1e6; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+.cb-empty{ text-align:center; padding:30px 16px; color:#94A3B8; font-size:13px; }
+@media (max-width:1000px){ .cb-wrap { grid-template-columns:1fr; } }

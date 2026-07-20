@@ -1,0 +1,8 @@
+/* =========================================================
+   blog-login
+   Migrado desde el <style> embebido de views/blog/login.php
+========================================================= */
+body[data-page="blog-login"] {
+    .admin-form__eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;padding:6px;line-height:1;font-size:.9rem;}
+    .admin-form__eye-btn:hover{color:#4267ac;}
+}

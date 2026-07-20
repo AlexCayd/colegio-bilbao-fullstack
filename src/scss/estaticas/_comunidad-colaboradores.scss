@@ -1,0 +1,78 @@
+/* =========================================================
+   COMUNIDAD · COLABORADORES  (acceso al panel)
+   Pantalla única: llena el alto visible bajo el header fijo.
+========================================================= */
+
+.colab {
+    /* Compensa el header fijo igual que el resto de páginas (.comunidad-est, .fam).
+       Con padding en el contenedor —y no margin en el hijo— se evita el colapso de
+       márgenes que dejaba una banda del fondo del body bajo el header. */
+    padding-top: var(--header-height);
+
+    &__stage {
+        position: relative;
+        /* Ocupa exactamente el alto visible por debajo del header fijo,
+           así el centro del contenedor coincide con el centro de lo que se ve. */
+        min-height: calc(100vh - var(--header-height));
+        min-height: calc(100svh - var(--header-height));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* El padding inferior extra sube ópticamente el contenido (sin usar transform,
+           para no pelearse con la animación de GSAP). */
+        padding: 24px 24px calc(24px + 6vh);
+        background: radial-gradient(120% 120% at 50% 0%, #14468c 0%, #0a1c3c 55%, #060f24 100%);
+        overflow: hidden;
+    }
+
+    .comunidad-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    &__inner {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    &__title {
+        font-size: clamp(3rem, 8vw, 6rem);
+        font-weight: 900;
+        letter-spacing: -1px;
+        line-height: 1.05;
+        margin-bottom: 40px;
+    }
+
+    &__cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 17px 34px;
+        border-radius: 100px;
+        background: #fff;
+        color: var(--col-bilbao);
+        font-size: 1.05rem;
+        font-weight: 800;
+        text-decoration: none;
+        box-shadow: 0 16px 34px -12px rgba(0, 0, 0, .55);
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+
+        i { transition: transform .2s ease; }
+
+        &:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 24px 48px -14px rgba(0, 0, 0, .65);
+            background: #eef4ff;
+        }
+        &:hover i { transform: translateX(4px); }
+    }
+}

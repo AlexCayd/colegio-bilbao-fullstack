@@ -110,7 +110,7 @@ $router->get('/admisiones/contacto', [EstaticasController::class, 'contacto']);
 // Comunidad
 $router->get('/comunidad/estudiantes', [EstaticasController::class, 'estudiantes']);
 $router->get('/comunidad/familias', [EstaticasController::class, 'familias']);
-$router->get('/comunidad/exalumnos', [EstaticasController::class, 'exalumnos']);
+$router->get('/comunidad/colaboradores', [EstaticasController::class, 'colaboradores']);
 
 // Voces Bilbao — Noticias
 $router->get('/noticias', [EstaticasController::class, 'noticias']);
@@ -157,8 +157,18 @@ $router->get('/login', [BlogController::class, 'login']);
 $router->post('/login', [BlogController::class, 'login']);
 $router->post('/logout', [BlogController::class, 'logout']);
 
-// Admin — Dashboard
-$router->get('/dashboard', [BlogController::class, 'dashboard']);
+// Admin — Home de módulos + módulos
+$router->get('/dashboard', [BlogController::class, 'home']);
+$router->get('/dashboard/redaccion', [BlogController::class, 'redaccion']);
+
+// Admin — Módulo Suplencias
+$router->get('/dashboard/suplencias', [BlogController::class, 'suplencias']);
+$router->get('/dashboard/suplencias/crear', [BlogController::class, 'crearSuplencia']);
+$router->post('/dashboard/suplencias/crear', [BlogController::class, 'crearSuplencia']);
+$router->get('/dashboard/suplencias/editar', [BlogController::class, 'editarSuplencia']);
+$router->post('/dashboard/suplencias/editar', [BlogController::class, 'editarSuplencia']);
+$router->post('/dashboard/suplencias/eliminar', [BlogController::class, 'eliminarSuplencia']);
+$router->get('/dashboard/suplencias/buscar-colaboradores', [BlogController::class, 'buscarColaboradores']);
 
 // Admin — Artículos
 $router->get('/dashboard/articulos', [BlogController::class, 'articulos']);
@@ -174,6 +184,7 @@ $router->post('/dashboard/articulos/like', [BlogController::class, 'likeArticulo
 
 // Admin — Usuarios
 $router->get('/dashboard/usuarios', [BlogController::class, 'usuarios']);
+$router->get('/dashboard/usuarios/cumpleanos', [BlogController::class, 'cumpleanos']);
 $router->get('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario']);
 $router->post('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario']);
 $router->get('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);

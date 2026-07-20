@@ -1,2 +1,5 @@
 @use 'base';
 @use 'estaticas';
+// Estilos migrados desde los <style> embebidos de las vistas
+@use 'publico';
+@use 'admin';

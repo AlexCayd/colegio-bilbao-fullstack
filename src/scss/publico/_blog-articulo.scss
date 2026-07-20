@@ -1,0 +1,10 @@
+/* =========================================================
+   blog-articulo
+   Migrado desde el <style> embebido de views/blog/articulo.php
+========================================================= */
+body[data-page="blog-articulo"] {
+    .art-share{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;}
+    .art-share .nd-share-btn{background:#F1F5F9;color:#374C69;border-color:#E2E8F0;}
+    .art-share .nd-share-btn:hover{background:#E2E8F0;border-color:#CBD5E0;transform:translateY(-1px);}
+    @media(max-width:600px){.art-share{margin-left:0;width:100%;}}
+}

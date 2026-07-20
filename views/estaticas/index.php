@@ -181,6 +181,48 @@
 
 
     <!-- ================================================
+         3b. SOMOS COMUNIDAD  (banda con contraste)
+    ================================================ -->
+    <section class="lnd-comunidad">
+        <div class="lnd-comunidad__inner">
+            <div class="lnd-comunidad__intro" data-reveal>
+                <span class="lnd-comunidad__eyebrow" data-i18n="home.comunidad.eyebrow">Somos comunidad</span>
+                <h2 class="lnd-comunidad__title" data-i18n="home.comunidad.title">Encuentra tu lugar en Bilbao</h2>
+                <p class="lnd-comunidad__desc" data-i18n="home.comunidad.subtitle">Cada miembro tiene su espacio. Explora el que es para ti.</p>
+                <img class="lnd-comunidad__mascot" src="/build/assets/img/alex/bby-alex-saluda.png" alt="" loading="lazy">
+            </div>
+
+            <div class="lnd-comunidad__list" data-reveal>
+                <a href="/comunidad/estudiantes" class="lnd-com-row lnd-com-row--blue">
+                    <span class="lnd-com-row__icon"><i class="fa-solid fa-graduation-cap"></i></span>
+                    <span class="lnd-com-row__text">
+                        <span class="lnd-com-row__title" data-i18n="home.comunidad.estudiantes.title">Estudiantes</span>
+                        <span class="lnd-com-row__desc" data-i18n="home.comunidad.estudiantes.desc">Proyectos, deportes y la vida diaria en nuestras redes.</span>
+                    </span>
+                    <span class="lnd-com-row__arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                </a>
+                <a href="/comunidad/familias" class="lnd-com-row lnd-com-row--sky">
+                    <span class="lnd-com-row__icon"><i class="fa-solid fa-people-roof"></i></span>
+                    <span class="lnd-com-row__text">
+                        <span class="lnd-com-row__title" data-i18n="home.comunidad.familias.title">Familias</span>
+                        <span class="lnd-com-row__desc" data-i18n="home.comunidad.familias.desc">Avisos y calendario escolar para no perderte de nada.</span>
+                    </span>
+                    <span class="lnd-com-row__arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                </a>
+                <a href="/comunidad/colaboradores" class="lnd-com-row lnd-com-row--navy">
+                    <span class="lnd-com-row__icon"><i class="fa-solid fa-id-badge"></i></span>
+                    <span class="lnd-com-row__text">
+                        <span class="lnd-com-row__title" data-i18n="home.comunidad.colaboradores.title">Colaboradores</span>
+                        <span class="lnd-com-row__desc" data-i18n="home.comunidad.colaboradores.desc">Acceso al portal interno del personal del colegio.</span>
+                    </span>
+                    <span class="lnd-com-row__arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
          4. MODELO EDUCATIVO VIDA
     ================================================ -->
     <section class="lnd-vida" data-reveal>
@@ -615,7 +657,17 @@
                         </span>
                         <div>
                             <p class="lnd-visita__info-label" data-i18n="home.visita.hoursLabel">Horario de visitas</p>
-                            <p class="lnd-visita__info-val" data-i18n="home.visita.hoursValue">Lunes a viernes · 8:00 – 15:00 h</p>
+                            <table class="lnd-visita__hours">
+                                <tbody>
+                                    <tr><th data-i18n="chrome.footer.dia.lun">Lun</th><td>8:00 – 15:00</td></tr>
+                                    <tr><th data-i18n="chrome.footer.dia.mar">Mar</th><td>8:00 – 15:00</td></tr>
+                                    <tr><th data-i18n="chrome.footer.dia.mie">Mié</th><td>8:00 – 15:00</td></tr>
+                                    <tr><th data-i18n="chrome.footer.dia.jue">Jue</th><td>8:00 – 15:00</td></tr>
+                                    <tr><th data-i18n="chrome.footer.dia.vie">Vie</th><td>8:00 – 15:00</td></tr>
+                                    <tr><th data-i18n="chrome.footer.dia.sab">Sáb</th><td>9:00 – 12:00</td></tr>
+                                    <tr><th data-i18n="chrome.footer.dia.dom">Dom</th><td class="is-closed" data-i18n="chrome.footer.cerrado">Cerrado</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

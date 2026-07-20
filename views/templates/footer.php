@@ -23,13 +23,49 @@
             <div class="footer-grid">
                 <div class="footer-identity">
                     <p class="footer-desc" data-i18n="chrome.footer.desc">Escuela privada K-12 en la zona poniente de la Ciudad de México.</p>
-                    <div class="footer-contact">
-                        <p><strong data-i18n="chrome.footer.direccionLabel">Dirección:</strong><br><span data-i18n="chrome.footer.direccionL1">Tlalmimilolpan 39, San Mateo Tlaltenango,</span><br><span data-i18n="chrome.footer.direccionL2">Cuajimalpa de Morelos, 05600 Ciudad de México, CDMX</span></p>
-                        <p style="margin-top:12px"><strong data-i18n="chrome.footer.telefonosLabel">Teléfonos:</strong></p>
-                        <p><span data-i18n="chrome.footer.conmutadorLabel">Conmutador:</span> <a href="tel:+5558101346">55 5810 1346</a></p>
-                        <p><span data-i18n="chrome.footer.admisionesLabel">Admisiones:</span><br><a href="tel:+525614612682">+52 56 1461 2682</a></p>
-                        <p style="margin-top:12px"><a href="/contacto" data-i18n="chrome.footer.verUbicacion">Ver ubicación y mapa →</a></p>
-                    </div>
+
+                    <ul class="footer-info">
+                        <li class="footer-info__row">
+                            <span class="footer-info__ico"><i class="fa-solid fa-location-dot"></i></span>
+                            <div>
+                                <span class="footer-info__label" data-i18n="chrome.footer.direccionLabel">Dirección</span>
+                                <span class="footer-info__value">
+                                    <span data-i18n="chrome.footer.direccionL1">Tlalmimilolpan 39, San Mateo Tlaltenango,</span><br>
+                                    <span data-i18n="chrome.footer.direccionL2">Cuajimalpa de Morelos, 05600 Ciudad de México, CDMX</span>
+                                </span>
+                            </div>
+                        </li>
+                        <li class="footer-info__row">
+                            <span class="footer-info__ico"><i class="fa-solid fa-phone"></i></span>
+                            <div>
+                                <span class="footer-info__label" data-i18n="chrome.footer.telefonosLabel">Teléfonos</span>
+                                <span class="footer-info__value">
+                                    <a href="tel:+5558101346" class="footer-phone"><span class="footer-phone__tag" data-i18n="chrome.footer.conmutadorLabel">Conmutador</span> 55 5810 1346</a>
+                                    <a href="tel:+525614612682" class="footer-phone"><span class="footer-phone__tag" data-i18n="chrome.footer.admisionesLabel">Admisiones</span> +52 56 1461 2682</a>
+                                </span>
+                            </div>
+                        </li>
+                        <li class="footer-info__row">
+                            <span class="footer-info__ico"><i class="fa-regular fa-clock"></i></span>
+                            <div style="width:100%;">
+                                <span class="footer-info__label" data-i18n="chrome.footer.horarioLabel">Horario de atención</span>
+                                <table class="footer-hours">
+                                    <tbody>
+                                        <tr><th data-i18n="chrome.footer.dia.lun">Lun</th><td>7:30–16:00</td></tr>
+                                        <tr><th data-i18n="chrome.footer.dia.mar">Mar</th><td>7:30–16:00</td></tr>
+                                        <tr><th data-i18n="chrome.footer.dia.mie">Mié</th><td>7:30–16:00</td></tr>
+                                        <tr><th data-i18n="chrome.footer.dia.jue">Jue</th><td>7:30–16:00</td></tr>
+                                        <tr><th data-i18n="chrome.footer.dia.vie">Vie</th><td>7:30–14:30</td></tr>
+                                        <tr><th data-i18n="chrome.footer.dia.sab">Sáb</th><td class="is-closed" data-i18n="chrome.footer.cerrado">Cerrado</td></tr>
+                                        <tr><th data-i18n="chrome.footer.dia.dom">Dom</th><td class="is-closed" data-i18n="chrome.footer.cerrado">Cerrado</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <a href="/contacto" class="footer-map-link" data-i18n="chrome.footer.verUbicacion">Ver ubicación y mapa →</a>
+                    <a href="/admisiones" class="footer-cta" data-i18n="chrome.footer.admisionesCta">Agenda una visita →</a>
                     <div class="footer-social-mobile">
                         <span data-i18n="chrome.footer.siguenosMobile">Síguenos:</span>
                         <!-- Mobile Socials Same as Desktop -->
@@ -39,6 +75,7 @@
                         <a href="https://mx.linkedin.com/company/colegio-bilbao" class="social-link"><svg class="social-icon" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
                     </div>
                 </div>
+                <div class="footer-links-grid">
                 <div class="footer-col">
                     <button class="footer-col-title" aria-expanded="false"><span data-i18n="chrome.footer.col.conocenos">Conócenos</span> <span class="chevron">▼</span></button>
                     <ul class="footer-links">
@@ -58,19 +95,29 @@
                     </ul>
                 </div>
                 <div class="footer-col">
-                    <button class="footer-col-title" aria-expanded="false"><span data-i18n="chrome.footer.col.comunidad">Comunidad</span> <span class="chevron">▼</span></button>
+                    <button class="footer-col-title" aria-expanded="false"><span data-i18n="chrome.footer.col.vidaEscolar">Vida escolar</span> <span class="chevron">▼</span></button>
                     <ul class="footer-links">
-                        <li><a href="/admisiones" data-i18n="chrome.header.nav.admisiones">Admisiones</a></li>
-                        <li><a href="/comunidad/familias" data-i18n="chrome.overlay.comunidad.familias">Familias</a></li>
-                        <li><a href="/voces-bilbao/noticias" data-i18n="chrome.overlay.voces.noticias">Noticias</a></li>
-                        <li><a href="/contacto/cultura-y-talento" data-i18n="chrome.footer.col.bolsaTrabajo">Bolsa de trabajo</a></li>
+                        <li><a href="/vida-escolar/afterschool-extracurriculares" data-i18n="chrome.overlay.vidaEscolar.afterschool">Afterschool</a></li>
+                        <li><a href="/vida-escolar/programa-dual" data-i18n="chrome.overlay.vidaEscolar.programaDual">Programa Dual</a></li>
+                        <li><a href="/vida-escolar/futuro-universitario-becas" data-i18n="chrome.overlay.vidaEscolar.futuroUniversitario">Futuro universitario</a></li>
+                        <li><a href="/vida-escolar/eventos-y-tradiciones" data-i18n="chrome.overlay.vidaEscolar.eventos">Eventos y tradiciones</a></li>
                     </ul>
                 </div>
+                <div class="footer-col">
+                    <button class="footer-col-title" aria-expanded="false"><span data-i18n="chrome.footer.col.comunidad">Comunidad</span> <span class="chevron">▼</span></button>
+                    <ul class="footer-links">
+                        <li><a href="/comunidad/estudiantes" data-i18n="chrome.overlay.comunidad.estudiantes">Estudiantes</a></li>
+                        <li><a href="/comunidad/familias" data-i18n="chrome.overlay.comunidad.familias">Familias</a></li>
+                        <li><a href="/comunidad/colaboradores" data-i18n="chrome.overlay.comunidad.colaboradores">Colaboradores</a></li>
+                        <li><a href="/noticias" data-i18n="chrome.overlay.voces.noticias">Noticias</a></li>
+                    </ul>
+                </div>
+                </div><!-- /footer-links-grid -->
             </div>
 
             <div class="footer-legal">
                 <div class="legal-links">
-                    <a href="/aviso-de-privacidad" data-i18n="chrome.footer.legal.aviso">Aviso de privacidad</a> ·
+                    <a href="/aviso-privacidad" data-i18n="chrome.footer.legal.aviso">Aviso de privacidad</a> ·
                     <a href="/terminos-y-condiciones" data-i18n="chrome.footer.legal.terminos">Términos y condiciones</a> ·
                     <a href="/mapa-del-sitio" data-i18n="chrome.footer.legal.mapa">Mapa del sitio</a>
                 </div>

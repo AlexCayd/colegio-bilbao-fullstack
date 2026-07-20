@@ -49,11 +49,11 @@
     justify-content: center;
     color: var(--col-herencia);
     margin-right: 12px;
-    transition: 0.2s;
+    transition: color .22s ease, transform .22s cubic-bezier(.34, 1.56, .64, 1);
 
     &:hover {
         color: var(--col-bilbao);
-        transform: translateY(-2px);
+        transform: translateY(-3px) scale(1.12);
     }
 }
 
@@ -76,18 +76,95 @@
     text-align: left;
 }
 
-.footer-contact {
-    p {
-        margin-bottom: 6px;
-        text-align: left;
-        font-size: 0.8rem;
+/* Bloque de información con jerarquía por iconos */
+.footer-info {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.footer-info__row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.footer-info__ico {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    background: rgba(77, 138, 187, .1);
+    color: var(--col-bilbao);
+    font-size: 0.82rem;
+}
+
+.footer-info__label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--col-bilbao);
+    margin-bottom: 4px;
+}
+
+.footer-info__value {
+    display: block;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--col-herencia);
+}
+
+.footer-phone {
+    display: block;
+    font-weight: 600;
+    color: var(--col-herencia);
+    text-decoration: none;
+    transition: color .18s ease;
+
+    &:hover { color: var(--col-bilbao); }
+
+    &__tag {
+        display: inline-block;
+        min-width: 88px;
         font-weight: 400;
+        color: var(--col-herencia);
+        opacity: .7;
+    }
+}
+
+.footer-hours {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 220px;
+    margin-top: 4px;
+    font-size: 0.76rem;
+
+    tbody th {
+        text-align: left;
+        font-weight: 700;
+        color: var(--col-herencia);
+        padding: 4px 12px 4px 0;
+        white-space: nowrap;
     }
 
-    a {
-        font-weight: 600;
-        color: var(--col-bilbao);
+    tbody td {
+        font-variant-numeric: tabular-nums;
+        color: var(--col-herencia);
+        text-align: right;
+        padding: 4px 0 4px 12px;
+        white-space: nowrap;
     }
+
+    tbody tr + tr th, tbody tr + tr td { border-top: 1px solid rgba(0, 0, 0, .04); }
+
+    .is-closed { color: #b0b8c2; font-style: italic; }
 }
 
 .footer-social-mobile {
@@ -117,17 +194,64 @@
     margin-bottom: 24px;
 
     li {
-        margin-bottom: 7px;
+        margin-bottom: 9px;
     }
 
     a {
+        position: relative;
+        display: inline-block;
         font-size: 0.82rem;
+        color: var(--col-herencia);
+        text-decoration: none;
+        // Subrayado animado que crece de izquierda a derecha
+        background-image: linear-gradient(var(--col-bilbao), var(--col-bilbao));
+        background-position: 0 100%;
+        background-repeat: no-repeat;
+        background-size: 0% 1.5px;
+        transition: color .22s ease, transform .22s ease, background-size .28s ease;
 
-        &:hover {
-            color: var(--col-espiritu);
-            text-decoration: underline;
+        &:hover,
+        &:focus-visible {
+            color: var(--col-bilbao);
+            transform: translateX(4px);
+            background-size: 100% 1.5px;
         }
     }
+}
+
+/* CTA de admisiones + horario dentro del bloque de identidad */
+.footer-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+    padding: 11px 22px;
+    border-radius: 100px;
+    background: var(--col-bilbao);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
+
+    &:hover {
+        background: var(--col-herencia);
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px -10px rgba(22, 32, 46, .45);
+    }
+}
+
+.footer-map-link {
+    display: block;
+    width: fit-content;
+    margin-bottom: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--col-bilbao);
+    text-decoration: none;
+    transition: color .2s ease, transform .2s ease;
+
+    &:hover { color: var(--col-herencia); transform: translateX(3px); }
 }
 
 .footer-legal {
@@ -170,12 +294,10 @@
 
 /* ---- RESPONSIVE ---- */
 @media (min-width: 600px) {
-    .footer-grid {
+    .footer-links-grid {
+        display: grid;
         grid-template-columns: 1fr 1fr;
-    }
-
-    .footer-identity {
-        grid-column: span 2;
+        gap: 28px 34px;
     }
 }
 
@@ -193,8 +315,13 @@
     }
 
     .footer-grid {
-        grid-template-columns: 1.4fr 1fr 1fr 1fr;
-        gap: 36px;
+        grid-template-columns: 1.25fr 1.75fr;
+        gap: 56px;
+    }
+    .footer-links-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 34px 40px;
     }
 
     .footer-identity {
@@ -222,5 +349,113 @@
         flex-direction: row;
         justify-content: space-between;
         text-align: left;
+    }
+}
+
+/* Chevron del acordeón (solo visible < 1024px) */
+.footer-col-title .chevron {
+    transition: transform .22s ease;
+    font-size: .6rem;
+    opacity: .55;
+}
+.footer-col-title[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+/* =========================================================
+   MÓVIL — disposición compacta
+========================================================= */
+@media (max-width: 767px) {
+    .footer-site { padding-top: 40px; }
+    .footer-container { padding: 0 20px; }
+
+    /* Cabecera: logo centrado y más contenido */
+    .footer-header {
+        align-items: center;
+        text-align: center;
+        margin-bottom: 26px;
+    }
+    .footer-logo-link { margin-bottom: 0; }
+    .footer-logo-img { height: 56px; margin: 0 auto; }
+
+    .footer-grid { gap: 26px; }
+    .footer-desc { text-align: center; margin-bottom: 24px; font-size: .86rem; }
+
+    /* Bloque de datos */
+    .footer-info { gap: 18px; margin-bottom: 22px; }
+    .footer-info__row { gap: 13px; }
+    .footer-info__ico { width: 36px; height: 36px; font-size: .82rem; }
+    .footer-info__label { font-size: .66rem; }
+    .footer-info__value { font-size: .86rem; }
+
+    /* Teléfonos: etiqueta y número en extremos, fáciles de tocar */
+    .footer-phone {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 5px 0;
+    }
+    .footer-phone__tag { min-width: 0; }
+
+    /* Horario: tabla compacta a todo el ancho de su columna */
+    .footer-hours { max-width: 100%; font-size: .82rem; }
+    .footer-hours tbody th { padding: 6px 12px 6px 0; }
+    .footer-hours tbody td { padding: 6px 0; }
+
+    /* Botones a ancho completo, con buen área de toque */
+    .footer-map-link {
+        width: 100%;
+        text-align: center;
+        padding: 13px 18px;
+        border: 1.5px solid var(--col-borde);
+        border-radius: 100px;
+        margin-bottom: 12px;
+
+        &:hover { transform: none; color: var(--col-bilbao); }
+    }
+    .footer-cta {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 22px;
+        font-size: .88rem;
+
+        &:hover { transform: none; }
+    }
+
+    /* Redes centradas bajo los botones */
+    .footer-social-mobile {
+        justify-content: center;
+        gap: 6px;
+        margin: 26px 0 4px;
+
+        span { width: 100%; text-align: center; margin-bottom: 6px; font-size: .82rem; }
+    }
+    .social-link { margin-right: 0; padding: 8px; }
+    .social-icon { width: 22px; height: 22px; }
+
+    /* Legal */
+    .footer-legal { margin-top: 26px; gap: 12px; padding: 20px 0; }
+    .legal-links { gap: 10px 14px; }
+}
+
+/* Acordeones como lista vertical (solo teléfono) */
+@media (max-width: 599px) {
+    .footer-links-grid { border-top: 1px solid var(--col-borde); }
+
+    .footer-col { border-bottom: 1px solid var(--col-borde); }
+
+    .footer-col-title {
+        margin-bottom: 0;
+        padding: 15px 2px;
+        min-height: 48px;          /* área de toque cómoda */
+        font-size: .76rem;
+        cursor: pointer;
+    }
+
+    .footer-links {
+        margin-bottom: 0;
+        padding: 0 2px 16px;
+
+        li { margin-bottom: 12px; }
+        a  { font-size: .88rem; }
     }
 }

@@ -1,3 +1,4 @@
+<?php $paginaVista = 'estaticas-feedback-testimoniales'; ?>
 
 <section class="fb-hero">
     <p class="fb-hero__eyebrow" data-i18n="feedback-testimoniales.hero.eyebrow">Voces Bilbao</p>
@@ -64,13 +65,3 @@
     </div>
 </div>
 
-<script>
-(function(){
-    var ta = document.getElementById('comentario');
-    var ct = document.getElementById('char-count');
-    if (!ta || !ct) return;
-    function update(){ ct.textContent = ta.value.length; }
-    ta.addEventListener('input', update);
-    update();
-})();
-</script>

@@ -8,6 +8,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Zona horaria del colegio (evita desfases de fecha por defecto UTC)
+date_default_timezone_set('America/Mexico_City');
+
 // Añadir Dotenv
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->safeLoad();
