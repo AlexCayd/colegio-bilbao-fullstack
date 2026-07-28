@@ -46,20 +46,20 @@
                 </div>
 
                 <?php else: ?>
-                <div style="overflow-x:auto;">
-                    <table class="admin-table">
+                <div class="admin-table-scroll">
+                    <table class="admin-table" data-table data-table-per="10" data-table-noun="categorías">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
-                                <th>Slug</th>
-                                <th>Artículos</th>
+                                <th data-sort="text">Nombre</th>
+                                <th data-sort="text">Slug</th>
+                                <th data-sort="num">Artículos</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($categorias as $c): ?>
-                            <tr>
-                                <td>
+                        <?php foreach ($categorias as $i => $c): ?>
+                            <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
+                                <td data-val="<?= s($c->nombre) ?>">
                                     <div style="display:flex;align-items:center;gap:10px;">
                                         <span style="width:12px;height:12px;border-radius:3px;background:<?= s($c->color ?? '#4D8ABB') ?>;flex-shrink:0;display:inline-block;"></span>
                                         <div>
@@ -76,17 +76,18 @@
                                 <td style="font-weight:700;color:var(--col-herencia);"><?= (int)$c->total_articulos ?></td>
                                 <td>
                                     <div class="admin-table__actions">
-                                        <a href="/dashboard/categorias/editar?id=<?= (int)$c->id ?>" class="admin-table__btn">
-                                            <i class="fa-regular fa-pen-to-square"></i> Editar
+                                        <a href="/dashboard/categorias/editar?id=<?= (int)$c->id ?>" class="admin-act admin-act--edit" title="Editar categoría">
+                                            <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <?php if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'): ?>
+                                        <?php /* superadmin también: un === 'administrador' lo dejaba fuera */ ?>
+                                        <?php if (in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador', 'superadmin'], true)): ?>
                                         <button
                                             type="button"
-                                            class="admin-table__btn admin-table__btn--danger"
+                                            class="admin-act admin-act--del"
                                             onclick="confirmarEliminar(<?= (int)$c->id ?>, '<?= s(addslashes($c->nombre)) ?>')"
                                             title="Eliminar categoría"
                                         >
-                                            <i class="fa-regular fa-trash-can"></i>
+                                            <i class="fa-solid fa-trash"></i>
                                         </button>
                                         <?php endif; ?>
                                     </div>

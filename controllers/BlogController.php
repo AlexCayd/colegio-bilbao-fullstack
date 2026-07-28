@@ -11,6 +11,13 @@ use Model\CategoriaNoticia;
 use Model\Notificacion;
 use Model\Testimonial;
 use Model\Suplencia;
+use Model\SuplenciaHora;
+use Model\Periodo;
+use Model\Aula;
+use Model\Grupo;
+use Model\Materia;
+use Model\Horario;
+use Model\Evento;
 
 class BlogController {
 
@@ -75,19 +82,53 @@ class BlogController {
     }
 
     private static function requireAdmin(): void {
-        if (($_SESSION['blog_usuario']['rol'] ?? '') !== 'administrador') {
+        if (!\in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador', 'superadmin'], true)) {
             header('Location: /dashboard');
             exit;
         }
     }
 
-    /** ¿El usuario en sesión puede acceder al módulo indicado? Admin = todos. */
+    /** ¿El usuario en sesión es superadmin (nivel máximo)? */
+    private static function esSuperadmin(): bool {
+        return ($_SESSION['blog_usuario']['rol'] ?? '') === 'superadmin';
+    }
+
+    /** Guard reservado a superadmin (directorios de personal, dashboard de suplencias). */
+    private static function requireSuperadmin(): void {
+        self::requireAuth();
+        if (!self::esSuperadmin()) {
+            header('Location: /dashboard');
+            exit;
+        }
+    }
+
+    /** ¿El usuario en sesión puede acceder al módulo indicado? Super/admin = todos. */
     private static function puede(string $modulo): bool {
         $u = $_SESSION['blog_usuario'] ?? null;
         if (!$u) return false;
-        if (($u['rol'] ?? '') === 'administrador') return true;
+        if (\in_array($u['rol'] ?? '', ['administrador', 'superadmin'], true)) return true;
         $lista = array_filter(array_map('trim', explode(',', (string) ($u['modulos'] ?? ''))));
         return \in_array($modulo, $lista, true);
+    }
+
+    /**
+     * ¿Puede validar contenido editorial (revisiones + testimoniales)?
+     * Super/admin siempre; un 'usuario' solo si es revisor con módulo redaccion.
+     */
+    private static function puedeRevisar(): bool {
+        $u = $_SESSION['blog_usuario'] ?? null;
+        if (!$u) return false;
+        if (\in_array($u['rol'] ?? '', ['administrador', 'superadmin'], true)) return true;
+        return ($u['rol_redaccion'] ?? '') === 'revisor' && self::puede('redaccion');
+    }
+
+    /** Guard editorial: redirige si no puede revisar. */
+    private static function requireRevisor(): void {
+        self::requireAuth();
+        if (!self::puedeRevisar()) {
+            header('Location: /dashboard');
+            exit;
+        }
     }
 
     /** Guard de módulo: redirige al home de módulos si no tiene acceso. */
@@ -101,8 +142,21 @@ class BlogController {
 
     /** Lista de módulos disponibles para el usuario en sesión (para el home/sidebar). */
     private static function modulosDisponibles(): array {
-        $todos = ['redaccion', 'suplencias', 'usuarios'];
+        $todos = \Model\UsuarioBlog::MODULOS_ASIGNABLES;
         return array_values(array_filter($todos, fn($m) => self::puede($m)));
+    }
+
+    /** ¿La petición viene por fetch/XHR y espera JSON en vez de un redirect? */
+    private static function esAjax(): bool {
+        return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+    }
+
+    /** Responde JSON y corta la ejecución. */
+    private static function json(array $datos, int $codigo = 200): void {
+        http_response_code($codigo);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($datos, JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     // ── ADMIN ──────────────────────────────────────────────────────────────────
@@ -131,11 +185,14 @@ class BlogController {
                 if ($usuario && password_verify($password, $usuario->password)) {
                     UsuarioBlog::registrarAcceso($usuario->id);
                     $_SESSION['blog_usuario'] = [
-                        'id'      => $usuario->id,
-                        'nombre'  => $usuario->nombre,
-                        'rol'     => $usuario->rol,
-                        'avatar'  => $usuario->avatar ?? '',
-                        'modulos' => $usuario->modulos ?? '',
+                        'id'            => $usuario->id,
+                        'nombre'        => $usuario->nombre,
+                        'rol'           => $usuario->rol,
+                        'rol_redaccion' => $usuario->rol_redaccion ?? '',
+                        'tipo_personal' => $usuario->tipo_personal ?? '',
+                        'puede_suplir'  => (int)($usuario->puede_suplir ?? 1),
+                        'avatar'        => $usuario->avatar ?? '',
+                        'modulos'       => $usuario->modulos ?? '',
                     ];
                     header('Location: /dashboard');
                     exit;
@@ -171,6 +228,8 @@ class BlogController {
             'modulos'       => self::modulosDisponibles(),
             'cumpleanos'    => $verUsuarios ? UsuarioBlog::proximosCumpleanos(6) : [],
             'cumpleanosAll' => $verUsuarios ? UsuarioBlog::conCumpleanos() : [],
+            // El calendario combina cumpleaños con los eventos institucionales
+            'eventos'       => Evento::todos(),
         ]);
     }
 
@@ -216,24 +275,38 @@ class BlogController {
         ]);
     }
 
-    // ── MÓDULO SUPLENCIAS (CRUD) ────────────────────────────────────────────────
+    // ── MÓDULO SUPLENCIAS ───────────────────────────────────────────────────────
+
+    /** Tipos de personal del usuario en sesión. */
+    private static function sesionTipos(): array {
+        return array_filter(array_map('trim', explode(',', (string)($_SESSION['blog_usuario']['tipo_personal'] ?? ''))));
+    }
+    /** ¿Puede agendar suplencias (prefectura/admin/super)? */
+    private static function puedeAgendar(): bool {
+        if (self::esSuperadmin() || (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador')) return true;
+        return in_array('prefecto', self::sesionTipos(), true);
+    }
+
+    /** Agenda: lista de suplencias con filtros (prefectura/admin). */
     public static function suplencias(Router $router) {
         self::requireModulo('suplencias');
         $filtros = [
             'q'      => trim($_GET['q'] ?? ''),
             'estado' => $_GET['estado'] ?? '',
+            'origen' => $_GET['origen'] ?? '',
             'desde'  => $_GET['desde'] ?? '',
             'hasta'  => $_GET['hasta'] ?? '',
         ];
         $router->renderAdmin('blog/suplencias/index', [
-            'titulo'      => 'Suplencias',
-            'suplencias'  => Suplencia::listar($filtros),
-            'conteos'     => Suplencia::conteos(),
-            'filtros'     => $filtros,
+            'titulo'       => 'Agenda de suplencias',
+            'suplencias'   => Suplencia::listar($filtros),
+            'conteos'      => Suplencia::conteos(),
+            'filtros'      => $filtros,
+            'puedeAgendar' => self::puedeAgendar(),
         ]);
     }
 
-    /** Endpoint JSON: autocompletado de colaboradores (ausente/suplente). */
+    /** Endpoint JSON: autocompletado de profesores (ausente). */
     public static function buscarColaboradores(Router $router) {
         self::requireModulo('suplencias');
         header('Content-Type: application/json; charset=utf-8');
@@ -241,18 +314,197 @@ class BlogController {
         exit;
     }
 
+    /** Endpoint JSON: sugerencias de suplente para una fecha+periodo (algoritmo). */
+    public static function sugerirSuplentes(Router $router) {
+        self::requireModulo('suplencias');
+        header('Content-Type: application/json; charset=utf-8');
+        $fecha   = trim($_GET['fecha'] ?? '');
+        $periodo = (int)($_GET['periodo'] ?? 0);
+        $ausente = (int)($_GET['ausente'] ?? 0);
+        if ($fecha === '' || !$periodo) { echo json_encode([]); exit; }
+        echo json_encode(SuplenciaHora::sugerir($fecha, $periodo, $ausente));
+        exit;
+    }
+
+    /**
+     * Endpoint JSON: horario semanal de un profesor + sus horas libres para una fecha.
+     * Alimenta la rejilla interactiva de solicitar/crear y el preview de candidatos en agendar.
+     */
+    public static function horarioProfesorJson(Router $router) {
+        self::requireModulo('suplencias');
+        header('Content-Type: application/json; charset=utf-8');
+
+        $profId = (int)($_GET['profesor'] ?? 0);
+        $fecha  = trim($_GET['fecha'] ?? '');
+        if (!$profId) { echo json_encode(['error' => 'profesor requerido']); exit; }
+
+        $dow = $fecha !== '' ? (int)date('N', strtotime($fecha)) : 0;
+        $dia = \Model\Horario::DIAS[$dow - 1] ?? null;   // null en fin de semana
+
+        $periodos = [];
+        foreach (Periodo::todos() as $p) {
+            $periodos[] = [
+                'id'        => (int)$p->id,
+                'etiqueta'  => $p->etiqueta,
+                'inicio'    => substr($p->hora_inicio, 0, 5),
+                'fin'       => substr($p->hora_fin, 0, 5),
+                'es_receso' => (int)$p->es_receso === 1,
+            ];
+        }
+
+        // Semana completa: [dia][periodo_id] => datos de la clase
+        $semana = [];
+        foreach (Horario::porProfesor($profId) as $h) {
+            $semana[$h->dia][(int)$h->periodo_id] = [
+                'materia'    => $h->materia,
+                'materia_id' => (int)$h->materia_id,
+                'grupo'      => $h->grupo_nombre,
+                'grupo_id'   => (int)$h->grupo_id,
+                'aula'       => $h->aula_nombre,
+                'aula_id'    => (int)$h->aula_id,
+            ];
+        }
+
+        // Horas libres del día pedido. No hay disponibilidad declarada a mano: toda hora
+        // libre es candidata y el descarte lo hacen las reglas de SuplenciaHora::sugerir().
+        $disponible = [];
+        if ($dia !== null) {
+            foreach ($periodos as $p) {
+                if ($p['es_receso'] || isset($semana[$dia][$p['id']])) continue;
+                $disponible[$p['id']] = true;
+            }
+        }
+
+        $prof = UsuarioBlog::find($profId);
+        echo json_encode([
+            'profesor'   => ['id' => $profId, 'nombre' => $prof->nombre ?? '', 'avatar' => $prof->avatar ?? ''],
+            'dia'        => $dia,
+            'periodos'   => $periodos,
+            'semana'     => $semana,
+            'disponible' => $disponible,
+        ]);
+        exit;
+    }
+
+    /** Sube un justificante (PDF o imagen). Devuelve ruta pública o null. */
+    private static function subirJustificante(): ?string {
+        if (empty($_FILES['justificante']) || $_FILES['justificante']['error'] !== UPLOAD_ERR_OK) return null;
+        $ext     = strtolower(pathinfo($_FILES['justificante']['name'], PATHINFO_EXTENSION));
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        if (!in_array($ext, $allowed, true) || $_FILES['justificante']['size'] > 4 * 1024 * 1024) {
+            Suplencia::setAlerta('error', 'El justificante debe ser PDF o imagen (JPG/PNG/WebP) de máximo 4 MB');
+            return null;
+        }
+        $dir = __DIR__ . '/../public/build/assets/suplencias/';
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $fn = uniqid('just_', true) . '.' . $ext;
+        if (move_uploaded_file($_FILES['justificante']['tmp_name'], $dir . $fn)) {
+            return '/build/assets/suplencias/' . $fn;
+        }
+        return null;
+    }
+
+    /** Crea las horas de cobertura desde arrays paralelos del POST. */
+    private static function guardarHoras(int $supId, array $post): int {
+        $periodos = $post['periodo_id'] ?? [];
+        $n = 0;
+        foreach ($periodos as $i => $pid) {
+            $pid = (int)$pid;
+            if (!$pid) continue;
+            $h = new SuplenciaHora();
+            $h->suplencia_id = $supId;
+            $h->periodo_id   = $pid;
+            $h->grupo_id     = (int)($post['grupo_id'][$i] ?? 0) ?: null;
+            $h->aula_id      = (int)($post['aula_id'][$i] ?? 0) ?: null;
+            $h->materia_id   = (int)($post['materia_id'][$i] ?? 0) ?: null;
+            $h->estado_hora  = 'pendiente';
+            $h->guardar();
+            $n++;
+        }
+        return $n;
+    }
+
+    /** Solicitar suplencia (auto-servicio del profesor ausente, flujo anticipado). */
+    public static function solicitarSuplencia(Router $router) {
+        $sesion = self::requireModulo('suplencias');
+        $sesion = $_SESSION['blog_usuario'];
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $sup = new Suplencia();
+            $sup->sincronizar($_POST);
+            $sup->profesor_ausente_id = (int)$sesion['id'];
+            $sup->origen  = 'anticipada';
+            $sup->estado  = 'solicitada';
+            $sup->creado_por = (int)$sesion['id'];
+            // El motivo llega del catálogo, o del texto libre cuando se eligió "Otro"
+            $sup->motivo  = Suplencia::motivoDesdePost($_POST);
+            $alertas = $sup->validar();
+            $justificante = self::subirJustificante();
+            $alertas = Suplencia::getAlertas();
+            if (empty($alertas['error'])) {
+                if ($justificante) $sup->justificante = $justificante;
+                $r = $sup->guardar();
+                if ($r['resultado']) {
+                    self::guardarHoras((int)$r['id'], $_POST);
+                    header('Location: /dashboard/suplencias?success=1');
+                    exit;
+                }
+            }
+        }
+
+        // Horario del profesor para elegir las horas a cubrir (por día)
+        $router->renderAdmin('blog/suplencias/solicitar', [
+            'titulo'   => 'Solicitar suplencia',
+            'periodos' => Periodo::clases(),
+            'matriz'   => Horario::comoMatriz(Horario::porProfesor((int)$sesion['id'])),
+            'alertas'  => $alertas,
+        ]);
+    }
+
+    /** Prefectura abre una suplencia (puede ser sin aviso). */
     public static function crearSuplencia(Router $router) {
         self::requireModulo('suplencias');
+        if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
         $suplencia = new Suplencia();
         $alertas   = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $suplencia->sincronizar($_POST);
+            $suplencia->creado_por = (int)$_SESSION['blog_usuario']['id'];
+            // El motivo llega del catálogo, o del texto libre cuando se eligió "Otro"
+            $suplencia->motivo = Suplencia::motivoDesdePost($_POST);
             $alertas = $suplencia->validar();
+            $justificante = self::subirJustificante();
+            $alertas = Suplencia::getAlertas();
             if (empty($alertas['error'])) {
+                if ($justificante) $suplencia->justificante = $justificante;
                 $r = $suplencia->guardar();
                 if ($r['resultado']) {
-                    header('Location: /dashboard/suplencias?success=1');
+                    $nuevaId = (int)$r['id'];
+                    self::guardarHoras($nuevaId, $_POST);
+                    Suplencia::recalcularEstado($nuevaId);
+
+                    // Prefectura abrió la ausencia: el profesor debe enterarse, y si fue
+                    // "sin aviso" y no hay comprobante, saber que tiene que subirlo.
+                    $ausenteId = (int)$suplencia->profesor_ausente_id;
+                    $quienAbre = (int)($_SESSION['blog_usuario']['id'] ?? 0);
+                    if ($ausenteId && $ausenteId !== $quienAbre) {
+                        $cuando = date('d/m/Y', strtotime($suplencia->fecha));
+                        $faltaJustif = $suplencia->origen === 'sin_aviso' && empty($suplencia->justificante);
+                        Notificacion::nueva(
+                            $ausenteId,
+                            $faltaJustif ? 'justificante_pendiente' : 'suplencia_registrada',
+                            $faltaJustif
+                                ? "Se registró tu ausencia del {$cuando} sin aviso. Falta subir el justificante."
+                                : "Prefectura registró tu ausencia del {$cuando}.",
+                            $nuevaId, 'suplencia', 'suplencias',
+                            $faltaJustif ? 'aviso' : 'info',
+                            '/dashboard/suplencias/agendar?id=' . $nuevaId
+                        );
+                    }
+
+                    header('Location: /dashboard/suplencias/agendar?id=' . $nuevaId);
                     exit;
                 }
                 Suplencia::setAlerta('error', 'No se pudo guardar la suplencia. Intenta de nuevo.');
@@ -261,47 +513,232 @@ class BlogController {
         }
 
         $router->renderAdmin('blog/suplencias/crear', [
-            'titulo'    => 'Nueva suplencia',
+            'titulo'    => 'Abrir suplencia',
             'suplencia' => $suplencia,
+            'periodos'  => Periodo::clases(),
+            'grupos'    => Grupo::todos(),
+            'aulas'     => Aula::todas(),
+            'materias'  => Materia::todas(),
             'alertas'   => $alertas,
         ]);
     }
 
-    public static function editarSuplencia(Router $router) {
+    /** Detalle + agenda de una suplencia: asignar suplentes por hora. */
+    /**
+     * Avisa al suplente de que le asignaron una hora concreta.
+     * Alex es la voz del sistema: cada acción que afecta a otra persona deja un
+     * aviso en su campana, no solo un toast para quien la ejecutó.
+     */
+    private static function avisarCoberturaAsignada($suplencia, int $horaId, int $suplenteId): void {
+        if (!$suplenteId) return;
+        $hora = SuplenciaHora::detalle($horaId);
+        if (!$hora) return;
+
+        $cuando = date('d/m/Y', strtotime($suplencia->fecha));
+        $clase  = trim(($hora->materia ?: 'una clase') . ($hora->grupo_nombre ? ' · ' . $hora->grupo_nombre : ''));
+
+        Notificacion::nueva(
+            $suplenteId,
+            'cobertura_asignada',
+            "Te asignaron {$clase} el {$cuando} ({$hora->periodo_etiqueta}).",
+            (int)$suplencia->id, 'suplencia', 'suplencias', 'info',
+            '/dashboard/suplencias/mis-coberturas'
+        );
+    }
+
+    /** Cuando ya no queda ninguna hora pendiente, se lo dice al profesor ausente. */
+    private static function avisarSuplenciaCompleta(int $suplenciaId): void {
+        $horas = SuplenciaHora::deSuplencia($suplenciaId);
+        if (!$horas) return;
+        foreach ($horas as $h) {
+            if ($h->estado_hora === 'pendiente') return;   // todavía falta alguna
+        }
+        $s = Suplencia::find($suplenciaId);
+        if (!$s || !$s->profesor_ausente_id) return;
+
+        Notificacion::nueva(
+            (int)$s->profesor_ausente_id,
+            'suplencia_agendada',
+            'Tu ausencia del ' . date('d/m/Y', strtotime($s->fecha)) . ' ya tiene todas las horas cubiertas.',
+            $suplenciaId, 'suplencia', 'suplencias', 'exito',
+            '/dashboard/suplencias/agendar?id=' . $suplenciaId
+        );
+    }
+
+    public static function agendarSuplencia(Router $router) {
         self::requireModulo('suplencias');
         $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
-        $suplencia = Suplencia::encontrarConNombres($id);
-        if (!$suplencia) {
-            header('Location: /dashboard/suplencias');
-            exit;
-        }
-        $alertas = [];
+        $suplencia = Suplencia::encontrarConDetalle($id);
+        if (!$suplencia) { header('Location: /dashboard/suplencias'); exit; }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $suplencia->sincronizar($_POST);
-            $alertas = $suplencia->validar();
-            if (empty($alertas['error'])) {
-                $suplencia->guardar();
-                header('Location: /dashboard/suplencias?edited=1');
-                exit;
+            if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
+            $accion = $_POST['_accion'] ?? '';
+            $horaId = (int)($_POST['hora_id'] ?? 0);
+            // Las horas se fijan al abrir la suplencia desde el horario del ausente:
+            // aquí solo se asigna o se retira al suplente.
+            if ($accion === 'asignar' && $horaId) {
+                $suplenteId = (int)($_POST['suplente_id'] ?? 0);
+                SuplenciaHora::asignar($horaId, $suplenteId);
+                self::avisarCoberturaAsignada($suplencia, $horaId, $suplenteId);
+            } elseif ($accion === 'desasignar' && $horaId) {
+                // Se lee antes de desasignar: después ya no se sabe a quién avisar
+                $previo = SuplenciaHora::find($horaId);
+                SuplenciaHora::desasignar($horaId);
+                if ($previo && $previo->suplente_id) {
+                    Notificacion::nueva(
+                        (int)$previo->suplente_id,
+                        'cobertura_retirada',
+                        'Ya no tienes que cubrir la clase del ' . date('d/m/Y', strtotime($suplencia->fecha)) . '.',
+                        $id, 'suplencia', 'suplencias', 'info',
+                        '/dashboard/suplencias/mis-coberturas'
+                    );
+                }
+            } elseif ($accion === 'eliminar_hora' && $horaId) {
+                $h = SuplenciaHora::find($horaId);
+                if ($h) $h->eliminar();
             }
+            Suplencia::recalcularEstado($id);
+            self::avisarSuplenciaCompleta($id);
+            header('Location: /dashboard/suplencias/agendar?id=' . $id);
+            exit;
         }
 
-        $router->renderAdmin('blog/suplencias/editar', [
-            'titulo'    => 'Editar suplencia',
-            'suplencia' => $suplencia,
-            'alertas'   => $alertas,
+        $router->renderAdmin('blog/suplencias/agendar', [
+            'titulo'       => 'Agendar suplencia',
+            'suplencia'    => $suplencia,
+            'horas'        => SuplenciaHora::deSuplencia($id),
+            'puedeAgendar' => self::puedeAgendar(),
         ]);
+    }
+
+    /** El profesor ausente sube su justificante (flujo sin aviso). */
+    public static function justificarSuplencia(Router $router) {
+        $sesion = self::requireAuth();
+        $id = (int)($_POST['id'] ?? 0);
+        $sup = Suplencia::find($id);
+        if ($sup && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Solo el profesor ausente o un agendador
+            if ((int)$sup->profesor_ausente_id === (int)$sesion['id'] || self::puedeAgendar()) {
+                $ruta = self::subirJustificante();
+                if ($ruta) {
+                    $r = Suplencia::getDB()->escape_string($ruta);
+                    Suplencia::getDB()->query("UPDATE suplencias SET justificante='{$r}' WHERE id={$id} LIMIT 1");
+                    Suplencia::recalcularEstado($id);
+                }
+            }
+        }
+        header('Location: /dashboard/suplencias/agendar?id=' . $id);
+        exit;
+    }
+
+    /** Mis coberturas: horas que me asignaron y debo validar. */
+    public static function misCoberturas(Router $router) {
+        $sesion = self::requireModulo('suplencias');
+        $sesion = $_SESSION['blog_usuario'];
+        $router->renderAdmin('blog/suplencias/mis-coberturas', [
+            'titulo'  => 'Mis coberturas',
+            'horas'   => SuplenciaHora::porValidarDeSuplente((int)$sesion['id']),
+        ]);
+    }
+
+    /** El suplente valida que cubrió una hora. */
+    public static function validarCobertura(Router $router) {
+        $sesion = self::requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $horaId = (int)($_POST['hora_id'] ?? 0);
+            $h = SuplenciaHora::find($horaId);
+            if ($h && SuplenciaHora::validarHora($horaId, (int)$sesion['id'])) {
+                Suplencia::recalcularEstado((int)$h->suplencia_id);
+            }
+        }
+        header('Location: /dashboard/suplencias/mis-coberturas?validado=1');
+        exit;
     }
 
     public static function eliminarSuplencia(Router $router) {
         self::requireModulo('suplencias');
+        if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             $s  = Suplencia::find($id);
             if ($s) $s->eliminar();
         }
         header('Location: /dashboard/suplencias?deleted=1');
+        exit;
+    }
+
+    /** Tablero de estadísticas de suplencias (administrador y superadmin). */
+    public static function suplenciasDashboard(Router $router) {
+        self::requireModulo('suplencias');
+        self::requireAdmin();
+        $router->renderAdmin('blog/suplencias/dashboard', [
+            'titulo'       => 'Tablero de suplencias',
+            'conteos'      => Suplencia::conteos(),
+            'porEstado'    => Suplencia::porEstado(),
+            'porOrigen'    => Suplencia::porOrigen(),
+            'topSuplentes' => Suplencia::topSuplentes(8),
+            'topAusentes'  => Suplencia::topAusentes(8),
+            'porMes'       => Suplencia::porMes(),
+            'porMateria'   => Suplencia::porMateria(8),
+            'porMotivo'    => Suplencia::porMotivo(8),
+            'resumenDia'   => Suplencia::resumenDiario(),
+            'detalleDia'   => Suplencia::detalleDiario(),
+            'extra_head'   => '<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>',
+        ]);
+    }
+
+    // ── MÓDULO EVENTOS / CALENDARIO ─────────────────────────────────────────────
+    public static function eventos(Router $router) {
+        self::requireModulo('eventos');
+        $router->renderAdmin('blog/eventos/index', [
+            'titulo'  => 'Eventos',
+            'eventos' => Evento::todos(),
+        ]);
+    }
+
+    public static function crearEvento(Router $router) {
+        self::requireModulo('eventos');
+        $evento  = new Evento();
+        $alertas = [];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $evento->sincronizar($_POST);
+            $evento->publico = empty($_POST['publico']) ? 0 : 1;
+            $alertas = $evento->validar();
+            if (empty($alertas['error'])) {
+                if ($evento->guardar()['resultado']) { header('Location: /dashboard/eventos?success=1'); exit; }
+                Evento::setAlerta('error', 'No se pudo guardar el evento.');
+                $alertas = Evento::getAlertas();
+            }
+        }
+        $router->renderAdmin('blog/eventos/crear', ['titulo' => 'Nuevo evento', 'evento' => $evento, 'alertas' => $alertas]);
+    }
+
+    public static function editarEvento(Router $router) {
+        self::requireModulo('eventos');
+        $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+        $evento = Evento::find($id);
+        if (!$evento) { header('Location: /dashboard/eventos'); exit; }
+        $alertas = [];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $evento->sincronizar($_POST);
+            $evento->publico = empty($_POST['publico']) ? 0 : 1;
+            $alertas = $evento->validar();
+            if (empty($alertas['error'])) {
+                $evento->guardar();
+                header('Location: /dashboard/eventos?edited=1'); exit;
+            }
+        }
+        $router->renderAdmin('blog/eventos/editar', ['titulo' => 'Editar evento', 'evento' => $evento, 'alertas' => $alertas]);
+    }
+
+    public static function eliminarEvento(Router $router) {
+        self::requireModulo('eventos');
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $e = Evento::find((int)($_POST['id'] ?? 0));
+            if ($e) $e->eliminar();
+        }
+        header('Location: /dashboard/eventos?deleted=1');
         exit;
     }
 
@@ -564,8 +1001,7 @@ class BlogController {
     // ── REVISIONES ─────────────────────────────────────────────────────────────
 
     public static function revisiones(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
 
         $arts  = Articulo::conRevisionPendiente();
         $nots  = Noticia::conRevisionPendiente();
@@ -591,8 +1027,7 @@ class BlogController {
     }
 
     public static function aprobarArticulo(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
         $id     = (int)($_POST['id'] ?? 0);
         $estado = in_array($_POST['estado'] ?? '', ['publicado','programado'], true) ? $_POST['estado'] : 'publicado';
         $fecha  = trim($_POST['fecha_publicacion'] ?? '');
@@ -636,7 +1071,10 @@ class BlogController {
                     'articulo_aprobado',
                     "Tu artículo \"{$artFinal->titulo}\" fue publicado.",
                     $id,
-                    'articulo'
+                    'articulo',
+                    'redaccion',
+                    'exito',
+                    '/dashboard/articulos/editar?id=' . $id
                 );
             }
         }
@@ -645,8 +1083,7 @@ class BlogController {
     }
 
     public static function rechazarArticulo(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
         $id         = (int)($_POST['id'] ?? 0);
         $comentario = substr(trim($_POST['comentario'] ?? ''), 0, 1000);
         if ($id) {
@@ -661,7 +1098,10 @@ class BlogController {
                     'articulo_rechazado',
                     "Tu artículo \"{$art->titulo}\" requiere cambios.",
                     $id,
-                    'articulo'
+                    'articulo',
+                    'redaccion',
+                    'aviso',
+                    '/dashboard/articulos/editar?id=' . $id
                 );
             }
         }
@@ -696,8 +1136,7 @@ class BlogController {
     }
 
     public static function aprobarNoticia(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
         $id     = (int)($_POST['id'] ?? 0);
         $estado = in_array($_POST['estado'] ?? '', ['publicado','programado'], true) ? $_POST['estado'] : 'publicado';
         $fecha  = trim($_POST['fecha_publicacion'] ?? '');
@@ -737,7 +1176,10 @@ class BlogController {
                     'noticia_aprobada',
                     "Tu noticia \"{$notFinal->titulo}\" fue publicada.",
                     $id,
-                    'noticia'
+                    'noticia',
+                    'redaccion',
+                    'exito',
+                    '/dashboard/noticias/editar?id=' . $id
                 );
             }
         }
@@ -746,8 +1188,7 @@ class BlogController {
     }
 
     public static function rechazarNoticia(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
         $id         = (int)($_POST['id'] ?? 0);
         $comentario = substr(trim($_POST['comentario'] ?? ''), 0, 1000);
         if ($id) {
@@ -762,7 +1203,10 @@ class BlogController {
                     'noticia_rechazada',
                     "Tu noticia \"{$not->titulo}\" requiere cambios.",
                     $id,
-                    'noticia'
+                    'noticia',
+                    'redaccion',
+                    'aviso',
+                    '/dashboard/noticias/editar?id=' . $id
                 );
             }
         }
@@ -888,6 +1332,506 @@ class BlogController {
         ]);
     }
 
+    /**
+     * Directorios de personal (solo superadmin): Profesores / Prefectura / Administrativos.
+     * Reutiliza una vista de índice filtrada por tipo_personal.
+     */
+    private static function renderDirectorio(Router $router, string $slug, string $tipo, string $titulo): void {
+        self::requireSuperadmin();
+        $router->renderAdmin('blog/personal/index', [
+            'titulo'   => $titulo,
+            'tipo'     => $tipo,
+            'slug'     => $slug,
+            'usuarios' => UsuarioBlog::porTipo($tipo),
+        ]);
+    }
+    public static function profesores(Router $router)      { self::renderDirectorio($router, 'profesores', 'profesor', 'Profesores'); }
+    public static function prefectura(Router $router)       { self::renderDirectorio($router, 'prefectura', 'prefecto', 'Prefectura'); }
+    public static function administrativos(Router $router)  { self::renderDirectorio($router, 'administrativos', 'administrativo', 'Administrativos'); }
+
+    // ── MÓDULO HORARIOS ─────────────────────────────────────────────────────────
+    public static function horarios(Router $router) {
+        self::requireModulo('horarios');
+        header('Location: /dashboard/horarios/profesor');
+        exit;
+    }
+
+    private static function horariosVista(Router $router, string $vista): void {
+        self::requireModulo('horarios');
+
+        // Entidades disponibles según la vista
+        if ($vista === 'aula') {
+            $entidades = Aula::todas();
+            $titulo = 'Horarios por aula';
+        } elseif ($vista === 'grupo') {
+            $entidades = Grupo::todos();
+            $titulo = 'Horarios por grupo';
+        } else {
+            $vista = 'profesor';
+            $entidades = UsuarioBlog::porTipo('profesor');
+            $titulo = 'Horarios por profesor';
+        }
+
+        $entidadId = (int)($_GET['id'] ?? 0);
+        if (!$entidadId && !empty($entidades)) $entidadId = (int)$entidades[0]->id;
+
+        $filas = [];
+        if ($entidadId) {
+            $filas = match ($vista) {
+                'aula'  => Horario::porAula($entidadId),
+                'grupo' => Horario::porGrupo($entidadId),
+                default => Horario::porProfesor($entidadId),
+            };
+        }
+
+        $router->renderAdmin('blog/horarios/index', [
+            'titulo'    => $titulo,
+            'vista'     => $vista,
+            'entidades' => $entidades,
+            'entidadId' => $entidadId,
+            'periodos'  => Periodo::todos(),
+            'matriz'    => Horario::comoMatriz($filas),
+        ]);
+    }
+    public static function horariosProfesor(Router $router) { self::horariosVista($router, 'profesor'); }
+    public static function horariosAula(Router $router)     { self::horariosVista($router, 'aula'); }
+    public static function horariosGrupo(Router $router)    { self::horariosVista($router, 'grupo'); }
+
+    /**
+     * "Mi horario": el colaborador en sesión consulta su propio horario, solo lectura.
+     * El horario lo carga dirección por CSV; las horas libres las usa el sistema para
+     * proponer suplencias, así que aquí no hay nada que editar.
+     */
+    public static function miHorario(Router $router) {
+        $sesion = self::requireAuth();
+        $profId = (int)$sesion['id'];
+
+        $profesor = UsuarioBlog::find($profId);
+        if (!$profesor) { header('Location: /dashboard'); exit; }
+
+        $router->renderAdmin('blog/horarios/mi-horario', [
+            'titulo'   => 'Mi horario',
+            'profesor' => $profesor,
+            'periodos' => Periodo::todos(),
+            'matriz'   => Horario::comoMatriz(Horario::porProfesor($profId)),
+        ]);
+    }
+
+    // ── Importación de horarios por CSV (superadmin) ────────────────────────────
+
+    /** Normaliza para comparar catálogos: minúsculas, sin acentos ni espacios de sobra. */
+    private static function claveCatalogo(string $v): string {
+        $v = trim(mb_strtolower($v, 'UTF-8'));
+        $v = strtr($v, ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n']);
+        return (string)preg_replace('/\s+/', ' ', $v);
+    }
+
+    /**
+     * Lee el CSV subido y devuelve [filas, resumen]. Cada fila trae su estado
+     * ('ok' | 'aviso' | 'error') y el motivo, para pintar la vista previa antes de escribir nada.
+     */
+    private static function parsearCsvHorarios(string $ruta): array {
+        $cabeceraEsperada = ['profesor_email', 'dia', 'periodo', 'materia', 'grupo', 'aula'];
+
+        // Índices de catálogo por nombre normalizado
+        $profesores = [];
+        foreach (UsuarioBlog::todosParaImportar() as $u) $profesores[self::claveCatalogo($u->email)] = $u;
+        $periodos = [];
+        foreach (Periodo::todos() as $p) {
+            $periodos[self::claveCatalogo($p->etiqueta)] = $p;
+            $periodos[self::claveCatalogo((string)$p->orden)] = $p;   // "3" además de "3ª hora"
+        }
+        $materias = [];
+        foreach (Materia::todas() as $m) $materias[self::claveCatalogo($m->nombre)] = $m;
+        $grupos = [];
+        foreach (Grupo::todos() as $g)   $grupos[self::claveCatalogo($g->nombre)] = $g;
+        $aulas = [];
+        foreach (Aula::todas() as $a)    $aulas[self::claveCatalogo($a->nombre)] = $a;
+
+        $fh = fopen($ruta, 'r');
+        if (!$fh) return [[], ['error' => 'No se pudo leer el archivo.']];
+
+        // BOM de Excel
+        $primerBloque = fgets($fh);
+        if ($primerBloque !== false && str_starts_with($primerBloque, "\xEF\xBB\xBF")) {
+            $primerBloque = substr($primerBloque, 3);
+        }
+        rewind($fh);
+        if ($primerBloque !== false) { fgets($fh); }
+
+        $cabecera = array_map(fn($c) => self::claveCatalogo((string)$c), str_getcsv(trim((string)$primerBloque)));
+        if (array_slice($cabecera, 0, 6) !== $cabeceraEsperada) {
+            fclose($fh);
+            return [[], ['error' => 'La cabecera debe ser exactamente: ' . implode(',', $cabeceraEsperada)]];
+        }
+
+        $filas   = [];
+        $vistos  = [];   // profesor|dia|periodo → nº de línea, para detectar duplicados
+        $ocupaAula = []; // aula|dia|periodo → profesor, para detectar choques
+        $n = 1;
+
+        while (($col = fgetcsv($fh)) !== false) {
+            $n++;
+            if ($col === [null] || (count($col) === 1 && trim((string)$col[0]) === '')) continue;
+
+            $email   = trim((string)($col[0] ?? ''));
+            $dia     = self::claveCatalogo((string)($col[1] ?? ''));
+            $periodo = trim((string)($col[2] ?? ''));
+            $materia = trim((string)($col[3] ?? ''));
+            $grupo   = trim((string)($col[4] ?? ''));
+            $aula    = trim((string)($col[5] ?? ''));
+
+            $fila = [
+                'linea' => $n, 'email' => $email, 'dia' => $dia, 'periodo' => $periodo,
+                'materia' => $materia, 'grupo' => $grupo, 'aula' => $aula,
+                'estado' => 'ok', 'motivo' => '',
+                'profesor_id' => 0, 'periodo_id' => 0, 'materia_id' => 0, 'grupo_id' => 0, 'aula_id' => 0,
+            ];
+            $marcar = function (string $estado, string $motivo) use (&$fila) {
+                // Un error nunca lo degrada un aviso posterior
+                if ($fila['estado'] === 'error') return;
+                $fila['estado'] = $estado;
+                $fila['motivo'] = $motivo;
+            };
+
+            $prof = $profesores[self::claveCatalogo($email)] ?? null;
+            if (!$prof)      $marcar('error', "No existe un colaborador con el correo «{$email}».");
+            else             $fila['profesor_id'] = (int)$prof->id;
+
+            if (!in_array($dia, Horario::DIAS, true)) {
+                $marcar('error', "Día inválido «{$dia}»: usa " . implode(', ', Horario::DIAS) . '.');
+            }
+
+            $per = $periodos[self::claveCatalogo($periodo)] ?? null;
+            if (!$per)                            $marcar('error', "No existe el periodo «{$periodo}».");
+            elseif ((int)$per->es_receso === 1)   $marcar('error', "«{$per->etiqueta}» es un receso: no admite clase.");
+            else                                  $fila['periodo_id'] = (int)$per->id;
+
+            if ($materia === '') {
+                $marcar('error', 'Falta la materia.');
+            } elseif (!isset($materias[self::claveCatalogo($materia)])) {
+                $marcar('error', "No existe la materia «{$materia}».");
+            } else {
+                $fila['materia_id'] = (int)$materias[self::claveCatalogo($materia)]->id;
+            }
+
+            // grupo y aula son opcionales (las FK admiten NULL)
+            if ($grupo !== '') {
+                if (!isset($grupos[self::claveCatalogo($grupo)])) $marcar('error', "No existe el grupo «{$grupo}».");
+                else $fila['grupo_id'] = (int)$grupos[self::claveCatalogo($grupo)]->id;
+            }
+            if ($aula !== '') {
+                if (!isset($aulas[self::claveCatalogo($aula)])) $marcar('error', "No existe el aula «{$aula}».");
+                else $fila['aula_id'] = (int)$aulas[self::claveCatalogo($aula)]->id;
+            }
+
+            if ($fila['estado'] !== 'error') {
+                $claveProf = $fila['profesor_id'] . '|' . $dia . '|' . $fila['periodo_id'];
+                if (isset($vistos[$claveProf])) {
+                    $marcar('error', "Duplicado: ese profesor ya tiene clase a esa hora en la línea {$vistos[$claveProf]}.");
+                } else {
+                    $vistos[$claveProf] = $n;
+                }
+            }
+            if ($fila['estado'] !== 'error' && $fila['aula_id']) {
+                $claveAula = $fila['aula_id'] . '|' . $dia . '|' . $fila['periodo_id'];
+                if (isset($ocupaAula[$claveAula])) {
+                    $marcar('aviso', "El aula ya está ocupada a esa hora en la línea {$ocupaAula[$claveAula]}.");
+                } else {
+                    $ocupaAula[$claveAula] = $n;
+                }
+            }
+
+            $filas[] = $fila;
+        }
+        fclose($fh);
+
+        $errores   = 0;
+        $avisos    = 0;
+        $profesIds = [];
+        foreach ($filas as $f) {
+            if ($f['estado'] === 'error') { $errores++; continue; }
+            if ($f['estado'] === 'aviso') $avisos++;
+            $profesIds[$f['profesor_id']] = true;
+        }
+
+        return [$filas, [
+            'total'      => count($filas),
+            'errores'    => $errores,
+            'avisos'     => $avisos,
+            'profesores' => count($profesIds),
+        ]];
+    }
+
+    // ── CATÁLOGOS ACADÉMICOS · AULAS Y GRUPOS (superadmin) ────────────────────
+    //
+    // Aulas y grupos ya existían en la BD pero solo se podían tocar por SQL. Son
+    // solo-superadmin porque `horarios` tiene UNIQUE por (día, periodo, aula) y por
+    // (día, periodo, grupo): renombrar o borrar aquí repercute en todo el horario.
+
+    public static function aulas(Router $router) {
+        self::requireSuperadmin();
+        $router->renderAdmin('blog/aulas/index', [
+            'titulo' => 'Aulas',
+            'aulas'  => Aula::todasConUso(),
+        ]);
+    }
+
+    public static function crearAula(Router $router) {
+        self::requireSuperadmin();
+        $aula    = new Aula();
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $aula->sincronizar($_POST);
+            $alertas = $aula->validar();
+            if (empty($alertas['error'])) {
+                $aula->guardar();
+                header('Location: /dashboard/aulas?success=1');
+                exit;
+            }
+        }
+
+        $router->renderAdmin('blog/aulas/crear', [
+            'titulo'  => 'Nueva aula',
+            'aula'    => $aula,
+            'alertas' => $alertas,
+        ]);
+    }
+
+    public static function editarAula(Router $router) {
+        self::requireSuperadmin();
+        $aula = Aula::find((int)($_GET['id'] ?? 0));
+        if (!$aula) { header('Location: /dashboard/aulas'); exit; }
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $aula->sincronizar($_POST);
+            $alertas = $aula->validar();
+            if (empty($alertas['error'])) {
+                $aula->guardar();
+                header('Location: /dashboard/aulas?edited=1');
+                exit;
+            }
+        }
+
+        $router->renderAdmin('blog/aulas/editar', [
+            'titulo'  => 'Editar aula',
+            'aula'    => $aula,
+            'usos'    => Aula::usos((int)$aula->id),
+            'alertas' => $alertas,
+        ]);
+    }
+
+    public static function eliminarAula(Router $router) {
+        self::requireSuperadmin();
+        $id   = (int)($_POST['id'] ?? 0);
+        $aula = $id ? Aula::find($id) : null;
+        if (!$aula) { header('Location: /dashboard/aulas'); exit; }
+
+        // Contar antes de borrar: es más claro que dejar reventar la FK
+        $usos = Aula::usos($id);
+        if (array_sum($usos)) {
+            header('Location: /dashboard/aulas?enuso=' . array_sum($usos));
+            exit;
+        }
+
+        $aula->eliminar();
+        header('Location: /dashboard/aulas?deleted=1');
+        exit;
+    }
+
+    public static function grupos(Router $router) {
+        self::requireSuperadmin();
+        $router->renderAdmin('blog/grupos/index', [
+            'titulo' => 'Grupos',
+            'grupos' => Grupo::todosConUso(),
+        ]);
+    }
+
+    public static function crearGrupo(Router $router) {
+        self::requireSuperadmin();
+        $grupo = new Grupo();
+        $grupo->orden = Grupo::siguienteOrden();   // sugerencia: el primer hueco libre
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $grupo->sincronizar($_POST);
+            $alertas = $grupo->validar();
+            if (empty($alertas['error'])) {
+                $grupo->guardar();
+                header('Location: /dashboard/grupos?success=1');
+                exit;
+            }
+        }
+
+        $router->renderAdmin('blog/grupos/crear', [
+            'titulo'  => 'Nuevo grupo',
+            'grupo'   => $grupo,
+            'alertas' => $alertas,
+        ]);
+    }
+
+    public static function editarGrupo(Router $router) {
+        self::requireSuperadmin();
+        $grupo = Grupo::find((int)($_GET['id'] ?? 0));
+        if (!$grupo) { header('Location: /dashboard/grupos'); exit; }
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $grupo->sincronizar($_POST);
+            $alertas = $grupo->validar();
+            if (empty($alertas['error'])) {
+                $grupo->guardar();
+                header('Location: /dashboard/grupos?edited=1');
+                exit;
+            }
+        }
+
+        $router->renderAdmin('blog/grupos/editar', [
+            'titulo'  => 'Editar grupo',
+            'grupo'   => $grupo,
+            'usos'    => Grupo::usos((int)$grupo->id),
+            'alertas' => $alertas,
+        ]);
+    }
+
+    public static function eliminarGrupo(Router $router) {
+        self::requireSuperadmin();
+        $id    = (int)($_POST['id'] ?? 0);
+        $grupo = $id ? Grupo::find($id) : null;
+        if (!$grupo) { header('Location: /dashboard/grupos'); exit; }
+
+        $usos = Grupo::usos($id);
+        if (array_sum($usos)) {
+            header('Location: /dashboard/grupos?enuso=' . array_sum($usos));
+            exit;
+        }
+
+        $grupo->eliminar();
+        header('Location: /dashboard/grupos?deleted=1');
+        exit;
+    }
+
+    /**
+     * Carga de horarios por CSV. Dos pasos: subir → vista previa → confirmar.
+     * El archivo reemplaza el horario completo de los profesores que aparecen en él.
+     */
+    public static function importarHorarios(Router $router) {
+        self::requireSuperadmin();
+
+        // Descarga de la plantilla de ejemplo
+        if (isset($_GET['plantilla'])) {
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="horarios-plantilla.csv"');
+            echo "\xEF\xBB\xBF";
+            echo "profesor_email,dia,periodo,materia,grupo,aula\n";
+            $prof = UsuarioBlog::porTipo('profesor');
+            $ej   = $prof[0]->email ?? 'nombre.apellido@bilbao.edu.mx';
+            echo "{$ej},lunes,1,Matemáticas,1A,A-101\n";
+            echo "{$ej},lunes,2,Matemáticas,2B,A-101\n";
+            exit;
+        }
+
+        $filas    = $_SESSION['horarios_import']['filas'] ?? [];
+        $resumen  = $_SESSION['horarios_import']['resumen'] ?? [];
+        $alertas  = [];
+        $guardado = 0;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $accion = $_POST['_accion'] ?? 'previsualizar';
+
+            if ($accion === 'cancelar') {
+                unset($_SESSION['horarios_import']);
+                header('Location: /dashboard/horarios/importar');
+                exit;
+            }
+
+            if ($accion === 'confirmar') {
+                $filas = $_SESSION['horarios_import']['filas'] ?? [];
+                $validas = array_values(array_filter($filas, fn($f) => $f['estado'] !== 'error'));
+                if (!$validas) {
+                    $alertas['error'][] = 'No hay ninguna fila válida que importar.';
+                } else {
+                    $db = UsuarioBlog::getDB();
+                    $db->begin_transaction();
+                    try {
+                        Horario::borrarDeProfesores(array_column($validas, 'profesor_id'));
+                        foreach ($validas as $f) {
+                            $h = new Horario([
+                                'dia'         => $f['dia'],
+                                'periodo_id'  => $f['periodo_id'],
+                                'profesor_id' => $f['profesor_id'],
+                                'grupo_id'    => $f['grupo_id'] ?: null,
+                                'aula_id'     => $f['aula_id'] ?: null,
+                                'materia_id'  => $f['materia_id'] ?: null,
+                            ]);
+                            $h->guardar();
+                            $guardado++;
+                        }
+                        $db->commit();
+
+                        // El horario es suyo: cada profesor afectado se entera por su campana
+                        foreach (array_unique(array_column($validas, 'profesor_id')) as $pid) {
+                            Notificacion::nueva(
+                                (int)$pid,
+                                'horario_actualizado',
+                                'Tu horario se actualizó tras una importación. Revísalo por si algo no cuadra.',
+                                null, null, 'horarios', 'aviso',
+                                '/dashboard/horarios/mi-horario'
+                            );
+                        }
+
+                        unset($_SESSION['horarios_import']);
+                        header('Location: /dashboard/horarios/importar?ok=' . $guardado);
+                        exit;
+                    } catch (\Throwable $e) {
+                        $db->rollback();
+                        $alertas['error'][] = 'No se pudo importar: ' . $e->getMessage();
+                    }
+                }
+            }
+
+            if ($accion === 'previsualizar') {
+                $archivo = $_FILES['csv'] ?? null;
+                if (!$archivo || ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                    $alertas['error'][] = 'Elige un archivo CSV.';
+                } elseif ($archivo['size'] > 2 * 1024 * 1024) {
+                    $alertas['error'][] = 'El archivo supera los 2 MB.';
+                } else {
+                    [$filas, $resumen] = self::parsearCsvHorarios($archivo['tmp_name']);
+                    if (!empty($resumen['error'])) {
+                        $alertas['error'][] = $resumen['error'];
+                        $filas = []; $resumen = [];
+                    } elseif (!$filas) {
+                        $alertas['error'][] = 'El archivo no tiene filas de datos.';
+                    } else {
+                        $_SESSION['horarios_import'] = ['filas' => $filas, 'resumen' => $resumen];
+                    }
+                }
+            }
+        }
+
+        $router->renderAdmin('blog/horarios/importar', [
+            'titulo'    => 'Importar horarios',
+            'filas'     => $filas,
+            'resumen'   => $resumen,
+            'alertas'   => $alertas,
+            'importado' => (int)($_GET['ok'] ?? 0),
+        ]);
+    }
+
+    /**
+     * Resuelve `puede_suplir` desde el POST del formulario de usuarios.
+     * La exclusión ("No puede suplir a otros profesores") solo tiene sentido para
+     * el personal docente: si no se marcó el tipo 'profesor', siempre queda en 1.
+     */
+    private static function resolverPuedeSuplir(array $post): int {
+        $tipos = array_map('trim', (array)($post['tipo_personal'] ?? []));
+        if (!in_array('profesor', $tipos, true)) return 1;
+        return empty($post['no_puede_suplir']) ? 1 : 0;
+    }
+
     public static function crearUsuario(Router $router) {
         self::requireAuth();
         self::requireAdmin();
@@ -896,6 +1840,9 @@ class BlogController {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $usuario->sincronizar($_POST);
+            // Toggle "No puede suplir a otros profesores" (checkbox invertido).
+            // Solo aplica al personal docente: sin el tipo 'profesor' nunca se excluye.
+            $usuario->puede_suplir = self::resolverPuedeSuplir($_POST);
             $alertas = $usuario->validar();
 
             if (empty($alertas['error'])) {
@@ -931,7 +1878,9 @@ class BlogController {
                         $resultado = $usuario->guardar();
 
                         if ($resultado['resultado']) {
-                            UsuarioBlog::guardarFechaNacimiento((int)($resultado['id'] ?? 0), $usuario->fecha_nacimiento);
+                            $nuevoId = (int)($resultado['id'] ?? 0);
+                            UsuarioBlog::guardarFechaNacimiento($nuevoId, $usuario->fecha_nacimiento);
+                            UsuarioBlog::guardarAtributos($nuevoId, $usuario->rol_redaccion, $usuario->tipo_personal);
                             header('Location: /dashboard/usuarios?success=1');
                             exit;
                         }
@@ -980,9 +1929,11 @@ class BlogController {
 
             $usuario->sincronizar($_POST);
 
-            // Editores no pueden cambiar su rol
+            // Editores no pueden cambiar su rol ni sus atributos de personal
             if ($esEditor) {
                 $usuario->rol = 'usuario';
+            } else {
+                $usuario->puede_suplir = self::resolverPuedeSuplir($_POST);
             }
 
             $alertas = $usuario->validarEdicion();
@@ -1031,6 +1982,7 @@ class BlogController {
                         if (empty($alertas['error'])) {
                             $usuario->guardar();
                             UsuarioBlog::guardarFechaNacimiento((int)$usuario->id, $usuario->fecha_nacimiento);
+                            UsuarioBlog::guardarAtributos((int)$usuario->id, $usuario->rol_redaccion, $usuario->tipo_personal);
                             $redirect = $esEditor
                                 ? '/dashboard/usuarios/editar?id=' . (int)$usuario->id . '&edited=1'
                                 : '/dashboard/usuarios?edited=1';
@@ -1664,11 +2616,7 @@ class BlogController {
         if ($id) {
             Notificacion::marcarLeida($id, (int)$usuario['id']);
         }
-        if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') {
-            header('Content-Type: application/json');
-            echo json_encode(['ok' => true]);
-            exit;
-        }
+        if (self::esAjax()) return self::json(['ok' => true]);
         header('Location: /dashboard/notificaciones');
         exit;
     }
@@ -1680,11 +2628,69 @@ class BlogController {
         exit;
     }
 
+    /**
+     * Borra una notificación. Se borra YA, no se difiere: si el usuario navega o
+     * recarga a mitad de la cuenta atrás del "Deshacer", el estado final ya está
+     * persistido. La respuesta devuelve la fila completa para poder restaurarla.
+     */
+    public static function eliminarNotificacion(Router $router) {
+        $usuario = self::requireAuth();
+        $uid     = (int)$usuario['id'];
+        $id      = (int)($_POST['id'] ?? 0);
+
+        $notif = $id ? Notificacion::delUsuario($id, $uid) : null;
+        if (!$notif) {
+            if (self::esAjax()) return self::json(['ok' => false, 'error' => 'No encontrada'], 404);
+            header('Location: /dashboard/notificaciones');
+            exit;
+        }
+
+        Notificacion::borrarDeUsuario($id, $uid);
+
+        if (self::esAjax()) {
+            return self::json(['ok' => true, 'notif' => [
+                'tipo'            => $notif->tipo,
+                'mensaje'         => $notif->mensaje,
+                'modulo'          => $notif->modulo,
+                'nivel'           => $notif->nivel,
+                'enlace'          => $notif->enlace,
+                'referencia_id'   => $notif->referencia_id,
+                'referencia_tipo' => $notif->referencia_tipo,
+            ]]);
+        }
+        header('Location: /dashboard/notificaciones?eliminada=1');
+        exit;
+    }
+
+    /** Reinserta la notificación que el usuario acaba de borrar por error. */
+    public static function restaurarNotificacion(Router $router) {
+        $usuario = self::requireAuth();
+        Notificacion::restaurar((int)$usuario['id'], [
+            'tipo'            => $_POST['tipo']            ?? 'restaurada',
+            'mensaje'         => $_POST['mensaje']         ?? '',
+            'modulo'          => $_POST['modulo']          ?? 'general',
+            'nivel'           => $_POST['nivel']           ?? 'info',
+            'enlace'          => $_POST['enlace']          ?? null,
+            'referencia_id'   => $_POST['referencia_id']   ?? null,
+            'referencia_tipo' => $_POST['referencia_tipo'] ?? null,
+        ]);
+        if (self::esAjax()) return self::json(['ok' => true]);
+        header('Location: /dashboard/notificaciones');
+        exit;
+    }
+
+    /** Vacía la bandeja completa (tras el modal de confirmación). */
+    public static function limpiarNotificaciones(Router $router) {
+        $usuario = self::requireAuth();
+        $n = Notificacion::borrarTodasDeUsuario((int)$usuario['id']);
+        header('Location: /dashboard/notificaciones?limpiadas=' . $n);
+        exit;
+    }
+
     // ── TESTIMONIALES ──────────────────────────────────────────────────────────
 
     public static function testimoniales(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
 
         $testimoniales = Testimonial::todos();
 
@@ -1695,8 +2701,7 @@ class BlogController {
     }
 
     public static function aprobarTestimonial(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
 
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {
@@ -1708,8 +2713,7 @@ class BlogController {
     }
 
     public static function rechazarTestimonial(Router $router) {
-        self::requireAuth();
-        self::requireAdmin();
+        self::requireRevisor();
 
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {

@@ -4,8 +4,8 @@ namespace Model;
 class UsuarioBlog extends ActiveRecord {
 
     protected static $tabla      = 'usuarios';
-    // fecha_nacimiento se persiste aparte (columna DATE) para poder guardar NULL real.
-    protected static $columnasDB = ['id', 'nombre', 'email', 'password', 'rol', 'modulos', 'avatar'];
+    // fecha_nacimiento, rol_redaccion y tipo_personal se persisten aparte (soporte de NULL real).
+    protected static $columnasDB = ['id', 'nombre', 'email', 'password', 'rol', 'puede_suplir', 'modulos', 'avatar'];
 
     public $id;
     public $nombre;
@@ -13,6 +13,9 @@ class UsuarioBlog extends ActiveRecord {
     public $password;
     public $password2;       // confirmación — no va a BD
     public $rol;
+    public $rol_redaccion;   // 'revisor'|'editor'|null — solo con módulo redaccion
+    public $tipo_personal;   // SET: 'profesor','prefecto','administrativo' (CSV, combinable)
+    public $puede_suplir = 1;// 0 = no puede suplir a otros profesores
     public $modulos;         // CSV de módulos para rol 'usuario' (admin = todos)
     public $fecha_nacimiento;// DATE — para el calendario de cumpleaños
     public $avatar;
@@ -67,7 +70,7 @@ class UsuarioBlog extends ActiveRecord {
         }
 
         // Rol
-        if (!\in_array($this->rol ?? '', ['administrador', 'usuario'])) {
+        if (!\in_array($this->rol ?? '', ['superadmin', 'administrador', 'usuario'])) {
             static::setAlerta('error', 'Selecciona un rol válido');
         }
 
@@ -77,16 +80,24 @@ class UsuarioBlog extends ActiveRecord {
             static::setAlerta('error', 'Selecciona al menos un módulo para el usuario');
         }
 
+        // Rol de redacción (revisor/editor) obligatorio si tiene el módulo redaccion
+        $this->validarRolRedaccion();
+
+        // Tipo de personal (SET combinable)
+        $this->normalizarTipoPersonal();
+
         // Fecha de nacimiento (opcional, pero si viene debe ser válida)
         $this->validarFechaNacimiento();
 
         return static::$alertas;
     }
 
-    /** Normaliza $modulos: admin no guarda módulos; usuario guarda CSV limpio. */
+    /** Lista blanca de módulos asignables a un rol 'usuario' (los directorios superadmin no van aquí). */
+    public const MODULOS_ASIGNABLES = ['redaccion', 'suplencias', 'usuarios', 'horarios', 'eventos'];
+
+    /** Normaliza $modulos: super/admin no guardan módulos; usuario guarda CSV limpio. */
     private function normalizarModulos(): void {
-        $permitidos = ['redaccion', 'suplencias', 'usuarios'];
-        if (($this->rol ?? '') === 'administrador') {
+        if (\in_array($this->rol ?? '', ['administrador', 'superadmin'], true)) {
             $this->modulos = null;
             return;
         }
@@ -96,8 +107,50 @@ class UsuarioBlog extends ActiveRecord {
         } else {
             $lista = array_filter(array_map('trim', explode(',', (string) $raw)));
         }
-        $lista = array_values(array_intersect($permitidos, $lista));
+        $lista = array_values(array_intersect(self::MODULOS_ASIGNABLES, $lista));
         $this->modulos = $lista ? implode(',', $lista) : null;
+    }
+
+    /** El rol de redacción solo aplica si el usuario tiene el módulo 'redaccion'. */
+    private function validarRolRedaccion(): void {
+        $tieneRedaccion = \in_array($this->rol ?? '', ['administrador', 'superadmin'], true)
+            || \in_array('redaccion', array_filter(array_map('trim', explode(',', (string) $this->modulos))), true);
+        if (!$tieneRedaccion) { $this->rol_redaccion = null; return; }
+        // Admin/superadmin actúan siempre como revisor implícito; no requieren el campo.
+        if (\in_array($this->rol ?? '', ['administrador', 'superadmin'], true)) {
+            $this->rol_redaccion = null;
+            return;
+        }
+        if (!\in_array($this->rol_redaccion ?? '', ['revisor', 'editor'], true)) {
+            static::setAlerta('error', 'Elige si el usuario será revisor o editor en Redacción');
+            $this->rol_redaccion = null;
+        }
+    }
+
+    /**
+     * Normaliza tipo_personal (SET) contra la lista permitida; vacío = null.
+     *
+     * `prefecto` es EXCLUYENTE: prefectura coordina las suplencias, no las cubre,
+     * así que combinarlo con `profesor` deja al mismo usuario a ambos lados del
+     * flujo. Si viene marcado, gana él y se descarta el resto. `profesor` +
+     * `administrativo` sí es una combinación válida.
+     *
+     * Es la única puerta de entrada (la llaman validar() y validarEdicion()), así
+     * que aquí queda cubierto tanto el formulario como cualquier POST manipulado.
+     */
+    private function normalizarTipoPersonal(): void {
+        $permitidos = ['profesor', 'prefecto', 'administrativo'];
+        $raw = $this->tipo_personal;
+        if (\is_array($raw)) {
+            $lista = $raw;
+        } else {
+            $lista = array_filter(array_map('trim', explode(',', (string) $raw)));
+        }
+        $lista = array_values(array_intersect($permitidos, $lista));
+        if (in_array('prefecto', $lista, true)) $lista = ['prefecto'];
+        $this->tipo_personal = $lista ? implode(',', $lista) : null;
+        // puede_suplir normalizado a 0/1
+        $this->puede_suplir = !empty($this->puede_suplir) ? 1 : 0;
     }
 
     /** Valida el formato de fecha_nacimiento (Y-m-d) si se proporcionó. */
@@ -278,7 +331,7 @@ class UsuarioBlog extends ActiveRecord {
             static::setAlerta('error', 'El correo electrónico no tiene un formato válido');
         }
 
-        if (!\in_array($this->rol ?? '', ['administrador', 'usuario'])) {
+        if (!\in_array($this->rol ?? '', ['superadmin', 'administrador', 'usuario'])) {
             static::setAlerta('error', 'Selecciona un rol válido');
         }
 
@@ -287,6 +340,8 @@ class UsuarioBlog extends ActiveRecord {
             static::setAlerta('error', 'Selecciona al menos un módulo para el usuario');
         }
 
+        $this->validarRolRedaccion();
+        $this->normalizarTipoPersonal();
         $this->validarFechaNacimiento();
 
         return static::$alertas;
@@ -308,9 +363,63 @@ class UsuarioBlog extends ActiveRecord {
         }
     }
 
-    /** ¿Este usuario puede acceder al módulo indicado? Admin = todos. */
+    /**
+     * Persiste rol_redaccion y tipo_personal con soporte de NULL real (el ORM base no lo permite).
+     * Llamar tras guardar() con el id ya disponible.
+     */
+    public static function guardarAtributos(int $id, ?string $rolRedaccion, ?string $tipoPersonal): void {
+        $id = (int) $id;
+        if ($id <= 0) return;
+        $rr = ($rolRedaccion !== null && $rolRedaccion !== '')
+            ? "'" . self::$db->escape_string($rolRedaccion) . "'" : 'NULL';
+        $tp = ($tipoPersonal !== null && $tipoPersonal !== '')
+            ? "'" . self::$db->escape_string($tipoPersonal) . "'" : 'NULL';
+        self::$db->query("UPDATE " . static::$tabla . " SET rol_redaccion = {$rr}, tipo_personal = {$tp} WHERE id = {$id} LIMIT 1");
+    }
+
+    /**
+     * Candidatos a suplente: SOLO profesores que sí pueden suplir.
+     *
+     * Antes entraban también los administrativos ("última prioridad"), pero cubrir
+     * una clase exige estar frente a grupo: prefectura y administrativos registran
+     * y coordinan las ausencias, no las cubren.
+     */
+    public static function candidatosSuplencia(): array {
+        $r = self::$db->query("
+            SELECT id, nombre, avatar, tipo_personal, puede_suplir
+            FROM usuarios
+            WHERE puede_suplir = 1
+              AND FIND_IN_SET('profesor', tipo_personal)
+            ORDER BY nombre ASC
+        ");
+        $out = [];
+        if ($r) while ($row = $r->fetch_assoc()) $out[] = $row;
+        return $out;
+    }
+
+    /**
+     * Índice ligero id/nombre/email de todo el claustro, para resolver el CSV de horarios.
+     * No se filtra por tipo_personal: el archivo puede traer a quien todavía no lo tenga puesto.
+     */
+    public static function todosParaImportar(): array {
+        return static::consultarSQL("SELECT id, nombre, email FROM usuarios ORDER BY nombre ASC");
+    }
+
+    /** Usuarios cuyo tipo_personal incluye el tipo indicado (para directorios y suplencias). */
+    public static function porTipo(string $tipo): array {
+        $safe = self::$db->escape_string($tipo);
+        $query = "SELECT u.*, COUNT(a.id) AS total_articulos
+                  FROM usuarios u
+                  LEFT JOIN articulos a ON a.autor_id = u.id
+                  WHERE FIND_IN_SET('{$safe}', u.tipo_personal)
+                  GROUP BY u.id
+                  ORDER BY u.nombre ASC";
+        return static::consultarSQL($query);
+    }
+
+    /** ¿Este usuario puede acceder al módulo indicado? Super/admin = todos. */
     public function puedeModulo(string $modulo): bool {
-        if (($this->rol ?? '') === 'administrador') return true;
+        if (\in_array($this->rol ?? '', ['administrador', 'superadmin'], true)) return true;
         $lista = array_filter(array_map('trim', explode(',', (string) $this->modulos)));
         return \in_array($modulo, $lista, true);
     }

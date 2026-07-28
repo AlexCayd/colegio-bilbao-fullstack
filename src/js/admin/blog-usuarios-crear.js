@@ -183,15 +183,8 @@
             });
         }
 
-        /* ── Toggle de módulos según el rol ── */
-        const modulosGroup = document.getElementById('modulos-group');
-        const rolRadios    = document.querySelectorAll('input[name="rol"]');
-        function syncModulos() {
-            const rol = document.querySelector('input[name="rol"]:checked')?.value;
-            if (modulosGroup) modulosGroup.style.display = (rol === 'usuario') ? 'block' : 'none';
-        }
-        rolRadios.forEach(r => r.addEventListener('change', syncModulos));
-        syncModulos();
+        /* Las reglas de rol / módulos / tipo de personal las lleva
+           admin-usuario-permisos.js, compartido con la vista de editar. */
 
     })();
 })();

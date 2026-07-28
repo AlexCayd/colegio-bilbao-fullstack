@@ -1,0 +1,92 @@
+/* =========================================================
+   PANEL · MÓDULO EVENTOS
+   Migrado desde los style="" embebidos de views/blog/eventos/
+========================================================= */
+body[data-page="blog-eventos-index"] {
+
+    .ev-scroll { overflow-x: auto; }
+
+    /* ── Tile de fecha: hereda el color del tipo vía --c ── */
+    .ev-datecell { display: flex; align-items: center; gap: .6rem; }
+    .ev-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        padding: 6px 0;
+        border-radius: 11px;
+        background: color-mix(in srgb, var(--c) 12%, #fff);
+        line-height: 1;
+        flex-shrink: 0;
+
+        &__d  { font-size: 16px; font-weight: 800; color: var(--c); }
+        &__mo { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--c); margin-top: 2px; }
+    }
+    .ev-range { font-size: 11px; font-weight: 600; color: #94a3b8; white-space: nowrap; }
+
+    /* ── Badges de tipo y visibilidad ── */
+    .ev-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 11px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        background: color-mix(in srgb, var(--c, #94a3b8) 13%, #fff);
+        color: var(--c, #64748b);
+    }
+    .ev-badge--publico { --c: #34a853; }
+    .ev-badge--interno { --c: #94a3b8; }
+
+    /* Los botones son los compartidos .admin-act--edit/--del (_blog-admin.scss);
+       aquí solo queda la disposición de la celda. */
+    .ev-actions { display: inline-flex; gap: 8px; justify-content: flex-end; }
+    .ev-col-act { text-align: right; width: 1%; white-space: nowrap; }
+
+    /* ── Modal de borrado ── */
+    .ev-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 31, 61, .55);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+
+        &.is-open { display: flex; }
+
+        &__box {
+            background: #fff;
+            border-radius: 18px;
+            max-width: 400px;
+            width: 100%;
+            padding: 28px;
+            text-align: center;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+        }
+        &__ico {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: #fde8e8;
+            color: #b42318;
+            display: grid;
+            place-items: center;
+            font-size: 22px;
+            margin: 0 auto 16px;
+        }
+        &__title { font-size: 18px; font-weight: 800; color: #0B1F3D; margin-bottom: 8px; }
+        &__text  { font-size: 13.5px; color: #64748b; line-height: 1.6; margin-bottom: 22px; }
+        &__actions { display: flex; gap: 10px; justify-content: center; }
+    }
+    .ev-btn-danger { background: #dc2626; color: #fff; }
+}
+
+/* Formularios de evento: el switch de visibilidad va compacto y alineado */
+body[data-page="blog-eventos-crear"],
+body[data-page="blog-eventos-editar"] {
+    .admin-switch-row { margin-top: 4px; }
+}

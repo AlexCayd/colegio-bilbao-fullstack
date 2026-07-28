@@ -11555,6 +11555,77 @@ h2.section-title::after {
   color: #A0AEC0;
 }
 
+/* ── Inputs de fecha/hora del panel ──
+   El control nativo se ve distinto en cada navegador y más bajo que los de texto.
+   Se le pone un icono propio y el picker se dispara al hacer clic en cualquier parte. */
+.admin-form__input[type=date],
+.admin-form__input[type=datetime-local],
+.admin-form__input[type=time],
+.admin-form__input[type=month] {
+  position: relative;
+  min-height: 46px;
+  padding-right: 42px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' viewBox='0 0 24 24' fill='none' stroke='%234267ac' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='3'/%3E%3Cpath d='M8 2v4M16 2v4M3 10h18'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  /* Oculta el indicador nativo y deja toda la caja como zona de clic */
+}
+.admin-form__input[type=date]::-webkit-calendar-picker-indicator,
+.admin-form__input[type=datetime-local]::-webkit-calendar-picker-indicator,
+.admin-form__input[type=time]::-webkit-calendar-picker-indicator,
+.admin-form__input[type=month]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.admin-form__input[type=date]::-webkit-datetime-edit,
+.admin-form__input[type=datetime-local]::-webkit-datetime-edit,
+.admin-form__input[type=time]::-webkit-datetime-edit,
+.admin-form__input[type=month]::-webkit-datetime-edit {
+  padding: 0;
+}
+.admin-form__input[type=date]::-webkit-inner-spin-button,
+.admin-form__input[type=datetime-local]::-webkit-inner-spin-button,
+.admin-form__input[type=time]::-webkit-inner-spin-button,
+.admin-form__input[type=month]::-webkit-inner-spin-button {
+  display: none;
+}
+.admin-form__input[type=date]:hover,
+.admin-form__input[type=datetime-local]:hover,
+.admin-form__input[type=time]:hover,
+.admin-form__input[type=month]:hover {
+  border-color: #c7d6ea;
+}
+.admin-form__input[type=date]:focus,
+.admin-form__input[type=datetime-local]:focus,
+.admin-form__input[type=time]:focus,
+.admin-form__input[type=month]:focus {
+  border-color: #4267ac;
+  box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
+}
+.admin-form__input[type=date],
+.admin-form__input[type=datetime-local],
+.admin-form__input[type=time],
+.admin-form__input[type=month] {
+  /* Sin valor: se ve como un placeholder */
+}
+.admin-form__input[type=date]:invalid,
+.admin-form__input[type=datetime-local]:invalid,
+.admin-form__input[type=time]:invalid,
+.admin-form__input[type=month]:invalid {
+  color: #A0AEC0;
+  font-weight: 500;
+}
+
 .admin-form__forgot {
   display: block;
   text-align: right;
@@ -12396,6 +12467,98 @@ h2.section-title::after {
   background: #FAFBFF;
 }
 
+/* Ordenamiento y paginación de tabla (src/js/admin/admin-table.js).
+   Van sin anidar bajo .admin-table porque Suplencias usa su propia .supl-table
+   y también las necesita. Solo se activan con las clases que inyecta el JS. */
+th.is-sortable {
+  cursor: pointer;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+th.is-sortable:hover {
+  background: #EEF4FF;
+  color: var(--col-bilbao);
+}
+th.is-sortable:focus-visible {
+  outline: 2px solid var(--col-bilbao);
+  outline-offset: -2px;
+}
+th.is-sortable.is-asc, th.is-sortable.is-desc {
+  color: var(--col-bilbao);
+  background: #EEF4FF;
+}
+
+tbody tr.is-hidden,
+tbody tr.is-filtered {
+  display: none;
+}
+
+/* Indicador de orden: neutro (↕) hasta que la columna se usa */
+.admin-table__sortico {
+  display: inline-block;
+  width: 9px;
+  margin-left: 3px;
+  opacity: 0.35;
+  font-size: 0.68rem;
+}
+.admin-table__sortico::before {
+  content: "↕";
+}
+.is-asc .admin-table__sortico {
+  opacity: 1;
+}
+.is-asc .admin-table__sortico::before {
+  content: "↑";
+}
+.is-desc .admin-table__sortico {
+  opacity: 1;
+}
+.is-desc .admin-table__sortico::before {
+  content: "↓";
+}
+
+/* Paginación de tabla — la inyecta admin-table.js, las vistas no la escriben */
+.admin-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #F1F5F9;
+}
+.admin-pager[hidden] {
+  display: none;
+}
+
+.admin-pager__info {
+  font-size: 0.76rem;
+  color: var(--text-gray);
+}
+
+.admin-pager__btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1.5px solid #E2E8F0;
+  background: #fff;
+  color: var(--col-bilbao);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  transition: all var(--transition-fast);
+}
+.admin-pager__btn:hover:not(:disabled) {
+  border-color: var(--col-bilbao);
+  background: #EEF4FF;
+}
+.admin-pager__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .admin-table__title {
   font-weight: 700;
   color: var(--col-herencia);
@@ -12447,14 +12610,16 @@ h2.section-title::after {
   padding-right: 28px;
 }
 
+/* Acciones de tabla. Llevan fondo sólido (no transparente) para que se lean como
+   botones en todas las vistas del panel, igual que .supl-icon-btn en Suplencias. */
 .admin-table__btn {
-  padding: 5px 11px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 9px;
   font-size: 0.78rem;
   font-weight: 600;
   border: 1.5px solid #E2E8F0;
-  background: transparent;
-  color: var(--text-gray);
+  background: #F1F5F9;
+  color: #475569;
   cursor: pointer;
   font-family: "Outfit", sans-serif;
   transition: all var(--transition-fast);
@@ -12462,16 +12627,89 @@ h2.section-title::after {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
 }
 .admin-table__btn:hover {
   border-color: var(--col-bilbao);
-  color: var(--col-bilbao);
-  background: rgba(77, 138, 187, 0.04);
+  color: #fff;
+  background: var(--col-bilbao);
+}
+.admin-table__btn--danger {
+  background: #FEF2F2;
+  border-color: #FBD5D5;
+  color: #C53030;
 }
 .admin-table__btn--danger:hover {
-  border-color: #fc8181;
-  color: #e53e3e;
-  background: #fff5f5;
+  border-color: #e53e3e;
+  background: #e53e3e;
+  color: #fff;
+}
+
+/* =========================================================
+   ACCIONES DE FILA · set único del panel
+   Sustituye a .ev-act--edit/--del (eventos) y .supl-icon-btn--edit/--danger
+   (suplencias), que hacían lo mismo con tres estilos distintos.
+   Editar = amarillo sólido + lápiz · Eliminar = rojo sólido + papelera.
+========================================================= */
+.admin-act {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.admin-act:hover {
+  transform: translateY(-2px);
+}
+.admin-act:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+.admin-act {
+  /* Con texto además del icono la píldora crece */
+}
+.admin-act--wide {
+  width: auto;
+  padding: 0 14px;
+}
+.admin-act--edit {
+  background: #f5b400;
+  color: #0B1F3D;
+  box-shadow: 0 6px 14px -8px rgba(245, 180, 0, 0.95);
+}
+.admin-act--edit:hover {
+  background: #ffc21f;
+  box-shadow: 0 10px 20px -10px rgb(245, 180, 0);
+}
+.admin-act--del {
+  background: #e51022;
+  color: #fff;
+  box-shadow: 0 6px 14px -8px rgba(229, 16, 34, 0.95);
+}
+.admin-act--del:hover {
+  background: #c8102e;
+  box-shadow: 0 10px 20px -10px rgb(229, 16, 34);
+}
+.admin-act {
+  /* Acción neutra que convive con las dos anteriores (p. ej. "Ver horario") */
+}
+.admin-act--ghost {
+  background: #F1F5F9;
+  color: #475569;
+}
+.admin-act--ghost:hover {
+  background: #E2E8F0;
 }
 
 /* QUICK ACTIONS PANEL */
@@ -12737,6 +12975,11 @@ h2.section-title::after {
   border-color: var(--col-bilbao);
   color: var(--col-bilbao);
   background: rgba(77, 138, 187, 0.04);
+}
+.admin-btn--sm {
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  gap: 6px;
 }
 .admin-btn--danger {
   background: transparent;
@@ -14384,7 +14627,9 @@ h2.section-title::after {
 }
 
 .admin-modulo-check {
-  display: block;
+  /* flex (no block) para que la caja estire a la altura de la fila del grid:
+     si no, cada tarjeta mide según su descripción y quedan desalineadas. */
+  display: flex;
   cursor: pointer;
 }
 .admin-modulo-check input {
@@ -14398,6 +14643,7 @@ h2.section-title::after {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
   padding: 14px 16px;
   border: 1.5px solid #e2e8f0;
   border-radius: 14px;
@@ -14407,6 +14653,19 @@ h2.section-title::after {
 
 .admin-modulo-check:hover .admin-modulo-check__box {
   border-color: #c7d6ea;
+}
+
+/* Casilla no disponible por una regla de exclusividad (p. ej. `prefecto` no se
+   combina con `profesor`). La aplica admin-usuario-permisos.js. */
+.admin-modulo-check.is-disabled {
+  cursor: not-allowed;
+}
+.admin-modulo-check.is-disabled .admin-modulo-check__box {
+  opacity: 0.42;
+  background: #F8FAFC;
+}
+.admin-modulo-check.is-disabled:hover .admin-modulo-check__box {
+  border-color: #E2E8F0;
 }
 
 .admin-modulo-check__icon {
@@ -14481,6 +14740,194 @@ h2.section-title::after {
 .admin-modulo-check input:focus-visible + .admin-modulo-check__box {
   outline: 2px solid #4267ac;
   outline-offset: 2px;
+}
+
+/* =========================================================
+   SWITCH ROW · interruptor con título y ayuda
+   Componente compartido: "No puede suplir", "Mostrar en el calendario público", …
+   Misma familia visual que .admin-modulo-check.
+========================================================= */
+.admin-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.admin-switch-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.admin-switch-row__track {
+  position: relative;
+  width: 44px;
+  height: 25px;
+  border-radius: 20px;
+  background: #dde4ec;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+.admin-switch-row__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(11, 31, 61, 0.3);
+  transition: transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.admin-switch-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-switch-row__text strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1E293B;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-switch-row__text small {
+  font-size: 11.5px;
+  color: #94A3B8;
+  line-height: 1.45;
+}
+.admin-switch-row:hover {
+  border-color: #c7d6ea;
+}
+.admin-switch-row input:checked ~ .admin-switch-row__track {
+  background: #4267ac;
+}
+.admin-switch-row input:checked ~ .admin-switch-row__track .admin-switch-row__knob {
+  transform: translateX(19px);
+}
+.admin-switch-row input:focus-visible ~ .admin-switch-row__track {
+  outline: 2px solid #4267ac;
+  outline-offset: 2px;
+}
+.admin-switch-row {
+  /* Variante de exclusión (rojo): activarla es una restricción, no una mejora */
+}
+.admin-switch-row--danger strong i {
+  color: #e51022;
+}
+.admin-switch-row--danger input:checked ~ .admin-switch-row__track {
+  background: #e51022;
+}
+.admin-switch-row--danger:has(input:checked) {
+  border-color: #f3c0c0;
+  background: #fff6f6;
+}
+.admin-switch-row {
+  /* Variante compacta: sin ayuda secundaria */
+}
+.admin-switch-row--compact {
+  padding: 11px 14px;
+}
+.admin-switch-row--compact strong {
+  font-size: 13px;
+}
+
+/* Bloque "No puede suplir" del formulario de usuarios (solo si es Profesor) */
+.admin-suplir-toggle {
+  margin-top: 14px;
+}
+
+.admin-suplir-toggle[hidden] {
+  display: none;
+}
+
+/* =========================================================
+   FILE · zona de subida de archivos (justificantes, adjuntos)
+   Compartido; el JS de src/js/admin/admin-file.js la activa por [data-file].
+========================================================= */
+.admin-file {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 16px;
+  border: 1.5px dashed #cbd7e6;
+  border-radius: 14px;
+  background: #f9fbfe;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+  /* El input cubre la caja entera para que todo sea zona de clic */
+}
+.admin-file input[type=file] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.admin-file__ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: #eef3fb;
+  color: #4267ac;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.admin-file__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.admin-file__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-file__hint {
+  font-size: 11.5px;
+  color: #94A3B8;
+}
+.admin-file:hover {
+  border-color: #4267ac;
+  background: #f5f9ff;
+}
+.admin-file.is-filled {
+  border-style: solid;
+  border-color: #bfe6cd;
+  background: #f4fbf6;
+}
+.admin-file.is-filled .admin-file__ico {
+  background: #e2f5e9;
+  color: #15803d;
+}
+.admin-file.is-filled .admin-file__title {
+  color: #15803d;
+}
+.admin-file.is-error {
+  border-style: solid;
+  border-color: #f3c0c0;
+  background: #fff6f6;
+}
+.admin-file.is-error .admin-file__ico {
+  background: #fdeaea;
+  color: #b91c1c;
+}
+.admin-file.is-error .admin-file__title {
+  color: #b91c1c;
 }
 
 /* =========================================================
@@ -14581,6 +15028,75 @@ h2.section-title::after {
   transform: translateY(-2px);
 }
 
+/* Campana de notificaciones — vive junto al avatar en todas las vistas del panel
+   (views/blog/_topbar-avatar.php), no dentro de un módulo concreto. */
+.admin-topbar__bell {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--col-borde, #e2e8f0);
+  background: #fff;
+  color: #4267ac;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  font-size: 15px;
+  transition: background 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+.admin-topbar__bell:hover {
+  background: #eef4ff;
+  transform: translateY(-2px);
+}
+.admin-topbar__bell {
+  /* Con pendientes la campana deja de ser decorativa: se tiñe y llama la atención */
+}
+.admin-topbar__bell.has-pend {
+  border-color: #ffd9a1;
+  background: #fff8ee;
+  color: #d9770a;
+}
+.admin-topbar__bell.has-pend i {
+  animation: bellNudge 3.2s ease-in-out infinite;
+  transform-origin: 50% 12%;
+}
+
+.admin-topbar__bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #e51022;
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+
+@keyframes bellNudge {
+  0%, 88%, 100% {
+    transform: rotate(0);
+  }
+  91% {
+    transform: rotate(11deg);
+  }
+  94% {
+    transform: rotate(-9deg);
+  }
+  97% {
+    transform: rotate(5deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-topbar__bell.has-pend i {
+    animation: none;
+  }
+}
 /* =========================================================
    SIDEBAR · cabecera (marca + colapso)
    Migrado desde el \3c style> embebido de views/blog/_sidebar.php
@@ -16799,7 +17315,8 @@ h2.section-title::after {
 }
 .comunidad-est__hero {
   position: relative;
-  background: radial-gradient(90% 120% at 85% 15%, rgba(70, 189, 198, 0.28), transparent 48%), linear-gradient(135deg, #050e20 0%, #0d2451 55%, #143f80 100%);
+  /* Claro del bosque (colores institucionales) */
+  background: radial-gradient(55% 75% at 80% 8%, rgba(241, 196, 0, 0.16), transparent 46%), radial-gradient(90% 120% at 85% 18%, rgba(70, 189, 198, 0.24), transparent 50%), radial-gradient(120% 90% at 12% 100%, rgba(36, 80, 111, 0.5), transparent 60%), linear-gradient(180deg, #071528 0%, #0d2b3f 52%, #103a48 100%);
   border-bottom: 1px solid var(--col-borde);
   overflow: hidden;
 }
@@ -16998,7 +17515,8 @@ h2.section-title::after {
 }
 .fam__hero {
   position: relative;
-  background: radial-gradient(90% 120% at 88% 8%, rgba(70, 189, 198, 0.3), transparent 46%), radial-gradient(80% 120% at 6% 100%, rgba(66, 103, 172, 0.34), transparent 50%), linear-gradient(135deg, #050e20 0%, #0d2451 52%, #143f80 100%);
+  /* Claro del bosque: cielo profundo arriba, bruma teal, destello de sol cálido */
+  background: radial-gradient(60% 80% at 78% 6%, rgba(241, 196, 0, 0.18), transparent 46%), radial-gradient(90% 120% at 88% 20%, rgba(70, 189, 198, 0.26), transparent 50%), radial-gradient(120% 90% at 10% 100%, rgba(36, 80, 111, 0.55), transparent 60%), linear-gradient(180deg, #071528 0%, #0d2b3f 50%, #103a48 100%);
   border-bottom: 1px solid var(--col-borde);
   overflow: hidden;
 }
@@ -17817,14 +18335,317 @@ html.i18n-pending body {
   visibility: visible !important;
 }
 
+/* Catálogos académicos (Aulas y Grupos) — solo superadmin.
+   Las cuatro vistas comparten estilos, así que se agrupan los selectores en vez
+   de crear un partial por página. */
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* Banda de contexto con Alex: estos catálogos alimentan el horario y conviene
+     decirlo antes de que alguien renombre un aula con 40 clases colgando. */
+}
+body[data-page=blog-aulas-index] .cat-intro,
+body[data-page=blog-grupos-index] .cat-intro,
+body[data-page=blog-aulas-form] .cat-intro,
+body[data-page=blog-grupos-form] .cat-intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 12px 18px 12px 10px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eef3fb, #e3f4f6);
+  border: 1.5px solid #c9dcf2;
+}
+body[data-page=blog-aulas-index] .cat-intro img,
+body[data-page=blog-grupos-index] .cat-intro img,
+body[data-page=blog-aulas-form] .cat-intro img,
+body[data-page=blog-grupos-form] .cat-intro img {
+  width: 54px;
+  height: auto;
+  flex-shrink: 0;
+}
+body[data-page=blog-aulas-index] .cat-intro strong,
+body[data-page=blog-grupos-index] .cat-intro strong,
+body[data-page=blog-aulas-form] .cat-intro strong,
+body[data-page=blog-grupos-form] .cat-intro strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #0B1F3D;
+  font-weight: 800;
+}
+body[data-page=blog-aulas-index] .cat-intro span,
+body[data-page=blog-grupos-index] .cat-intro span,
+body[data-page=blog-aulas-form] .cat-intro span,
+body[data-page=blog-grupos-form] .cat-intro span {
+  display: block;
+  font-size: 0.82rem;
+  color: #22417e;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+body[data-page=blog-aulas-index] .cat-intro em,
+body[data-page=blog-grupos-index] .cat-intro em,
+body[data-page=blog-aulas-form] .cat-intro em,
+body[data-page=blog-grupos-form] .cat-intro em {
+  font-style: normal;
+  font-weight: 700;
+}
+body[data-page=blog-aulas-index] .cat-name,
+body[data-page=blog-grupos-index] .cat-name,
+body[data-page=blog-aulas-form] .cat-name,
+body[data-page=blog-grupos-form] .cat-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--col-herencia);
+}
+body[data-page=blog-aulas-index] .cat-name i,
+body[data-page=blog-grupos-index] .cat-name i,
+body[data-page=blog-aulas-form] .cat-name i,
+body[data-page=blog-grupos-form] .cat-name i {
+  color: var(--col-bilbao);
+  font-size: 0.82rem;
+  opacity: 0.7;
+}
+body[data-page=blog-aulas-index] .cat-desc,
+body[data-page=blog-grupos-index] .cat-desc,
+body[data-page=blog-aulas-form] .cat-desc,
+body[data-page=blog-grupos-form] .cat-desc {
+  font-size: 0.85rem;
+  color: var(--text-gray);
+}
+body[data-page=blog-aulas-index] .cat-nil,
+body[data-page=blog-grupos-index] .cat-nil,
+body[data-page=blog-aulas-form] .cat-nil,
+body[data-page=blog-grupos-form] .cat-nil {
+  color: #A0AEC0;
+}
+body[data-page=blog-aulas-index] .cat-orden,
+body[data-page=blog-grupos-index] .cat-orden,
+body[data-page=blog-aulas-form] .cat-orden,
+body[data-page=blog-grupos-form] .cat-orden {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* Chip de nivel: el color lo pone la vista con --c */
+}
+body[data-page=blog-aulas-index] .cat-nivel,
+body[data-page=blog-grupos-index] .cat-nivel,
+body[data-page=blog-aulas-form] .cat-nivel,
+body[data-page=blog-grupos-form] .cat-nivel {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--c, #64748b);
+  background: color-mix(in srgb, var(--c, #64748b) 13%, #fff);
+}
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* ── Formulario ── */
+}
+body[data-page=blog-aulas-index] .cat-form,
+body[data-page=blog-grupos-index] .cat-form,
+body[data-page=blog-aulas-form] .cat-form,
+body[data-page=blog-grupos-form] .cat-form {
+  padding: 26px 28px 22px;
+  max-width: 620px;
+}
+body[data-page=blog-aulas-index] .cat-form__row,
+body[data-page=blog-grupos-index] .cat-form__row,
+body[data-page=blog-aulas-form] .cat-form__row,
+body[data-page=blog-grupos-form] .cat-form__row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+}
+body[data-page=blog-aulas-index] .cat-form__acts,
+body[data-page=blog-grupos-index] .cat-form__acts,
+body[data-page=blog-aulas-form] .cat-form__acts,
+body[data-page=blog-grupos-form] .cat-form__acts {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid #F1F5F9;
+}
+body[data-page=blog-aulas-index] .cat-opt,
+body[data-page=blog-grupos-index] .cat-opt,
+body[data-page=blog-aulas-form] .cat-opt,
+body[data-page=blog-grupos-form] .cat-opt {
+  font-weight: 400;
+  color: #94A3B8;
+}
+body[data-page=blog-aulas-index] .cat-aviso,
+body[data-page=blog-grupos-index] .cat-aviso,
+body[data-page=blog-aulas-form] .cat-aviso,
+body[data-page=blog-grupos-form] .cat-aviso {
+  align-items: center;
+}
+@media (max-width: 640px) {
+  body[data-page=blog-aulas-index] .cat-form__row,
+  body[data-page=blog-grupos-index] .cat-form__row,
+  body[data-page=blog-aulas-form] .cat-form__row,
+  body[data-page=blog-grupos-form] .cat-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Modal de borrado (fuera de .admin-content, sin scope de página) ── */
+.cat-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(11, 31, 61, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.cat-modal[hidden] {
+  display: none;
+}
+.cat-modal__card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 30px 28px 24px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 26px 60px -20px rgba(11, 31, 61, 0.5);
+}
+.cat-modal__card h3 {
+  margin: 14px 0 8px;
+  font-size: 1.12rem;
+  color: #0B1F3D;
+  font-weight: 800;
+}
+.cat-modal__card p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #64748B;
+  line-height: 1.5;
+}
+.cat-modal__card form {
+  margin: 0;
+}
+.cat-modal__icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff1f1;
+  color: #e51022;
+  font-size: 1.25rem;
+}
+.cat-modal__acts {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+.cat-modal__danger {
+  background: #e51022;
+  color: #fff;
+}
+.cat-modal__danger:hover {
+  background: #c8102e;
+}
+
 /* =========================================================
-   PANEL · CALENDARIO DE CUMPLEAÑOS
+   PANEL · CALENDARIO DE CUMPLEAÑOS (/dashboard/usuarios/cumpleanos)
 ========================================================= */
+/* Aviso de cumpleaños de hoy: misma clave cromática que el tile del home */
+.cb-today {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #fff1e6, #fff8f2);
+  border: 1px solid #ffd8b8;
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.cb-today__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  line-height: 1;
+  background: linear-gradient(150deg, #c74b12, #fc6722);
+  color: #fff;
+  box-shadow: 0 10px 20px -10px rgba(252, 103, 34, 0.8);
+}
+
+.cb-today__d {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.cb-today__mo {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+.cb-today__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cb-today__body strong {
+  font-size: 14.5px;
+  color: #8a4b1f;
+  font-weight: 700;
+}
+
+.cb-today__body strong i {
+  color: #fc6722;
+  margin-right: 6px;
+}
+
+.cb-today__body span {
+  font-size: 12.5px;
+  color: #a9714a;
+}
+
+/* Calendario y panel lateral con la MISMA altura: el lateral es una columna flex
+   cuya lista crece (flex:1) y el paginador queda anclado abajo (margin-top:auto).
+   Con paginación ya no hace falta scroll interno, que era lo que descuadraba las cajas. */
 .cb-wrap {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 22px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .cb-side {
@@ -17833,19 +18654,24 @@ html.i18n-pending body {
   border-radius: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
 .cb-side__head {
-  padding: 20px 22px 6px;
+  padding: 20px 22px 8px;
+  flex-shrink: 0;
 }
 
 .cb-side__title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   color: #0B1F3D;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
 .cb-side__title i {
@@ -17853,18 +18679,40 @@ html.i18n-pending body {
 }
 
 .cb-side__sub {
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 12px;
   color: #94A3B8;
-  margin-top: 3px;
+}
+
+.cb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4267ac;
+}
+
+.cb-back:hover {
+  text-decoration: underline;
 }
 
 .cb-list {
-  padding: 12px 14px 18px;
+  padding: 10px 14px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 520px;
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .cb-item {
@@ -17878,6 +18726,14 @@ html.i18n-pending body {
 
 .cb-item:hover {
   background: #f8fafc;
+}
+
+.cb-item.is-today {
+  background: #fff6ef;
+}
+
+.cb-item.is-hidden {
+  display: none;
 }
 
 .cb-ava {
@@ -17923,18 +18779,437 @@ html.i18n-pending body {
   white-space: nowrap;
 }
 
+.cb-chip--today {
+  background: #fc6722;
+  color: #fff;
+}
+
 .cb-empty {
   text-align: center;
   padding: 30px 16px;
   color: #94A3B8;
   font-size: 13px;
+  line-height: 1.6;
 }
 
+/* Paginador anclado al pie del panel */
+.cb-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 22px 18px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.cb-pager__info {
+  font-size: 12px;
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+.cb-pager__btns {
+  display: flex;
+  gap: 6px;
+}
+
+.cb-pager__btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  transition: all 0.15s ease;
+}
+
+.cb-pager__btn:hover:not(:disabled) {
+  border-color: #4267ac;
+  color: #4267ac;
+}
+
+.cb-pager__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* En una columna las alturas vuelven a ser naturales: igualarlas no aporta nada */
 @media (max-width: 1000px) {
   .cb-wrap {
     grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .cb-side {
+    height: auto;
+  }
+  .cb-list {
+    flex: none;
   }
 }
+/* =========================================================
+   PANEL · SELECTOR DE FECHA (.bilbao-date)
+   Componente compartido — lo pinta src/js/admin/admin-datepicker.js.
+   Sin scope de página: se activa por la existencia de [data-datepicker].
+========================================================= */
+.bilbao-date {
+  position: relative;
+}
+
+/* ── Campo visible ── */
+.bilbao-date__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #a3aec0;
+  text-align: left;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.bilbao-date__field > i:first-child {
+  color: #4267ac;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.bilbao-date__field:hover {
+  border-color: #c7d6ea;
+}
+
+.bilbao-date.has-value .bilbao-date__field {
+  color: #1e293b;
+}
+
+.bilbao-date.is-open .bilbao-date__field {
+  border-color: #4267ac;
+  box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
+}
+
+.bilbao-date__field span {
+  flex: 1;
+  text-transform: capitalize;
+}
+
+.bilbao-date__caret {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.bilbao-date.is-open .bilbao-date__caret {
+  transform: rotate(180deg);
+}
+
+/* ── Popover ── */
+.bilbao-date__pop {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 306px;
+  max-width: calc(100vw - 40px);
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 18px;
+  box-shadow: 0 24px 48px -18px rgba(11, 31, 61, 0.38);
+  animation: bilbao-date-in 0.16s ease;
+}
+
+@keyframes bilbao-date-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.bilbao-date__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.bilbao-date__month {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0B1F3D;
+  text-transform: capitalize;
+}
+
+.bilbao-date__nav {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: all 0.15s ease;
+}
+.bilbao-date__nav:hover {
+  border-color: #4267ac;
+  color: #4267ac;
+}
+
+.bilbao-date__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.bilbao-date__weekdays span {
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b3c0d0;
+}
+
+.bilbao-date__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.bilbao-date__cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.bilbao-date__cell:hover:not(:disabled) {
+  background: #eef3fb;
+  color: #22417e;
+}
+.bilbao-date__cell--empty {
+  visibility: hidden;
+  cursor: default;
+}
+.bilbao-date__cell {
+  /* Fin de semana o fuera de rango */
+}
+.bilbao-date__cell.is-off {
+  color: #d5dce6;
+  cursor: not-allowed;
+  background: repeating-linear-gradient(45deg, #fafbfd, #fafbfd 4px, #f3f6fa 4px, #f3f6fa 8px);
+}
+.bilbao-date__cell.is-today:not(.is-selected) {
+  box-shadow: inset 0 0 0 1.5px #c9dcf2;
+  color: #22417e;
+}
+.bilbao-date__cell.is-selected {
+  background: #4267ac;
+  color: #fff;
+  box-shadow: 0 6px 14px -7px rgba(66, 103, 172, 0.9);
+}
+
+.bilbao-date__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.bilbao-date__hoy,
+.bilbao-date__clear {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4267ac;
+}
+.bilbao-date__hoy:hover,
+.bilbao-date__clear:hover {
+  text-decoration: underline;
+}
+
+/* "Limpiar" solo aparece en campos que pueden ir vacíos (filtros): se marca en
+   rojo para distinguirlo de "Hoy", que sí elige una fecha. */
+.bilbao-date__clear {
+  margin-right: auto;
+  color: #b42318;
+}
+
+/* =========================================================
+   PANEL · MÓDULO EVENTOS
+   Migrado desde los style="" embebidos de views/blog/eventos/
+========================================================= */
+body[data-page=blog-eventos-index] .ev-scroll {
+  overflow-x: auto;
+}
+body[data-page=blog-eventos-index] {
+  /* ── Tile de fecha: hereda el color del tipo vía --c ── */
+}
+body[data-page=blog-eventos-index] .ev-datecell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+body[data-page=blog-eventos-index] .ev-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  padding: 6px 0;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--c) 12%, #fff);
+  line-height: 1;
+  flex-shrink: 0;
+}
+body[data-page=blog-eventos-index] .ev-date__d {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c);
+}
+body[data-page=blog-eventos-index] .ev-date__mo {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--c);
+  margin-top: 2px;
+}
+body[data-page=blog-eventos-index] .ev-range {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+body[data-page=blog-eventos-index] {
+  /* ── Badges de tipo y visibilidad ── */
+}
+body[data-page=blog-eventos-index] .ev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--c, #94a3b8) 13%, #fff);
+  color: var(--c, #64748b);
+}
+body[data-page=blog-eventos-index] .ev-badge--publico {
+  --c: #34a853;
+}
+body[data-page=blog-eventos-index] .ev-badge--interno {
+  --c: #94a3b8;
+}
+body[data-page=blog-eventos-index] {
+  /* Los botones son los compartidos .admin-act--edit/--del (_blog-admin.scss);
+     aquí solo queda la disposición de la celda. */
+}
+body[data-page=blog-eventos-index] .ev-actions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+body[data-page=blog-eventos-index] .ev-col-act {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+body[data-page=blog-eventos-index] {
+  /* ── Modal de borrado ── */
+}
+body[data-page=blog-eventos-index] .ev-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 31, 61, 0.55);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+body[data-page=blog-eventos-index] .ev-modal.is-open {
+  display: flex;
+}
+body[data-page=blog-eventos-index] .ev-modal__box {
+  background: #fff;
+  border-radius: 18px;
+  max-width: 400px;
+  width: 100%;
+  padding: 28px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+body[data-page=blog-eventos-index] .ev-modal__ico {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fde8e8;
+  color: #b42318;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  margin: 0 auto 16px;
+}
+body[data-page=blog-eventos-index] .ev-modal__title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0B1F3D;
+  margin-bottom: 8px;
+}
+body[data-page=blog-eventos-index] .ev-modal__text {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+body[data-page=blog-eventos-index] .ev-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+body[data-page=blog-eventos-index] .ev-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* Formularios de evento: el switch de visibilidad va compacto y alineado */
+body[data-page=blog-eventos-crear] .admin-switch-row,
+body[data-page=blog-eventos-editar] .admin-switch-row {
+  margin-top: 4px;
+}
+
 /* =========================================================
    PANEL · HOME DE MÓDULOS (/dashboard)
 ========================================================= */
@@ -17986,6 +19261,12 @@ html.i18n-pending body {
   justify-content: center;
   line-height: 1;
   box-shadow: 0 16px 32px -12px rgba(66, 103, 172, 0.65);
+}
+
+/* Hay cumpleaños hoy: la fecha principal se tiñe de naranja institucional */
+.mh-datetile--cumple {
+  background: linear-gradient(150deg, #c74b12, #fc6722);
+  box-shadow: 0 16px 32px -12px rgba(252, 103, 34, 0.7);
 }
 
 .mh-datetile__dow {
@@ -18186,24 +19467,66 @@ html.i18n-pending body {
   transform: translateX(5px);
 }
 
-.mh-card--blue {
-  background: linear-gradient(145deg, #2e4b8a 0%, #4267ac 100%);
-}
-
-.mh-card--amber {
+/* Paleta institucional recorrida en orden cromático arrancando en el cyan.
+   El color lo asigna la POSICIÓN de la tarjeta (ver views/blog/home.php), no el módulo:
+   así la primera tarjeta visible es siempre cyan, tenga el usuario 2 módulos u 8.
+   El primer tono de cada degradado es el color base oscurecido ~18 %. */
+.mh-card--c1 {
+  background: linear-gradient(145deg, #2b8d95 0%, #46bdc6 100%);
+} /* cyan          */
+.mh-card--c2 {
+  background: linear-gradient(145deg, #1f5cc0 0%, #4285f4 100%);
+} /* azul          */
+.mh-card--c3 {
+  background: linear-gradient(145deg, #2f4b7d 0%, #4267ac 100%);
+} /* azul oscuro   */
+.mh-card--c4 {
+  background: linear-gradient(145deg, #75156a 0%, #aa2296 100%);
+} /* morado        */
+.mh-card--c5 {
+  background: linear-gradient(145deg, #a80440 0%, #ea075a 100%);
+} /* rosa          */
+.mh-card--c6 {
+  background: linear-gradient(145deg, #a80c1a 0%, #e51022 100%);
+} /* rojo          */
+.mh-card--c7 {
+  background: linear-gradient(145deg, #c74b12 0%, #fc6722 100%);
+} /* naranja       */
+.mh-card--c8 {
   background: linear-gradient(145deg, #b88200 0%, #f5b400 100%);
+} /* amarillo      */
+.mh-card--c9 {
+  background: linear-gradient(145deg, #62911a 0%, #8ac926 100%);
+} /* lima          */
+.mh-card--c10 {
+  background: linear-gradient(145deg, #22773a 0%, #34a853 100%);
+} /* verde         */
+/* ── Categorías del home ── */
+.mh-cat + .mh-cat {
+  margin-top: 6px;
 }
 
-.mh-card--purple {
-  background: linear-gradient(145deg, #6e0f61 0%, #aa2296 100%);
+.mh-cat .mh-grid {
+  margin-bottom: 30px;
 }
 
-/* ── Calendario + cumpleaños ── */
+/* ── Calendario + cumpleaños ──
+   Las dos cajas deben medir lo mismo. La altura la manda el calendario, cuyas
+   celdas son cuadradas (aspect-ratio:1 en .bilbao-cal__cell), así que depende del
+   ancho de la columna y no se puede fijar a mano: antes .mh-bday-list llevaba un
+   min-height:298px que solo cuadraba a un ancho concreto.
+   Solución: `stretch` en la fila y cadena flex hasta el paginador, que queda
+   anclado abajo con margin-top:auto (el mismo patrón que .cb-wrap en Cumpleaños). */
 .mh-cal-row {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+}
+
+/* Sin módulo Usuarios no hay lista de cumpleaños: el calendario ocupa el ancho */
+.mh-cal-row--solo {
+  grid-template-columns: minmax(0, 720px);
 }
 
 .mh-panel {
@@ -18214,10 +19537,12 @@ html.i18n-pending body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .mh-panel__head {
   padding: 20px 22px 4px;
+  flex-shrink: 0;
 }
 
 .mh-panel__title {
@@ -18241,13 +19566,18 @@ html.i18n-pending body {
 
 .mh-panel__body {
   padding: 18px 22px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .mh-bday-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 298px;
+  flex: 1;
+  min-height: 0;
 }
 
 .mh-bday-item {
@@ -18326,6 +19656,7 @@ html.i18n-pending body {
   padding: 12px 22px 18px;
   border-top: 1px solid #f1f5f9;
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .mh-pager__info {
@@ -18370,9 +19701,14 @@ html.i18n-pending body {
   font-size: 13px;
 }
 
+/* En una columna las alturas vuelven a ser naturales: igualarlas no aporta nada */
 @media (max-width: 1050px) {
   .mh-cal-row {
     grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .mh-bday-list {
+    flex: none;
   }
 }
 @media (max-width: 640px) {
@@ -18384,6 +19720,1095 @@ html.i18n-pending body {
     align-self: center;
   }
 }
+/* ══════════ MÓDULO HORARIOS ══════════ */
+/* ── Select de entidad (compartido por las vistas del módulo) ──
+   Icono a la izquierda, flecha propia a la derecha. Fuera del scope de página
+   porque lo usan varias vistas del módulo. */
+.hor-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.hor-select-wrap > i {
+  position: absolute;
+  left: 15px;
+  font-size: 0.85rem;
+  color: #4267ac;
+  pointer-events: none;
+}
+
+.hor-select {
+  -moz-appearance: none;
+       appearance: none;
+  -webkit-appearance: none;
+  height: 44px;
+  min-width: 240px;
+  padding: 0 40px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--col-herencia, #374c69);
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.hor-select:hover {
+  border-color: #c7d6ea;
+}
+.hor-select:focus {
+  outline: none;
+  border-color: #4267ac;
+  box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
+}
+.hor-select optgroup {
+  font-weight: 800;
+  color: #94a3b8;
+}
+.hor-select option {
+  font-weight: 600;
+  color: #1e293b;
+  padding: 6px;
+}
+
+/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo y "Mi horario" */
+body[data-page=blog-horarios-index] .hor-tabs,
+body[data-page=blog-horarios-mi-horario] .hor-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+body[data-page=blog-horarios-index] .hor-tab,
+body[data-page=blog-horarios-mi-horario] .hor-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  color: var(--text-gray, #4a5568);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+body[data-page=blog-horarios-index] .hor-tab:hover,
+body[data-page=blog-horarios-mi-horario] .hor-tab:hover {
+  border-color: #bcd4ea;
+  color: var(--col-bilbao, #4d8abb);
+}
+body[data-page=blog-horarios-index] .hor-tab.is-active,
+body[data-page=blog-horarios-mi-horario] .hor-tab.is-active {
+  background: linear-gradient(135deg, #4d8abb, #4267ac);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(66, 103, 172, 0.28);
+}
+body[data-page=blog-horarios-index] .hor-head,
+body[data-page=blog-horarios-mi-horario] .hor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+body[data-page=blog-horarios-index] .hor-grid-wrap,
+body[data-page=blog-horarios-mi-horario] .hor-grid-wrap {
+  overflow-x: auto;
+  padding: 8px 4px 4px;
+}
+body[data-page=blog-horarios-index] .hor-grid,
+body[data-page=blog-horarios-mi-horario] .hor-grid {
+  width: 100%;
+  /* table-layout:fixed → los cinco días miden lo mismo pase lo que pase
+     con la longitud de los nombres de materia. */
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 6px;
+  min-width: 720px;
+}
+body[data-page=blog-horarios-index] .hor-grid th, body[data-page=blog-horarios-index] .hor-grid td,
+body[data-page=blog-horarios-mi-horario] .hor-grid th,
+body[data-page=blog-horarios-mi-horario] .hor-grid td {
+  text-align: center;
+  vertical-align: middle;
+}
+body[data-page=blog-horarios-index] .hor-grid thead th,
+body[data-page=blog-horarios-mi-horario] .hor-grid thead th {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--col-herencia, #374c69);
+  padding: 8px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  width: 20%;
+}
+body[data-page=blog-horarios-index] .hor-grid__corner,
+body[data-page=blog-horarios-mi-horario] .hor-grid__corner {
+  background: transparent;
+  width: 88px;
+}
+body[data-page=blog-horarios-index] .hor-grid__hour,
+body[data-page=blog-horarios-mi-horario] .hor-grid__hour {
+  text-align: right;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+body[data-page=blog-horarios-index] .hor-grid__hour-label,
+body[data-page=blog-horarios-mi-horario] .hor-grid__hour-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--col-herencia, #374c69);
+}
+body[data-page=blog-horarios-index] .hor-grid__hour-time,
+body[data-page=blog-horarios-mi-horario] .hor-grid__hour-time {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+body[data-page=blog-horarios-index] .hor-grid td,
+body[data-page=blog-horarios-mi-horario] .hor-grid td {
+  border-radius: 12px;
+  height: 62px;
+  padding: 0;
+}
+body[data-page=blog-horarios-index] .hor-grid__free,
+body[data-page=blog-horarios-mi-horario] .hor-grid__free {
+  background: repeating-linear-gradient(45deg, #f4f7fb, #f4f7fb 6px, #eef3f9 6px, #eef3f9 12px);
+  /* El span llena la celda para quedar centrado igual que un bloque de clase */
+}
+body[data-page=blog-horarios-index] .hor-grid__free span,
+body[data-page=blog-horarios-mi-horario] .hor-grid__free span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.74rem;
+  color: #b3c0d0;
+  font-weight: 600;
+}
+body[data-page=blog-horarios-index] .hor-grid__receso td, body[data-page=blog-horarios-index] .hor-grid__receso-cell,
+body[data-page=blog-horarios-mi-horario] .hor-grid__receso td,
+body[data-page=blog-horarios-mi-horario] .hor-grid__receso-cell {
+  background: #fff7e6;
+}
+body[data-page=blog-horarios-index] .hor-grid__receso-cell,
+body[data-page=blog-horarios-mi-horario] .hor-grid__receso-cell {
+  color: #e0a800;
+  border-radius: 12px;
+}
+body[data-page=blog-horarios-index],
+body[data-page=blog-horarios-mi-horario] {
+  /* Bloques de clase: fondo sólido del color de la materia y texto claro */
+}
+body[data-page=blog-horarios-index] .hor-cell,
+body[data-page=blog-horarios-mi-horario] .hor-cell {
+  height: 100%;
+  border-radius: 12px;
+  padding: 8px 11px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  background: var(--c);
+  box-shadow: 0 6px 14px -8px rgba(11, 31, 61, 0.45);
+  text-align: left;
+}
+body[data-page=blog-horarios-index] .hor-cell__mat,
+body[data-page=blog-horarios-mi-horario] .hor-cell__mat {
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: #fff;
+  line-height: 1.2;
+}
+body[data-page=blog-horarios-index] .hor-cell__sec,
+body[data-page=blog-horarios-mi-horario] .hor-cell__sec {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.82);
+}
+body[data-page=blog-horarios-index] .hor-cell,
+body[data-page=blog-horarios-mi-horario] .hor-cell {
+  /* Tonos claros de la paleta (amarillo, lima, turquesa): tinta oscura */
+}
+body[data-page=blog-horarios-index] .hor-cell--dark .hor-cell__mat,
+body[data-page=blog-horarios-mi-horario] .hor-cell--dark .hor-cell__mat {
+  color: #1f2937;
+}
+body[data-page=blog-horarios-index] .hor-cell--dark .hor-cell__sec,
+body[data-page=blog-horarios-mi-horario] .hor-cell--dark .hor-cell__sec {
+  color: rgba(31, 41, 55, 0.72);
+}
+
+body[data-page=blog-horarios-mi-horario] .mih-intro {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: linear-gradient(135deg, #eef5fb, #f7fbff);
+  border: 1px solid #e2edf7;
+  border-radius: 18px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+body[data-page=blog-horarios-mi-horario] .mih-intro__alex {
+  width: 68px;
+  flex-shrink: 0;
+}
+body[data-page=blog-horarios-mi-horario] .mih-intro__body {
+  flex: 1;
+  min-width: 260px;
+}
+body[data-page=blog-horarios-mi-horario] .mih-intro__text {
+  font-size: 0.86rem;
+  color: var(--text-gray, #4a5568);
+  line-height: 1.6;
+}
+body[data-page=blog-horarios-mi-horario] .mih-intro__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 132px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #dbe7f5;
+  border-radius: 14px;
+}
+body[data-page=blog-horarios-mi-horario] .mih-intro__stat-n {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #4267ac;
+  line-height: 1;
+}
+body[data-page=blog-horarios-mi-horario] .mih-intro__stat-l {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 4px;
+}
+body[data-page=blog-horarios-mi-horario] .mih-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  background: #e8f7ee;
+  color: #15803d;
+}
+body[data-page=blog-horarios-mi-horario] .mih-badge--off {
+  background: #fdeef0;
+  color: #b42318;
+}
+
+body[data-page=blog-horarios-importar] {
+  /* Chip de "solo superadmin" junto al título */
+}
+body[data-page=blog-horarios-importar] .hoi-super {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fff1f1;
+  border: 1px solid #ffd0d0;
+  color: #c8102e;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+body[data-page=blog-horarios-importar] {
+  /* Aviso de que la carga es destructiva, antes del formulario */
+}
+body[data-page=blog-horarios-importar] .hoi-aviso-super {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 12px 18px 12px 10px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fff6e8, #fdeeee);
+  border: 1.5px solid #ffd9a1;
+}
+body[data-page=blog-horarios-importar] .hoi-aviso-super img {
+  width: 58px;
+  height: auto;
+  flex-shrink: 0;
+}
+body[data-page=blog-horarios-importar] .hoi-aviso-super strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #7a4a05;
+  font-weight: 800;
+}
+body[data-page=blog-horarios-importar] .hoi-aviso-super span {
+  display: block;
+  font-size: 0.82rem;
+  color: #8a5a12;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+body[data-page=blog-horarios-importar] .hoi-aviso-super em {
+  font-style: italic;
+}
+body[data-page=blog-horarios-importar] .hoi-aviso-super span strong {
+  display: inline;
+  font-size: inherit;
+  color: #a1330b;
+}
+body[data-page=blog-horarios-importar] .hoi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  body[data-page=blog-horarios-importar] .hoi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+body[data-page=blog-horarios-importar] .hoi-help {
+  font-size: 0.86rem;
+  color: var(--text-gray, #4a5568);
+  margin-bottom: 12px;
+}
+body[data-page=blog-horarios-importar] .hoi-code {
+  background: #0b1f3d;
+  color: #d7e6fb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 0.76rem;
+  line-height: 1.7;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  overflow-x: auto;
+  white-space: pre;
+  margin-bottom: 14px;
+}
+body[data-page=blog-horarios-importar] .hoi-rules {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 14px;
+  font-size: 0.84rem;
+  color: var(--text-gray, #4a5568);
+  line-height: 1.5;
+}
+body[data-page=blog-horarios-importar] .hoi-rules li::before {
+  content: "·";
+  color: #4267ac;
+  font-weight: 900;
+  margin-right: 8px;
+}
+body[data-page=blog-horarios-importar] .hoi-rules code {
+  background: #eef3fb;
+  color: #22417e;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 0.78rem;
+}
+body[data-page=blog-horarios-importar] .hoi-warn {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #fff7e6;
+  border: 1px solid #f5dfae;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  color: #8a5a00;
+  line-height: 1.5;
+}
+body[data-page=blog-horarios-importar] .hoi-warn i {
+  color: #e0a800;
+  margin-top: 2px;
+}
+body[data-page=blog-horarios-importar] .hoi-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+body[data-page=blog-horarios-importar] .hoi-actions--footer {
+  padding: 16px 22px 20px;
+  margin-top: 0;
+  border-top: 1px solid #f1f5f9;
+  justify-content: space-between;
+}
+body[data-page=blog-horarios-importar] .hoi-note {
+  padding: 0 22px 18px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+body[data-page=blog-horarios-importar] {
+  /* ── Resumen del parseo ── */
+}
+body[data-page=blog-horarios-importar] .hoi-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+@media (max-width: 900px) {
+  body[data-page=blog-horarios-importar] .hoi-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+body[data-page=blog-horarios-importar] .hoi-stat {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+body[data-page=blog-horarios-importar] .hoi-stat__n {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #0b1f3d;
+  line-height: 1;
+}
+body[data-page=blog-horarios-importar] .hoi-stat__l {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+body[data-page=blog-horarios-importar] .hoi-stat--ok .hoi-stat__n {
+  color: #15803d;
+}
+body[data-page=blog-horarios-importar] .hoi-stat--warn .hoi-stat__n {
+  color: #b45309;
+}
+body[data-page=blog-horarios-importar] .hoi-stat--bad .hoi-stat__n {
+  color: #b42318;
+}
+body[data-page=blog-horarios-importar] {
+  /* ── Tabla de vista previa ── */
+}
+body[data-page=blog-horarios-importar] .hoi-filter__opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-gray, #4a5568);
+  cursor: pointer;
+}
+body[data-page=blog-horarios-importar] .hoi-filter__opt input {
+  width: 16px;
+  height: 16px;
+  accent-color: #4267ac;
+}
+body[data-page=blog-horarios-importar] .hoi-table-wrap {
+  overflow-x: auto;
+  max-height: 62vh;
+  overflow-y: auto;
+}
+body[data-page=blog-horarios-importar] .hoi-table {
+  font-size: 0.82rem;
+}
+body[data-page=blog-horarios-importar] .hoi-table td {
+  vertical-align: top;
+}
+body[data-page=blog-horarios-importar] .hoi-table__n, body[data-page=blog-horarios-importar] .hoi-table .hoi-row__n {
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+body[data-page=blog-horarios-importar] .hoi-row--error {
+  background: #fef6f6;
+}
+body[data-page=blog-horarios-importar] .hoi-row--aviso {
+  background: #fffcf3;
+}
+body[data-page=blog-horarios-importar] .hoi-nil {
+  color: #cbd5e1;
+}
+body[data-page=blog-horarios-importar] .hoi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+body[data-page=blog-horarios-importar] .hoi-chip--ok {
+  background: #e8f7ee;
+  color: #15803d;
+}
+body[data-page=blog-horarios-importar] .hoi-chip--aviso {
+  background: #fff7e6;
+  color: #b45309;
+}
+body[data-page=blog-horarios-importar] .hoi-chip--error {
+  background: #fdeef0;
+  color: #b42318;
+}
+body[data-page=blog-horarios-importar] .hoi-motivo {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.74rem;
+  color: #64748b;
+  line-height: 1.4;
+  max-width: 300px;
+}
+
+/* Bandeja de notificaciones — /dashboard/notificaciones
+   Scoped a la vista: varias clases genéricas (.nt-*) solo tienen sentido aquí.
+   El "Deshacer" y el modal de vaciado viven fuera de .admin-content, así que van
+   fuera del scope (al final del archivo). */
+body[data-page=blog-notificaciones-index] .nt-panel {
+  padding: 0;
+  overflow: hidden;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Cabecera del panel ── */
+}
+body[data-page=blog-notificaciones-index] .nt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e9edf4;
+}
+body[data-page=blog-notificaciones-index] .nt-head__info {
+  font-size: 0.9rem;
+  color: #374C69;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body[data-page=blog-notificaciones-index] .nt-head__info strong {
+  color: #0B1F3D;
+  font-weight: 800;
+}
+body[data-page=blog-notificaciones-index] .nt-head__pend {
+  background: #fff1f1;
+  border: 1px solid #ffd0d0;
+  color: #c8102e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+body[data-page=blog-notificaciones-index] .nt-head__acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body[data-page=blog-notificaciones-index] .nt-clear:hover {
+  border-color: #e51022;
+  color: #e51022;
+  background: #fff5f5;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Lista ── */
+}
+body[data-page=blog-notificaciones-index] .nt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+body[data-page=blog-notificaciones-index] .nt-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.16s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+body[data-page=blog-notificaciones-index] .nt-row:last-child {
+  border-bottom: none;
+}
+body[data-page=blog-notificaciones-index] .nt-row:hover {
+  background: #fafcff;
+}
+body[data-page=blog-notificaciones-index] .nt-row {
+  /* Sin leer: barra de color a la izquierda + fondo tenue */
+}
+body[data-page=blog-notificaciones-index] .nt-row.is-unread {
+  background: #f7fbff;
+  box-shadow: inset 3px 0 0 var(--nt-col, #4285f4);
+}
+body[data-page=blog-notificaciones-index] .nt-row.is-unread .nt-row__msg {
+  font-weight: 700;
+  color: #0B1F3D;
+}
+body[data-page=blog-notificaciones-index] .nt-row {
+  /* Saliendo (borrada, con el Deshacer en marcha) */
+}
+body[data-page=blog-notificaciones-index] .nt-row.is-going {
+  opacity: 0.35;
+  transform: translateX(10px);
+  pointer-events: none;
+}
+body[data-page=blog-notificaciones-index] .nt-row.is-hidden {
+  display: none;
+}
+body[data-page=blog-notificaciones-index] .nt-row {
+  /* El nivel tiñe el icono y la barra lateral */
+}
+body[data-page=blog-notificaciones-index] .nt-row--info {
+  --nt-col: #4285f4;
+}
+body[data-page=blog-notificaciones-index] .nt-row--exito {
+  --nt-col: #34a853;
+}
+body[data-page=blog-notificaciones-index] .nt-row--aviso {
+  --nt-col: #f5b400;
+}
+body[data-page=blog-notificaciones-index] .nt-row--error {
+  --nt-col: #e51022;
+}
+body[data-page=blog-notificaciones-index] .nt-row__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  color: var(--nt-col, #4285f4);
+  background: color-mix(in srgb, var(--nt-col, #4285f4) 12%, #fff);
+}
+body[data-page=blog-notificaciones-index] .nt-row__body {
+  flex: 1;
+  min-width: 0;
+}
+body[data-page=blog-notificaciones-index] .nt-row__msg {
+  margin: 0 0 3px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #374C69;
+}
+body[data-page=blog-notificaciones-index] .nt-row__meta {
+  margin: 0;
+  font-size: 0.74rem;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+body[data-page=blog-notificaciones-index] .nt-row__mod {
+  background: #eef2f7;
+  color: #4267ac;
+  font-weight: 800;
+  font-size: 0.66rem;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+body[data-page=blog-notificaciones-index] .nt-row__link {
+  color: #4267ac;
+  text-decoration: none;
+  font-weight: 700;
+}
+body[data-page=blog-notificaciones-index] .nt-row__link i {
+  font-size: 0.62rem;
+}
+body[data-page=blog-notificaciones-index] .nt-row__link:hover {
+  text-decoration: underline;
+}
+body[data-page=blog-notificaciones-index] .nt-row__del {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #94A3B8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.16s ease;
+}
+body[data-page=blog-notificaciones-index] .nt-row__del:hover {
+  border-color: #34a853;
+  color: #34a853;
+  background: #f2fbf5;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Vacío ── */
+}
+body[data-page=blog-notificaciones-index] .nt-empty {
+  padding: 44px 20px 48px;
+  text-align: center;
+  color: #94A3B8;
+}
+body[data-page=blog-notificaciones-index] .nt-empty img {
+  width: 92px;
+  height: auto;
+  margin-bottom: 10px;
+}
+body[data-page=blog-notificaciones-index] .nt-empty p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+body[data-page=blog-notificaciones-index] .nt-empty strong {
+  color: #0B1F3D;
+  font-size: 1rem;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Paginación ── */
+}
+body[data-page=blog-notificaciones-index] .nt-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+body[data-page=blog-notificaciones-index] .nt-pager__info {
+  font-size: 0.76rem;
+  color: #94A3B8;
+}
+body[data-page=blog-notificaciones-index] .nt-pager__btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #4267ac;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  transition: all 0.16s ease;
+}
+body[data-page=blog-notificaciones-index] .nt-pager__btn:hover:not(.disabled) {
+  border-color: #4267ac;
+  background: #eef4ff;
+}
+body[data-page=blog-notificaciones-index] .nt-pager__btn.disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Deshacer y modal: fuera de .admin-content, sin scope de página ────────── */
+.nt-undo {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%) translateY(16px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px 11px 10px;
+  border-radius: 16px;
+  background: #0B1F3D;
+  box-shadow: 0 18px 40px -18px rgba(11, 31, 61, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  overflow: hidden;
+}
+.nt-undo.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.nt-undo img {
+  width: 40px;
+  height: auto;
+  flex-shrink: 0;
+}
+.nt-undo__body {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.nt-undo__body strong {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.nt-undo__body small {
+  color: #a9c0e0;
+  font-size: 0.72rem;
+}
+.nt-undo__btn {
+  margin-left: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #f5b400;
+  color: #0B1F3D;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+.nt-undo__btn:hover {
+  background: #ffc72c;
+}
+.nt-undo {
+  /* Barra de tiempo: el usuario ve cuánto le queda para deshacer */
+}
+.nt-undo__bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: #f5b400;
+  transform-origin: left center;
+}
+.nt-undo.is-visible .nt-undo__bar {
+  animation: ntUndoBar 6s linear forwards;
+}
+
+@keyframes ntUndoBar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.nt-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(11, 31, 61, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.nt-modal[hidden] {
+  display: none;
+}
+.nt-modal__card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 30px 28px 24px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 26px 60px -20px rgba(11, 31, 61, 0.5);
+}
+.nt-modal__card h3 {
+  margin: 14px 0 8px;
+  font-size: 1.12rem;
+  color: #0B1F3D;
+  font-weight: 800;
+}
+.nt-modal__card p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #64748B;
+  line-height: 1.5;
+}
+.nt-modal__icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff1f1;
+  color: #e51022;
+  font-size: 1.25rem;
+}
+.nt-modal__acts {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+.nt-modal__acts form {
+  margin: 0;
+}
+.nt-modal__danger {
+  background: #e51022;
+  color: #fff;
+}
+.nt-modal__danger:hover {
+  background: #c8102e;
+}
+
+/* =========================================================
+   PANEL · DIRECTORIOS DE PERSONAL
+   Profesores / Prefectura / Administrativos comparten
+   views/blog/personal/index.php
+========================================================= */
+body[data-page=blog-personal-index] {
+  /* ── Resumen ── */
+}
+body[data-page=blog-personal-index] .per-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 760px) {
+  body[data-page=blog-personal-index] .per-stats {
+    grid-template-columns: 1fr;
+  }
+}
+body[data-page=blog-personal-index] .per-stat {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+body[data-page=blog-personal-index] .per-stat__n {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #0b1f3d;
+  line-height: 1;
+}
+body[data-page=blog-personal-index] .per-stat__l {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+body[data-page=blog-personal-index] .per-stat--ok .per-stat__n {
+  color: #15803d;
+}
+body[data-page=blog-personal-index] {
+  /* ── Cabecera del panel con buscador ── */
+}
+body[data-page=blog-personal-index] .per-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+body[data-page=blog-personal-index] .per-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+body[data-page=blog-personal-index] .per-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+body[data-page=blog-personal-index] .per-search > i {
+  position: absolute;
+  left: 14px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+body[data-page=blog-personal-index] .per-search__input {
+  height: 40px;
+  width: 270px;
+  max-width: 100%;
+  padding: 0 14px 0 38px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 11px;
+  background: #fff;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.88rem;
+  color: #1e293b;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+body[data-page=blog-personal-index] .per-search__input::-moz-placeholder {
+  color: #a3aec0;
+}
+body[data-page=blog-personal-index] .per-search__input::placeholder {
+  color: #a3aec0;
+}
+body[data-page=blog-personal-index] .per-search__input:focus {
+  outline: none;
+  border-color: #4267ac;
+  box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
+}
+body[data-page=blog-personal-index] {
+  /* ── Tabla a todo el ancho: la columna de nombre y la de correo se reparten
+        el espacio, el resto queda al mínimo necesario. ── */
+}
+body[data-page=blog-personal-index] .per-table-wrap {
+  overflow-x: auto;
+}
+body[data-page=blog-personal-index] .per-table {
+  min-width: 780px;
+}
+body[data-page=blog-personal-index] .per-table .per-col-name {
+  width: 32%;
+}
+body[data-page=blog-personal-index] .per-table .per-col-mail {
+  width: 30%;
+}
+body[data-page=blog-personal-index] .per-table .per-col-tipo {
+  width: 20%;
+}
+body[data-page=blog-personal-index] .per-table .per-col-supl {
+  width: 9%;
+  white-space: nowrap;
+}
+body[data-page=blog-personal-index] .per-table .per-col-act {
+  width: 9%;
+  text-align: right;
+  white-space: nowrap;
+}
+body[data-page=blog-personal-index] .per-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+body[data-page=blog-personal-index] .per-user__ava {
+  width: 38px;
+  height: 38px;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+body[data-page=blog-personal-index] .per-user__ava img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+body[data-page=blog-personal-index] .per-mail {
+  color: var(--text-gray, #4a5568);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+body[data-page=blog-personal-index] .per-nil {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+body[data-page=blog-personal-index] .per-empty {
+  padding: 28px 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+
 /* =========================================================
    PANEL · MÓDULO SUPLENCIAS
 ========================================================= */
@@ -18533,6 +20958,25 @@ html.i18n-pending body {
   background: #fff;
   color: #334155;
   cursor: pointer;
+}
+
+/* Rango de fechas: dos .bilbao-date (views/blog/_campo-fecha.php). Sustituyeron al
+   <input type="date"> nativo, así que ya no hace falta maquillar el control del
+   navegador; solo hay que quitarles el margen de campo de formulario. */
+.supl-fecha-filtro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.supl-fecha-filtro .admin-form__group {
+  margin: 0;
+}
+.supl-fecha-filtro .bilbao-date {
+  min-width: 172px;
+}
+.supl-fecha-filtro .bilbao-date__field {
+  height: 44px;
+  font-size: 13px;
 }
 
 .supl-filter--clear {
@@ -18839,6 +21283,9 @@ html.i18n-pending body {
   justify-content: flex-end;
 }
 
+/* Los botones de fila son los compartidos .admin-act--edit/--del (_blog-admin.scss).
+   `.supl-icon-btn` queda solo para acciones dentro de una tarjeta (p. ej. quitar
+   suplente en agendar), donde el rojo sólido resultaría demasiado agresivo. */
 .supl-icon-btn {
   width: 36px;
   height: 36px;
@@ -18854,16 +21301,6 @@ html.i18n-pending body {
 
 .supl-icon-btn:hover {
   transform: translateY(-1px);
-}
-
-.supl-icon-btn--edit {
-  background: #eef3fb;
-  color: #4267ac;
-  border-color: #dbe6f5;
-}
-
-.supl-icon-btn--edit:hover {
-  background: #dce8fa;
 }
 
 .supl-icon-btn--danger {
@@ -18908,10 +21345,13 @@ html.i18n-pending body {
   align-items: start;
 }
 
-/* Inputs refinados del formulario de suplencias */
+/* Inputs refinados de los formularios del panel (admin-form y supl-form) */
 .admin-form .admin-form__input,
 .admin-form select.admin-form__input,
-.admin-form textarea.admin-form__input {
+.admin-form textarea.admin-form__input,
+.supl-form .admin-form__input,
+.supl-form select.admin-form__input,
+.supl-form textarea.admin-form__input {
   width: 100%;
   padding: 12px 14px;
   border: 1.5px solid #e2e8f0;
@@ -18923,23 +21363,28 @@ html.i18n-pending body {
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.admin-form .admin-form__input::-moz-placeholder {
+.admin-form .admin-form__input::-moz-placeholder, .supl-form .admin-form__input::-moz-placeholder {
   color: #a3aec0;
 }
 
-.admin-form .admin-form__input::placeholder {
+.admin-form .admin-form__input::placeholder,
+.supl-form .admin-form__input::placeholder {
   color: #a3aec0;
 }
 
 .admin-form .admin-form__input:focus,
 .admin-form select.admin-form__input:focus,
-.admin-form textarea.admin-form__input:focus {
+.admin-form textarea.admin-form__input:focus,
+.supl-form .admin-form__input:focus,
+.supl-form select.admin-form__input:focus,
+.supl-form textarea.admin-form__input:focus {
   outline: none;
   border-color: #4267ac;
   box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
 }
 
-.admin-form select.admin-form__input {
+.admin-form select.admin-form__input,
+.supl-form select.admin-form__input {
   -moz-appearance: none;
        appearance: none;
   -webkit-appearance: none;
@@ -18950,13 +21395,21 @@ html.i18n-pending body {
   padding-right: 38px;
 }
 
-.admin-form textarea.admin-form__input {
+.admin-form select.admin-form__input optgroup,
+.supl-form select.admin-form__input optgroup {
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.admin-form textarea.admin-form__input,
+.supl-form textarea.admin-form__input {
   resize: vertical;
   min-height: 84px;
   line-height: 1.5;
 }
 
-.admin-form .admin-form__label {
+.admin-form .admin-form__label,
+.supl-form .admin-form__label {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -18966,7 +21419,8 @@ html.i18n-pending body {
   margin-bottom: 8px;
 }
 
-.admin-form .admin-form__label i {
+.admin-form .admin-form__label i,
+.supl-form .admin-form__label i {
   color: #4267ac;
 }
 
@@ -19039,28 +21493,1764 @@ html.i18n-pending body {
   text-align: center;
 }
 
+/* El wrapper crece con el hint, así que el tache se ancla al alto del input
+   (inset-block + place-items) en lugar de a un 50 % que quedaba descentrado. */
+.picker .admin-form__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .picker__clear {
   position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 6px;
+  inset-block: 0;
+  width: 32px;
   background: none;
   border: none;
   color: #94A3B8;
   cursor: pointer;
   font-size: 13px;
   display: none;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.picker__clear:hover {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .picker.has-value .picker__clear {
-  display: block;
+  display: grid;
 }
 
+/* Barra de acciones al cierre del formulario (el topbar por sí solo confunde) */
+.supl-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
+@media (max-width: 520px) {
+  .supl-form-actions {
+    flex-direction: column-reverse;
+  }
+  .supl-form-actions .admin-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
 @media (max-width: 900px) {
   .supl-form-grid {
     grid-template-columns: 1fr;
   }
 }
+/* ══════════ Estados extra + cobertura (agenda) ══════════ */
+.supl-badge--info {
+  background: #e8f0fd;
+  color: #1d4ed8;
+}
+
+.supl-badge--info::before {
+  background: #4285f4;
+}
+
+.supl-badge--muted {
+  background: #eef1f5;
+  color: #64748b;
+}
+
+.supl-badge--muted::before {
+  background: #94a3b8;
+}
+
+.supl-cover {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 96px;
+}
+
+.supl-cover__bar {
+  height: 7px;
+  border-radius: 5px;
+  background: #eef1f5;
+  overflow: hidden;
+}
+
+.supl-cover__bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #34a853, #8ac926);
+  border-radius: 5px;
+}
+
+.supl-cover__txt {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* ── Origen radios ── */
+.supl-origen {
+  display: flex;
+  gap: 10px;
+}
+
+.supl-origen__opt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 11px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.16s ease;
+}
+
+.supl-origen__opt:has(input:checked) {
+  border-color: #4267ac;
+  background: #eef3fb;
+  color: #22417e;
+}
+
+/* Un profesor solo abre ausencias anticipadas: se muestra fijo, sin poder cambiarlo */
+.supl-origen__opt.is-fixed {
+  cursor: default;
+  border-color: #c9dcf2;
+  background: #eef3fb;
+  color: #22417e;
+}
+
+.supl-origen__opt.is-fixed i {
+  color: #4267ac;
+}
+
+/* Motivo: el select del catálogo ocupa el ancho del grupo */
+.supl-motivo__select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ── Profesor ausente leído de la sesión (solicitar) ── */
+.supl-self {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f9fbfe;
+}
+
+.supl-self__ava {
+  width: 42px;
+  height: 42px;
+  font-size: 16px;
+}
+
+.supl-self__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.supl-self__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.supl-self__meta {
+  font-size: 11.5px;
+  color: #94A3B8;
+}
+
+/* Contador de horas marcadas junto a la etiqueta */
+.supl-picked-count {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #4267ac;
+  background: #eef3fb;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.supl-picked-count:empty {
+  display: none;
+}
+
+.supl-picked-count.is-error {
+  color: #b91c1c;
+  background: #fdeaea;
+}
+
+/* ── Horas checkables (fallback manual) ── */
+.supl-horas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.supl-horas__empty {
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.supl-hora-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.supl-hora-check.is-on {
+  border-color: #4267ac;
+  background: #f6f9fe;
+}
+
+.supl-hora-check input[type=checkbox] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4267ac;
+}
+
+.supl-hora-check__box {
+  display: flex;
+  flex-direction: column;
+}
+
+.supl-hora-check__periodo {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4267ac;
+}
+
+.supl-hora-check__clase {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ══════════ Rejilla semanal interactiva (.supl-week) ══════════
+   Componente compartido: lo pinta src/js/admin/admin-supl-week.js.
+   · modo "select"  → las clases del día activo se marcan para cubrirlas
+   · modo "preview" → solo lectura, resaltando la hora de la cobertura */
+.supl-week-wrap {
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.supl-week {
+  /* table-layout:fixed → las cinco columnas de día miden exactamente lo mismo.
+     Sin él, el ancho lo decide el nombre de materia más largo de cada columna. */
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 5px;
+  min-width: 620px;
+}
+.supl-week thead th {
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  padding: 4px 2px;
+}
+.supl-week thead th.is-active-day {
+  color: #4267ac;
+}
+.supl-week th, .supl-week td {
+  text-align: center;
+  vertical-align: middle;
+}
+.supl-week td {
+  padding: 0;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.supl-week__corner {
+  width: 74px;
+}
+
+.supl-week__dayhead {
+  width: 20%;
+}
+
+.supl-week__hour {
+  text-align: right;
+  padding-right: 9px;
+  white-space: nowrap;
+}
+.supl-week__hour span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+}
+.supl-week__hour small {
+  display: block;
+  font-size: 0.66rem;
+  color: #a3aec0;
+}
+
+.supl-week__receso {
+  background: #fff7e6;
+  color: #e0a800;
+  font-size: 0.8rem;
+}
+
+.supl-week__free {
+  background: repeating-linear-gradient(45deg, #f4f7fb, #f4f7fb 6px, #eef3f9 6px, #eef3f9 12px);
+}
+
+/* El span ocupa la celda entera para centrarse igual que un bloque de clase */
+.supl-week__free span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.68rem;
+  color: #b3c0d0;
+  font-weight: 700;
+}
+
+/* Bloque de clase */
+.supl-week__class {
+  height: 100%;
+  border-radius: 10px;
+  padding: 6px 9px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  background: #4267ac;
+  text-align: left;
+  overflow: hidden;
+  border: none;
+  width: 100%;
+  font-family: "Outfit", sans-serif;
+}
+.supl-week__class-mat {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.supl-week__class-sec {
+  font-size: 0.66rem;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Columnas de otros días: atenuadas para que destaque el día de la ausencia */
+.supl-week td.is-dim {
+  opacity: 0.42;
+}
+
+/* Modo select: las clases del día activo son toggles.
+   La marca de seleccionado usa el azul institucional (#4267ac), no el navy casi
+   negro de antes, que se leía como "deshabilitado" más que como "elegido". */
+.supl-week__class--pick {
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.supl-week__class--pick:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -10px rgba(66, 103, 172, 0.75);
+}
+
+.supl-week__class--pick:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.55);
+}
+
+.supl-week__class--pick::after {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font-size: 0.6rem;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  color: transparent;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.supl-week__class--pick.is-on {
+  box-shadow: 0 0 0 3px #4267ac, 0 8px 18px -10px rgba(66, 103, 172, 0.85);
+}
+
+.supl-week__class--pick.is-on::after {
+  background: #fff;
+  color: #4267ac;
+}
+
+/* Modo preview: celda objetivo de la cobertura */
+.supl-week__target {
+  position: relative;
+}
+
+/* El centrado va en un div interior: un `display:grid` sobre el <td> lo saca
+   del modelo de tabla y desalinea la fila entera. */
+.supl-week__target.is-free {
+  background: #e8f7ee;
+  border: 2px solid #34a853;
+  border-radius: 10px;
+}
+
+.supl-week__target-in {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px;
+}
+.supl-week__target-in span {
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.supl-week__target.is-busy {
+  box-shadow: 0 0 0 2.5px #e51022;
+  border-radius: 10px;
+}
+
+.supl-week__target-flag {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.supl-week__target.is-free .supl-week__target-flag {
+  background: #34a853;
+  color: #fff;
+}
+
+.supl-week__target.is-busy .supl-week__target-flag {
+  background: #e51022;
+  color: #fff;
+}
+
+/* Aviso de la rejilla en modo select: banda contrastante con Alex, no un <p> gris.
+   Va con título + apoyo (antes era una sola frase corrida) y con margen inferior:
+   sin él quedaba pegado al siguiente campo del formulario. */
+.supl-week-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 0 28px;
+  padding: 14px 20px 14px 12px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eef3fb, #e3f4f6);
+  border: 1.5px solid #c9dcf2;
+  box-shadow: 0 6px 18px -14px rgba(66, 103, 172, 0.8);
+}
+.supl-week-legend img {
+  width: 58px;
+  height: auto;
+  flex-shrink: 0;
+}
+.supl-week-legend__txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.supl-week-legend strong {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0b1f3d;
+  line-height: 1.3;
+}
+.supl-week-legend span {
+  font-size: 0.82rem;
+  color: #22417e;
+  line-height: 1.45;
+}
+.supl-week-legend b {
+  font-weight: 800;
+  color: #0b1f3d;
+}
+
+.supl-week-empty {
+  padding: 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* ── Detalle / agendar ── */
+/* Tres zonas (identidad · datos · progreso) centradas verticalmente. Antes era un
+   space-between con dos bloques y quedaba un hueco muerto en medio. */
+.supl-detail-head {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) auto auto;
+  align-items: center;
+  gap: 18px 26px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 16px 22px;
+  margin-bottom: 16px;
+}
+
+.supl-detail-head__main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.supl-detail-head__id {
+  min-width: 0;
+}
+
+.supl-detail-head__ava {
+  width: 52px;
+  height: 52px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.supl-detail-head__name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0B1F3D;
+  line-height: 1.2;
+}
+
+.supl-detail-head__meta {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+/* Fecha y origen como datos con etiqueta, no como una línea de texto corrida */
+.supl-detail-head__facts {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.supl-fact {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  -moz-column-gap: 9px;
+       column-gap: 9px;
+  align-items: center;
+}
+.supl-fact i {
+  grid-row: span 2;
+  font-size: 15px;
+  color: #4267ac;
+  opacity: 0.75;
+}
+.supl-fact b {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #334155;
+  line-height: 1.2;
+}
+.supl-fact small {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.3;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .supl-detail-head {
+    grid-template-columns: 1fr;
+  }
+  .supl-detail-head__facts {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+/* Justificante: tarjeta propia y visible (antes vivía escondido en un <details>) */
+.supl-justif {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 18px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.supl-justif.is-pending {
+  background: #fdeef0;
+  border: 1px solid #f6c9ce;
+  color: #b42318;
+}
+
+.supl-justif.is-ok {
+  background: #e8f7ee;
+  border: 1px solid #bfe6cd;
+  color: #15803d;
+}
+
+.supl-justif__msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.supl-justif__msg > i {
+  font-size: 19px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.supl-justif__msg strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.supl-justif__msg span {
+  display: block;
+  font-size: 12.5px;
+  opacity: 0.9;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+.supl-justif a {
+  font-weight: 700;
+  text-decoration: underline;
+  color: inherit;
+}
+
+.supl-justif__form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.supl-justif__form .admin-file {
+  min-width: 230px;
+}
+
+.supl-detail-head__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.supl-detail-head__cover {
+  min-width: 150px;
+}
+
+.supl-notas {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px 16px;
+  border-radius: 13px;
+  background: #fffaf0;
+  border: 1px solid #ffe4bd;
+  font-size: 13px;
+  color: #8a5a1f;
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.supl-notas i {
+  color: #e0a800;
+  margin-top: 2px;
+}
+
+/* ── Cierre del flujo ── */
+.supl-done {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.supl-done__alex {
+  width: 62px;
+  flex-shrink: 0;
+}
+
+.supl-done__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 220px;
+}
+
+.supl-done__text strong {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.supl-done__text small {
+  font-size: 12.5px;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+.supl-done.is-ok {
+  background: #e8f7ee;
+  border: 1.5px solid #9fd9b5;
+  color: #15803d;
+  box-shadow: 0 10px 26px -20px rgba(21, 128, 61, 0.9);
+}
+
+/* CTA de cierre en verde sólido: es la acción que remata el flujo */
+.supl-done__cta {
+  background: #34a853;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 8px 18px -10px rgba(52, 168, 83, 0.95);
+}
+.supl-done__cta:hover {
+  background: #2b8c45;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* Pendiente: el ámbar anterior (#fff6e8/#ffdcae) apenas se despegaba del fondo.
+   Se sube la saturación del borde, se añade barra lateral y el icono va en pastilla. */
+.supl-done.is-pending {
+  background: #fff4e0;
+  border: 1.5px solid #f5b400;
+  color: #8a5a05;
+  box-shadow: inset 4px 0 0 #f5b400, 0 10px 26px -20px rgba(245, 180, 0, 0.9);
+}
+
+.supl-done__ico {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #f5b400;
+  color: #fff;
+  font-size: 18px;
+}
+
+.supl-done__cuenta {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1.5px solid #f5b400;
+  font-size: 14px;
+  font-weight: 800;
+  color: #8a5a05;
+}
+
+/* ── Layout de dos paneles ── */
+.supl-agenda {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.supl-agenda__col {
+  display: flex;
+  flex-direction: column;
+}
+
+.supl-agenda__body {
+  padding: 10px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Tarjeta de hora (seleccionable) ──
+   Una sola fila: tile | clase (crece) | estado a la derecha. Antes el estado
+   caía a una segunda fila y la tarjeta desperdiciaba todo el ancho del panel. */
+.supl-hora-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px 14px;
+  align-items: center;
+  border: 1.5px solid #eef2f7;
+  border-radius: 14px;
+  padding: 12px 15px;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.supl-hora-card.is-open {
+  cursor: pointer;
+}
+
+.supl-hora-card.is-open:hover {
+  border-color: #c7d6ea;
+  transform: translateX(2px);
+}
+
+.supl-hora-card.is-active {
+  border-color: #4267ac;
+  background: #f6f9fe;
+  box-shadow: 0 8px 20px -14px rgba(66, 103, 172, 0.9);
+}
+
+.supl-hora-card:focus-visible {
+  outline: 2px solid #4267ac;
+  outline-offset: 2px;
+}
+
+/* Tile de la hora: el dato dominante de la tarjeta. Con holgura suficiente para que
+   "3ª hora / 08:40–09:30" respire en vez de quedar apretado contra el borde. */
+.supl-hora-card__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 86px;
+  min-height: 56px;
+  padding: 9px 10px;
+  border-radius: 13px;
+  background: #eef3fb;
+  line-height: 1.25;
+  flex-shrink: 0;
+}
+.supl-hora-card__tile strong {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #22417e;
+  white-space: nowrap;
+}
+.supl-hora-card__tile small {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7189b8;
+  white-space: nowrap;
+}
+
+.supl-hora-card.is-active .supl-hora-card__tile {
+  background: #4267ac;
+}
+.supl-hora-card.is-active .supl-hora-card__tile strong, .supl-hora-card.is-active .supl-hora-card__tile small {
+  color: #fff;
+}
+
+.supl-hora-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.supl-hora-card__clase {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supl-hora-card__meta {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.supl-hora-card__meta i {
+  margin-right: 4px;
+  opacity: 0.7;
+}
+
+/* Estado alineado a la derecha, en su propia columna */
+.supl-hora-card__cover {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  text-align: right;
+  flex-wrap: wrap;
+}
+
+.supl-hora-card__suplente {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.supl-hora-card__suplente em {
+  color: #94a3b8;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.supl-hora-card__pending {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #a16207;
+  background: #fef6e0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Siempre visible (antes solo en hover): en táctil no había forma de descubrirlo */
+.supl-hora-card__go {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4267ac;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.55;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.supl-hora-card.is-open:hover .supl-hora-card__go,
+.supl-hora-card.is-active .supl-hora-card__go {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* En pantallas estrechas el estado vuelve a caer bajo la clase */
+@media (max-width: 520px) {
+  .supl-hora-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .supl-hora-card__cover {
+    grid-column: 2;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+/* ── Panel de asignación ── */
+.supl-assign {
+  position: sticky;
+  top: 16px;
+}
+
+.supl-assign__head {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.supl-assign__tile {
+  grid-row: auto;
+  width: 92px;
+  min-height: 64px;
+  padding: 11px 12px;
+}
+.supl-assign__tile strong {
+  font-size: 15px;
+}
+.supl-assign__tile small {
+  font-size: 11.5px;
+}
+
+.supl-assign__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0B1F3D;
+}
+
+.supl-assign__sub {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.supl-assign__body {
+  padding: 14px 18px 18px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.supl-assign__group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4267ac;
+}
+.supl-assign__group span {
+  background: #eef3fb;
+  color: #4267ac;
+  padding: 1px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+}
+
+/* Candidato. El preview cuelga de su propia fila (.supl-cand-wrap), así el horario
+   aparece justo debajo del profesor pulsado en vez de al final de toda la lista. */
+.supl-cand-wrap {
+  margin-bottom: 7px;
+}
+
+.supl-cand-wrap.is-hidden {
+  display: none;
+}
+
+.supl-cand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid #e8edf3;
+  background: #fff;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  transition: all 0.15s ease;
+}
+
+.supl-cand__ava {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+
+.supl-cand__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.supl-cand__name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.supl-cand__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.supl-cand__chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.supl-cand__chip--warn {
+  color: #a16207;
+  background: #fef6e0;
+}
+
+.supl-cand__motivo {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+.supl-cand__motivo i {
+  margin-right: 4px;
+  color: #cbd5e1;
+}
+
+.supl-cand__go {
+  color: #cbd5e1;
+  font-size: 11px;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.supl-cand--ok:hover {
+  border-color: #34a853;
+  background: #f4fbf6;
+}
+
+.supl-cand--ok:hover .supl-cand__go {
+  color: #34a853;
+}
+
+.supl-cand--off {
+  background: #f8fafc;
+}
+
+.supl-cand--off:hover {
+  border-color: #cbd5e1;
+}
+
+.supl-cand--off .supl-cand__ava,
+.supl-cand--off .supl-cand__name {
+  opacity: 0.72;
+}
+
+.supl-cand.is-active {
+  border-color: #dbe7f5;
+  background: #f0f6ff;
+  border-bottom-color: transparent;
+  border-radius: 12px 12px 0 0;
+}
+
+.supl-cand.is-active .supl-cand__go {
+  transform: rotate(180deg);
+  color: #4267ac;
+}
+
+/* Paginación de candidatos (módulo compartido admin-pager.js) */
+.supl-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0 12px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.supl-pager__info {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.supl-pager__btns {
+  display: flex;
+  gap: 6px;
+}
+
+.supl-pager__btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  transition: all 0.15s ease;
+}
+.supl-pager__btn:hover:not(:disabled) {
+  border-color: #4267ac;
+  color: #4267ac;
+}
+.supl-pager__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Bloque de confirmación: deja claro a quién y para qué hora se asigna.
+   Sin degradados: fondo plano y el verde sólido de la paleta (#34a853) en el CTA. */
+.supl-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f4fbf6;
+  border: 1.5px solid #bfe6cd;
+}
+
+.supl-confirm__ava {
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.supl-confirm__text {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.supl-confirm__text strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0B1F3D;
+}
+
+.supl-confirm__text small {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.supl-confirm__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: #34a853;
+  color: #fff;
+  font-family: "Outfit", sans-serif;
+  font-size: 13.5px;
+  font-weight: 800;
+  box-shadow: 0 10px 22px -14px rgba(52, 168, 83, 0.95);
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.supl-confirm__btn:hover:not(:disabled) {
+  background: #2b8c45;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px -16px rgb(52, 168, 83);
+}
+.supl-confirm__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+@media (max-width: 520px) {
+  .supl-confirm__btn {
+    width: 100%;
+  }
+}
+/* Candidato bloqueado: se explica el motivo y no hay forma de forzar la asignación */
+.supl-preview__blocked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 15px;
+  border-radius: 13px;
+  background: #f8fafc;
+  border: 1.5px dashed #dbe3ec;
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.45;
+}
+.supl-preview__blocked i {
+  color: #94a3b8;
+}
+.supl-preview__blocked strong {
+  color: #475569;
+}
+
+.supl-blocked {
+  margin-top: 8px;
+}
+.supl-blocked > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 2px;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+.supl-blocked > summary::-webkit-details-marker {
+  display: none;
+}
+.supl-blocked > summary::before {
+  content: "\f078";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 9px;
+  margin-right: 7px;
+  display: inline-block;
+  transition: transform 0.18s ease;
+}
+.supl-blocked > summary:hover {
+  color: #64748b;
+}
+.supl-blocked[open] > summary::before {
+  transform: rotate(180deg);
+}
+.supl-blocked__body {
+  padding-top: 6px;
+}
+
+/* Preview del horario del candidato: acordeón anclado bajo su propia fila */
+.supl-preview {
+  margin: 2px 0 4px;
+  padding: 14px;
+  border: 1.5px solid #dbe7f5;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: #fbfdff;
+  animation: supl-preview-in 0.18s ease;
+}
+
+@keyframes supl-preview-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.supl-preview__head {
+  margin-bottom: 10px;
+}
+
+.supl-preview__name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #334155;
+}
+.supl-preview__name i {
+  color: #4267ac;
+  margin-right: 7px;
+}
+
+@media (max-width: 1100px) {
+  .supl-agenda {
+    grid-template-columns: 1fr;
+  }
+  .supl-assign {
+    position: static;
+  }
+  .supl-assign__body {
+    max-height: none;
+  }
+}
+/* ── Mis coberturas ── */
+.supl-cover-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  margin-bottom: 12px;
+}
+
+.supl-cover-card__date {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #eef3fb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.supl-cover-card__d {
+  font-size: 18px;
+  font-weight: 800;
+  color: #22417e;
+  line-height: 1;
+}
+
+.supl-cover-card__mo {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7189b8;
+  text-transform: uppercase;
+}
+
+.supl-cover-card__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.supl-cover-card__clase {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.supl-cover-card__meta {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.supl-cover-card__notas {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #8a5a1f;
+  background: #fffaf0;
+  border: 1px solid #ffe4bd;
+  border-radius: 9px;
+  padding: 6px 10px;
+  line-height: 1.5;
+}
+.supl-cover-card__notas i {
+  color: #e0a800;
+  margin-right: 6px;
+}
+
+/* ══════════ Dashboard (superadmin) ══════════ */
+.sd-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sd-kpi {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+
+.sd-kpi__ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sd-kpi__val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0B1F3D;
+  line-height: 1;
+}
+
+.sd-kpi__lbl {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* align-items:stretch + tarjeta en columna → todas las tarjetas de una fila miden
+   lo mismo aunque el título ocupe una o dos líneas. */
+.sd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+  align-items: stretch;
+}
+
+.sd-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.sd-card__body {
+  padding: 8px 20px 18px;
+  flex: 1;
+}
+
+.sd-card .sd-chart {
+  padding: 14px 18px 20px;
+  flex: 1;
+  min-height: 280px;
+  position: relative;
+}
+
+.sd-chart canvas {
+  max-height: 100%;
+}
+
+.sd-nil {
+  color: #94a3b8;
+  padding: 10px 0;
+  font-size: 13px;
+}
+
+.sd-rank {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sd-rank:last-child {
+  border-bottom: none;
+}
+
+.sd-rank__pos {
+  font-size: 12px;
+  font-weight: 800;
+  color: #94a3b8;
+  width: 28px;
+}
+
+.sd-rank__ava {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+
+.sd-rank__name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.sd-rank__val {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Calendario del tablero: celdas más compactas que las de Familias/Cumpleaños.
+   El override queda acotado a #sdCal para no tocar el componente compartido. */
+.sd-cal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#sdCal .bilbao-cal__cell {
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 10px;
+  position: relative;
+}
+
+#sdCal .bilbao-cal__month {
+  font-size: 1rem;
+}
+
+#sdCal .bilbao-cal__cell.is-plain {
+  background: #fafbfd;
+  color: #c3ccd8;
+  font-weight: 600;
+}
+
+#sdCal .bilbao-cal__cell.has-event {
+  cursor: pointer;
+}
+
+#sdCal .bilbao-cal__cell.is-active {
+  background: #4267ac;
+  color: #fff;
+  box-shadow: 0 8px 18px -10px rgba(66, 103, 172, 0.95);
+}
+
+#sdCal .bilbao-cal__cell.is-active .bilbao-cal__badge {
+  background: #fff;
+  color: #22417e;
+}
+
+.bilbao-cal__badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #4285f4;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+/* Detalle del día seleccionado en el calendario */
+.sd-day {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.sd-day__hint {
+  font-size: 12.5px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 14px 0;
+}
+.sd-day__hint i {
+  margin-right: 7px;
+}
+
+.sd-day__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.sd-day__head strong {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0B1F3D;
+  text-transform: capitalize;
+}
+.sd-day__head span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.sd-day__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f6f8fb;
+}
+
+.sd-day__item:last-child {
+  border-bottom: none;
+}
+
+.sd-day__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sd-day__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sd-day__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.sd-day__meta {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+.sd-day__meta em {
+  font-style: normal;
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.sd-day__estado {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+  .sd-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* Cuerpo del panel de "Mis coberturas" */
+.supl-cover-body {
+  padding: 12px 20px 20px;
+}
+
+/* Estado vacío centrado: antes el Alex quedaba pegado al borde izquierdo */
+.supl-cover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 38px 20px 34px;
+  gap: 4px;
+}
+.supl-cover-empty img {
+  width: 132px;
+  height: auto;
+  margin-bottom: 14px;
+}
+.supl-cover-empty strong {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0B1F3D;
+}
+.supl-cover-empty p {
+  max-width: 420px;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
 /* =========================================================
    PANEL · TOAST DE ALEX (notificaciones)
 ========================================================= */
@@ -24197,6 +28387,58 @@ body[data-page=blog-usuarios-editar] .ubm-confirm[disabled] {
    blog-usuarios-index
    Migrado desde el \3c style> embebido de views/blog/usuarios/index.php
 ========================================================= */
+body[data-page=blog-usuarios-index] {
+  /* ── Tres tablas por grupo (superadmins · profesores · administrativos) ── */
+}
+body[data-page=blog-usuarios-index] .usr-panel {
+  margin-bottom: 22px;
+}
+body[data-page=blog-usuarios-index] .usr-panel__icon {
+  color: var(--col-bilbao);
+  margin-right: 6px;
+}
+body[data-page=blog-usuarios-index] .usr-panel__sub {
+  margin: -8px 0 0;
+  padding: 0 22px 14px;
+  font-size: 0.8rem;
+  color: #94A3B8;
+}
+body[data-page=blog-usuarios-index] .usr-panel__vacio {
+  margin: 0;
+  padding: 4px 22px 22px;
+  font-size: 0.85rem;
+  color: #94A3B8;
+}
+body[data-page=blog-usuarios-index] {
+  /* Chips de tipo de personal: un usuario puede llevar varios */
+}
+body[data-page=blog-usuarios-index] .usr-tipo {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+body[data-page=blog-usuarios-index] .usr-tipo + body[data-page=blog-usuarios-index] .usr-tipo {
+  margin-left: 4px;
+}
+body[data-page=blog-usuarios-index] .usr-tipo--profesor {
+  background: rgba(66, 133, 244, 0.12);
+  color: #1a4fa0;
+}
+body[data-page=blog-usuarios-index] .usr-tipo--prefecto {
+  background: rgba(170, 34, 150, 0.12);
+  color: #7c1a6d;
+}
+body[data-page=blog-usuarios-index] .usr-tipo--administrativo {
+  background: rgba(245, 180, 0, 0.16);
+  color: #7a5c00;
+}
+body[data-page=blog-usuarios-index] .usr-nil {
+  font-size: 0.8rem;
+  color: #94A3B8;
+}
 body[data-page=blog-usuarios-index] .ubm-backdrop {
   position: fixed;
   inset: 0;

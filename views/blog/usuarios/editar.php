@@ -117,19 +117,19 @@
                                 </div>
 
                                 <div class="admin-form-row">
-                                    <div class="admin-form__group">
-                                        <label class="admin-form__label" for="fecha_nacimiento">
-                                            <i class="fa-regular fa-calendar"></i>
-                                            Fecha de nacimiento
-                                        </label>
-                                        <div class="admin-form__input-wrapper">
-                                            <input type="date" id="fecha_nacimiento" name="fecha_nacimiento"
-                                                class="admin-form__input"
-                                                value="<?= s($usuario->fecha_nacimiento ?? '') ?>"
-                                                max="<?= date('Y-m-d') ?>">
-                                        </div>
-                                        <span class="admin-form__hint">Se usa para el calendario de cumpleaños del equipo.</span>
-                                    </div>
+                                    <?php
+                                    // Datepicker propio: nacer en fin de semana es lo normal, así
+                                    // que sin `habiles`; y puede quedarse vacío, de ahí "Limpiar".
+                                    $fechaName  = 'fecha_nacimiento';
+                                    $fechaLabel = 'Fecha de nacimiento';
+                                    $fechaValor = $usuario->fecha_nacimiento ?? '';
+                                    $fechaMax   = date('Y-m-d');
+                                    $fechaHabiles = false;
+                                    $fechaLimpiar = true;
+                                    $fechaPlaceholder = 'Sin fecha';
+                                    include __DIR__ . '/../_campo-fecha.php';
+                                    ?>
+                                    <span class="admin-form__hint">Se usa para el calendario de cumpleaños del equipo.</span>
                                     <div class="admin-form__group"><!-- espaciador --></div>
                                 </div>
 
@@ -204,65 +204,16 @@
                             </div>
                         </div>
 
-                        <!-- ROL (solo visible para administradores) -->
-                        <?php if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'):
-                            $modsSel = array_filter(array_map('trim', explode(',', (string)($usuario->modulos ?? ''))));
+                        <!-- ROL (solo visible para administradores/superadmin) -->
+                        <?php if (in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador','superadmin'], true)):
+                            $modsSel   = array_filter(array_map('trim', explode(',', (string)($usuario->modulos ?? ''))));
                             $rolActual = $usuario->rol ?? 'usuario';
-                            $MODS = [
-                                'redaccion'  => ['nombre' => 'Redacción',  'desc' => 'Blog, noticias y contenido.',   'icon' => 'fa-pen-nib'],
-                                'suplencias' => ['nombre' => 'Suplencias', 'desc' => 'Gestión de suplencias docentes.', 'icon' => 'fa-user-clock'],
-                                'usuarios'   => ['nombre' => 'Usuarios',   'desc' => 'Colaboradores y cumpleaños.',     'icon' => 'fa-users-gear'],
-                            ];
+                            $rolRed    = $usuario->rol_redaccion ?? '';
+                            $tiposSel  = array_filter(array_map('trim', explode(',', (string)($usuario->tipo_personal ?? ''))));
+                            $puedeSupl = (int)($usuario->puede_suplir ?? 1) === 1;
+                            $soySuper  = ($_SESSION['blog_usuario']['rol'] ?? '') === 'superadmin';
+                            include __DIR__ . '/_permisos-fields.php';
                         ?>
-                        <div class="admin-panel">
-                            <div class="admin-panel__header">
-                                <h2 class="admin-panel__title">Rol y permisos</h2>
-                            </div>
-                            <div class="admin-form-section">
-                                <div class="admin-role-cards" style="grid-template-columns:repeat(2,1fr);">
-                                    <div class="admin-role-card">
-                                        <input type="radio" id="rol-admin" name="rol" value="administrador"
-                                            <?= $rolActual === 'administrador' ? 'checked' : '' ?>>
-                                        <label for="rol-admin">
-                                            <div class="admin-role-card__icon"><i class="fa-solid fa-crown"></i></div>
-                                            <div class="admin-role-card__name">Administrador</div>
-                                            <div class="admin-role-card__desc">Acceso total a todos los módulos.</div>
-                                        </label>
-                                    </div>
-                                    <div class="admin-role-card">
-                                        <input type="radio" id="rol-usuario" name="rol" value="usuario"
-                                            <?= $rolActual !== 'administrador' ? 'checked' : '' ?>>
-                                        <label for="rol-usuario">
-                                            <div class="admin-role-card__icon"><i class="fa-solid fa-user-gear"></i></div>
-                                            <div class="admin-role-card__name">Usuario</div>
-                                            <div class="admin-role-card__desc">Acceso solo a los módulos seleccionados.</div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="admin-modulos" id="modulos-group" style="margin-top:22px;">
-                                    <label class="admin-form__label" style="margin-bottom:12px;">
-                                        <i class="fa-solid fa-grip"></i> Módulos con acceso
-                                    </label>
-                                    <div class="admin-modulos__grid">
-                                        <?php foreach ($MODS as $key => $m): ?>
-                                        <label class="admin-modulo-check">
-                                            <input type="checkbox" name="modulos[]" value="<?= $key ?>"
-                                                <?= in_array($key, $modsSel, true) ? 'checked' : '' ?>>
-                                            <span class="admin-modulo-check__box">
-                                                <span class="admin-modulo-check__icon"><i class="fa-solid <?= $m['icon'] ?>"></i></span>
-                                                <span class="admin-modulo-check__text">
-                                                    <span class="admin-modulo-check__name"><?= $m['nombre'] ?></span>
-                                                    <span class="admin-modulo-check__desc"><?= $m['desc'] ?></span>
-                                                </span>
-                                                <span class="admin-modulo-check__tick"><i class="fa-solid fa-check"></i></span>
-                                            </span>
-                                        </label>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <span class="admin-form__hint" style="margin-top:10px;display:block;">Selecciona al menos un módulo para el rol Usuario.</span>
-                                </div>
-                            </div>
                             <div class="admin-form-footer">
                                 <button type="submit" class="admin-btn admin-btn--primary">
                                     <i class="fa-solid fa-floppy-disk"></i>

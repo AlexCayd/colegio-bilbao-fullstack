@@ -1,0 +1,175 @@
+/* =========================================================
+   PANEL · SELECTOR DE FECHA (.bilbao-date)
+   Componente compartido — lo pinta src/js/admin/admin-datepicker.js.
+   Sin scope de página: se activa por la existencia de [data-datepicker].
+========================================================= */
+.bilbao-date { position: relative; }
+
+/* ── Campo visible ── */
+.bilbao-date__field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 46px;
+    padding: 0 14px;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: .92rem;
+    font-weight: 600;
+    color: #a3aec0;
+    text-align: left;
+    transition: border-color .18s ease, box-shadow .18s ease;
+
+    > i:first-child { color: #4267ac; font-size: .95rem; flex-shrink: 0; }
+
+    &:hover { border-color: #c7d6ea; }
+}
+.bilbao-date.has-value .bilbao-date__field { color: #1e293b; }
+.bilbao-date.is-open   .bilbao-date__field {
+    border-color: #4267ac;
+    box-shadow: 0 0 0 3px rgba(66, 103, 172, .12);
+}
+
+.bilbao-date__field span { flex: 1; text-transform: capitalize; }
+.bilbao-date__caret {
+    font-size: .7rem;
+    color: #94a3b8;
+    transition: transform .2s ease;
+    flex-shrink: 0;
+}
+.bilbao-date.is-open .bilbao-date__caret { transform: rotate(180deg); }
+
+/* ── Popover ── */
+.bilbao-date__pop {
+    position: absolute;
+    z-index: 60;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 306px;
+    max-width: calc(100vw - 40px);
+    padding: 14px;
+    background: #fff;
+    border: 1px solid #e6edf5;
+    border-radius: 18px;
+    box-shadow: 0 24px 48px -18px rgba(11, 31, 61, .38);
+    animation: bilbao-date-in .16s ease;
+}
+@keyframes bilbao-date-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.bilbao-date__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.bilbao-date__month {
+    font-size: .92rem;
+    font-weight: 800;
+    color: #0B1F3D;
+    text-transform: capitalize;
+}
+.bilbao-date__nav {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+    font-size: .72rem;
+    transition: all .15s ease;
+
+    &:hover { border-color: #4267ac; color: #4267ac; }
+}
+
+.bilbao-date__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    margin-bottom: 4px;
+
+    span {
+        text-align: center;
+        font-size: .62rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #b3c0d0;
+    }
+}
+
+.bilbao-date__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+}
+.bilbao-date__cell {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    font-family: 'Outfit', sans-serif;
+    font-size: .82rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: background .14s ease, color .14s ease;
+
+    &:hover:not(:disabled) { background: #eef3fb; color: #22417e; }
+
+    &--empty { visibility: hidden; cursor: default; }
+
+    /* Fin de semana o fuera de rango */
+    &.is-off {
+        color: #d5dce6;
+        cursor: not-allowed;
+        background: repeating-linear-gradient(45deg, #fafbfd, #fafbfd 4px, #f3f6fa 4px, #f3f6fa 8px);
+    }
+    &.is-today:not(.is-selected) { box-shadow: inset 0 0 0 1.5px #c9dcf2; color: #22417e; }
+    &.is-selected {
+        background: #4267ac;
+        color: #fff;
+        box-shadow: 0 6px 14px -7px rgba(66, 103, 172, .9);
+    }
+}
+
+.bilbao-date__foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+}
+.bilbao-date__hoy,
+.bilbao-date__clear {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: .78rem;
+    font-weight: 700;
+    color: #4267ac;
+
+    &:hover { text-decoration: underline; }
+}
+/* "Limpiar" solo aparece en campos que pueden ir vacíos (filtros): se marca en
+   rojo para distinguirlo de "Hoy", que sí elige una fecha. */
+.bilbao-date__clear {
+    margin-right: auto;
+    color: #b42318;
+}

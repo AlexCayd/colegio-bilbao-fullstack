@@ -1,6 +1,12 @@
 // Indice de admin - estilos migrados desde los <style> embebidos
+@forward 'admin-catalogos';
 @forward 'admin-cumpleanos';
+@forward 'admin-datepicker';
+@forward 'admin-eventos';
 @forward 'admin-home';
+@forward 'admin-horarios';
+@forward 'admin-notificaciones';
+@forward 'admin-personal';
 @forward 'admin-suplencias';
 @forward 'admin-toast';
 @forward 'blog-articulos-crear';

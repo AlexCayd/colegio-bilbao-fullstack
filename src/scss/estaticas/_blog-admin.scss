@@ -208,6 +208,47 @@
     }
 }
 
+/* ── Inputs de fecha/hora del panel ──
+   El control nativo se ve distinto en cada navegador y más bajo que los de texto.
+   Se le pone un icono propio y el picker se dispara al hacer clic en cualquier parte. */
+.admin-form__input[type="date"],
+.admin-form__input[type="datetime-local"],
+.admin-form__input[type="time"],
+.admin-form__input[type="month"] {
+    position: relative;
+    min-height: 46px;
+    padding-right: 42px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' viewBox='0 0 24 24' fill='none' stroke='%234267ac' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='3'/%3E%3Cpath d='M8 2v4M16 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    font-weight: 600;
+    color: #1E293B;
+    cursor: pointer;
+
+    /* Oculta el indicador nativo y deja toda la caja como zona de clic */
+    &::-webkit-calendar-picker-indicator {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    &::-webkit-datetime-edit { padding: 0; }
+    &::-webkit-inner-spin-button { display: none; }
+
+    &:hover { border-color: #c7d6ea; }
+    &:focus {
+        border-color: #4267ac;
+        box-shadow: 0 0 0 3px rgba(66, 103, 172, .12);
+    }
+    /* Sin valor: se ve como un placeholder */
+    &:invalid { color: #A0AEC0; font-weight: 500; }
+}
+
 .admin-form__forgot {
     display: block;
     text-align: right;
@@ -1039,6 +1080,71 @@
     tbody tr:hover td {
         background: #FAFBFF;
     }
+
+}
+
+/* Ordenamiento y paginación de tabla (src/js/admin/admin-table.js).
+   Van sin anidar bajo .admin-table porque Suplencias usa su propia .supl-table
+   y también las necesita. Solo se activan con las clases que inyecta el JS. */
+th.is-sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s ease, color .15s ease;
+
+    &:hover { background: #EEF4FF; color: var(--col-bilbao); }
+    &:focus-visible { outline: 2px solid var(--col-bilbao); outline-offset: -2px; }
+    &.is-asc, &.is-desc { color: var(--col-bilbao); background: #EEF4FF; }
+}
+
+tbody tr.is-hidden,
+tbody tr.is-filtered { display: none; }
+
+/* Indicador de orden: neutro (↕) hasta que la columna se usa */
+.admin-table__sortico {
+    display: inline-block;
+    width: 9px;
+    margin-left: 3px;
+    opacity: .35;
+    font-size: .68rem;
+
+    &::before { content: '\2195'; }
+
+    .is-asc  & { opacity: 1; &::before { content: '\2191'; } }
+    .is-desc & { opacity: 1; &::before { content: '\2193'; } }
+}
+
+/* Paginación de tabla — la inyecta admin-table.js, las vistas no la escriben */
+.admin-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid #F1F5F9;
+
+    &[hidden] { display: none; }
+}
+
+.admin-pager__info {
+    font-size: .76rem;
+    color: var(--text-gray);
+}
+
+.admin-pager__btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    border: 1.5px solid #E2E8F0;
+    background: #fff;
+    color: var(--col-bilbao);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: .72rem;
+    transition: all var(--transition-fast);
+
+    &:hover:not(:disabled) { border-color: var(--col-bilbao); background: #EEF4FF; }
+    &:disabled { opacity: .35; cursor: default; }
 }
 
 .admin-table__title {
@@ -1095,14 +1201,16 @@
     padding-right: 28px;
 }
 
+/* Acciones de tabla. Llevan fondo sólido (no transparente) para que se lean como
+   botones en todas las vistas del panel, igual que .supl-icon-btn en Suplencias. */
 .admin-table__btn {
-    padding: 5px 11px;
-    border-radius: 8px;
+    padding: 6px 12px;
+    border-radius: 9px;
     font-size: 0.78rem;
     font-weight: 600;
     border: 1.5px solid #E2E8F0;
-    background: transparent;
-    color: var(--text-gray);
+    background: #F1F5F9;
+    color: #475569;
     cursor: pointer;
     font-family: 'Outfit', sans-serif;
     transition: all var(--transition-fast);
@@ -1110,17 +1218,79 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    white-space: nowrap;
 
     &:hover {
         border-color: var(--col-bilbao);
-        color: var(--col-bilbao);
-        background: rgba(77, 138, 187, 0.04);
+        color: #fff;
+        background: var(--col-bilbao);
     }
 
-    &--danger:hover {
-        border-color: #fc8181;
-        color: #e53e3e;
-        background: #fff5f5;
+    &--danger {
+        background: #FEF2F2;
+        border-color: #FBD5D5;
+        color: #C53030;
+
+        &:hover {
+            border-color: #e53e3e;
+            background: #e53e3e;
+            color: #fff;
+        }
+    }
+}
+
+/* =========================================================
+   ACCIONES DE FILA · set único del panel
+   Sustituye a .ev-act--edit/--del (eventos) y .supl-icon-btn--edit/--danger
+   (suplencias), que hacían lo mismo con tres estilos distintos.
+   Editar = amarillo sólido + lápiz · Eliminar = rojo sólido + papelera.
+========================================================= */
+.admin-act {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: 'Outfit', sans-serif;
+    font-size: .82rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+
+    &:hover { transform: translateY(-2px); }
+    &:disabled { opacity: .5; cursor: default; transform: none; }
+
+    /* Con texto además del icono la píldora crece */
+    &--wide { width: auto; padding: 0 14px; }
+
+    &--edit {
+        background: #f5b400;
+        // Tinta oscura: blanco sobre #f5b400 no llega al contraste AA
+        color: #0B1F3D;
+        box-shadow: 0 6px 14px -8px rgba(245, 180, 0, .95);
+
+        &:hover { background: #ffc21f; box-shadow: 0 10px 20px -10px rgba(245, 180, 0, 1); }
+    }
+
+    &--del {
+        background: #e51022;
+        color: #fff;
+        box-shadow: 0 6px 14px -8px rgba(229, 16, 34, .95);
+
+        &:hover { background: #c8102e; box-shadow: 0 10px 20px -10px rgba(229, 16, 34, 1); }
+    }
+
+    /* Acción neutra que convive con las dos anteriores (p. ej. "Ver horario") */
+    &--ghost {
+        background: #F1F5F9;
+        color: #475569;
+
+        &:hover { background: #E2E8F0; }
     }
 }
 
@@ -1394,6 +1564,13 @@
             color: var(--col-bilbao);
             background: rgba(77, 138, 187, 0.04);
         }
+    }
+
+    // Variante compacta para barras de herramientas y cabeceras de panel
+    &--sm {
+        padding: 7px 14px;
+        font-size: .8rem;
+        gap: 6px;
     }
 
     &--danger {
@@ -3037,7 +3214,9 @@
     gap: 12px;
 }
 .admin-modulo-check {
-    display: block;
+    /* flex (no block) para que la caja estire a la altura de la fila del grid:
+       si no, cada tarjeta mide según su descripción y quedan desalineadas. */
+    display: flex;
     cursor: pointer;
 
     input { position: absolute; opacity: 0; pointer-events: none; }
@@ -3047,6 +3226,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
     padding: 14px 16px;
     border: 1.5px solid #e2e8f0;
     border-radius: 14px;
@@ -3054,6 +3234,15 @@
     transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
 }
 .admin-modulo-check:hover .admin-modulo-check__box { border-color: #c7d6ea; }
+
+/* Casilla no disponible por una regla de exclusividad (p. ej. `prefecto` no se
+   combina con `profesor`). La aplica admin-usuario-permisos.js. */
+.admin-modulo-check.is-disabled {
+    cursor: not-allowed;
+
+    .admin-modulo-check__box { opacity: .42; background: #F8FAFC; }
+    &:hover .admin-modulo-check__box { border-color: #E2E8F0; }
+}
 .admin-modulo-check__icon {
     width: 40px; height: 40px;
     border-radius: 11px;
@@ -3101,6 +3290,143 @@
 .admin-modulo-check input:focus-visible + .admin-modulo-check__box {
     outline: 2px solid #4267ac;
     outline-offset: 2px;
+}
+
+/* =========================================================
+   SWITCH ROW · interruptor con título y ayuda
+   Componente compartido: "No puede suplir", "Mostrar en el calendario público", …
+   Misma familia visual que .admin-modulo-check.
+========================================================= */
+.admin-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease;
+
+    input { position: absolute; opacity: 0; pointer-events: none; }
+
+    &__track {
+        position: relative;
+        width: 44px; height: 25px;
+        border-radius: 20px;
+        background: #dde4ec;
+        flex-shrink: 0;
+        transition: background .2s ease;
+    }
+    &__knob {
+        position: absolute;
+        top: 3px; left: 3px;
+        width: 19px; height: 19px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(11, 31, 61, .3);
+        transition: transform .2s cubic-bezier(.34, 1.4, .64, 1);
+    }
+    &__text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        strong { font-size: 13.5px; font-weight: 700; color: #1E293B; display: flex; align-items: center; gap: 7px; }
+        small  { font-size: 11.5px; color: #94A3B8; line-height: 1.45; }
+    }
+
+    &:hover { border-color: #c7d6ea; }
+
+    input:checked ~ .admin-switch-row__track { background: #4267ac; }
+    input:checked ~ .admin-switch-row__track .admin-switch-row__knob { transform: translateX(19px); }
+    input:focus-visible ~ .admin-switch-row__track { outline: 2px solid #4267ac; outline-offset: 2px; }
+
+    /* Variante de exclusión (rojo): activarla es una restricción, no una mejora */
+    &--danger {
+        strong i { color: #e51022; }
+
+        input:checked ~ .admin-switch-row__track { background: #e51022; }
+        &:has(input:checked) { border-color: #f3c0c0; background: #fff6f6; }
+    }
+
+    /* Variante compacta: sin ayuda secundaria */
+    &--compact {
+        padding: 11px 14px;
+        strong { font-size: 13px; }
+    }
+}
+
+/* Bloque "No puede suplir" del formulario de usuarios (solo si es Profesor) */
+.admin-suplir-toggle { margin-top: 14px; }
+.admin-suplir-toggle[hidden] { display: none; }
+
+/* =========================================================
+   FILE · zona de subida de archivos (justificantes, adjuntos)
+   Compartido; el JS de src/js/admin/admin-file.js la activa por [data-file].
+========================================================= */
+.admin-file {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 14px 16px;
+    border: 1.5px dashed #cbd7e6;
+    border-radius: 14px;
+    background: #f9fbfe;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease;
+
+    /* El input cubre la caja entera para que todo sea zona de clic */
+    input[type="file"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    &__ico {
+        width: 40px; height: 40px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        background: #eef3fb;
+        color: #4267ac;
+        font-size: 15px;
+        flex-shrink: 0;
+        transition: background .18s ease, color .18s ease;
+    }
+    &__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    &__title {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #334155;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    &__hint { font-size: 11.5px; color: #94A3B8; }
+
+    &:hover { border-color: #4267ac; background: #f5f9ff; }
+
+    &.is-filled {
+        border-style: solid;
+        border-color: #bfe6cd;
+        background: #f4fbf6;
+
+        .admin-file__ico { background: #e2f5e9; color: #15803d; }
+        .admin-file__title { color: #15803d; }
+    }
+    &.is-error {
+        border-style: solid;
+        border-color: #f3c0c0;
+        background: #fff6f6;
+
+        .admin-file__ico { background: #fdeaea; color: #b91c1c; }
+        .admin-file__title { color: #b91c1c; }
+    }
 }
 
 /* =========================================================
@@ -3173,6 +3499,62 @@
     transition: background .18s ease, transform .18s ease, color .18s ease;
 
     &:hover { background: #eef4ff; transform: translateY(-2px); }
+}
+
+/* Campana de notificaciones — vive junto al avatar en todas las vistas del panel
+   (views/blog/_topbar-avatar.php), no dentro de un módulo concreto. */
+.admin-topbar__bell {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--col-borde, #e2e8f0);
+    background: #fff;
+    color: #4267ac;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    font-size: 15px;
+    transition: background .18s ease, transform .18s ease, color .18s ease;
+
+    &:hover { background: #eef4ff; transform: translateY(-2px); }
+
+    /* Con pendientes la campana deja de ser decorativa: se tiñe y llama la atención */
+    &.has-pend {
+        border-color: #ffd9a1;
+        background: #fff8ee;
+        color: #d9770a;
+
+        i { animation: bellNudge 3.2s ease-in-out infinite; transform-origin: 50% 12%; }
+    }
+}
+
+.admin-topbar__bell-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #e51022;
+    border: 2px solid #fff;
+    color: #fff;
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 14px;
+    text-align: center;
+}
+
+@keyframes bellNudge {
+    0%, 88%, 100% { transform: rotate(0); }
+    91%           { transform: rotate(11deg); }
+    94%           { transform: rotate(-9deg); }
+    97%           { transform: rotate(5deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-topbar__bell.has-pend i { animation: none; }
 }
 
 /* =========================================================

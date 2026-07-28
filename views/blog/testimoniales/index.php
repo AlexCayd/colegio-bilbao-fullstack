@@ -56,26 +56,26 @@
                     <p class="admin-empty-state__text">No hay testimoniales pendientes. ¡Todo al día!</p>
                 </div>
                 <?php else: ?>
-                <div style="overflow-x:auto;">
-                    <table class="admin-table">
+                <div class="admin-table-scroll">
+                    <table class="admin-table" data-table data-table-per="10" data-table-noun="pendientes">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
-                                <th>Rol</th>
-                                <th>Comentario</th>
-                                <th>Fecha</th>
+                                <th data-sort="text">Nombre</th>
+                                <th data-sort="text">Rol</th>
+                                <th data-sort="text">Comentario</th>
+                                <th data-sort="date">Fecha</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($pendientes as $t): ?>
-                            <tr>
+                        <?php foreach ($pendientes as $i => $t): ?>
+                            <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
                                 <td><strong><?= htmlspecialchars($t->nombre) ?></strong></td>
                                 <td><?= htmlspecialchars($t->rol) ?></td>
                                 <td style="max-width:320px;"><?= htmlspecialchars(mb_substr($t->comentario, 0, 120)) ?><?= mb_strlen($t->comentario) > 120 ? '…' : '' ?></td>
-                                <td style="white-space:nowrap;color:#7a8fa8;font-size:.82rem;"><?= date('d/m/Y', strtotime($t->created_at)) ?></td>
+                                <td data-val="<?= date('Y-m-d', strtotime($t->created_at)) ?>" style="white-space:nowrap;color:#7a8fa8;font-size:.82rem;"><?= date('d/m/Y', strtotime($t->created_at)) ?></td>
                                 <td>
-                                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                    <div class="admin-table__actions">
                                         <form method="POST" action="/dashboard/testimoniales/aprobar" data-confirm="¿Aprobar este testimonio y publicarlo en el sitio?">
                                             <input type="hidden" name="id" value="<?= (int)$t->id ?>">
                                             <button type="submit" class="admin-btn admin-btn--primary admin-btn--sm">
@@ -84,8 +84,8 @@
                                         </form>
                                         <form method="POST" action="/dashboard/testimoniales/rechazar" data-confirm="¿Eliminar este testimonio? Esta acción no se puede deshacer.">
                                             <input type="hidden" name="id" value="<?= (int)$t->id ?>">
-                                            <button type="submit" class="admin-btn admin-btn--danger admin-btn--sm">
-                                                <i class="fa-solid fa-trash"></i> Eliminar
+                                            <button type="submit" class="admin-act admin-act--del" title="Eliminar">
+                                                <i class="fa-solid fa-trash"></i>
                                             </button>
                                         </form>
                                     </div>
@@ -112,31 +112,33 @@
                     <p class="admin-empty-state__text">Aún no hay testimoniales aprobados.</p>
                 </div>
                 <?php else: ?>
-                <div style="overflow-x:auto;">
-                    <table class="admin-table">
+                <div class="admin-table-scroll">
+                    <table class="admin-table" data-table data-table-per="10" data-table-noun="testimoniales">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
-                                <th>Rol</th>
-                                <th>Comentario</th>
-                                <th>Fecha</th>
-                                <th></th>
+                                <th data-sort="text">Nombre</th>
+                                <th data-sort="text">Rol</th>
+                                <th data-sort="text">Comentario</th>
+                                <th data-sort="date">Fecha</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($aprobados as $t): ?>
-                            <tr>
+                        <?php foreach ($aprobados as $i => $t): ?>
+                            <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
                                 <td><strong><?= htmlspecialchars($t->nombre) ?></strong></td>
                                 <td><?= htmlspecialchars($t->rol) ?></td>
                                 <td style="max-width:320px;"><?= htmlspecialchars(mb_substr($t->comentario, 0, 120)) ?><?= mb_strlen($t->comentario) > 120 ? '…' : '' ?></td>
-                                <td style="white-space:nowrap;color:#7a8fa8;font-size:.82rem;"><?= date('d/m/Y', strtotime($t->created_at)) ?></td>
+                                <td data-val="<?= date('Y-m-d', strtotime($t->created_at)) ?>" style="white-space:nowrap;color:#7a8fa8;font-size:.82rem;"><?= date('d/m/Y', strtotime($t->created_at)) ?></td>
                                 <td>
-                                    <form method="POST" action="/dashboard/testimoniales/rechazar" data-confirm="¿Eliminar este testimonio publicado? Desaparecerá del sitio.">
-                                        <input type="hidden" name="id" value="<?= (int)$t->id ?>">
-                                        <button type="submit" class="admin-btn admin-btn--danger admin-btn--sm">
-                                            <i class="fa-solid fa-trash"></i> Eliminar
-                                        </button>
-                                    </form>
+                                    <div class="admin-table__actions">
+                                        <form method="POST" action="/dashboard/testimoniales/rechazar" data-confirm="¿Eliminar este testimonio publicado? Desaparecerá del sitio.">
+                                            <input type="hidden" name="id" value="<?= (int)$t->id ?>">
+                                            <button type="submit" class="admin-act admin-act--del" title="Eliminar">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

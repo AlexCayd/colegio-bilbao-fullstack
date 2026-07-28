@@ -1,78 +1,46 @@
 <?php $paginaVista = 'estaticas-comunidad-familias'; ?>
 <?php
-// ── AVISOS DE PRUEBA ──────────────────────────────────────────────
-// TODO: volver dinámico desde el panel de administración.
-$avisos = [
-    [
-        'titulo'    => 'Junta de padres · Primaria',
-        'fecha'     => '2026-07-24',
-        'categoria' => 'Reunión',
-        'color'     => '#4285f4',
-        'icono'     => 'fa-people-group',
-        'cuerpo'    => 'Los invitamos a la junta informativa del ciclo escolar. Auditorio principal, 9:00 h.',
-    ],
-    [
-        'titulo'    => 'Festival de arte y talento',
-        'fecha'     => '2026-08-08',
-        'categoria' => 'Evento',
-        'color'     => '#aa2296',
-        'icono'     => 'fa-palette',
-        'cuerpo'    => '¡Ven a disfrutar del talento de nuestros estudiantes! Música, teatro y exposición de arte.',
-    ],
-    [
-        'titulo'    => 'Suspensión de clases',
-        'fecha'     => '2026-08-14',
-        'categoria' => 'Aviso',
-        'color'     => '#e51022',
-        'icono'     => 'fa-calendar-xmark',
-        'cuerpo'    => 'No habrá clases por consejo técnico escolar. Reanudamos actividades el lunes siguiente.',
-    ],
-    [
-        'titulo'    => 'Entrega de boletas',
-        'fecha'     => '2026-08-21',
-        'categoria' => 'Académico',
-        'color'     => '#46bdc6',
-        'icono'     => 'fa-file-lines',
-        'cuerpo'    => 'Consulta el avance de tus hijos con los profesores titulares en el horario asignado.',
-    ],
-    [
-        'titulo'    => 'Semana de la lectura',
-        'fecha'     => '2026-09-01',
-        'categoria' => 'Evento',
-        'color'     => '#fc6722',
-        'icono'     => 'fa-book-open',
-        'cuerpo'    => 'Cuentacuentos, intercambio de libros y visitas a la biblioteca durante toda la semana.',
-    ],
-    [
-        'titulo'    => 'Campaña de reciclaje',
-        'fecha'     => '2026-09-05',
-        'categoria' => 'Comunidad',
-        'color'     => '#2e6fc7',
-        'icono'     => 'fa-recycle',
-        'cuerpo'    => 'Trae tus materiales reciclables y súmate al cuidado de nuestro planeta. ¡Cada familia cuenta!',
-    ],
+// ── EVENTOS DINÁMICOS (desde el módulo Eventos del panel) ─────────
+// El controlador pasa $eventosCal = [{fecha, tipo, titulo, desc}]. Si no hay, se usa un
+// pequeño conjunto de muestra para no dejar el calendario vacío.
+$tipoMeta = [
+    'junta'      => ['Reunión',   '#4285f4', 'fa-people-group'],
+    'evento'     => ['Evento',    '#aa2296', 'fa-palette'],
+    'suspension' => ['Aviso',     '#e51022', 'fa-calendar-xmark'],
+    'festivo'    => ['Festivo',   '#fc6722', 'fa-star'],
+    'entrega'    => ['Académico', '#46bdc6', 'fa-file-lines'],
 ];
-
-// ── EVENTOS DEL CALENDARIO ────────────────────────────────────────
-// TODO: volver dinámico. tipo: festivo | evento | junta | suspension | entrega
-$eventos = [
-    ['fecha' => '2026-07-24', 'tipo' => 'junta',      'titulo' => 'Junta de padres · Primaria'],
-    ['fecha' => '2026-08-08', 'tipo' => 'evento',     'titulo' => 'Festival de arte y talento'],
-    ['fecha' => '2026-08-14', 'tipo' => 'suspension', 'titulo' => 'Suspensión de clases'],
-    ['fecha' => '2026-08-17', 'tipo' => 'festivo',    'titulo' => 'Regreso a clases'],
-    ['fecha' => '2026-08-21', 'tipo' => 'entrega',    'titulo' => 'Entrega de boletas'],
-    ['fecha' => '2026-09-01', 'tipo' => 'evento',     'titulo' => 'Semana de la lectura'],
-    ['fecha' => '2026-09-05', 'tipo' => 'evento',     'titulo' => 'Campaña de reciclaje'],
-    ['fecha' => '2026-09-16', 'tipo' => 'festivo',    'titulo' => 'Día de la Independencia'],
-    ['fecha' => '2026-09-28', 'tipo' => 'junta',      'titulo' => 'Junta de padres · Secundaria'],
-];
-$mesesEs   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+$fuente = $eventosCal ?? [];
+if (empty($fuente)) {
+    $fuente = [
+        ['fecha' => '2026-07-28', 'tipo' => 'junta',      'titulo' => 'Junta de padres · Primaria', 'desc' => 'Auditorio principal, 18:00 h.'],
+        ['fecha' => '2026-08-08', 'tipo' => 'evento',     'titulo' => 'Festival de arte y talento', 'desc' => 'Música, teatro y exposición de arte.'],
+        ['fecha' => '2026-08-14', 'tipo' => 'suspension', 'titulo' => 'Suspensión de clases',        'desc' => 'Consejo técnico escolar.'],
+        ['fecha' => '2026-08-21', 'tipo' => 'entrega',    'titulo' => 'Entrega de boletas',          'desc' => 'Consulta el horario con el titular.'],
+    ];
+}
+// Calendario + tarjetas de avisos derivan de la misma fuente
+$eventos = [];
+$avisos  = [];
+foreach ($fuente as $e) {
+    $meta = $tipoMeta[$e['tipo']] ?? ['Aviso', '#4d8abb', 'fa-calendar-day'];
+    $eventos[] = ['fecha' => $e['fecha'], 'tipo' => $e['tipo'], 'titulo' => $e['titulo']];
+    $avisos[]  = [
+        'titulo'    => $e['titulo'],
+        'fecha'     => $e['fecha'],
+        'categoria' => $meta[0],
+        'color'     => $meta[1],
+        'icono'     => $meta[2],
+        'cuerpo'    => $e['desc'] ?? '',
+    ];
+}
+$mesesEs = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 ?>
 <main id="main-content" class="fam">
 
     <!-- ── HERO ─────────────────────────────────── -->
     <section class="fam__hero">
-        <?php $bg_colores = ['#46bdc6', '#4d8abb', '#2e6fc7', '#6fb1d8', '#4267ac']; include __DIR__ . '/_bg.php'; ?>
+        <?php $bg_scene = 'bosque'; $bg_colores = ['#46bdc6', '#4D8ABB', '#7DC6E5', '#374C69', '#F1C400']; include __DIR__ . '/_bg.php'; ?>
         <div class="fam__hero-inner">
             <div class="fam__hero-text" data-fam-reveal>
                 <span class="fam__eyebrow"><i class="fa-solid fa-people-roof"></i> Familias Bilbao</span>

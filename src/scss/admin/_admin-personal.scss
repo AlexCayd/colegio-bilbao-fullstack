@@ -1,0 +1,68 @@
+/* =========================================================
+   PANEL · DIRECTORIOS DE PERSONAL
+   Profesores / Prefectura / Administrativos comparten
+   views/blog/personal/index.php
+========================================================= */
+body[data-page="blog-personal-index"] {
+
+    /* ── Resumen ── */
+    .per-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 760px) { .per-stats { grid-template-columns: 1fr; } }
+
+    .per-stat {
+        background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+        padding: 18px 20px; display: flex; flex-direction: column; gap: 3px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+
+        &__n { font-size: 1.7rem; font-weight: 900; color: #0b1f3d; line-height: 1; }
+        &__l { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; }
+
+        &--ok .per-stat__n { color: #15803d; }
+    }
+
+    /* ── Cabecera del panel con buscador ── */
+    .per-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap;
+    }
+    .per-toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+    .per-search {
+        position: relative; display: flex; align-items: center;
+
+        > i { position: absolute; left: 14px; font-size: .82rem; color: #94a3b8; pointer-events: none; }
+    }
+    .per-search__input {
+        height: 40px; width: 270px; max-width: 100%;
+        padding: 0 14px 0 38px;
+        border: 1.5px solid #e2e8f0; border-radius: 11px; background: #fff;
+        font-family: 'Outfit', sans-serif; font-size: .88rem; color: #1e293b;
+        transition: border-color .18s ease, box-shadow .18s ease;
+
+        &::placeholder { color: #a3aec0; }
+        &:focus { outline: none; border-color: #4267ac; box-shadow: 0 0 0 3px rgba(66, 103, 172, .12); }
+    }
+
+    /* ── Tabla a todo el ancho: la columna de nombre y la de correo se reparten
+          el espacio, el resto queda al mínimo necesario. ── */
+    .per-table-wrap { overflow-x: auto; }
+    .per-table {
+        min-width: 780px;
+
+        .per-col-name { width: 32%; }
+        .per-col-mail { width: 30%; }
+        .per-col-tipo { width: 20%; }
+        .per-col-supl { width: 9%;  white-space: nowrap; }
+        .per-col-act  { width: 9%;  text-align: right; white-space: nowrap; }
+    }
+
+    .per-user { display: flex; align-items: center; gap: .75rem; }
+    .per-user__ava {
+        width: 38px; height: 38px; font-size: .875rem; flex-shrink: 0;
+        img { width: 100%; height: 100%; object-fit: cover; }
+    }
+    .per-mail { color: var(--text-gray, #4a5568); font-size: .875rem; word-break: break-all; }
+    .per-nil  { font-size: .78rem; color: #94a3b8; }
+
+    .per-empty { padding: 28px 20px; text-align: center; color: #94a3b8; font-size: .88rem; }
+}

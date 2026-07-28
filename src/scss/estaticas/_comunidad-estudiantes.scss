@@ -9,9 +9,12 @@
     /* ── HERO ─────────────────────────────────── */
     &__hero {
         position: relative;
+        /* Claro del bosque (colores institucionales) */
         background:
-            radial-gradient(90% 120% at 85% 15%, rgba(70, 189, 198, .28), transparent 48%),
-            linear-gradient(135deg, #050e20 0%, #0d2451 55%, #143f80 100%);
+            radial-gradient(55% 75% at 80% 8%, rgba(241, 196, 0, .16), transparent 46%),
+            radial-gradient(90% 120% at 85% 18%, rgba(70, 189, 198, .24), transparent 50%),
+            radial-gradient(120% 90% at 12% 100%, rgba(36, 80, 111, .5), transparent 60%),
+            linear-gradient(180deg, #071528 0%, #0d2b3f 52%, #103a48 100%);
         border-bottom: 1px solid var(--col-borde);
         overflow: hidden;
     }

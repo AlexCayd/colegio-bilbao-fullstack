@@ -8,11 +8,6 @@
 
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <div class="admin-breadcrumb">
-                    <a href="/dashboard">Dashboard</a>
-                    <i class="fa-solid fa-chevron-right"></i>
-                    <span>Mi perfil</span>
-                </div>
                 <span class="admin-topbar__title">Mi perfil</span>
             </div>
             <div class="admin-topbar__actions">
@@ -26,6 +21,7 @@
                         Salir
                     </button>
                 </form>
+                <?php include __DIR__ . '/_topbar-avatar.php'; ?>
             </div>
         </header>
 

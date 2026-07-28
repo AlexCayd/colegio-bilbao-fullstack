@@ -6,6 +6,7 @@ use MVC\Router;
 use Model\Articulo;
 use Model\Noticia;
 use Model\Testimonial;
+use Model\Evento;
 
 class EstaticasController {
 
@@ -160,11 +161,22 @@ class EstaticasController {
     }
 
     public static function familias(Router $router) {
+        // Eventos públicos reales para el calendario interactivo (reemplaza el array hardcodeado)
+        $eventos = [];
+        foreach (Evento::publicos() as $ev) {
+            $eventos[] = [
+                'fecha'  => $ev->fecha,
+                'tipo'   => $ev->tipo,
+                'titulo' => $ev->titulo,
+                'desc'   => $ev->descripcion ?? '',
+            ];
+        }
         $router->render('estaticas/comunidad/familias', [
             'titulo'          => 'Familias',
             'seo_titulo'      => 'Familias Bilbao',
             'seo_descripcion' => 'Avisos y calendario escolar del Colegio Bilbao para nuestras familias.',
             'extra_head'      => self::comunidadThree(),
+            'eventosCal'      => $eventos,
         ]);
     }
 

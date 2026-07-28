@@ -3,8 +3,10 @@
 (function () {
     if (!document.body || document.body.dataset.page !== 'blog-suplencias-index') return;
     (function () {
-        // Búsqueda inteligente en vivo sobre las filas cargadas
+        // Búsqueda en vivo sobre las filas cargadas. Marca con `is-filtered` en vez
+        // de tocar el style, para que admin-table.js pueda excluirlas del paginado.
         const input = document.getElementById('suplSearch');
+        const tabla = document.getElementById('suplTable');
         const rows  = Array.from(document.querySelectorAll('.supl-row'));
         const none  = document.getElementById('suplNoResults');
         if (input) {
@@ -13,12 +15,23 @@
                 let visible = 0;
                 rows.forEach(r => {
                     const match = !q || r.dataset.search.includes(q);
-                    r.style.display = match ? '' : 'none';
+                    r.classList.toggle('is-filtered', !match);
                     if (match) visible++;
                 });
                 if (none) none.style.display = (rows.length && visible === 0) ? 'block' : 'none';
+                if (window.AdminTable) window.AdminTable.refrescar(tabla);
             });
         }
+        // Los filtros de fecha son .bilbao-date: el hidden emite `change` al elegir
+        // día o al limpiar, y ahí se reenvía el formulario (antes era un onchange
+        // inline en el <input type="date">).
+        var formFiltros = document.getElementById('suplFilters');
+        if (formFiltros) {
+            formFiltros.querySelectorAll('[data-date-value]').forEach(function (h) {
+                h.addEventListener('change', function () { formFiltros.submit(); });
+            });
+        }
+
         window.suplEliminar = function (id, nombre) {
             document.getElementById('suplDeleteId').value = id;
             document.getElementById('suplDeleteName').textContent = nombre;
@@ -45,12 +58,5 @@
         });
     })();
 
-    (function () {
-        const toast = document.getElementById('alexToast');
-        if (!toast) return;
-        requestAnimationFrame(() => setTimeout(() => toast.classList.add('is-visible'), 80));
-        let timer = setTimeout(cerrarAlexToast, 5600);
-        function cerrarAlexToast() { clearTimeout(timer); toast.style.top = '-160px'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }
-        window.cerrarAlexToast = cerrarAlexToast;
-    })();
+    // El toast de Alex lo lleva admin-toast.js (#alexToast)
 })();

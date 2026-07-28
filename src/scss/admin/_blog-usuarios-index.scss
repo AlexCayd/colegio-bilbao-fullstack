@@ -3,6 +3,40 @@
    Migrado desde el <style> embebido de views/blog/usuarios/index.php
 ========================================================= */
 body[data-page="blog-usuarios-index"] {
+    /* ── Tres tablas por grupo (superadmins · profesores · administrativos) ── */
+    .usr-panel { margin-bottom: 22px; }
+    .usr-panel__icon { color: var(--col-bilbao); margin-right: 6px; }
+    .usr-panel__sub {
+        margin: -8px 0 0;
+        padding: 0 22px 14px;
+        font-size: .8rem;
+        color: #94A3B8;
+    }
+    .usr-panel__vacio {
+        margin: 0;
+        padding: 4px 22px 22px;
+        font-size: .85rem;
+        color: #94A3B8;
+    }
+
+    /* Chips de tipo de personal: un usuario puede llevar varios */
+    .usr-tipo {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: .7rem;
+        font-weight: 700;
+        white-space: nowrap;
+
+        & + & { margin-left: 4px; }
+
+        &--profesor       { background: rgba(66, 133, 244, .12); color: #1a4fa0; }
+        &--prefecto       { background: rgba(170, 34, 150, .12);  color: #7c1a6d; }
+        &--administrativo { background: rgba(245, 180, 0, .16);   color: #7a5c00; }
+    }
+
+    .usr-nil { font-size: .8rem; color: #94A3B8; }
+
     .ubm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s ease}
     .ubm-backdrop.is-open{opacity:1;pointer-events:all}
     .ubm-card{background:#fff;border-radius:20px;padding:40px 32px 32px;max-width:420px;width:92%;text-align:center;box-shadow:0 40px 80px rgba(15,23,42,.22),0 8px 24px rgba(15,23,42,.1);transform:scale(.84) translateY(20px);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .22s ease}

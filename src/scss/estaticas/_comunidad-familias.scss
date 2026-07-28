@@ -21,10 +21,12 @@
     /* ── HERO ─────────────────────────────────── */
     &__hero {
         position: relative;
+        /* Claro del bosque: cielo profundo arriba, bruma teal, destello de sol cálido */
         background:
-            radial-gradient(90% 120% at 88% 8%, rgba(70, 189, 198, .30), transparent 46%),
-            radial-gradient(80% 120% at 6% 100%, rgba(66, 103, 172, .34), transparent 50%),
-            linear-gradient(135deg, #050e20 0%, #0d2451 52%, #143f80 100%);
+            radial-gradient(60% 80% at 78% 6%, rgba(241, 196, 0, .18), transparent 46%),
+            radial-gradient(90% 120% at 88% 20%, rgba(70, 189, 198, .26), transparent 50%),
+            radial-gradient(120% 90% at 10% 100%, rgba(36, 80, 111, .55), transparent 60%),
+            linear-gradient(180deg, #071528 0%, #0d2b3f 50%, #103a48 100%);
         border-bottom: 1px solid var(--col-borde);
         overflow: hidden;
     }

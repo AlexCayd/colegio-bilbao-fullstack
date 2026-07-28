@@ -26,7 +26,14 @@
                     el.addEventListener('mousedown', function (e) { e.preventDefault(); choose(items[+el.dataset.i]); });
                 });
             }
-            function choose(u) { input.value = u.nombre; hidden.value = u.id; root.classList.add('has-value'); close(); }
+            // El hidden se escribe por propiedad, así que hay que avisar a mano:
+            // otras vistas (crear suplencia) reaccionan al 'change' para cargar el horario.
+            function setValor(v) {
+                if (hidden.value === String(v)) return;
+                hidden.value = v;
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            function choose(u) { input.value = u.nombre; setValor(u.id); root.classList.add('has-value'); close(); }
             function fetchUsers(q) {
                 fetch(ENDPOINT + encodeURIComponent(q)).then(r => r.json()).then(function (data) {
                     items = data || []; active = -1; render();
@@ -34,7 +41,7 @@
             }
 
             input.addEventListener('input', function () {
-                hidden.value = '';                      // al reescribir se invalida la selección previa
+                setValor('');                           // al reescribir se invalida la selección previa
                 root.classList.toggle('has-value', this.value.trim() !== '');
                 const q = this.value.trim();
                 clearTimeout(timer);
@@ -49,7 +56,7 @@
                 else if (e.key === 'Escape') { close(); }
             });
             input.addEventListener('blur', function () { setTimeout(close, 150); });
-            if (clear) clear.addEventListener('click', function () { input.value = ''; hidden.value = ''; root.classList.remove('has-value'); input.focus(); });
+            if (clear) clear.addEventListener('click', function () { input.value = ''; setValor(''); root.classList.remove('has-value'); input.focus(); });
         });
     })();
 })();

@@ -2,6 +2,9 @@
 <?php
 $avatarColors = ['#4D8ABB', '#374C69', '#38A169', '#E67E22', '#9B59B6', '#319795'];
 
+// Admin y superadmin gestionan usuarios; el resto entra en solo lectura.
+$puedeGestionar = in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador', 'superadmin'], true);
+
 function formatAcceso(?string $fecha): string {
     if (!$fecha) return 'Nunca';
     $ts   = strtotime($fecha);
@@ -14,11 +17,52 @@ function formatAcceso(?string $fecha): string {
 
 function rolBadgeClass(string $rol): string {
     return match($rol) {
+        'superadmin'    => 'admin-badge--scheduled',
         'administrador' => 'admin-badge--published',
-        'editor'        => 'admin-badge--scheduled',
         default         => '',
     };
 }
+
+/** Etiqueta de rol para la UI: `administrador` se muestra como "Admin". */
+function rolLabel(string $rol): string {
+    return match($rol) {
+        'superadmin'    => 'Superadmin',
+        'administrador' => 'Admin',
+        default         => 'Usuario',
+    };
+}
+
+// Reparto en tres tablas. Un usuario con varios tipos aparece en todas las que le
+// correspondan (p. ej. profesor + administrativo sale en dos), así que no son
+// grupos excluyentes: se filtra la misma lista tres veces.
+$tiposDe = fn($u) => array_filter(array_map('trim', explode(',', (string)($u->tipo_personal ?? ''))));
+
+$grupos = [
+    [
+        'clave'  => 'superadmins',
+        'titulo' => 'Superadmins y administradores',
+        'sub'    => 'Acceso a todos los módulos del panel.',
+        'icon'   => 'fa-user-shield',
+        'lista'  => array_values(array_filter($usuarios ?? [],
+            fn($u) => in_array($u->rol, ['superadmin', 'administrador'], true))),
+    ],
+    [
+        'clave'  => 'profesores',
+        'titulo' => 'Profesores',
+        'sub'    => 'Personal docente: imparte clase y cubre suplencias.',
+        'icon'   => 'fa-chalkboard-user',
+        'lista'  => array_values(array_filter($usuarios ?? [],
+            fn($u) => in_array('profesor', $tiposDe($u), true))),
+    ],
+    [
+        'clave'  => 'administrativos',
+        'titulo' => 'Administrativos y prefectura',
+        'sub'    => 'Coordinan y registran; no cubren suplencias.',
+        'icon'   => 'fa-user-tie',
+        'lista'  => array_values(array_filter($usuarios ?? [],
+            fn($u) => (bool)array_intersect(['administrativo', 'prefecto'], $tiposDe($u)))),
+    ],
+];
 ?>
 
 <div class="admin-layout">
@@ -33,7 +77,7 @@ function rolBadgeClass(string $rol): string {
                 <span class="admin-topbar__title">Usuarios</span>
             </div>
             <div class="admin-topbar__actions">
-                <?php if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'): ?>
+                <?php if ($puedeGestionar): ?>
                 <a href="/dashboard/usuarios/crear" class="admin-topbar__new-btn">
                     <i class="fa-solid fa-plus"></i> Nuevo usuario
                 </a>
@@ -51,18 +95,8 @@ function rolBadgeClass(string $rol): string {
 
             <?php /* Los toasts de created / edited / deleted se renderizan al final de la página */ ?>
 
+            <?php if (empty($usuarios)): ?>
             <div class="admin-panel">
-                <div class="admin-panel__header">
-                    <h2 class="admin-panel__title">
-                        Todos los usuarios
-                        <span class="admin-panel__count"><?= count($usuarios ?? []) ?></span>
-                    </h2>
-                    <?php if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'): ?>
-                    <a href="/dashboard/usuarios/crear" class="admin-panel__action">+ Nuevo</a>
-                    <?php endif; ?>
-                </div>
-
-                <?php if (empty($usuarios)): ?>
                 <div class="admin-empty-state">
                     <img src="/build/assets/img/alex/alex-volley.png" alt="Alex" class="admin-empty-state__img">
                     <p class="admin-empty-state__text">Aún no hay usuarios registrados.</p>
@@ -70,29 +104,48 @@ function rolBadgeClass(string $rol): string {
                         <i class="fa-solid fa-user-plus"></i> Crear primer usuario
                     </a>
                 </div>
+            </div>
+            <?php else: ?>
 
+            <?php foreach ($grupos as $g): ?>
+            <div class="admin-panel usr-panel">
+                <div class="admin-panel__header">
+                    <h2 class="admin-panel__title">
+                        <i class="fa-solid <?= $g['icon'] ?> usr-panel__icon"></i>
+                        <?= s($g['titulo']) ?>
+                        <span class="admin-panel__count"><?= count($g['lista']) ?></span>
+                    </h2>
+                    <?php if ($puedeGestionar): ?>
+                    <a href="/dashboard/usuarios/crear" class="admin-panel__action">+ Nuevo</a>
+                    <?php endif; ?>
+                </div>
+                <p class="usr-panel__sub"><?= s($g['sub']) ?></p>
+
+                <?php if (!$g['lista']): ?>
+                <p class="usr-panel__vacio">Nadie en este grupo por ahora.</p>
                 <?php else: ?>
-                <div style="overflow-x:auto;">
-                    <table class="admin-table">
+                <div class="admin-table-scroll">
+                    <table class="admin-table" data-table data-table-per="10" data-table-noun="personas">
                         <thead>
                             <tr>
-                                <th>Usuario</th>
-                                <th>Email</th>
-                                <th>Rol</th>
-                                <th>Artículos</th>
-                                <th>Último acceso</th>
-                                <th>Registro</th>
+                                <th data-sort="text">Usuario</th>
+                                <th data-sort="text">Email</th>
+                                <th data-sort="text">Rol</th>
+                                <th data-sort="text">Tipo</th>
+                                <th data-sort="num">Artículos</th>
+                                <th data-sort="date">Último acceso</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($usuarios as $u): ?>
+                        <?php foreach ($g['lista'] as $i => $u): ?>
                             <?php
                                 $color   = $avatarColors[$u->id % count($avatarColors)];
                                 $inicial = strtoupper(mb_substr($u->nombre, 0, 1));
+                                $tipos   = $tiposDe($u);
                             ?>
-                            <tr>
-                                <td>
+                            <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
+                                <td data-val="<?= s($u->nombre) ?>">
                                     <div style="display:flex;align-items:center;gap:.75rem;">
                                         <div class="admin-topbar__avatar" style="width:38px;height:38px;font-size:.875rem;flex-shrink:0;background:<?= s($color) ?>;">
                                             <?php if ($u->avatar): ?>
@@ -101,40 +154,43 @@ function rolBadgeClass(string $rol): string {
                                                 <?= s($inicial) ?>
                                             <?php endif; ?>
                                         </div>
-                                        <div>
-                                            <div class="admin-table__title"><?= s($u->nombre) ?></div>
-                                            <div class="admin-table__meta"><?= s(ucfirst($u->rol)) ?></div>
-                                        </div>
+                                        <div class="admin-table__title"><?= s($u->nombre) ?></div>
                                     </div>
                                 </td>
                                 <td style="color:var(--text-gray);font-size:.875rem;"><?= s($u->email) ?></td>
-                                <td>
-                                    <span class="admin-badge <?= rolBadgeClass($u->rol) ?>">
-                                        <?= s(ucfirst($u->rol)) ?>
-                                    </span>
+                                <td data-val="<?= s(rolLabel($u->rol)) ?>">
+                                    <span class="admin-badge <?= rolBadgeClass($u->rol) ?>"><?= s(rolLabel($u->rol)) ?></span>
+                                </td>
+                                <td data-val="<?= s(implode(',', $tipos)) ?>">
+                                    <?php if ($tipos): ?>
+                                        <?php foreach ($tipos as $t): ?>
+                                        <span class="usr-tipo usr-tipo--<?= s($t) ?>"><?= s(ucfirst($t)) ?></span>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <span class="usr-nil">—</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td style="font-weight:700;color:var(--col-herencia);"><?= (int)$u->total_articulos ?></td>
-                                <td style="font-size:.85rem;color:var(--text-gray);"><?= s(formatAcceso($u->ultimo_acceso)) ?></td>
-                                <td style="font-size:.82rem;color:var(--text-gray);">
-                                    <?= $u->creado_en ? s(date('d M Y', strtotime($u->creado_en))) : '—' ?>
-                                </td>
+                                <?php /* data-val en Y-m-d: "Hoy, 09:14" no ordena cronológicamente */ ?>
+                                <td data-val="<?= $u->ultimo_acceso ? s(date('Y-m-d H:i', strtotime($u->ultimo_acceso))) : '' ?>"
+                                    style="font-size:.85rem;color:var(--text-gray);"><?= s(formatAcceso($u->ultimo_acceso)) ?></td>
                                 <td>
-                                    <?php if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'): ?>
+                                    <?php if ($puedeGestionar): ?>
                                     <div class="admin-table__actions">
-                                        <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-table__btn">
-                                            <i class="fa-regular fa-pen-to-square"></i> Editar
+                                        <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-act admin-act--edit" title="Editar usuario">
+                                            <i class="fa-solid fa-pen"></i>
                                         </a>
                                         <button
                                             type="button"
-                                            class="admin-table__btn admin-table__btn--danger"
+                                            class="admin-act admin-act--del"
                                             onclick="confirmarEliminar(<?= (int)$u->id ?>, '<?= s(addslashes($u->nombre)) ?>')"
                                             title="Eliminar usuario"
                                         >
-                                            <i class="fa-regular fa-trash-can"></i>
+                                            <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </div>
                                     <?php else: ?>
-                                    <span style="font-size:.8rem;color:#94A3B8;">Solo lectura</span>
+                                    <span class="usr-nil">Solo lectura</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -144,6 +200,9 @@ function rolBadgeClass(string $rol): string {
                 </div>
                 <?php endif; ?>
             </div>
+            <?php endforeach; ?>
+
+            <?php endif; ?>
 
         </main>
     </div>

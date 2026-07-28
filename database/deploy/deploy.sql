@@ -1,13 +1,74 @@
+-- ══════════════════════════════════════════════════════════════════════════════
+-- deploy.sql — DATOS DE PRODUCCIÓN. Solo INSERT; la estructura la pone database.sql.
+--
+-- Contiene los registros REALES del colegio: el claustro, los catálogos académicos
+-- (periodos, aulas, grupos, materias) y el contenido editorial publicado.
+--
+-- NO lleva datos fabricados: nada de horarios, suplencias, eventos, noticias ni
+-- testimoniales de ejemplo. Eso vive solo en development.sql. En producción los
+-- horarios se cargan desde /dashboard/horarios/importar (CSV) y el resto lo crean
+-- los usuarios desde el panel.
+--
+-- Uso:  mysql -u root -p colegiobilbao < database/database.sql
+--       mysql -u root -p colegiobilbao < database/deploy/deploy.sql
+-- Ver database/CLAUDE.md antes de tocarlo.
+-- ══════════════════════════════════════════════════════════════════════════════
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `modulos`, `fecha_nacimiento`, `avatar`, `ultimo_acceso`, `creado_en`) VALUES
-(1, 'Administrador Bilbao', 'admin@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'administrador', NULL, '1980-05-12', NULL, '2026-07-03 12:44:18', '2026-06-19 18:00:53'),
-(2, 'Alexander Oliva', 'alexander.oliva@bilbao.edu.mx', '$2y$10$0ew3iDz6l3TsvPHfIT2ne.ZrPckXhPHokP9nBEkrKomG8Gc5YtE7C', 'usuario', 'redaccion,suplencias', '2004-03-25', '', '2026-06-26 11:52:28', '2026-06-19 18:00:53'),
-(5, 'Alfonso Ludlow', 'dr.ludlow@bilbao.edu.mx', '$2y$10$IsfrLUH0et2SwvzglddBaOQiXVDRIqnQlgDzw9wehEBxjrcWb28nC', 'administrador', NULL, '1975-09-08', '', '2026-06-29 08:11:49', '2026-06-26 18:39:15'),
-(6, 'María José Soberon Díaz', 'majo.soberon@bilbao.edu.mx', '$2y$10$lnPi5ativUMRTxkdyYTegOOnCENB.K5mGSWUqbmwb9mtfe2w31Ds6', 'usuario', 'redaccion', '1990-07-19', '', '2026-06-26 12:43:43', '2026-06-26 18:42:01'),
-(7, 'Sasha Klainer Berkowitz', 'sasha@bilbao.edu.mx', '$2y$10$RtbvQRnNfhOYajNkTwp7PObbamVHWhVstdwa35jkSEL5S2FcJ8Zum', 'usuario', 'redaccion', '1988-11-30', '', '2026-06-26 14:32:10', '2026-06-26 19:03:14'),
-(8, 'Mauricio Absalón', 'mauricio@bilbao.edu.mx', '$2y$10$ts7hTGovnGRHk7I6yQgu.OEBCWqSAb7tQ/Y8J89x3VzxRkfg447X2', 'usuario', 'suplencias', '1992-02-14', '', '2026-06-26 13:29:53', '2026-06-26 19:29:08');
+INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `rol_redaccion`, `tipo_personal`, `puede_suplir`, `modulos`, `fecha_nacimiento`, `avatar`, `ultimo_acceso`, `creado_en`) VALUES
+-- Cuentas de dirección / sistema
+(1, 'Administrador Bilbao', 'admin@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'superadmin', NULL, NULL, 1, NULL, '1980-05-12', NULL, '2026-07-03 12:44:18', '2026-06-19 18:00:53'),
+(2, 'Alexander Oliva', 'alexander.oliva@bilbao.edu.mx', '$2y$10$0ew3iDz6l3TsvPHfIT2ne.ZrPckXhPHokP9nBEkrKomG8Gc5YtE7C', 'superadmin', NULL, NULL, 1, NULL, '2004-03-25', '', '2026-06-26 11:52:28', '2026-06-19 18:00:53'),
+(5, 'Alfonso Ludlow', 'dr.ludlow@bilbao.edu.mx', '$2y$10$IsfrLUH0et2SwvzglddBaOQiXVDRIqnQlgDzw9wehEBxjrcWb28nC', 'superadmin', NULL, 'profesor,administrativo', 1, NULL, '1975-09-08', '', '2026-06-29 08:11:49', '2026-06-26 18:39:15'),
+(6, 'María José Soberon Díaz', 'majo.soberon@bilbao.edu.mx', '$2y$10$lnPi5ativUMRTxkdyYTegOOnCENB.K5mGSWUqbmwb9mtfe2w31Ds6', 'usuario', 'revisor', 'profesor', 1, 'redaccion,suplencias,horarios', '1990-07-19', '', '2026-06-26 12:43:43', '2026-06-26 18:42:01'),
+-- Profesores con rol adicional en el panel
+(7, 'Sasha Kleiner', 'sasha@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', 'editor', 'profesor', 1, 'redaccion,suplencias,horarios', '1988-11-30', '', '2026-06-26 14:32:10', '2026-06-26 19:03:14'),
+(8, 'Mauricio López Absalón', 'mauricio@bilbao.edu.mx', '$2y$10$ts7hTGovnGRHk7I6yQgu.OEBCWqSAb7tQ/Y8J89x3VzxRkfg447X2', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1992-02-14', '', '2026-06-26 13:29:53', '2026-06-26 19:29:08'),
+-- Claustro docente (contraseña de desarrollo: EditorBilbao25)
+(20, 'Adrián Arce Peralta', 'adrian.arce@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1980-08-12', '', NULL, '2026-07-24 09:00:00'),
+(21, 'Alfonso Huerta', 'alfonso.huerta@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1985-03-23', '', NULL, '2026-07-24 09:00:00'),
+(22, 'Ana Laura Castro', 'ana.castro@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1990-10-07', '', NULL, '2026-07-24 09:00:00'),
+(23, 'Armando Smeke', 'armando.smeke@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1995-05-18', '', NULL, '2026-07-24 09:00:00'),
+(24, 'Brenda Piña', 'brenda.pina@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '2000-12-02', '', NULL, '2026-07-24 09:00:00'),
+(25, 'Carlos Loyola', 'carlos.loyola@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1979-07-13', '', NULL, '2026-07-24 09:00:00'),
+(26, 'Carolina Ramírez', 'carolina.ramirez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1984-02-24', '', NULL, '2026-07-24 09:00:00'),
+(27, 'David González', 'david.gonzalez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1989-09-08', '', NULL, '2026-07-24 09:00:00'),
+(28, 'Dulce María Leiva Álvarez', 'dulce.leiva@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1994-04-19', '', NULL, '2026-07-24 09:00:00'),
+(29, 'Elena Osuna', 'elena.osuna@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1999-11-03', '', NULL, '2026-07-24 09:00:00'),
+(30, 'Emilio Mendoza', 'emilio.mendoza@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1978-06-14', '', NULL, '2026-07-24 09:00:00'),
+(31, 'Estela Villaseñor', 'estela.villasenor@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1983-01-25', '', NULL, '2026-07-24 09:00:00'),
+(32, 'Eugenia', 'eugenia@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1988-08-09', '', NULL, '2026-07-24 09:00:00'),
+(33, 'Fernanda Covarrubias', 'fernanda.covarrubias@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1993-03-20', '', NULL, '2026-07-24 09:00:00'),
+(34, 'Frida Rodriguez Cedillo', 'frida.rodriguez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1998-10-04', '', NULL, '2026-07-24 09:00:00'),
+(35, 'Gabriela Sánchez', 'gabriela.sanchez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1977-05-15', '', NULL, '2026-07-24 09:00:00'),
+(36, 'Georgina López', 'georgina.lopez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1982-12-26', '', NULL, '2026-07-24 09:00:00'),
+(37, 'Gerardo', 'gerardo@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1987-07-10', '', NULL, '2026-07-24 09:00:00'),
+(38, 'Hugo Fernández', 'hugo.fernandez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1992-02-21', '', NULL, '2026-07-24 09:00:00'),
+(39, 'Jessica Rivera Estrada', 'jessica.rivera@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1997-09-05', '', NULL, '2026-07-24 09:00:00'),
+(40, 'Jimena Santillan', 'jimena.santillan@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1976-04-16', '', NULL, '2026-07-24 09:00:00'),
+(41, 'Jonathan Huriel Chávez Altamirano', 'jonathan.chavez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1981-11-27', '', NULL, '2026-07-24 09:00:00'),
+(42, 'José Antonio Flores Guzmán', 'jose.flores@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1986-06-11', '', NULL, '2026-07-24 09:00:00'),
+(43, 'Laura Guerra Nieves', 'laura.guerra@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1991-01-22', '', NULL, '2026-07-24 09:00:00'),
+(44, 'Luis Cervantes', 'luis.cervantes@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1996-08-06', '', NULL, '2026-07-24 09:00:00'),
+(45, 'Manuel Piñera Lujambio', 'manuel.pinera@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1975-03-17', '', NULL, '2026-07-24 09:00:00'),
+(46, 'María Elena Mucel', 'maria.mucel@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1980-10-01', '', NULL, '2026-07-24 09:00:00'),
+(47, 'María Fernanda Uribe Barrios', 'fernanda.uribe@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1985-05-12', '', NULL, '2026-07-24 09:00:00'),
+(48, 'Mariana Dominguez', 'mariana.dominguez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1990-12-23', '', NULL, '2026-07-24 09:00:00'),
+(49, 'Marisol Romero', 'marisol.romero@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1995-07-07', '', NULL, '2026-07-24 09:00:00'),
+(50, 'Martha Trejo', 'martha.trejo@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '2000-02-18', '', NULL, '2026-07-24 09:00:00'),
+(51, 'Miguel Santana', 'miguel.santana@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1984-04-13', '', NULL, '2026-07-24 09:00:00'),
+(52, 'Nancy González de la Rosa', 'nancy.gonzalez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1989-11-24', '', NULL, '2026-07-24 09:00:00'),
+(53, 'Nancy Zit Jiménez', 'nancy.zit@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1994-06-08', '', NULL, '2026-07-24 09:00:00'),
+(54, 'Nieves', 'nieves@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1999-01-19', '', NULL, '2026-07-24 09:00:00'),
+(55, 'Pablo Medina', 'pablo.medina@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1978-08-03', '', NULL, '2026-07-24 09:00:00'),
+(56, 'Raúl Eguiarte', 'raul.eguiarte@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1983-03-14', '', NULL, '2026-07-24 09:00:00'),
+(57, 'Roman González Bonilla', 'roman.gonzalez@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1988-10-25', '', NULL, '2026-07-24 09:00:00'),
+(58, 'Samantha Villar', 'samantha.villar@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1993-05-09', '', NULL, '2026-07-24 09:00:00'),
+(59, 'Tania Puebla', 'tania.puebla@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1977-07-04', '', NULL, '2026-07-24 09:00:00'),
+(60, 'Valentina Lechuga', 'valentina.lechuga@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1982-02-15', '', NULL, '2026-07-24 09:00:00'),
+(61, 'Victor Corona Mondragón', 'victor.corona@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1987-09-26', '', NULL, '2026-07-24 09:00:00'),
+(62, 'Xánat Carranza', 'xanat.carranza@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 1, 'suplencias,horarios', '1992-04-10', '', NULL, '2026-07-24 09:00:00');
 
 INSERT INTO `categorias` (`id`, `nombre`, `slug`, `descripcion`, `color`, `creado_en`) VALUES
 (1, 'Modelo Educativo', 'modelo-educativo', 'Filosofía, pedagogía y propuesta formativa del Colegio Bilbao.', '#4267ac', '2026-06-19 18:00:53'),
@@ -57,10 +118,179 @@ INSERT INTO `articulo_tags` (`articulo_id`, `tag_id`) VALUES
 (6, 14),
 (6, 15);
 
-INSERT INTO `notificaciones` (`id`, `usuario_id`, `tipo`, `referencia_id`, `referencia_tipo`, `mensaje`, `leida`, `creado_en`) VALUES
-(1, 2, 'articulo_rechazado', 1, 'articulo', 'Tu artículo \"Articulo deploy\" requiere cambios.', 1, '2026-06-26 01:09:07'),
-(2, 2, 'articulo_rechazado', 2, 'articulo', 'Tu artículo \"Artículo 26 junio\" requiere cambios.', 1, '2026-06-26 17:55:42'),
-(3, 6, 'articulo_rechazado', 3, 'articulo', 'Tu artículo \"Ejemplo 1 de majo soberon\" requiere cambios.', 1, '2026-06-26 18:49:30'),
-(4, 8, 'articulo_rechazado', 4, 'articulo', 'Tu artículo \"fgsdfg\" requiere cambios.', 1, '2026-06-26 19:35:01');
+INSERT INTO `notificaciones` (`id`, `usuario_id`, `modulo`, `tipo`, `nivel`, `referencia_id`, `referencia_tipo`, `enlace`, `mensaje`, `leida`, `creado_en`) VALUES
+(1, 2, 'redaccion', 'articulo_rechazado', 'aviso', 1, 'articulo', '/dashboard/articulos/editar?id=1', 'Tu artículo \"Articulo deploy\" requiere cambios.', 1, '2026-06-26 01:09:07'),
+(2, 2, 'redaccion', 'articulo_rechazado', 'aviso', 2, 'articulo', '/dashboard/articulos/editar?id=2', 'Tu artículo \"Artículo 26 junio\" requiere cambios.', 1, '2026-06-26 17:55:42'),
+(3, 6, 'redaccion', 'articulo_rechazado', 'aviso', 3, 'articulo', '/dashboard/articulos/editar?id=3', 'Tu artículo \"Ejemplo 1 de majo soberon\" requiere cambios.', 1, '2026-06-26 18:49:30'),
+(4, 8, 'redaccion', 'articulo_rechazado', 'aviso', 4, 'articulo', '/dashboard/articulos/editar?id=4', 'Tu artículo \"fgsdfg\" requiere cambios.', 1, '2026-06-26 19:35:01');
+
+-- ══════════ Módulo Horarios · jornada y catálogos institucionales ══════════
+-- Jornada escolar: 7 clases + receso
+INSERT INTO `periodos` (`id`, `orden`, `etiqueta`, `hora_inicio`, `hora_fin`, `es_receso`) VALUES
+(1, 1, '1ª hora', '07:00:00', '07:50:00', 0),
+(2, 2, '2ª hora', '07:50:00', '08:40:00', 0),
+(3, 3, '3ª hora', '08:40:00', '09:30:00', 0),
+(4, 4, 'Receso',  '09:30:00', '10:00:00', 1),
+(5, 5, '4ª hora', '10:00:00', '10:50:00', 0),
+(6, 6, '5ª hora', '10:50:00', '11:40:00', 0),
+(7, 7, '6ª hora', '11:40:00', '12:30:00', 0),
+(8, 8, '7ª hora', '12:30:00', '13:20:00', 0);
+
+-- ══════════ Catálogos reales del colegio ══════════
+INSERT INTO `aulas` (`id`, `nombre`, `descripcion`) VALUES
+(1, 'Arce', NULL),
+(2, 'Arenero', NULL),
+(3, 'Arte', NULL),
+(4, 'Bach 4A', NULL),
+(5, 'Bach 5A', NULL),
+(6, 'Bach 6A', NULL),
+(7, 'Bach 6B', NULL),
+(8, 'Basquet', NULL),
+(9, 'Biblioteca', NULL),
+(10, 'Cedro', NULL),
+(11, 'Cine', NULL),
+(12, 'Encino', NULL),
+(13, 'Eucalipto', NULL),
+(14, 'Fresno', NULL),
+(15, 'Fútbol', NULL),
+(16, 'HD Mac', NULL),
+(17, 'HD PC', NULL),
+(18, 'Jacaranda', NULL),
+(19, 'K1', NULL),
+(20, 'K2', NULL),
+(21, 'K3', NULL),
+(22, 'Laboratorio', NULL),
+(23, 'Liquidámbar', NULL),
+(24, 'Música', NULL),
+(25, 'Maternal', NULL),
+(26, 'Oyamel', NULL),
+(27, 'Roble', NULL),
+(28, 'Sec 1A', NULL),
+(29, 'Sec 2A', NULL),
+(30, 'Sec 2B', NULL),
+(31, 'Sec 3A', NULL),
+(32, 'Teatro', NULL);
+
+INSERT INTO `grupos` (`id`, `nombre`, `nivel`, `orden`) VALUES
+(1, 'Maternal', 'Maternal', 1),
+(2, 'Kinder 1', 'Kinder', 2),
+(3, 'Kinder 2', 'Kinder', 3),
+(4, 'Kinder 3', 'Kinder', 4),
+(5, '1A Primaria', 'Primaria', 5),
+(6, '2A Primaria', 'Primaria', 6),
+(7, '3A Primaria', 'Primaria', 7),
+(8, '3B Primaria', 'Primaria', 8),
+(9, '4A Primaria', 'Primaria', 9),
+(10, '5A Primaria', 'Primaria', 10),
+(11, '6A Primaria', 'Primaria', 11),
+(12, '6B Primaria', 'Primaria', 12),
+(13, '1A Secundaria', 'Secundaria', 13),
+(14, '2A Secundaria', 'Secundaria', 14),
+(15, '2B Secundaria', 'Secundaria', 15),
+(16, '3A Secundaria', 'Secundaria', 16),
+(17, '4A Bachillerato', 'Bachillerato', 17),
+(18, '5A Bachillerato', 'Bachillerato', 18),
+(19, '6A Bachillerato', 'Bachillerato', 19),
+(20, '6B Bachillerato', 'Bachillerato', 20);
+
+-- Materias por nivel académico (el nivel NO va en el nombre)
+INSERT INTO `materias` (`id`, `nombre`, `nivel`) VALUES
+(1, 'Arte', 'Kinder'),
+(2, 'Cantos y juegos', 'Kinder'),
+(3, 'Cocina', 'Kinder'),
+(4, 'Ed. Física', 'Kinder'),
+(5, 'Esp y Mate', 'Kinder'),
+(6, 'Estimulación', 'Kinder'),
+(7, 'Exploración', 'Kinder'),
+(8, 'Fomento', 'Kinder'),
+(9, 'Inglés', 'Kinder'),
+(10, 'Lunch', 'Kinder'),
+(11, 'Razonamiento', 'Kinder'),
+(12, 'Siesta', 'Kinder'),
+(13, 'Socioemocional', 'Kinder'),
+(14, 'Tecnología', 'Kinder'),
+(15, 'Agenda', 'Primaria'),
+(16, 'Arte', 'Primaria'),
+(17, 'Danza', 'Primaria'),
+(18, 'De la crisis', 'Primaria'),
+(19, 'Ed. Física', 'Primaria'),
+(20, 'Español 1', 'Primaria'),
+(21, 'Español 2', 'Primaria'),
+(22, 'Español 3', 'Primaria'),
+(23, 'Español 4', 'Primaria'),
+(24, 'Español 5', 'Primaria'),
+(25, 'Español 6', 'Primaria'),
+(26, 'Habilidades Digitales', 'Primaria'),
+(27, 'Inglés 1', 'Primaria'),
+(28, 'Inglés 2', 'Primaria'),
+(29, 'Inglés 3', 'Primaria'),
+(30, 'Inglés 4', 'Primaria'),
+(31, 'Inglés 5', 'Primaria'),
+(32, 'Inglés 6', 'Primaria'),
+(33, 'Juegos', 'Primaria'),
+(34, 'Lectura', 'Primaria'),
+(35, 'Música', 'Primaria'),
+(36, 'Science', 'Primaria'),
+(37, 'Socioemocional', 'Primaria'),
+(38, 'Teatro', 'Primaria'),
+(39, 'Arte', 'Secundaria'),
+(40, 'Biología', 'Secundaria'),
+(41, 'Ed. Física', 'Secundaria'),
+(42, 'Español', 'Secundaria'),
+(43, 'Física', 'Secundaria'),
+(44, 'Formación C y É', 'Secundaria'),
+(45, 'Geografía', 'Secundaria'),
+(46, 'Habilidades digitales', 'Secundaria'),
+(47, 'Historia', 'Secundaria'),
+(48, 'Inglés', 'Secundaria'),
+(49, 'Matemáticas', 'Secundaria'),
+(50, 'Música', 'Secundaria'),
+(51, 'Química', 'Secundaria'),
+(52, 'Socioemocional', 'Secundaria'),
+(53, 'Tutoría', 'Secundaria'),
+(54, 'Alemán', 'Bachillerato'),
+(55, 'Arte', 'Bachillerato'),
+(56, 'Cálculo integral', 'Bachillerato'),
+(57, 'Ciencias de la salud II', 'Bachillerato'),
+(58, 'Ciencias sociales I', 'Bachillerato'),
+(59, 'Ciencias sociales III', 'Bachillerato'),
+(60, 'Cine', 'Bachillerato'),
+(61, 'Con. ener. y sus inter. c/ma', 'Bachillerato'),
+(62, 'Conciencia histórica', 'Bachillerato'),
+(63, 'Cultura digital I', 'Bachillerato'),
+(64, 'Derecho I', 'Bachillerato'),
+(65, 'Desarrollo empresarial', 'Bachillerato'),
+(66, 'Ecología y medio ambiente', 'Bachillerato'),
+(67, 'Ed. Física', 'Bachillerato'),
+(68, 'Espacio y sociedad', 'Bachillerato'),
+(69, 'Filosofía', 'Bachillerato'),
+(70, 'Formación socioemocional I', 'Bachillerato'),
+(71, 'Formación socioemocional III', 'Bachillerato'),
+(72, 'Historia universal contemp', 'Bachillerato'),
+(73, 'Humanidades I', 'Bachillerato'),
+(74, 'Impuestos II', 'Bachillerato'),
+(75, 'Inglés I', 'Bachillerato'),
+(76, 'Inglés III', 'Bachillerato'),
+(77, 'Inglés V', 'Bachillerato'),
+(78, 'Lab T sel de Química II', 'Bachillerato'),
+(79, 'Lab T Sel de Física II', 'Bachillerato'),
+(80, 'Laboratorio de inv (AMA)', 'Bachillerato'),
+(81, 'Lengua y comunicación I', 'Bachillerato'),
+(82, 'Lengua y comunicación', 'Bachillerato'),
+(83, 'Literatura IV', 'Bachillerato'),
+(84, 'Lógica', 'Bachillerato'),
+(85, 'Música', 'Bachillerato'),
+(86, 'Pen. Matemático I', 'Bachillerato'),
+(87, 'Pensamiento literario', 'Bachillerato'),
+(88, 'Psicología I', 'Bachillerato'),
+(89, 'Publicidad y propaganda', 'Bachillerato'),
+(90, 'Reacciones químicas', 'Bachillerato'),
+(91, 'Sociología I', 'Bachillerato'),
+(92, 'Taller de Ciencias', 'Bachillerato'),
+(93, 'Taller de Ciencias I', 'Bachillerato'),
+(94, 'Taller de cultura digital', 'Bachillerato'),
+(95, 'Temas sel. mate I', 'Bachillerato'),
+(96, 'Temas selectos de Física II', 'Bachillerato'),
+(97, 'Temas selectos de Química II', 'Bachillerato');
 
 SET FOREIGN_KEY_CHECKS = 1;

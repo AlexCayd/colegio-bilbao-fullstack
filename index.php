@@ -163,12 +163,20 @@ $router->get('/dashboard/redaccion', [BlogController::class, 'redaccion']);
 
 // Admin — Módulo Suplencias
 $router->get('/dashboard/suplencias', [BlogController::class, 'suplencias']);
+$router->get('/dashboard/suplencias/dashboard', [BlogController::class, 'suplenciasDashboard']);
+$router->get('/dashboard/suplencias/solicitar', [BlogController::class, 'solicitarSuplencia']);
+$router->post('/dashboard/suplencias/solicitar', [BlogController::class, 'solicitarSuplencia']);
 $router->get('/dashboard/suplencias/crear', [BlogController::class, 'crearSuplencia']);
 $router->post('/dashboard/suplencias/crear', [BlogController::class, 'crearSuplencia']);
-$router->get('/dashboard/suplencias/editar', [BlogController::class, 'editarSuplencia']);
-$router->post('/dashboard/suplencias/editar', [BlogController::class, 'editarSuplencia']);
+$router->get('/dashboard/suplencias/agendar', [BlogController::class, 'agendarSuplencia']);
+$router->post('/dashboard/suplencias/agendar', [BlogController::class, 'agendarSuplencia']);
+$router->post('/dashboard/suplencias/justificar', [BlogController::class, 'justificarSuplencia']);
+$router->get('/dashboard/suplencias/mis-coberturas', [BlogController::class, 'misCoberturas']);
+$router->post('/dashboard/suplencias/validar', [BlogController::class, 'validarCobertura']);
 $router->post('/dashboard/suplencias/eliminar', [BlogController::class, 'eliminarSuplencia']);
 $router->get('/dashboard/suplencias/buscar-colaboradores', [BlogController::class, 'buscarColaboradores']);
+$router->get('/dashboard/suplencias/sugerir', [BlogController::class, 'sugerirSuplentes']);
+$router->get('/dashboard/suplencias/horario', [BlogController::class, 'horarioProfesorJson']);
 
 // Admin — Artículos
 $router->get('/dashboard/articulos', [BlogController::class, 'articulos']);
@@ -192,6 +200,43 @@ $router->post('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuar
 $router->post('/dashboard/usuarios/eliminar', [BlogController::class, 'eliminarUsuario']);
 $router->get('/dashboard/perfil', [BlogController::class, 'perfil']);
 $router->post('/dashboard/perfil', [BlogController::class, 'perfil']);
+
+// Superadmin — Directorios de personal
+$router->get('/dashboard/profesores',      [BlogController::class, 'profesores']);
+$router->get('/dashboard/prefectura',      [BlogController::class, 'prefectura']);
+$router->get('/dashboard/administrativos', [BlogController::class, 'administrativos']);
+
+// Admin — Módulo Horarios
+$router->get('/dashboard/horarios',                [BlogController::class, 'horarios']);
+$router->get('/dashboard/horarios/profesor',       [BlogController::class, 'horariosProfesor']);
+$router->get('/dashboard/horarios/aula',           [BlogController::class, 'horariosAula']);
+$router->get('/dashboard/horarios/grupo',          [BlogController::class, 'horariosGrupo']);
+$router->get('/dashboard/horarios/mi-horario',     [BlogController::class, 'miHorario']);
+$router->get('/dashboard/horarios/importar',       [BlogController::class, 'importarHorarios']);
+
+// Admin — Catálogos académicos (solo superadmin)
+$router->get('/dashboard/aulas',          [BlogController::class, 'aulas']);
+$router->get('/dashboard/aulas/crear',    [BlogController::class, 'crearAula']);
+$router->post('/dashboard/aulas/crear',   [BlogController::class, 'crearAula']);
+$router->get('/dashboard/aulas/editar',   [BlogController::class, 'editarAula']);
+$router->post('/dashboard/aulas/editar',  [BlogController::class, 'editarAula']);
+$router->post('/dashboard/aulas/eliminar',[BlogController::class, 'eliminarAula']);
+
+$router->get('/dashboard/grupos',          [BlogController::class, 'grupos']);
+$router->get('/dashboard/grupos/crear',    [BlogController::class, 'crearGrupo']);
+$router->post('/dashboard/grupos/crear',   [BlogController::class, 'crearGrupo']);
+$router->get('/dashboard/grupos/editar',   [BlogController::class, 'editarGrupo']);
+$router->post('/dashboard/grupos/editar',  [BlogController::class, 'editarGrupo']);
+$router->post('/dashboard/grupos/eliminar',[BlogController::class, 'eliminarGrupo']);
+$router->post('/dashboard/horarios/importar',      [BlogController::class, 'importarHorarios']);
+
+// Admin — Módulo Eventos
+$router->get('/dashboard/eventos',          [BlogController::class, 'eventos']);
+$router->get('/dashboard/eventos/crear',    [BlogController::class, 'crearEvento']);
+$router->post('/dashboard/eventos/crear',   [BlogController::class, 'crearEvento']);
+$router->get('/dashboard/eventos/editar',   [BlogController::class, 'editarEvento']);
+$router->post('/dashboard/eventos/editar',  [BlogController::class, 'editarEvento']);
+$router->post('/dashboard/eventos/eliminar',[BlogController::class, 'eliminarEvento']);
 
 // Admin — Categorías de artículos
 $router->get('/dashboard/categorias', [BlogController::class, 'categorias']);
@@ -232,10 +277,13 @@ $router->get('/dashboard/revisiones', [BlogController::class, 'revisiones']);
 // Editor — Mis revisiones
 $router->get('/dashboard/mis-revisiones', [BlogController::class, 'misRevisiones']);
 
-// Notificaciones
-$router->get('/dashboard/notificaciones',             [BlogController::class, 'notificaciones']);
-$router->post('/dashboard/notificaciones/leer',       [BlogController::class, 'marcarNotificacionLeida']);
-$router->post('/dashboard/notificaciones/leer-todas', [BlogController::class, 'marcarTodasLeidas']);
+// Notificaciones (transversales a todos los módulos)
+$router->get('/dashboard/notificaciones',              [BlogController::class, 'notificaciones']);
+$router->post('/dashboard/notificaciones/leer',        [BlogController::class, 'marcarNotificacionLeida']);
+$router->post('/dashboard/notificaciones/leer-todas',  [BlogController::class, 'marcarTodasLeidas']);
+$router->post('/dashboard/notificaciones/eliminar',    [BlogController::class, 'eliminarNotificacion']);
+$router->post('/dashboard/notificaciones/restaurar',   [BlogController::class, 'restaurarNotificacion']);
+$router->post('/dashboard/notificaciones/limpiar',     [BlogController::class, 'limpiarNotificaciones']);
 
 // Admin — Autores
 $router->get('/dashboard/autores', [BlogController::class, 'autores']);

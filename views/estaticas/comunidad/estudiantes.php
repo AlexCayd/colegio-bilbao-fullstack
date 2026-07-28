@@ -3,7 +3,7 @@
 
     <!-- ── HERO ─────────────────────────────────── -->
     <section class="comunidad-est__hero">
-        <?php include __DIR__ . '/_bg.php'; ?>
+        <?php $bg_scene = 'bosque'; $bg_colores = ['#4D8ABB', '#7DC6E5', '#46bdc6', '#374C69', '#F1C400']; include __DIR__ . '/_bg.php'; ?>
         <div class="comunidad-est__hero-inner">
             <div class="comunidad-est__hero-text" data-est-reveal>
                 <span class="comunidad-est__eyebrow"><i class="fa-solid fa-graduation-cap"></i> Comunidad estudiantil</span>

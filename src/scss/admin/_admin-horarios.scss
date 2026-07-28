@@ -1,0 +1,282 @@
+/* ══════════ MÓDULO HORARIOS ══════════ */
+
+/* ── Select de entidad (compartido por las vistas del módulo) ──
+   Icono a la izquierda, flecha propia a la derecha. Fuera del scope de página
+   porque lo usan varias vistas del módulo. */
+.hor-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    > i {
+        position: absolute;
+        left: 15px;
+        font-size: .85rem;
+        color: #4267ac;
+        pointer-events: none;
+    }
+}
+.hor-select {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 44px;
+    min-width: 240px;
+    padding: 0 40px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    font-family: 'Outfit', sans-serif;
+    font-size: .92rem;
+    font-weight: 600;
+    color: var(--col-herencia, #374c69);
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease;
+
+    &:hover { border-color: #c7d6ea; }
+    &:focus {
+        outline: none;
+        border-color: #4267ac;
+        box-shadow: 0 0 0 3px rgba(66, 103, 172, .12);
+    }
+    optgroup { font-weight: 800; color: #94a3b8; }
+    option   { font-weight: 600; color: #1e293b; padding: 6px; }
+}
+
+/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo y "Mi horario" */
+body[data-page="blog-horarios-index"],
+body[data-page="blog-horarios-mi-horario"] {
+    .hor-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+    }
+    .hor-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid #e6edf5;
+        color: var(--text-gray, #4a5568);
+        font-weight: 600;
+        font-size: .9rem;
+        text-decoration: none;
+        transition: all .18s ease;
+
+        &:hover { border-color: #bcd4ea; color: var(--col-bilbao, #4d8abb); }
+        &.is-active {
+            background: linear-gradient(135deg, #4d8abb, #4267ac);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 6px 16px rgba(66, 103, 172, .28);
+        }
+    }
+
+    .hor-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+    .hor-grid-wrap { overflow-x: auto; padding: 8px 4px 4px; }
+    .hor-grid {
+        width: 100%;
+        /* table-layout:fixed → los cinco días miden lo mismo pase lo que pase
+           con la longitud de los nombres de materia. */
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 6px;
+        min-width: 720px;
+
+        th, td { text-align: center; vertical-align: middle; }
+        thead th {
+            font-size: .82rem;
+            font-weight: 700;
+            color: var(--col-herencia, #374c69);
+            padding: 8px 4px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            width: 20%;
+        }
+        &__corner { background: transparent; width: 88px; }
+        &__hour {
+            text-align: right;
+            padding-right: 12px;
+            white-space: nowrap;
+            &-label { display: block; font-weight: 700; font-size: .82rem; color: var(--col-herencia, #374c69); }
+            &-time  { display: block; font-size: .72rem; color: #94a3b8; }
+        }
+        td { border-radius: 12px; height: 62px; padding: 0; }
+        &__free {
+            background: repeating-linear-gradient(45deg, #f4f7fb, #f4f7fb 6px, #eef3f9 6px, #eef3f9 12px);
+            /* El span llena la celda para quedar centrado igual que un bloque de clase */
+            span {
+                display: flex; align-items: center; justify-content: center; height: 100%;
+                font-size: .74rem; color: #b3c0d0; font-weight: 600;
+            }
+        }
+        &__receso td, &__receso-cell {
+            background: #fff7e6;
+        }
+        &__receso-cell { color: #e0a800; border-radius: 12px; }
+    }
+    /* Bloques de clase: fondo sólido del color de la materia y texto claro */
+    .hor-cell {
+        height: 100%;
+        border-radius: 12px;
+        padding: 8px 11px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        background: var(--c);
+        box-shadow: 0 6px 14px -8px rgba(11, 31, 61, .45);
+        text-align: left;
+
+        &__mat { font-weight: 700; font-size: .84rem; color: #fff; line-height: 1.2; }
+        &__sec { font-size: .72rem; color: rgba(255, 255, 255, .82); }
+
+        /* Tonos claros de la paleta (amarillo, lima, turquesa): tinta oscura */
+        &--dark {
+            .hor-cell__mat { color: #1f2937; }
+            .hor-cell__sec { color: rgba(31, 41, 55, .72); }
+        }
+    }
+}
+
+
+body[data-page="blog-horarios-mi-horario"] {
+    .mih-intro {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        background: linear-gradient(135deg, #eef5fb, #f7fbff);
+        border: 1px solid #e2edf7;
+        border-radius: 18px;
+        padding: 18px 22px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+
+        &__alex { width: 68px; flex-shrink: 0; }
+        &__body { flex: 1; min-width: 260px; }
+        &__text { font-size: .86rem; color: var(--text-gray, #4a5568); line-height: 1.6; }
+
+        &__stat {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-width: 132px; padding: 12px 16px;
+            background: #fff; border: 1px solid #dbe7f5; border-radius: 14px;
+        }
+        &__stat-n { font-size: 1.7rem; font-weight: 900; color: #4267ac; line-height: 1; }
+        &__stat-l { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; text-align: center; margin-top: 4px; }
+    }
+
+    .mih-badge {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 6px 13px; border-radius: 20px;
+        font-size: .76rem; font-weight: 700;
+        background: #e8f7ee; color: #15803d;
+
+        &--off { background: #fdeef0; color: #b42318; }
+    }
+}
+
+body[data-page="blog-horarios-importar"] {
+    /* Chip de "solo superadmin" junto al título */
+    .hoi-super {
+        display: inline-flex; align-items: center; gap: 5px;
+        margin-left: 10px; padding: 3px 10px;
+        border-radius: 999px;
+        background: #fff1f1; border: 1px solid #ffd0d0; color: #c8102e;
+        font-size: .66rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+        vertical-align: middle;
+    }
+
+    /* Aviso de que la carga es destructiva, antes del formulario */
+    .hoi-aviso-super {
+        display: flex; align-items: center; gap: 14px;
+        margin-bottom: 20px;
+        padding: 12px 18px 12px 10px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #fff6e8, #fdeeee);
+        border: 1.5px solid #ffd9a1;
+
+        img    { width: 58px; height: auto; flex-shrink: 0; }
+        strong { display: block; font-size: .92rem; color: #7a4a05; font-weight: 800; }
+        span   { display: block; font-size: .82rem; color: #8a5a12; line-height: 1.5; margin-top: 2px; }
+        em     { font-style: italic; }
+        span strong { display: inline; font-size: inherit; color: #a1330b; }
+    }
+
+    .hoi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 1000px) { .hoi-grid { grid-template-columns: 1fr; } }
+
+    .hoi-help  { font-size: .86rem; color: var(--text-gray, #4a5568); margin-bottom: 12px; }
+    .hoi-code  {
+        background: #0b1f3d; color: #d7e6fb; border-radius: 12px;
+        padding: 14px 16px; font-size: .76rem; line-height: 1.7;
+        font-family: 'Cascadia Code', 'Consolas', monospace;
+        overflow-x: auto; white-space: pre; margin-bottom: 14px;
+    }
+    .hoi-rules {
+        list-style: none; display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px;
+        font-size: .84rem; color: var(--text-gray, #4a5568); line-height: 1.5;
+
+        li::before { content: '·'; color: #4267ac; font-weight: 900; margin-right: 8px; }
+        code { background: #eef3fb; color: #22417e; border-radius: 5px; padding: 1px 6px; font-size: .78rem; }
+    }
+    .hoi-warn {
+        display: flex; gap: 10px; align-items: flex-start;
+        background: #fff7e6; border: 1px solid #f5dfae; border-radius: 12px;
+        padding: 12px 14px; font-size: .82rem; color: #8a5a00; line-height: 1.5;
+        i { color: #e0a800; margin-top: 2px; }
+    }
+
+    .hoi-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    .hoi-actions--footer {
+        padding: 16px 22px 20px; margin-top: 0;
+        border-top: 1px solid #f1f5f9; justify-content: space-between;
+    }
+    .hoi-note { padding: 0 22px 18px; font-size: .8rem; color: #94a3b8; }
+
+    /* ── Resumen del parseo ── */
+    .hoi-summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+    @media (max-width: 900px) { .hoi-summary { grid-template-columns: repeat(2, 1fr); } }
+    .hoi-stat {
+        background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+        padding: 16px 18px; display: flex; flex-direction: column; gap: 3px;
+
+        &__n { font-size: 1.6rem; font-weight: 900; color: #0b1f3d; line-height: 1; }
+        &__l { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; }
+
+        &--ok   .hoi-stat__n { color: #15803d; }
+        &--warn .hoi-stat__n { color: #b45309; }
+        &--bad  .hoi-stat__n { color: #b42318; }
+    }
+
+    /* ── Tabla de vista previa ── */
+    .hoi-filter__opt {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: .82rem; font-weight: 600; color: var(--text-gray, #4a5568); cursor: pointer;
+        input { width: 16px; height: 16px; accent-color: #4267ac; }
+    }
+    .hoi-table-wrap { overflow-x: auto; max-height: 62vh; overflow-y: auto; }
+    .hoi-table {
+        font-size: .82rem;
+        td { vertical-align: top; }
+        &__n, .hoi-row__n { color: #94a3b8; font-variant-numeric: tabular-nums; }
+    }
+    .hoi-row--error { background: #fef6f6; }
+    .hoi-row--aviso { background: #fffcf3; }
+    .hoi-nil { color: #cbd5e1; }
+
+    .hoi-chip {
+        display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+        padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700;
+
+        &--ok    { background: #e8f7ee; color: #15803d; }
+        &--aviso { background: #fff7e6; color: #b45309; }
+        &--error { background: #fdeef0; color: #b42318; }
+    }
+    .hoi-motivo { display: block; margin-top: 4px; font-size: .74rem; color: #64748b; line-height: 1.4; max-width: 300px; }
+}

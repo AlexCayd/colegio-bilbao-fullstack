@@ -7,6 +7,9 @@
         const modal  = document.getElementById('deleteModal');
         const input  = document.getElementById('ubm-input');
         const submit = document.getElementById('ubm-submit');
+        const form   = document.getElementById('ubm-form');
+        // Sin permiso de borrado la vista no pinta el modal: no hay nada que enganchar
+        if (!modal || !input || !submit || !form) return;
 
         window.confirmarEliminar = function (id, nombre) {
             _ubmName = nombre;
@@ -35,7 +38,7 @@
         });
 
         /* Fade-out antes de enviar el formulario de eliminación */
-        document.getElementById('ubm-form').addEventListener('submit', function (e) {
+        form.addEventListener('submit', function (e) {
             e.preventDefault();
             const main = document.querySelector('.admin-main');
             modal.classList.remove('is-open');
@@ -52,17 +55,5 @@
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarModalEliminar(); });
     })();
 
-    (function () {
-        const toast = document.getElementById('alexToast');
-        if (!toast) return;
-        requestAnimationFrame(() => setTimeout(() => toast.classList.add('is-visible'), 80));
-        let timer = setTimeout(cerrarAlexToast, 5600);
-        function cerrarAlexToast() {
-            clearTimeout(timer);
-            toast.style.top     = '-160px';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 400);
-        }
-        window.cerrarAlexToast = cerrarAlexToast;
-    })();
+    // El toast de Alex lo lleva admin-toast.js (#alexToast)
 })();

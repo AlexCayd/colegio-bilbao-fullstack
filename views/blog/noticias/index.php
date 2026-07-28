@@ -72,7 +72,7 @@
 
                 <?php else: ?>
                 <div class="admin-table-scroll">
-                    <table class="admin-table at-fixed" id="tablaNoticias">
+                    <table class="admin-table at-fixed" id="tablaNoticias" data-table data-table-per="10" data-table-noun="noticias">
                         <colgroup>
                             <col style="width:28%">
                             <col style="width:16%">
@@ -84,18 +84,18 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th class="sortable" data-col="0">Título <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="1" style="width:120px;max-width:120px;">Categoría <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="2">Autor <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="3">Estado <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="4">Vistas <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="5">Fecha <span class="sort-icon">↕</span></th>
-                                <th></th>
+                                <th data-sort="text">Título</th>
+                                <th data-sort="text" style="width:120px;max-width:120px;">Categoría</th>
+                                <th data-sort="text">Autor</th>
+                                <th data-sort="text">Estado</th>
+                                <th data-sort="num">Vistas</th>
+                                <th data-sort="date">Fecha</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($noticias as $n): ?>
-                            <tr>
+                        <?php foreach ($noticias as $i => $n): ?>
+                            <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
                                 <td data-val="<?= s($n->titulo) ?>" class="at-cell-truncate">
                                     <div class="at-title-line">
                                         <?php if ((int)($n->destacada ?? 0) === 1): ?>
@@ -141,13 +141,14 @@
                                 </td>
                                 <td style="white-space:nowrap;">
                                     <div class="admin-table__actions">
-                                        <a href="/dashboard/noticias/editar?id=<?= (int)$n->id ?>" class="admin-table__btn" title="Editar">
-                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        <a href="/dashboard/noticias/editar?id=<?= (int)$n->id ?>" class="admin-act admin-act--edit" title="Editar">
+                                            <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <?php if (($n->estado ?? '') === 'borrador' && empty($n->envio_revision) && ($_SESSION['blog_usuario']['rol'] ?? '') === 'editor' && (int)($n->autor_id ?? 0) === (int)($usuarioId ?? 0)): ?>
+                                        <?php /* `editor` dejó de ser un rol: hoy es el sub-rol de redacción */ ?>
+                                        <?php if (($n->estado ?? '') === 'borrador' && empty($n->envio_revision) && ($esEditor ?? false) && (int)($n->autor_id ?? 0) === (int)($usuarioId ?? 0)): ?>
                                         <form method="POST" action="/dashboard/noticias/enviar-revision" style="display:inline;" id="revNotForm<?= (int)$n->id ?>">
                                             <input type="hidden" name="id" value="<?= (int)$n->id ?>">
-                                            <button type="button" class="admin-table__btn" style="background:#f0f4ff;color:#4267ac;border:1px solid #c7d2fe;" title="Enviar para revisión"
+                                            <button type="button" class="admin-act admin-act--ghost" title="Enviar para revisión"
                                                 data-form-id="revNotForm<?= (int)$n->id ?>" onclick="abrirRevisionModal(this.dataset.formId)">
                                                 <i class="fa-solid fa-paper-plane"></i>
                                             </button>
@@ -155,11 +156,11 @@
                                         <?php endif; ?>
                                         <button
                                             type="button"
-                                            class="admin-table__btn admin-table__btn--danger"
+                                            class="admin-act admin-act--del"
                                             onclick="confirmarEliminar(<?= (int)$n->id ?>, '<?= s(addslashes($n->titulo)) ?>')"
                                             title="Eliminar"
                                         >
-                                            <i class="fa-regular fa-trash-can"></i>
+                                            <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </div>
                                 </td>

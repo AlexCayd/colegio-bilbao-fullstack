@@ -195,18 +195,8 @@
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarModalEliminar(); });
     });
 
-    /* ── Toggle de módulos según el rol ── */
-    (function () {
-        const modulosGroup = document.getElementById('modulos-group');
-        if (!modulosGroup) return;
-        const rolRadios = document.querySelectorAll('input[name="rol"]');
-        function syncModulos() {
-            const rol = document.querySelector('input[name="rol"]:checked')?.value;
-            modulosGroup.style.display = (rol === 'usuario') ? 'block' : 'none';
-        }
-        rolRadios.forEach(r => r.addEventListener('change', syncModulos));
-        syncModulos();
-    })();
+    /* Las reglas de rol / módulos / tipo de personal las lleva
+       admin-usuario-permisos.js, compartido con la vista de crear. */
 
     /* Exponer para los atributos inline (onclick/onchange) */
     window.togglePassword = togglePassword;

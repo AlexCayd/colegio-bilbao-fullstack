@@ -1,0 +1,144 @@
+/* Catálogos académicos (Aulas y Grupos) — solo superadmin.
+   Las cuatro vistas comparten estilos, así que se agrupan los selectores en vez
+   de crear un partial por página. */
+
+body[data-page="blog-aulas-index"],
+body[data-page="blog-grupos-index"],
+body[data-page="blog-aulas-form"],
+body[data-page="blog-grupos-form"] {
+
+    /* Banda de contexto con Alex: estos catálogos alimentan el horario y conviene
+       decirlo antes de que alguien renombre un aula con 40 clases colgando. */
+    .cat-intro {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 20px;
+        padding: 12px 18px 12px 10px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #eef3fb, #e3f4f6);
+        border: 1.5px solid #c9dcf2;
+
+        img { width: 54px; height: auto; flex-shrink: 0; }
+
+        strong { display: block; font-size: .92rem; color: #0B1F3D; font-weight: 800; }
+        span   { display: block; font-size: .82rem; color: #22417e; line-height: 1.45; margin-top: 2px; }
+        em     { font-style: normal; font-weight: 700; }
+    }
+
+    .cat-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: var(--col-herencia);
+
+        i { color: var(--col-bilbao); font-size: .82rem; opacity: .7; }
+    }
+
+    .cat-desc { font-size: .85rem; color: var(--text-gray); }
+    .cat-nil  { color: #A0AEC0; }
+
+    .cat-orden {
+        display: inline-grid;
+        place-items: center;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 7px;
+        border-radius: 8px;
+        background: #F1F5F9;
+        color: #475569;
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    /* Chip de nivel: el color lo pone la vista con --c */
+    .cat-nivel {
+        display: inline-block;
+        padding: 3px 11px;
+        border-radius: 999px;
+        font-size: .74rem;
+        font-weight: 700;
+        white-space: nowrap;
+        color: var(--c, #64748b);
+        background: color-mix(in srgb, var(--c, #64748b) 13%, #fff);
+    }
+
+    /* ── Formulario ── */
+    .cat-form {
+        padding: 26px 28px 22px;
+        max-width: 620px;
+    }
+    .cat-form__row {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 18px;
+    }
+    .cat-form__acts {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 8px;
+        padding-top: 18px;
+        border-top: 1px solid #F1F5F9;
+    }
+    .cat-opt   { font-weight: 400; color: #94A3B8; }
+    .cat-aviso { align-items: center; }
+
+    @media (max-width: 640px) {
+        .cat-form__row { grid-template-columns: 1fr; }
+    }
+}
+
+/* ── Modal de borrado (fuera de .admin-content, sin scope de página) ── */
+.cat-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    background: rgba(11, 31, 61, .55);
+    display: grid;
+    place-items: center;
+    padding: 20px;
+
+    &[hidden] { display: none; }
+
+    &__card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 30px 28px 24px;
+        max-width: 420px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 26px 60px -20px rgba(11, 31, 61, .5);
+
+        h3 { margin: 14px 0 8px; font-size: 1.12rem; color: #0B1F3D; font-weight: 800; }
+        p  { margin: 0; font-size: .88rem; color: #64748B; line-height: 1.5; }
+        form { margin: 0; }
+    }
+
+    &__icon {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #fff1f1;
+        color: #e51022;
+        font-size: 1.25rem;
+    }
+
+    &__acts {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    &__danger {
+        background: #e51022;
+        color: #fff;
+
+        &:hover { background: #c8102e; }
+    }
+}

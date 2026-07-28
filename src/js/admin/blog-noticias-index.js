@@ -51,47 +51,9 @@
         document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalEliminar(); });
     })();
 
-    (function () {
-        const table = document.getElementById('tablaNoticias');
-        if (!table) return;
-        let sortCol = -1, sortAsc = true;
+    // El ordenamiento y la paginación los lleva admin-table.js ([data-table])
 
-        table.querySelectorAll('th.sortable').forEach(th => {
-            th.addEventListener('click', function () {
-                const col = parseInt(this.dataset.col);
-                if (sortCol === col) { sortAsc = !sortAsc; }
-                else { sortCol = col; sortAsc = true; }
-
-                table.querySelectorAll('th.sortable').forEach(h => h.classList.remove('sort-asc','sort-desc'));
-                this.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
-
-                const tbody = table.querySelector('tbody');
-                const rows  = Array.from(tbody.querySelectorAll('tr'));
-                rows.sort((a, b) => {
-                    const va = a.querySelectorAll('td')[col]?.dataset.val ?? '';
-                    const vb = b.querySelectorAll('td')[col]?.dataset.val ?? '';
-                    const na = parseFloat(va), nb = parseFloat(vb);
-                    const cmp = (!isNaN(na) && !isNaN(nb)) ? na - nb : va.localeCompare(vb, 'es', {sensitivity:'base'});
-                    return sortAsc ? cmp : -cmp;
-                });
-                rows.forEach(r => tbody.appendChild(r));
-            });
-        });
-    })();
-
-    (function () {
-        const toast = document.getElementById('alexToast');
-        if (!toast) return;
-        requestAnimationFrame(() => setTimeout(() => toast.classList.add('is-visible'), 80));
-        let timer = setTimeout(cerrarAlexToast, 5600);
-        function cerrarAlexToast() {
-            clearTimeout(timer);
-            toast.style.top = '-160px';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 400);
-        }
-        window.cerrarAlexToast = cerrarAlexToast;
-    })();
+    // El toast de Alex lo lleva admin-toast.js (#alexToast)
 
     // Revision confirm modal
     (function() {

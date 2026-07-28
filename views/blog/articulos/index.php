@@ -72,7 +72,7 @@
 
                 <?php else: ?>
                 <div class="admin-table-scroll">
-                    <table class="admin-table at-fixed" id="tablaArticulos">
+                    <table class="admin-table at-fixed" id="tablaArticulos" data-table data-table-per="10" data-table-noun="artículos">
                         <colgroup>
                             <col style="width:28%">
                             <col style="width:16%">
@@ -84,18 +84,18 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th class="sortable" data-col="0">Título <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="1" style="width:120px;max-width:120px;">Categoría <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="2">Autor <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="3">Estado <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="4">Vistas <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-col="5">Fecha <span class="sort-icon">↕</span></th>
-                                <th></th>
+                                <th data-sort="text">Título</th>
+                                <th data-sort="text" style="width:120px;max-width:120px;">Categoría</th>
+                                <th data-sort="text">Autor</th>
+                                <th data-sort="text">Estado</th>
+                                <th data-sort="num">Vistas</th>
+                                <th data-sort="date">Fecha</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($articulos as $art): ?>
-                            <tr>
+                        <?php foreach ($articulos as $i => $art): ?>
+                            <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
                                 <td data-val="<?= s($art->titulo) ?>" class="at-cell-truncate">
                                     <div class="at-title-line"><?= s($art->titulo) ?></div>
                                 </td>
@@ -136,24 +136,24 @@
                                 </td>
                                 <td style="white-space:nowrap;">
                                     <div class="admin-table__actions">
-                                        <a href="/dashboard/articulos/editar?id=<?= (int)$art->id ?>" class="admin-table__btn" title="Editar">
-                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        <a href="/dashboard/articulos/editar?id=<?= (int)$art->id ?>" class="admin-act admin-act--edit" title="Editar">
+                                            <i class="fa-solid fa-pen"></i>
                                         </a>
                                         <?php if (($art->estado ?? '') === 'borrador' && empty($art->envio_revision) && ($esEditor ?? false) && (int)($art->autor_id ?? 0) === (int)($usuarioId ?? 0)): ?>
                                         <form method="POST" action="/dashboard/articulos/enviar-revision" style="display:inline;" id="revForm<?= (int)$art->id ?>">
                                             <input type="hidden" name="id" value="<?= (int)$art->id ?>">
-                                            <button type="button" class="admin-table__btn btn-enviar-revision-inline" data-form-id="revForm<?= (int)$art->id ?>" style="background:#f0f4ff;color:#4267ac;border:1px solid #c7d2fe;" title="Enviar para revisión">
+                                            <button type="button" class="admin-act admin-act--ghost btn-enviar-revision-inline" data-form-id="revForm<?= (int)$art->id ?>" title="Enviar para revisión">
                                                 <i class="fa-solid fa-paper-plane"></i>
                                             </button>
                                         </form>
                                         <?php endif; ?>
                                         <button
                                             type="button"
-                                            class="admin-table__btn admin-table__btn--danger"
+                                            class="admin-act admin-act--del"
                                             onclick="confirmarEliminar(<?= (int)$art->id ?>, '<?= s(addslashes($art->titulo)) ?>')"
                                             title="Eliminar"
                                         >
-                                            <i class="fa-regular fa-trash-can"></i>
+                                            <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </div>
                                 </td>

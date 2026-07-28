@@ -51,17 +51,5 @@
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarModalEliminar(); });
     })();
 
-    (function () {
-        const toast = document.getElementById('alexToast');
-        if (!toast) return;
-        requestAnimationFrame(() => setTimeout(() => toast.classList.add('is-visible'), 80));
-        let timer = setTimeout(cerrarAlexToast, 5600);
-        function cerrarAlexToast() {
-            clearTimeout(timer);
-            toast.style.top     = '-160px';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 400);
-        }
-        window.cerrarAlexToast = cerrarAlexToast;
-    })();
+    // El toast de Alex lo lleva admin-toast.js (#alexToast)
 })();
