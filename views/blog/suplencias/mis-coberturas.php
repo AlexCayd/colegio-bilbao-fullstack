@@ -8,9 +8,6 @@
             <div class="admin-topbar__left"><span class="admin-topbar__title">Mis coberturas</span></div>
             <div class="admin-topbar__actions">
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
@@ -44,10 +41,20 @@
                                 <span class="supl-cover-card__notas"><i class="fa-regular fa-note-sticky"></i> <?= s($h->s_notas) ?></span>
                                 <?php endif; ?>
                             </div>
+                            <?php /* Una cobertura futura todavía no se ha impartido: confirmarla
+                                     por adelantado contradice lo que promete esta misma pantalla.
+                                     El servidor lo impone igual en SuplenciaHora::validarHora(). */ ?>
+                            <?php if ($h->s_fecha > date('Y-m-d')): ?>
+                            <div class="supl-cover-card__wait">
+                                <button type="button" class="admin-btn admin-btn--ghost" disabled><i class="fa-regular fa-clock"></i> Aún no impartida</button>
+                                <small>Podrás confirmarla el <?= s(fecha_larga($h->s_fecha)) ?>.</small>
+                            </div>
+                            <?php else: ?>
                             <form method="POST" action="/dashboard/suplencias/validar">
                                 <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
-                                <button type="submit" class="admin-btn admin-btn--primary"><i class="fa-solid fa-check"></i> Sí, la cubrí</button>
+                                <button type="submit" class="admin-btn admin-btn--primary"><i class="fa-solid fa-check"></i> Confirmar</button>
                             </form>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; endif; ?>
                 </div>

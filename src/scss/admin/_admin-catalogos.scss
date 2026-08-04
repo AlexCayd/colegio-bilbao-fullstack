@@ -9,22 +9,35 @@ body[data-page="blog-grupos-form"] {
 
     /* Banda de contexto con Alex: estos catálogos alimentan el horario y conviene
        decirlo antes de que alguien renombre un aula con 40 clases colgando. */
-    .cat-intro {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 20px;
-        padding: 12px 18px 12px 10px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #eef3fb, #e3f4f6);
-        border: 1.5px solid #c9dcf2;
-
-        img { width: 54px; height: auto; flex-shrink: 0; }
-
-        strong { display: block; font-size: .92rem; color: #0B1F3D; font-weight: 800; }
-        span   { display: block; font-size: .82rem; color: #22417e; line-height: 1.45; margin-top: 2px; }
-        em     { font-style: normal; font-weight: 700; }
+    /* ── Tabla de catálogo ──
+       .admin-table no fija anchos (min-width:680px y nada más), así que con 3-4
+       columnas de contenido muy corto en ~1200px el reparto automático volcaba
+       toda la holgura en la primera columna: "Arce" ocupaba media tabla y los
+       iconos de acción quedaban en el extremo opuesto, con un vacío enorme
+       en medio. Aquí los anchos se reparten a mano. */
+    .admin-table--cat {
+        table-layout: fixed;
+        min-width: 560px;
     }
+    .admin-table__col--main { width: auto; }
+    .admin-table__col--dato { width: 190px; }
+    .admin-table__col--acts { width: 168px; }
+
+    /* Las acciones dejan de irse al borde derecho de la tabla: se quedan al
+       principio de su propia columna, junto al dato que las precede. */
+    .admin-table--cat .admin-table__actions { justify-content: flex-start; }
+    .admin-table--cat td:last-child,
+    .admin-table--cat th:last-child { padding-right: 20px; }
+
+    /* El nombre puede ser largo (aulas tipo "Laboratorio de Ciencias") */
+    .admin-table--cat .cat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    @media (max-width: 720px) {
+        .admin-table__col--dato { width: 140px; }
+    }
+
+    /* .cat-intro (la tira "Catálogo de espacios" con Alex) se retiró: explicaba
+       lo evidente y robaba altura a la tabla. Grupos nunca la tuvo. */
 
     .cat-name {
         display: flex;
@@ -36,20 +49,71 @@ body[data-page="blog-grupos-form"] {
         i { color: var(--col-bilbao); font-size: .82rem; opacity: .7; }
     }
 
-    .cat-desc { font-size: .85rem; color: var(--text-gray); }
-    .cat-nil  { color: #A0AEC0; }
+    .cat-nil { color: #A0AEC0; }
 
-    .cat-orden {
+    /* ── Tabs de nivel académico ──
+       Ocupan todo el ancho disponible y funcionan como grupo para la tabla
+       (listado, vía admin-nivel-tabs.js) o como radios (formulario). */
+    .cat-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+
+        @media (max-width: 720px) { flex-wrap: wrap; }
+    }
+    .cat-tab {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 11px 10px;
+        border: 1.5px solid #e6edf5;
+        border-radius: 12px;
+        background: #fff;
+        font-family: 'Outfit', sans-serif;
+        font-size: .82rem;
+        font-weight: 700;
+        color: #475569;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all .16s ease;
+
+        &:hover:not(:disabled) {
+            border-color: var(--c, #4267ac);
+            color: var(--c, #4267ac);
+        }
+
+        /* Activo (listado) y marcado (formulario) comparten aspecto */
+        &.is-active,
+        &:has(input:checked) {
+            border-color: var(--c, #4267ac);
+            background: color-mix(in srgb, var(--c, #4267ac) 12%, #fff);
+            color: var(--c, #4267ac);
+        }
+
+        &:disabled { opacity: .42; cursor: not-allowed; }
+
+        /* Variante radio: el input real se oculta, la etiqueta hace de botón */
+        input { position: absolute; opacity: 0; pointer-events: none; }
+    }
+    .cat-tab__n {
         display: inline-grid;
         place-items: center;
-        min-width: 28px;
-        height: 28px;
-        padding: 0 7px;
-        border-radius: 8px;
-        background: #F1F5F9;
-        color: #475569;
-        font-size: .78rem;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: #eef2f7;
+        font-size: .68rem;
         font-weight: 800;
+        color: #64748b;
+    }
+    .cat-tab.is-active .cat-tab__n {
+        background: color-mix(in srgb, var(--c, #4267ac) 22%, #fff);
+        color: var(--c, #4267ac);
     }
 
     /* Chip de nivel: el color lo pone la vista con --c */
@@ -69,6 +133,9 @@ body[data-page="blog-grupos-form"] {
         padding: 26px 28px 22px;
         max-width: 620px;
     }
+    /* Grupos: el formulario ocupa todo el ancho disponible, porque las tabs de
+       nivel necesitan sitio para las cinco opciones. */
+    .cat-form--wide { max-width: none; }
     .cat-form__row {
         display: grid;
         grid-template-columns: 1.4fr 1fr;

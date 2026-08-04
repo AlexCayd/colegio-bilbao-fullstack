@@ -28,7 +28,7 @@ class BlogController {
         $articulos  = Articulo::allConDetalles('publicado');
         $categorias = Categoria::allConArticulosPublicados();
 
-        $extra_head = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
+        $extra_head = three_js_tag();
         $router->render('blog/index', [
             'seo_titulo'       => 'Voces Bilbao - Artículos',
             'seo_descripcion'  => 'Artículos, reflexiones y perspectivas sobre educación, aprendizaje y la vida dentro del Colegio Bilbao.',
@@ -81,44 +81,37 @@ class BlogController {
         return $_SESSION['blog_usuario'];
     }
 
+    /** ¿El usuario en sesión es administrador (acceso total)? */
+    private static function esAdmin(): bool {
+        return ($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador';
+    }
+
+    /** Guard de operaciones sensibles/destructivas y de tableros analíticos. */
     private static function requireAdmin(): void {
-        if (!\in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador', 'superadmin'], true)) {
-            header('Location: /dashboard');
-            exit;
-        }
-    }
-
-    /** ¿El usuario en sesión es superadmin (nivel máximo)? */
-    private static function esSuperadmin(): bool {
-        return ($_SESSION['blog_usuario']['rol'] ?? '') === 'superadmin';
-    }
-
-    /** Guard reservado a superadmin (directorios de personal, dashboard de suplencias). */
-    private static function requireSuperadmin(): void {
         self::requireAuth();
-        if (!self::esSuperadmin()) {
+        if (!self::esAdmin()) {
             header('Location: /dashboard');
             exit;
         }
     }
 
-    /** ¿El usuario en sesión puede acceder al módulo indicado? Super/admin = todos. */
+    /** ¿El usuario en sesión puede acceder al módulo indicado? El admin accede a todos. */
     private static function puede(string $modulo): bool {
         $u = $_SESSION['blog_usuario'] ?? null;
         if (!$u) return false;
-        if (\in_array($u['rol'] ?? '', ['administrador', 'superadmin'], true)) return true;
+        if (($u['rol'] ?? '') === 'administrador') return true;
         $lista = array_filter(array_map('trim', explode(',', (string) ($u['modulos'] ?? ''))));
         return \in_array($modulo, $lista, true);
     }
 
     /**
      * ¿Puede validar contenido editorial (revisiones + testimoniales)?
-     * Super/admin siempre; un 'usuario' solo si es revisor con módulo redaccion.
+     * El admin siempre; un 'usuario' solo si es revisor con módulo redaccion.
      */
     private static function puedeRevisar(): bool {
         $u = $_SESSION['blog_usuario'] ?? null;
         if (!$u) return false;
-        if (\in_array($u['rol'] ?? '', ['administrador', 'superadmin'], true)) return true;
+        if (($u['rol'] ?? '') === 'administrador') return true;
         return ($u['rol_redaccion'] ?? '') === 'revisor' && self::puede('redaccion');
     }
 
@@ -131,11 +124,15 @@ class BlogController {
         }
     }
 
-    /** Guard de módulo: redirige al home de módulos si no tiene acceso. */
+    /**
+     * Guard de módulo: redirige al home de módulos si no tiene acceso.
+     * El `?sinacceso=` no es decorativo: una notificación puede apuntar a un módulo
+     * que el usuario ya perdió, y el rebote mudo parecía que el enlace no hacía nada.
+     */
     private static function requireModulo(string $modulo): void {
         self::requireAuth();
         if (!self::puede($modulo)) {
-            header('Location: /dashboard');
+            header('Location: /dashboard?sinacceso=' . urlencode($modulo));
             exit;
         }
     }
@@ -209,7 +206,14 @@ class BlogController {
             }
         }
 
-        $router->renderAdmin('blog/login', ['titulo' => 'Iniciar Sesión - Blog', 'alertas' => $alertas, 'errorCampo' => $errorCampo]);
+        // El login estrena el bosque de la landing. El layout admin no inyecta
+        // Three.js por defecto (ninguna otra vista del panel lo usa).
+        $router->renderAdmin('blog/login', [
+            'titulo'     => 'Iniciar Sesión',
+            'alertas'    => $alertas,
+            'errorCampo' => $errorCampo,
+            'extra_head' => three_js_tag(),
+        ]);
     }
 
     public static function logout(Router $router) {
@@ -222,14 +226,30 @@ class BlogController {
     public static function home(Router $router) {
         self::requireAuth();
 
-        $verUsuarios = self::puede('usuarios');
+        // Al entrar al panel se emiten los recordatorios de coberturas cuya fecha
+        // ya pasó sin confirmar. Es el disparador del ciclo: el proyecto no tiene
+        // cron, así que la comprobación va aquí (indexada y con marca anti-duplicado).
+        self::recordarCoberturasVencidas();
+
+        // Estado del día: lo que le toca a ESTE usuario. Cada cifra enlaza a su
+        // destino y la vista oculta las que están a cero — un panel de estado
+        // lleno de ceros no informa, solo hace ruido.
+        $uid = (int)($_SESSION['blog_usuario']['id'] ?? 0);
+        $pendientes = [
+            'notificaciones' => Notificacion::noLeidasPorUsuario($uid),
+            'coberturas'     => count(SuplenciaHora::porValidarDeSuplente($uid)),
+            // Ausencias todavía sin suplente: solo tiene sentido para quien agenda.
+            'sinSuplente'    => self::puedeCoordinar() ? (Suplencia::conteos()['solicitada'] ?? 0) : 0,
+        ];
+
         $router->renderAdmin('blog/home', [
             'titulo'        => 'Inicio',
             'modulos'       => self::modulosDisponibles(),
-            'cumpleanos'    => $verUsuarios ? UsuarioBlog::proximosCumpleanos(6) : [],
-            'cumpleanosAll' => $verUsuarios ? UsuarioBlog::conCumpleanos() : [],
-            // El calendario combina cumpleaños con los eventos institucionales
+            // Cumpleaños y eventos los ve todo el mundo: son información de
+            // convivencia. El módulo `usuarios` controla quién los *edita*.
+            'cumpleanosAll' => UsuarioBlog::conCumpleanos(),
             'eventos'       => Evento::todos(),
+            'pendientes'    => $pendientes,
         ]);
     }
 
@@ -281,13 +301,41 @@ class BlogController {
     private static function sesionTipos(): array {
         return array_filter(array_map('trim', explode(',', (string)($_SESSION['blog_usuario']['tipo_personal'] ?? ''))));
     }
-    /** ¿Puede agendar suplencias (prefectura/admin/super)? */
-    private static function puedeAgendar(): bool {
-        if (self::esSuperadmin() || (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador')) return true;
+    /**
+     * ¿Coordina la operación académica (admin o prefectura)?
+     * Es quien puede ver datos de terceros: horarios ajenos, motivos de ausencia,
+     * justificantes. Un profesor raso solo ve lo suyo.
+     */
+    private static function puedeCoordinar(): bool {
+        if (self::esAdmin()) return true;
         return in_array('prefecto', self::sesionTipos(), true);
     }
 
-    /** Agenda: lista de suplencias con filtros (prefectura/admin). */
+    /** ¿Puede agendar suplencias (prefectura/admin)? */
+    private static function puedeAgendar(): bool {
+        return self::puedeCoordinar();
+    }
+
+    /**
+     * Fecha llegada por query (?fecha=YYYY-MM-DD) desde el calendario del listado.
+     * Devuelve null si no viene o no es una fecha real, para que la vista caiga a
+     * su valor por defecto en vez de pintar basura en el datepicker.
+     */
+    private static function fechaDeQuery(): ?string {
+        $f = trim($_GET['fecha'] ?? '');
+        if ($f === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f)) return null;
+        [$y, $m, $d] = array_map('intval', explode('-', $f));
+        return checkdate($m, $d, $y) ? $f : null;
+    }
+
+    /**
+     * Agenda de suplencias.
+     *
+     * Quien no puede agendar (un profesor raso) ve **solo las suyas**: las que
+     * pidió y las que cubre. Antes el listado no filtraba por usuario y cualquiera
+     * con el módulo veía las ausencias de todo el claustro **con su motivo**
+     * ("Incapacidad médica", "Luto"), que no es suyo.
+     */
     public static function suplencias(Router $router) {
         self::requireModulo('suplencias');
         $filtros = [
@@ -297,26 +345,49 @@ class BlogController {
             'desde'  => $_GET['desde'] ?? '',
             'hasta'  => $_GET['hasta'] ?? '',
         ];
+        $puedeAgendar = self::puedeAgendar();
+        if (!$puedeAgendar) $filtros['mias'] = (int)($_SESSION['blog_usuario']['id'] ?? 0);
+
+        // El calendario cuenta lo mismo que ve el listado: con `mias` activo, solo
+        // las suyas. Si no, un profesor vería en la rejilla cuántas ausencias tiene
+        // el resto del claustro.
+        $uid = (int)($_SESSION['blog_usuario']['id'] ?? 0);
+
         $router->renderAdmin('blog/suplencias/index', [
-            'titulo'       => 'Agenda de suplencias',
+            'titulo'       => $puedeAgendar ? 'Agenda de suplencias' : 'Mis suplencias',
             'suplencias'   => Suplencia::listar($filtros),
-            'conteos'      => Suplencia::conteos(),
+            'conteos'      => Suplencia::conteos($puedeAgendar ? 0 : $uid),
+            'resumenDias'  => Suplencia::resumenDiario($puedeAgendar ? 0 : $uid),
             'filtros'      => $filtros,
-            'puedeAgendar' => self::puedeAgendar(),
+            'puedeAgendar' => $puedeAgendar,
         ]);
+    }
+
+    /** Guard de los endpoints que exponen datos de terceros (horarios, ranking del claustro). */
+    private static function requireAgendar(): void {
+        self::requireModulo('suplencias');
+        if (!self::puedeAgendar()) {
+            if (self::esAjax()) self::json(['error' => 'Sin permiso'], 403);
+            header('Location: /dashboard/suplencias');
+            exit;
+        }
     }
 
     /** Endpoint JSON: autocompletado de profesores (ausente). */
     public static function buscarColaboradores(Router $router) {
-        self::requireModulo('suplencias');
+        self::requireAgendar();
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(UsuarioBlog::buscar($_GET['q'] ?? '', 8));
         exit;
     }
 
-    /** Endpoint JSON: sugerencias de suplente para una fecha+periodo (algoritmo). */
+    /**
+     * Endpoint JSON: sugerencias de suplente para una fecha+periodo (algoritmo).
+     * Solo prefectura/admin: devuelve el ranking de coberturas y los motivos de
+     * bloqueo de todo el claustro.
+     */
     public static function sugerirSuplentes(Router $router) {
-        self::requireModulo('suplencias');
+        self::requireAgendar();
         header('Content-Type: application/json; charset=utf-8');
         $fecha   = trim($_GET['fecha'] ?? '');
         $periodo = (int)($_GET['periodo'] ?? 0);
@@ -329,6 +400,11 @@ class BlogController {
     /**
      * Endpoint JSON: horario semanal de un profesor + sus horas libres para una fecha.
      * Alimenta la rejilla interactiva de solicitar/crear y el preview de candidatos en agendar.
+     *
+     * Un profesor raso solo puede pedir **su propio** horario (lo necesita para
+     * marcar las horas de su ausencia en /solicitar). Antes aceptaba cualquier
+     * `?profesor=ID` con solo tener el módulo, y devolvía la semana completa de
+     * cualquier compañero — justo lo que la vista de Horarios le niega.
      */
     public static function horarioProfesorJson(Router $router) {
         self::requireModulo('suplencias');
@@ -337,6 +413,12 @@ class BlogController {
         $profId = (int)($_GET['profesor'] ?? 0);
         $fecha  = trim($_GET['fecha'] ?? '');
         if (!$profId) { echo json_encode(['error' => 'profesor requerido']); exit; }
+
+        if (!self::puedeAgendar() && $profId !== (int)($_SESSION['blog_usuario']['id'] ?? 0)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Sin permiso para ver ese horario']);
+            exit;
+        }
 
         $dow = $fecha !== '' ? (int)date('N', strtotime($fecha)) : 0;
         $dia = \Model\Horario::DIAS[$dow - 1] ?? null;   // null en fin de semana
@@ -386,22 +468,69 @@ class BlogController {
         exit;
     }
 
-    /** Sube un justificante (PDF o imagen). Devuelve ruta pública o null. */
+    /** Carpeta física de los justificantes. */
+    private static function dirJustificantes(): string {
+        return __DIR__ . '/../public/build/assets/suplencias/';
+    }
+
+    /**
+     * Sube un justificante (PDF o imagen). Devuelve ruta pública o null.
+     * El límite vive en Suplencia::MAX_JUSTIFICANTE_MB y lo leen también las vistas,
+     * para que cliente y servidor no puedan desincronizarse.
+     */
     private static function subirJustificante(): ?string {
-        if (empty($_FILES['justificante']) || $_FILES['justificante']['error'] !== UPLOAD_ERR_OK) return null;
-        $ext     = strtolower(pathinfo($_FILES['justificante']['name'], PATHINFO_EXTENSION));
-        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
-        if (!in_array($ext, $allowed, true) || $_FILES['justificante']['size'] > 4 * 1024 * 1024) {
-            Suplencia::setAlerta('error', 'El justificante debe ser PDF o imagen (JPG/PNG/WebP) de máximo 4 MB');
+        if (empty($_FILES['justificante'])) return null;
+
+        $err = $_FILES['justificante']['error'];
+        if ($err !== UPLOAD_ERR_OK) {
+            // Con 50 MB es fácil chocar contra upload_max_filesize / post_max_size
+            // antes de llegar aquí: sin este mensaje el fallo era mudo.
+            if (in_array($err, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+                Suplencia::setAlerta('error',
+                    'El archivo excede el límite del servidor. Pide que suban `upload_max_filesize` y '
+                    . '`post_max_size` en php.ini a más de ' . Suplencia::MAX_JUSTIFICANTE_MB . ' MB.');
+            }
             return null;
         }
-        $dir = __DIR__ . '/../public/build/assets/suplencias/';
+
+        $max     = Suplencia::MAX_JUSTIFICANTE_MB;
+        $ext     = strtolower(pathinfo($_FILES['justificante']['name'], PATHINFO_EXTENSION));
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        if (!in_array($ext, $allowed, true) || $_FILES['justificante']['size'] > $max * 1024 * 1024) {
+            Suplencia::setAlerta('error', "El justificante debe ser PDF o imagen (JPG/PNG/WebP) de máximo {$max} MB");
+            return null;
+        }
+
+        // El nombre del archivo no dice qué hay dentro: se comprueba el MIME real.
+        $mimeOk = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+        $mime   = @mime_content_type($_FILES['justificante']['tmp_name']);
+        if ($mime && !in_array($mime, $mimeOk, true)) {
+            Suplencia::setAlerta('error', 'El archivo no es un PDF ni una imagen válida.');
+            return null;
+        }
+
+        $dir = self::dirJustificantes();
         if (!is_dir($dir)) mkdir($dir, 0755, true);
         $fn = uniqid('just_', true) . '.' . $ext;
         if (move_uploaded_file($_FILES['justificante']['tmp_name'], $dir . $fn)) {
             return '/build/assets/suplencias/' . $fn;
         }
         return null;
+    }
+
+    /**
+     * Borra del disco el archivo de un justificante.
+     * La ruta guardada es pública (`/build/assets/suplencias/x.pdf`), así que se
+     * resuelve con realpath y se comprueba que cae dentro de la carpeta antes de
+     * tocar nada: nunca hay que fiarse de un path que viene de la BD.
+     */
+    private static function borrarJustificante(?string $ruta): bool {
+        if (!$ruta) return false;
+        $base = realpath(self::dirJustificantes());
+        $file = realpath(self::dirJustificantes() . basename($ruta));
+        if ($base === false || $file === false) return false;
+        if (!str_starts_with($file, $base . DIRECTORY_SEPARATOR)) return false;
+        return is_file($file) && @unlink($file);
     }
 
     /** Crea las horas de cobertura desde arrays paralelos del POST. */
@@ -459,6 +588,8 @@ class BlogController {
             'periodos' => Periodo::clases(),
             'matriz'   => Horario::comoMatriz(Horario::porProfesor((int)$sesion['id'])),
             'alertas'  => $alertas,
+            // El calendario del listado enlaza con ?fecha=YYYY-MM-DD
+            'fechaPrefijada' => self::fechaDeQuery(),
         ]);
     }
 
@@ -520,6 +651,8 @@ class BlogController {
             'aulas'     => Aula::todas(),
             'materias'  => Materia::todas(),
             'alertas'   => $alertas,
+            // El calendario del listado enlaza con ?fecha=YYYY-MM-DD
+            'fechaPrefijada' => self::fechaDeQuery(),
         ]);
     }
 
@@ -534,16 +667,44 @@ class BlogController {
         $hora = SuplenciaHora::detalle($horaId);
         if (!$hora) return;
 
-        $cuando = date('d/m/Y', strtotime($suplencia->fecha));
-        $clase  = trim(($hora->materia ?: 'una clase') . ($hora->grupo_nombre ? ' · ' . $hora->grupo_nombre : ''));
+        // Fecha escrita a mano ("martes 4 de agosto"): un 04/08/2026 obliga a
+        // traducirlo mentalmente y esconde el día de la semana, que es el dato
+        // con el que un profesor ubica realmente una clase.
+        $cuando  = fecha_larga($suplencia->fecha);
+        $materia = $hora->materia ?: 'una clase';
+        $donde   = $hora->grupo_nombre ? " con {$hora->grupo_nombre}" : '';
+        $aula    = $hora->aula_nombre ? " en el aula {$hora->aula_nombre}" : '';
 
         Notificacion::nueva(
             $suplenteId,
             'cobertura_asignada',
-            "Te asignaron {$clase} el {$cuando} ({$hora->periodo_etiqueta}).",
+            "Suplencia asignada: cubres {$materia}{$donde} el {$cuando}, en la {$hora->periodo_etiqueta}{$aula}.",
             (int)$suplencia->id, 'suplencia', 'suplencias', 'info',
             '/dashboard/suplencias/mis-coberturas'
         );
+    }
+
+    /**
+     * Recordatorio de coberturas ya vencidas y sin confirmar. Se dispara al entrar
+     * al panel porque el proyecto no tiene cron: la consulta va indexada por
+     * (suplente_id, estado_hora) y `recordatorio_en` evita repetir el aviso.
+     */
+    private static function recordarCoberturasVencidas(): void {
+        $uid = (int)($_SESSION['blog_usuario']['id'] ?? 0);
+        if (!$uid) return;
+
+        foreach (SuplenciaHora::vencidasSinRecordatorio($uid) as $h) {
+            $clase = $h->materia ?: 'una clase';
+            $conQ  = $h->grupo_nombre ? " con {$h->grupo_nombre}" : '';
+            Notificacion::nueva(
+                $uid,
+                'cobertura_por_confirmar',
+                "¿Cubriste {$clase}{$conQ} el " . fecha_larga($h->s_fecha) . '? Confírmalo para cerrar la suplencia.',
+                (int)$h->suplencia_id, 'suplencia', 'suplencias', 'aviso',
+                '/dashboard/suplencias/mis-coberturas'
+            );
+            SuplenciaHora::marcarRecordatorio((int)$h->id);
+        }
     }
 
     /** Cuando ya no queda ninguna hora pendiente, se lo dice al profesor ausente. */
@@ -569,7 +730,15 @@ class BlogController {
         self::requireModulo('suplencias');
         $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
         $suplencia = Suplencia::encontrarConDetalle($id);
-        if (!$suplencia) { header('Location: /dashboard/suplencias'); exit; }
+        if (!$suplencia) { header('Location: /dashboard/suplencias?noexiste=1'); exit; }
+
+        // Esta vista muestra el motivo de la ausencia y enlaza el justificante
+        // médico. Un profesor solo puede abrir la suya: antes bastaba el módulo
+        // para leer el parte de cualquier compañero cambiando el ?id=.
+        if (!self::puedeAgendar() && (int)$suplencia->profesor_ausente_id !== (int)($_SESSION['blog_usuario']['id'] ?? 0)) {
+            header('Location: /dashboard/suplencias?sinacceso=1');
+            exit;
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
@@ -632,9 +801,83 @@ class BlogController {
         exit;
     }
 
+    /**
+     * Prefectura aprueba el justificante y borra el archivo del servidor.
+     * Es una acción deliberada y con confirmación: el parte médico vive en una
+     * carpeta pública, así que no conviene conservarlo más de lo necesario, pero
+     * tampoco desaparecer sin que nadie lo haya visto.
+     */
+    public static function aprobarJustificante(Router $router) {
+        self::requireModulo('suplencias');
+        if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
+
+        $id  = (int)($_POST['id'] ?? 0);
+        $sup = Suplencia::find($id);
+        if ($sup && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($sup->justificante)) {
+            self::borrarJustificante($sup->justificante);
+            Suplencia::getDB()->query("UPDATE suplencias SET justificante = NULL WHERE id = {$id} LIMIT 1");
+            Suplencia::recalcularEstado($id);
+
+            if ($sup->profesor_ausente_id) {
+                Notificacion::nueva(
+                    (int)$sup->profesor_ausente_id,
+                    'justificante_aprobado',
+                    'Prefectura aprobó tu justificante del ' . fecha_larga($sup->fecha)
+                        . '. El archivo se eliminó del servidor.',
+                    $id, 'suplencia', 'suplencias', 'exito',
+                    '/dashboard/suplencias/agendar?id=' . $id
+                );
+            }
+        }
+        header('Location: /dashboard/suplencias/agendar?id=' . $id . '&aprobado=1');
+        exit;
+    }
+
+    /**
+     * Cierre por prefectura de una cobertura vencida que el suplente no confirmó.
+     * Sin esto, un suplente que nunca responde dejaba la hora 'agendada' y la
+     * suplencia sin llegar nunca a 'completada'.
+     */
+    public static function validarPrefectura(Router $router) {
+        self::requireModulo('suplencias');
+        if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $horaId = (int)($_POST['hora_id'] ?? 0);
+            $cubrio = ($_POST['cubrio'] ?? '') === '1';
+            $hora   = SuplenciaHora::detalle($horaId);
+
+            if ($hora && SuplenciaHora::resolverPorPrefectura($horaId, $cubrio)) {
+                $sup = Suplencia::find((int)$hora->suplencia_id);
+                // Al marcar "no se cubrió" la hora vuelve a la bolsa: hay que
+                // avisar a los dos implicados, o nadie se entera de que se reabrió.
+                if (!$cubrio && $sup) {
+                    $cuando = fecha_larga($sup->fecha);
+                    if ($hora->suplente_id) {
+                        Notificacion::nueva((int)$hora->suplente_id, 'cobertura_no_cubierta',
+                            "Prefectura registró que la clase del {$cuando} no se cubrió.",
+                            (int)$sup->id, 'suplencia', 'suplencias', 'aviso',
+                            '/dashboard/suplencias/mis-coberturas');
+                    }
+                    if ($sup->profesor_ausente_id) {
+                        Notificacion::nueva((int)$sup->profesor_ausente_id, 'cobertura_no_cubierta',
+                            "Una hora de tu ausencia del {$cuando} quedó sin cubrir y vuelve a estar pendiente.",
+                            (int)$sup->id, 'suplencia', 'suplencias', 'aviso',
+                            '/dashboard/suplencias/agendar?id=' . (int)$sup->id);
+                    }
+                }
+                Suplencia::recalcularEstado((int)$hora->suplencia_id);
+                $id = (int)$hora->suplencia_id;
+            }
+        }
+        header('Location: /dashboard/suplencias/agendar?id=' . $id . '&resuelto=1');
+        exit;
+    }
+
     /** Mis coberturas: horas que me asignaron y debo validar. */
     public static function misCoberturas(Router $router) {
-        $sesion = self::requireModulo('suplencias');
+        self::requireModulo('suplencias');
         $sesion = $_SESSION['blog_usuario'];
         $router->renderAdmin('blog/suplencias/mis-coberturas', [
             'titulo'  => 'Mis coberturas',
@@ -668,7 +911,7 @@ class BlogController {
         exit;
     }
 
-    /** Tablero de estadísticas de suplencias (administrador y superadmin). */
+    /** Tablero de estadísticas de suplencias (solo administrador). */
     public static function suplenciasDashboard(Router $router) {
         self::requireModulo('suplencias');
         self::requireAdmin();
@@ -1314,7 +1557,7 @@ class BlogController {
             header('Location: /dashboard/usuarios/editar?id=' . (int)$sesion['id']);
             exit;
         }
-        $usuarios = UsuarioBlog::allConArticulos();
+        $usuarios = UsuarioBlog::todos();
         $success  = isset($_GET['success']);
 
         $router->renderAdmin('blog/usuarios/index', [
@@ -1333,11 +1576,12 @@ class BlogController {
     }
 
     /**
-     * Directorios de personal (solo superadmin): Profesores / Prefectura / Administrativos.
-     * Reutiliza una vista de índice filtrada por tipo_personal.
+     * Directorios de personal: Profesores / Prefectura / Administrativos.
+     * Reutiliza una vista de índice filtrada por tipo_personal. Cada directorio
+     * es su propio módulo asignable, así que el guard va por slug.
      */
     private static function renderDirectorio(Router $router, string $slug, string $tipo, string $titulo): void {
-        self::requireSuperadmin();
+        self::requireModulo($slug);
         $router->renderAdmin('blog/personal/index', [
             'titulo'   => $titulo,
             'tipo'     => $tipo,
@@ -1358,6 +1602,16 @@ class BlogController {
 
     private static function horariosVista(Router $router, string $vista): void {
         self::requireModulo('horarios');
+
+        // Estas tres vistas exponen el horario de TODO el claustro, de todas las
+        // aulas y de todos los grupos: el desplegable se llena con el catálogo
+        // completo y `?id=` no se comparaba con la sesión. Las abren quienes
+        // coordinan (admin y prefectura); un profesor se queda con su propio
+        // horario en /mi-horario.
+        if (!self::puedeCoordinar()) {
+            header('Location: /dashboard/horarios/mi-horario');
+            exit;
+        }
 
         // Entidades disponibles según la vista
         if ($vista === 'aula') {
@@ -1417,7 +1671,7 @@ class BlogController {
         ]);
     }
 
-    // ── Importación de horarios por CSV (superadmin) ────────────────────────────
+    // ── Importación de horarios por CSV (módulo horarios + admin) ───────────────
 
     /** Normaliza para comparar catálogos: minúsculas, sin acentos ni espacios de sobra. */
     private static function claveCatalogo(string $v): string {
@@ -1563,14 +1817,16 @@ class BlogController {
         ]];
     }
 
-    // ── CATÁLOGOS ACADÉMICOS · AULAS Y GRUPOS (superadmin) ────────────────────
+    // ── CATÁLOGOS ACADÉMICOS · AULAS Y GRUPOS ─────────────────────────────────
     //
-    // Aulas y grupos ya existían en la BD pero solo se podían tocar por SQL. Son
-    // solo-superadmin porque `horarios` tiene UNIQUE por (día, periodo, aula) y por
-    // (día, periodo, grupo): renombrar o borrar aquí repercute en todo el horario.
+    // Aulas y grupos ya existían en la BD pero solo se podían tocar por SQL.
+    // Cada uno es su propio módulo asignable: `horarios` tiene UNIQUE por
+    // (día, periodo, aula) y por (día, periodo, grupo), así que renombrar o
+    // borrar aquí repercute en todo el horario. Antes de borrar se cuentan las
+    // dependencias (Aula::usos() / Grupo::usos()).
 
     public static function aulas(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('aulas');
         $router->renderAdmin('blog/aulas/index', [
             'titulo' => 'Aulas',
             'aulas'  => Aula::todasConUso(),
@@ -1578,7 +1834,7 @@ class BlogController {
     }
 
     public static function crearAula(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('aulas');
         $aula    = new Aula();
         $alertas = [];
 
@@ -1600,7 +1856,7 @@ class BlogController {
     }
 
     public static function editarAula(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('aulas');
         $aula = Aula::find((int)($_GET['id'] ?? 0));
         if (!$aula) { header('Location: /dashboard/aulas'); exit; }
         $alertas = [];
@@ -1624,7 +1880,7 @@ class BlogController {
     }
 
     public static function eliminarAula(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('aulas');
         $id   = (int)($_POST['id'] ?? 0);
         $aula = $id ? Aula::find($id) : null;
         if (!$aula) { header('Location: /dashboard/aulas'); exit; }
@@ -1642,7 +1898,7 @@ class BlogController {
     }
 
     public static function grupos(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('grupos');
         $router->renderAdmin('blog/grupos/index', [
             'titulo' => 'Grupos',
             'grupos' => Grupo::todosConUso(),
@@ -1650,9 +1906,8 @@ class BlogController {
     }
 
     public static function crearGrupo(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('grupos');
         $grupo = new Grupo();
-        $grupo->orden = Grupo::siguienteOrden();   // sugerencia: el primer hueco libre
         $alertas = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -1673,7 +1928,7 @@ class BlogController {
     }
 
     public static function editarGrupo(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('grupos');
         $grupo = Grupo::find((int)($_GET['id'] ?? 0));
         if (!$grupo) { header('Location: /dashboard/grupos'); exit; }
         $alertas = [];
@@ -1697,7 +1952,7 @@ class BlogController {
     }
 
     public static function eliminarGrupo(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('grupos');
         $id    = (int)($_POST['id'] ?? 0);
         $grupo = $id ? Grupo::find($id) : null;
         if (!$grupo) { header('Location: /dashboard/grupos'); exit; }
@@ -1718,7 +1973,8 @@ class BlogController {
      * El archivo reemplaza el horario completo de los profesores que aparecen en él.
      */
     public static function importarHorarios(Router $router) {
-        self::requireSuperadmin();
+        self::requireModulo('horarios');
+        self::requireAdmin();
 
         // Descarga de la plantilla de ejemplo
         if (isset($_GET['plantilla'])) {

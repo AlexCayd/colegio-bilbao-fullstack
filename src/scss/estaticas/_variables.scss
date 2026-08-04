@@ -5,6 +5,26 @@
     --col-herencia: #374C69;
     --col-accent-pop: #F1C400;
 
+    /* ---------- PALETA DE CATEGORÍAS ----------
+       Los 10 colores del proyecto, en su orden cromático (naranja → rojo). Se
+       usan en las categorías del blog y en los acentos del panel (acciones de
+       tabla, chips, tarjetas del home). Hasta ahora solo existían en prosa en
+       CLAUDE.md y repetidos a mano en cada partial. */
+    --pal-naranja:   #fc6722;
+    --pal-ambar:     #f5b400;
+    --pal-lima:      #8ac926;
+    --pal-verde:     #34a853;
+    --pal-turquesa:  #46bdc6;
+    --pal-azul:      #4285f4;
+    --pal-indigo:    #4267ac;
+    --pal-morado:    #aa2296;
+    --pal-magenta:   #ea075a;
+    --pal-rojo:      #e51022;
+
+    /* Tinta oscura para fondos claros de la paleta (ámbar, lima, turquesa):
+       el blanco no pasa AA sobre ellos. */
+    --pal-tinta: #0B1F3D;
+
     /* ---------- TEXTO ---------- */
     --col-texto: #1A202C;
     --text-dark: #1A202C;
@@ -23,6 +43,10 @@
     /* ---------- LAYOUT ---------- */
     --container-width: 1280px;
     --header-height: 80px;
+
+    /* Botones circulares del topbar del panel (campana · avatar · salir).
+       Un solo token: los tres deben medir lo mismo. */
+    --tb-btn: 40px;
 
     /* ---------- ESPACIADO ---------- */
     --sp-sm: 24px;

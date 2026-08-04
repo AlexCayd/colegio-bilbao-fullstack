@@ -4,10 +4,10 @@
         <?php $bg_scene = 'orbes'; $bg_colores = ['#4d8abb', '#2e4b8a', '#46bdc6', '#6fb1d8']; $bg_shapes = false; include __DIR__ . '/_bg.php'; ?>
 
         <div class="colab__inner" data-colab-reveal>
-            <h1 class="colab__title">Intranet Bilbao</h1>
+            <h1 class="colab__title" data-i18n="comunidad-colaboradores.title">Intranet Bilbao</h1>
             <a href="/login" class="colab__cta">
                 <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                <span>Acceder al panel</span>
+                <span data-i18n="comunidad-colaboradores.cta">Acceder al panel</span>
             </a>
         </div>
     </section>

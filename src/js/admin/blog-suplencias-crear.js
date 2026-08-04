@@ -48,6 +48,7 @@
                     mode: 'select',
                     selected: seleccion,
                     fechaLabel: window.SuplWeek.etiquetaFecha(fecha),
+                    legend: '[data-week-legend]',   // bajo el tip de Alex, no en la rejilla
                     onChange: pintarInputs
                 });
             })

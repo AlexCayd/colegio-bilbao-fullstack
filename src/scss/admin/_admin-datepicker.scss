@@ -49,32 +49,92 @@
     z-index: 60;
     top: calc(100% + 8px);
     left: 0;
-    width: 306px;
+    width: 268px;
     max-width: calc(100vw - 40px);
-    padding: 14px;
+    padding: 10px;
     background: #fff;
     border: 1px solid #e6edf5;
     border-radius: 18px;
     box-shadow: 0 24px 48px -18px rgba(11, 31, 61, .38);
     animation: bilbao-date-in .16s ease;
 }
+/* Anclado a la derecha cuando el popover se saldría del viewport: pasa
+   en la toolbar de filtros de suplencias, donde el campo mide 172px y va pegado
+   al borde. Lo decide admin-datepicker.js en abrir(). */
+.bilbao-date.is-flipped .bilbao-date__pop {
+    left: auto;
+    right: 0;
+}
+
 @keyframes bilbao-date-in {
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: translateY(0); }
+}
+
+/* `.admin-panel { overflow: clip }` recorta el popover por geometría, y el
+   z-index no puede con eso: el calendario de "Fecha de nacimiento" quedaba
+   cortado por el borde inferior del panel. Se levanta el recorte solo mientras
+   hay un datepicker abierto, para no perder el clip el resto del tiempo.
+   El JS marca TODOS los ancestros que recortan, no solo el más cercano. */
+.admin-panel.has-datepicker-open,
+.admin-form-section.has-datepicker-open,
+.admin-form-row.has-datepicker-open {
+    overflow: visible;
 }
 
 .bilbao-date__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 6px;
+    margin-bottom: 4px;
 }
+/* La cabecera es un botón: sube de días → meses → años */
 .bilbao-date__month {
+    flex: 1;
+    padding: 5px 8px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    font-family: inherit;
     font-size: .92rem;
     font-weight: 800;
     color: #0B1F3D;
     text-transform: capitalize;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+
+    &:hover { background: #eef4fc; color: #4267ac; }
+}
+
+/* Rejillas de meses y años (3 columnas × 4 filas) */
+.bilbao-date__panel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    /* Misma altura aproximada que la rejilla de días, para que el popover no
+       "salte" de tamaño al cambiar de vista. Va atada a la altura de celda de
+       .bilbao-date__cell: si cambia una, recalcular la otra. */
+    min-height: 170px;
+    align-content: center;
+}
+.bilbao-date__opt {
+    padding: 9px 4px;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    background: #f6f9fd;
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 700;
+    color: #33415a;
+    cursor: pointer;
+    transition: all .15s ease;
+
+    &:hover:not(:disabled) { border-color: #4267ac; color: #4267ac; background: #eef4fc; }
+
+    &.is-selected { background: #4267ac; border-color: #4267ac; color: #fff; }
+
+    &.is-off, &:disabled { opacity: .32; cursor: not-allowed; }
 }
 .bilbao-date__nav {
     width: 30px;
@@ -95,8 +155,8 @@
 .bilbao-date__weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-    margin-bottom: 4px;
+    gap: 2px;
+    margin-bottom: 3px;
 
     span {
         text-align: center;
@@ -111,10 +171,12 @@
 .bilbao-date__grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
+    gap: 2px;
 }
 .bilbao-date__cell {
-    aspect-ratio: 1;
+    /* Altura fija en vez de `aspect-ratio: 1`: atada al ancho, el popover crecía
+       hasta ~40px por fila y seis filas lo dejaban desproporcionadamente alto. */
+    height: 28px;
     display: grid;
     place-items: center;
     border: none;
@@ -150,8 +212,8 @@
     align-items: center;
     justify-content: flex-end;
     gap: 14px;
-    margin-top: 10px;
-    padding-top: 10px;
+    margin-top: 6px;
+    padding-top: 6px;
     border-top: 1px solid #f1f5f9;
 }
 .bilbao-date__hoy,

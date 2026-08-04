@@ -27,20 +27,14 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
     <div class="admin-main">
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <span class="admin-topbar__title">Agenda de suplencias</span>
+                <?php /* Para un profesor la lista solo trae las suyas: llamarla "Agenda"
+                         (de todo el claustro) sería engañoso. */ ?>
+                <span class="admin-topbar__title"><?= s($titulo) ?></span>
             </div>
+            <?php /* Sin botones de acción: abrir y solicitar se hacen desde el calendario,
+                     que además dice para qué día. El tablero vive en el sidebar (admin). */ ?>
             <div class="admin-topbar__actions">
-                <?php if (in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador', 'superadmin'], true)): ?>
-                <a href="/dashboard/suplencias/dashboard" class="admin-btn admin-btn--ghost" title="Estadísticas de suplencias"><i class="fa-solid fa-chart-line"></i> Tablero</a>
-                <?php endif; ?>
-                <a href="/dashboard/suplencias/solicitar" class="admin-btn admin-btn--ghost"><i class="fa-solid fa-hand"></i> Solicitar</a>
-                <?php if ($puedeAgendar): ?>
-                <a href="/dashboard/suplencias/crear" class="admin-topbar__new-btn"><i class="fa-solid fa-plus"></i> Abrir suplencia</a>
-                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
@@ -70,6 +64,55 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
                 </div>
             </div>
 
+            <?php /* ── Calendario ──
+                     Sustituye a los botones que había en el topbar: aquí la acción llega
+                     con la fecha puesta, en vez de obligar a elegirla después. Cualquier
+                     día es pulsable (no solo los que ya tienen ausencias), porque también
+                     sirve para abrir una futura. El badge cuenta las suplencias del día.
+                     Los datos van en isla JSON, no interpolados en el JS. */ ?>
+            <div class="supl-cal-wrap">
+                <div class="bilbao-cal supl-cal" id="suplCal"
+                     data-dias='<?= htmlspecialchars(json_encode($resumenDias ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>'
+                     data-hoy="<?= date('Y-m-d') ?>">
+                    <div class="bilbao-cal__header">
+                        <button type="button" class="bilbao-cal__nav" data-cal-prev aria-label="Mes anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span class="bilbao-cal__month" data-cal-label></span>
+                        <button type="button" class="bilbao-cal__nav" data-cal-next aria-label="Mes siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                    <div class="bilbao-cal__weekdays"><span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span></div>
+                    <div class="bilbao-cal__grid" data-cal-grid></div>
+                </div>
+
+                <?php /* Panel de acciones del día elegido. Las opciones dependen del rol:
+                         abrir una ausencia ajena es de prefectura; solicitar, de cualquiera. */ ?>
+                <div class="supl-cal-side" data-cal-side>
+                    <div class="supl-cal-side__empty" data-cal-empty>
+                        <i class="fa-regular fa-hand-pointer"></i>
+                        <p>Elige un día del calendario para ver sus suplencias o abrir una nueva.</p>
+                    </div>
+
+                    <div class="supl-cal-side__panel" data-cal-panel hidden>
+                        <p class="supl-cal-side__fecha" data-cal-fecha></p>
+                        <p class="supl-cal-side__conteo" data-cal-conteo></p>
+
+                        <div class="supl-cal-side__acts">
+                            <?php if ($puedeAgendar): ?>
+                            <a class="admin-btn admin-btn--primary" data-cal-crear href="/dashboard/suplencias/crear">
+                                <i class="fa-solid fa-plus"></i> Abrir suplencia
+                            </a>
+                            <?php endif; ?>
+                            <a class="admin-btn admin-btn--ghost" data-cal-solicitar href="/dashboard/suplencias/solicitar">
+                                <i class="fa-solid fa-hand"></i> Solicitar
+                            </a>
+                        </div>
+
+                        <button type="button" class="supl-cal-side__reset" data-cal-reset hidden>
+                            <i class="fa-solid fa-xmark"></i> Ver todas las fechas
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <?php
             $estadoOpts = ['' => 'Todos los estados', 'solicitada' => 'Solicitadas', 'agendada' => 'Agendadas', 'por_justificar' => 'Por justificar', 'completada' => 'Completadas', 'cancelada' => 'Canceladas'];
             $estadoSel  = $filtros['estado'] ?? '';
@@ -92,9 +135,11 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
                     </div>
                 </div>
                 <?php /* Datepicker propio en vez de <input type="date">: mismo aspecto en todos
-                         los navegadores. Sin `data-habiles` porque un rango de consulta sí puede
-                         empezar o acabar en fin de semana. El `change` del hidden reenvía el
-                         formulario (lo engancha blog-suplencias-index.js). */ ?>
+                         los navegadores. Aquí `$fechaHabiles = false` a propósito: son los
+                         extremos de un RANGO de consulta, no la fecha de una clase, así que
+                         acotar "del sábado al sábado" es perfectamente legítimo. En crear y
+                         solicitar sí siguen bloqueados los fines de semana.
+                         El `change` del hidden reenvía el formulario (blog-suplencias-index.js). */ ?>
                 <div class="supl-fecha-filtro">
                     <?php
                     $fechaName = 'desde'; $fechaLabel = ''; $fechaHabiles = false;
@@ -137,7 +182,10 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
                             [$bc, $bl] = $badgeEstado[$s->estado] ?? ['supl-badge--warn', ucfirst($s->estado)];
                             $tot = (int)$s->total_horas; $val = (int)$s->horas_validadas;
                         ?>
-                            <tr class="supl-row<?= $i >= 12 ? ' is-hidden' : '' ?>" data-pager-item data-search="<?= htmlspecialchars($hay) ?>">
+                            <?php /* data-fecha: lo usa el calendario para filtrar la tabla al día pulsado */ ?>
+                            <tr class="supl-row<?= $i >= 12 ? ' is-hidden' : '' ?>" data-pager-item
+                                data-fecha="<?= htmlspecialchars($s->fecha) ?>"
+                                data-search="<?= htmlspecialchars($hay) ?>">
                                 <td data-val="<?= htmlspecialchars($s->fecha) ?>">
                                     <div class="supl-date">
                                         <span class="supl-date__tile">

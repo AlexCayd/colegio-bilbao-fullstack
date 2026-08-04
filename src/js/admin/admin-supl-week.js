@@ -50,6 +50,18 @@
      *   selected  array de periodo_id preseleccionados (modo select)
      *   onChange  callback(arrayDeSeleccionados) en modo select
      */
+    /** Elemento donde pintar la leyenda, si el llamador pidió sacarla de la rejilla. */
+    function resolverLegend(opts) {
+        if (!opts.legend) return null;
+        return typeof opts.legend === 'string' ? document.querySelector(opts.legend) : opts.legend;
+    }
+
+    /** ¿La leyenda va dentro de la tarjeta de Alex? Entonces se pinta como texto. */
+    function destinoEsTarjeta(opts) {
+        var el = resolverLegend(opts);
+        return !!(el && el.closest('.admin-helper-card'));
+    }
+
     function render(cont, data, opts) {
         opts = opts || {};
         var mode = opts.mode || 'preview';
@@ -121,19 +133,36 @@
         });
         html += '</tbody></table></div>';
 
+        /* Leyenda del modo select. `opts.legend` la saca de la rejilla y la pinta
+           donde diga el llamador — en crear/solicitar, bajo el tip de Alex de la
+           columna derecha. Sin esa opción se queda dentro de la rejilla, como
+           antes, y el modo preview de agendar no la usa en absoluto.
+           La instrucción genérica ("toca las clases que hay que cubrir") ya la da
+           el tip de Alex: aquí solo va lo que aporta, que es el día concreto. */
+        var legendHtml = '';
         if (mode === 'select') {
             // opts.fechaLabel = "martes 14 de julio"; sin ella se cae al nombre del día
             var cuando = opts.fechaLabel || DIAS_LARGO[dia];
-            html += '<div class="supl-week-legend">'
-                  + '<img src="/build/assets/img/alex/bby-alex-saluda.png" alt="Alex">'
-                  + '<div class="supl-week-legend__txt">'
-                  +   '<strong>Marca las clases que hay que cubrir</strong>'
-                  +   '<span>Toca las del <b>' + esc(cuando) + '</b>. Las de otros días están atenuadas '
-                  +     'y no se pueden seleccionar.</span>'
-                  + '</div>'
-                  + '</div>';
+            if (destinoEsTarjeta(opts)) {
+                // Dentro de la tarjeta de Alex: texto corrido, no una caja dentro de
+                // otra caja. Solo aporta el día concreto; el flujo ya lo cuenta la tarjeta.
+                legendHtml = '<i class="fa-solid fa-hand-pointer"></i> Toca las clases del <b>'
+                           + esc(cuando) + '</b>. Las de otros días están atenuadas.';
+            } else {
+                legendHtml = '<div class="supl-week-legend">'
+                      + '<img src="/build/assets/img/alex/bby-alex-saluda.png" alt="Alex">'
+                      + '<div class="supl-week-legend__txt">'
+                      +   '<strong>Toca las clases del ' + esc(cuando) + '</strong>'
+                      +   '<span>Las de otros días están atenuadas y no se pueden seleccionar.</span>'
+                      + '</div>'
+                      + '</div>';
+            }
         }
-        cont.innerHTML = html;
+
+        var destinoLeyenda = resolverLegend(opts);
+
+        cont.innerHTML = destinoLeyenda ? html : html + legendHtml;
+        if (destinoLeyenda) destinoLeyenda.innerHTML = legendHtml;
 
         if (mode !== 'select') return;
 

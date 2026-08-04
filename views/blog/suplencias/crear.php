@@ -6,8 +6,8 @@
  *  que fuerza origen 'anticipada'. Aquí sí se puede registrar una ausencia "sin aviso". */
 $rolSesion   = $_SESSION['blog_usuario']['rol'] ?? '';
 $tiposSesion = array_filter(array_map('trim', explode(',', (string)($_SESSION['blog_usuario']['tipo_personal'] ?? ''))));
-// Solo prefectura/admin/superadmin pueden registrar una ausencia "sin aviso"
-$puedeSinAviso = in_array($rolSesion, ['administrador', 'superadmin'], true) || in_array('prefecto', $tiposSesion, true);
+// Solo prefectura/admin pueden registrar una ausencia "sin aviso"
+$puedeSinAviso = $rolSesion === 'administrador' || in_array('prefecto', $tiposSesion, true);
 
 $motivoValor = (string)($suplencia->motivo ?? '');
 $fechaValor  = trim((string)($suplencia->fecha ?? '')) ?: date('Y-m-d');
@@ -21,9 +21,6 @@ $fechaValor  = trim((string)($suplencia->fecha ?? '')) ?: date('Y-m-d');
             <div class="admin-topbar__actions">
                 <button type="submit" form="form-crear-supl" class="admin-btn admin-btn--primary"><i class="fa-solid fa-floppy-disk"></i> Crear y agendar</button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
@@ -53,7 +50,14 @@ $fechaValor  = trim((string)($suplencia->fecha ?? '')) ?: date('Y-m-d');
                                     </div>
                                 </div>
 
-                                <?php $fechaLabel = 'Fecha de la ausencia'; include __DIR__ . '/../_campo-fecha.php'; ?>
+                                <?php /* Fin de semana bloqueado (el default de $fechaHabiles): no hay
+                                         clases que cubrir en sábado ni domingo. El calendario del
+                                         listado sí puede prefijar la fecha vía ?fecha=. */ ?>
+                                <?php
+                                $fechaLabel = 'Fecha de la ausencia';
+                                $fechaValor = $fechaPrefijada ?? $fechaValor;
+                                include __DIR__ . '/../_campo-fecha.php';
+                                ?>
                             </div>
 
                             <div class="admin-form-row">
@@ -97,12 +101,12 @@ $fechaValor  = trim((string)($suplencia->fecha ?? '')) ?: date('Y-m-d');
                                 </div>
                                 <div class="admin-form__group">
                                     <label class="admin-form__label"><i class="fa-solid fa-paperclip"></i> Justificante <span style="font-weight:400;color:var(--text-gray);">(opcional)</span></label>
-                                    <label class="admin-file" data-file data-file-max="4">
+                                    <label class="admin-file" data-file data-file-max="<?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?>">
                                         <input type="file" name="justificante" accept="application/pdf,image/jpeg,image/png,image/webp">
                                         <span class="admin-file__ico"><i class="fa-solid fa-paperclip"></i></span>
                                         <span class="admin-file__text">
                                             <span class="admin-file__title" data-file-title>Elige un archivo</span>
-                                            <span class="admin-file__hint" data-file-hint>PDF o imagen · máx. 4 MB</span>
+                                            <span class="admin-file__hint" data-file-hint>PDF o imagen · máx. <?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?> MB</span>
                                         </span>
                                     </label>
                                 </div>
@@ -116,10 +120,16 @@ $fechaValor  = trim((string)($suplencia->fecha ?? '')) ?: date('Y-m-d');
                         </div>
                     </div>
 
+                    <?php /* Un solo tip. Antes había dos bloques seguidos diciendo casi lo
+                             mismo: esta tarjeta y la leyenda que el JS inyectaba aparte.
+                             Ahora admin-supl-week.js escribe dentro de [data-week-legend],
+                             que vive en esta misma tarjeta: sin fecha se lee el flujo
+                             completo; con fecha, el día concreto que hay que tocar. */ ?>
                     <div class="admin-helper-card">
                         <img src="/build/assets/img/alex/bby-alex-piensa.png" alt="Alex" class="admin-helper-card__alex">
                         <h3 class="admin-helper-card__title">Tip de Alex</h3>
                         <p class="admin-helper-card__text">Al elegir al profesor y la fecha aparece su horario: toca las clases que hay que cubrir. En la siguiente pantalla asignarás a los suplentes sugeridos por el sistema.</p>
+                        <p class="admin-helper-card__extra" data-week-legend></p>
                     </div>
                 </div>
             </form>

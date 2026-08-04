@@ -20,7 +20,6 @@
         var lista = sel ? document.querySelector(sel) : pager.previousElementSibling;
         if (!lista) return;
 
-        var per   = parseInt(pager.dataset.pagerPer || '5', 10) || 5;
         var noun  = pager.dataset.pagerNoun || 'elementos';
         var info  = pager.querySelector('[data-pager-info]');
         var prev  = pager.querySelector('[data-pager-prev]');
@@ -29,6 +28,10 @@
         var items = [];
 
         function pintar() {
+            // `per` se relee en cada pintado, no se captura al montar: hay listas que
+            // lo ajustan al alto real de su contenedor (los cumpleaños del home) y
+            // vuelven a llamar a reset() tras cambiarlo.
+            var per   = parseInt(pager.dataset.pagerPer || '5', 10) || 5;
             var pages = Math.max(1, Math.ceil(items.length / per));
             if (page > pages - 1) page = pages - 1;
             if (page < 0) page = 0;

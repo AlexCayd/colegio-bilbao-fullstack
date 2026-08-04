@@ -12,6 +12,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css" integrity="sha512-1sCRPdkRXhBV2PBLUdRb4tMg1w2YPf37qatUFeS7zlBy7jJI8Lf4VHwWfZZfpXtYSLy85pkm9GaYVYMfw5BC1A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/build/css/app.css">
+    <?php /* Guard anti-salto del sidebar.
+             El bundle va con `defer` al final del <body>, así que el estado plegado
+             (localStorage) se leía DESPUÉS del primer pintado: el navegador dibujaba
+             el contenido con el margen de 260px y luego JS lo corregía a 72px, con
+             los 0.28s de transition a la vista en cada carga de página.
+             Este script es síncrono y va antes del primer pintado, así que decide el
+             estado inicial; blog-_sidebar.js sigue mandando al alternar.
+             Es la misma excepción justificada que el guard de i18n en views/layout.php:
+             cualquier cosa que deba correr antes de pintar no puede ir en el bundle. */ ?>
+    <script>
+    (function () {
+        var d = document.documentElement;
+        d.classList.add('no-transition');
+        try {
+            if (window.innerWidth > 1024 && localStorage.getItem('bilbao_sidebar_collapsed') === '1') {
+                d.classList.add('sidebar-boot-collapsed');
+            }
+        } catch (e) { /* modo privado sin localStorage: se queda expandido */ }
+        // Dos frames: el primero aún es el del pintado inicial
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () { d.classList.remove('no-transition'); });
+        });
+    })();
+    </script>
+    <!-- GSAP — mismo CDN y versión que el sitio público (views/templates/header.php).
+         Lo usa src/js/admin/admin-danger.js; todo lo que dependa de él debe
+         comprobar `window.gsap` y degradar sin animación. -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <?php if (!empty($extra_head)) echo $extra_head; ?>
 </head>
 <body class="admin-body"<?= !empty($paginaVista) ? ' data-page="' . htmlspecialchars($paginaVista) . '"' : '' ?>>
@@ -19,7 +47,7 @@
 
 <?php
 // Modal de Alex: avisa de la notificación pendiente más reciente, sea del módulo
-// que sea. Antes solo lo veía el rol `usuario`; ahora también admin y superadmin,
+// que sea. Antes solo lo veía el rol `usuario`; ahora también el admin,
 // que igualmente reciben avisos de suplencias y horarios.
 // El contador ya lo calculó _topbar-avatar.php, así que solo se consulta si hay algo.
 $_alexNotif = null;
@@ -50,8 +78,11 @@ $_enlace = !empty($_alexNotif->enlace) ? $_alexNotif->enlace : null;
             <p class="alex-modal__tipo"><?= $_alexTitulo ?></p>
             <p class="alex-modal__msg"><?= htmlspecialchars($_alexNotif->mensaje) ?></p>
             <div class="alex-modal__actions">
+                <?php /* data-alex-cta: el JS lo engancha para marcar la notificación como
+                         leída ANTES de navegar. Sin eso el modal reaparecía en el destino
+                         con el mismo botón, en bucle. */ ?>
                 <?php if ($_enlace): ?>
-                <a href="<?= htmlspecialchars($_enlace) ?>" class="admin-btn admin-btn--primary alex-modal__cta">
+                <a href="<?= htmlspecialchars($_enlace) ?>" class="admin-btn admin-btn--primary alex-modal__cta" data-alex-cta>
                     Ver detalle
                 </a>
                 <?php endif; ?>

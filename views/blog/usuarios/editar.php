@@ -29,12 +29,6 @@
                     Guardar cambios
                 </button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        Salir
-                    </button>
-                </form>
             </div>
         </header>
 
@@ -129,7 +123,6 @@
                                     $fechaPlaceholder = 'Sin fecha';
                                     include __DIR__ . '/../_campo-fecha.php';
                                     ?>
-                                    <span class="admin-form__hint">Se usa para el calendario de cumpleaños del equipo.</span>
                                     <div class="admin-form__group"><!-- espaciador --></div>
                                 </div>
 
@@ -204,14 +197,13 @@
                             </div>
                         </div>
 
-                        <!-- ROL (solo visible para administradores/superadmin) -->
-                        <?php if (in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador','superadmin'], true)):
+                        <!-- ROL (solo visible para administradores) -->
+                        <?php if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'):
                             $modsSel   = array_filter(array_map('trim', explode(',', (string)($usuario->modulos ?? ''))));
                             $rolActual = $usuario->rol ?? 'usuario';
                             $rolRed    = $usuario->rol_redaccion ?? '';
                             $tiposSel  = array_filter(array_map('trim', explode(',', (string)($usuario->tipo_personal ?? ''))));
                             $puedeSupl = (int)($usuario->puede_suplir ?? 1) === 1;
-                            $soySuper  = ($_SESSION['blog_usuario']['rol'] ?? '') === 'superadmin';
                             include __DIR__ . '/_permisos-fields.php';
                         ?>
                             <div class="admin-form-footer">
@@ -224,23 +216,26 @@
                         </div>
                         <?php endif; ?>
 
-                        <!-- ZONA DE PELIGRO -->
-                        <div class="admin-danger-zone">
+                        <?php /* ZONA DE PELIGRO
+                                 data-danger lo engancha src/js/admin/admin-danger.js, que añade la
+                                 animación con GSAP. Todo el estado visual (rojo, sombra, hover) vive
+                                 en CSS, así que sin GSAP o con prefers-reduced-motion sigue completa. */ ?>
+                        <div class="admin-danger-zone" data-danger>
                             <div class="admin-danger-zone__header">
                                 <i class="fa-solid fa-triangle-exclamation"></i>
                                 <span class="admin-danger-zone__title">Zona de peligro</span>
                             </div>
                             <div class="admin-danger-zone__body">
                                 <div>
-                                    <p style="font-size:0.9rem;font-weight:700;color:var(--col-herencia);margin-bottom:4px;">Eliminar este usuario</p>
+                                    <p class="admin-danger-zone__label">Eliminar este usuario</p>
                                     <p class="admin-danger-zone__desc">
                                         Acción permanente. El usuario perderá acceso al panel y sus datos no se podrán recuperar.
                                     </p>
                                 </div>
-                                <button type="button" class="admin-btn admin-btn--danger"
+                                <button type="button" class="admin-btn admin-btn--danger admin-danger-zone__btn" data-danger-btn
                                     onclick="abrirModalEliminar(<?= (int)$usuario->id ?>, '<?= s(addslashes($usuario->nombre)) ?>')">
-                                    <i class="fa-regular fa-trash-can"></i>
-                                    Eliminar usuario
+                                    <i class="fa-regular fa-trash-can" data-danger-ico></i>
+                                    <span>Eliminar usuario</span>
                                 </button>
                             </div>
                         </div>

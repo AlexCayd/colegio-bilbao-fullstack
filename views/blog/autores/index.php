@@ -19,9 +19,6 @@ $rolActual = $_SESSION['blog_usuario']['rol'] ?? '';
             </div>
             <div class="admin-topbar__actions">
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 

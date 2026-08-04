@@ -26,11 +26,6 @@
                     <i class="fa-solid fa-floppy-disk"></i> Guardar usuario
                 </button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn">
-                        <i class="fa-solid fa-right-from-bracket"></i> Salir
-                    </button>
-                </form>
             </div>
         </header>
 
@@ -148,7 +143,6 @@
                                     $fechaPlaceholder = 'Sin fecha';
                                     include __DIR__ . '/../_campo-fecha.php';
                                     ?>
-                                    <span class="admin-form__hint">Se usa para el calendario de cumpleaños del equipo.</span>
                                     <div class="admin-form__group"><!-- espaciador --></div>
                                 </div>
                             </div>
@@ -233,7 +227,6 @@
                         $rolRed    = $usuario->rol_redaccion ?? '';
                         $tiposSel  = array_filter(array_map('trim', explode(',', (string)($usuario->tipo_personal ?? ''))));
                         $puedeSupl = (int)($usuario->puede_suplir ?? 1) === 1;
-                        $soySuper  = ($_SESSION['blog_usuario']['rol'] ?? '') === 'superadmin';
                         include __DIR__ . '/_permisos-fields.php';
                         ?>
                             <div class="admin-form-footer">

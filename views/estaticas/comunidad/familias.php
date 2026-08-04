@@ -43,20 +43,20 @@ $mesesEs = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','S
         <?php $bg_scene = 'bosque'; $bg_colores = ['#46bdc6', '#4D8ABB', '#7DC6E5', '#374C69', '#F1C400']; include __DIR__ . '/_bg.php'; ?>
         <div class="fam__hero-inner">
             <div class="fam__hero-text" data-fam-reveal>
-                <span class="fam__eyebrow"><i class="fa-solid fa-people-roof"></i> Familias Bilbao</span>
-                <h1 class="fam__title">¡Bienvenidas,<br>familias!</h1>
-                <p class="fam__lead">
+                <span class="fam__eyebrow"><i class="fa-solid fa-people-roof"></i> <span data-i18n="comunidad-familias.eyebrow">Familias Bilbao</span></span>
+                <h1 class="fam__title"><span data-i18n="comunidad-familias.titleA">¡Bienvenidas,</span><br><span data-i18n="comunidad-familias.titleB">familias!</span></h1>
+                <p class="fam__lead" data-i18n="comunidad-familias.lead">
                     Aquí encontrarás los avisos importantes y el calendario del colegio,
                     para que nunca te pierdas de nada.
                 </p>
                 <div class="fam__hero-chips">
-                    <span class="fam__chip"><i class="fa-solid fa-bullhorn"></i> Avisos</span>
-                    <span class="fam__chip"><i class="fa-solid fa-calendar-days"></i> Calendario</span>
+                    <span class="fam__chip"><i class="fa-solid fa-bullhorn"></i> <span data-i18n="comunidad-familias.chipAvisos">Avisos</span></span>
+                    <span class="fam__chip"><i class="fa-solid fa-calendar-days"></i> <span data-i18n="comunidad-familias.chipCal">Calendario</span></span>
                 </div>
             </div>
             <div class="fam__hero-art" data-fam-reveal>
                 <span class="fam__hero-halo"></span>
-                <img src="/build/assets/img/alex/fam-alex-surp.png" alt="Familia Alex" class="fam__hero-img" loading="lazy">
+                <img src="/build/assets/img/alex/fam-alex-surp.png" alt="Familia Alex" data-i18n-attr="alt:comunidad-familias.alexAlt" class="fam__hero-img" loading="lazy">
             </div>
         </div>
     </section>
@@ -64,8 +64,8 @@ $mesesEs = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','S
     <!-- ── AVISOS ───────────────────────────────── -->
     <section class="fam__section">
         <div class="fam__section-head">
-            <h2 class="fam__section-title"><i class="fa-solid fa-bullhorn"></i> Avisos del colegio</h2>
-            <p class="fam__section-sub">Lo último que necesitas saber esta temporada.</p>
+            <h2 class="fam__section-title"><i class="fa-solid fa-bullhorn"></i> <span data-i18n="comunidad-familias.avisosTitle">Avisos del colegio</span></h2>
+            <p class="fam__section-sub" data-i18n="comunidad-familias.avisosSub">Lo último que necesitas saber esta temporada.</p>
         </div>
 
         <div class="fam__avisos">
@@ -92,36 +92,36 @@ $mesesEs = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','S
     <!-- ── CALENDARIO ───────────────────────────── -->
     <section class="fam__section fam__section--cal">
         <div class="fam__section-head">
-            <h2 class="fam__section-title"><i class="fa-solid fa-calendar-days"></i> Calendario escolar</h2>
-            <p class="fam__section-sub">Haz clic en un día marcado para ver los detalles.</p>
+            <h2 class="fam__section-title"><i class="fa-solid fa-calendar-days"></i> <span data-i18n="comunidad-familias.calTitle">Calendario escolar</span></h2>
+            <p class="fam__section-sub" data-i18n="comunidad-familias.calSub">Haz clic en un día marcado para ver los detalles.</p>
         </div>
 
         <div class="fam__cal-wrap">
             <div class="bilbao-cal" id="famCalendar"
                  data-events='<?= htmlspecialchars(json_encode($eventos), ENT_QUOTES) ?>'>
                 <div class="bilbao-cal__header">
-                    <button type="button" class="bilbao-cal__nav" data-cal-prev aria-label="Mes anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button type="button" class="bilbao-cal__nav" data-cal-prev aria-label="Mes anterior" data-i18n-attr="aria-label:comunidad-familias.calPrev"><i class="fa-solid fa-chevron-left"></i></button>
                     <h3 class="bilbao-cal__month" data-cal-label>—</h3>
-                    <button type="button" class="bilbao-cal__nav" data-cal-next aria-label="Mes siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button type="button" class="bilbao-cal__nav" data-cal-next aria-label="Mes siguiente" data-i18n-attr="aria-label:comunidad-familias.calNext"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
                 <div class="bilbao-cal__weekdays">
-                    <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                    <span data-i18n="comunidad-familias.dow.dom">Dom</span><span data-i18n="comunidad-familias.dow.lun">Lun</span><span data-i18n="comunidad-familias.dow.mar">Mar</span><span data-i18n="comunidad-familias.dow.mie">Mié</span><span data-i18n="comunidad-familias.dow.jue">Jue</span><span data-i18n="comunidad-familias.dow.vie">Vie</span><span data-i18n="comunidad-familias.dow.sab">Sáb</span>
                 </div>
                 <div class="bilbao-cal__grid" data-cal-grid></div>
                 <div class="bilbao-cal__legend">
-                    <span class="bilbao-cal__leg" data-type="festivo"><i></i> Festivo</span>
-                    <span class="bilbao-cal__leg" data-type="evento"><i></i> Evento</span>
-                    <span class="bilbao-cal__leg" data-type="junta"><i></i> Junta</span>
-                    <span class="bilbao-cal__leg" data-type="entrega"><i></i> Entrega</span>
-                    <span class="bilbao-cal__leg" data-type="suspension"><i></i> Suspensión</span>
+                    <span class="bilbao-cal__leg" data-type="festivo"><i></i> <span data-i18n="comunidad-familias.leg.festivo">Festivo</span></span>
+                    <span class="bilbao-cal__leg" data-type="evento"><i></i> <span data-i18n="comunidad-familias.leg.evento">Evento</span></span>
+                    <span class="bilbao-cal__leg" data-type="junta"><i></i> <span data-i18n="comunidad-familias.leg.junta">Junta</span></span>
+                    <span class="bilbao-cal__leg" data-type="entrega"><i></i> <span data-i18n="comunidad-familias.leg.entrega">Entrega</span></span>
+                    <span class="bilbao-cal__leg" data-type="suspension"><i></i> <span data-i18n="comunidad-familias.leg.suspension">Suspensión</span></span>
                 </div>
             </div>
 
             <aside class="fam__cal-detail" data-cal-detail>
                 <div class="fam__cal-detail-head">
-                    <h4 class="fam__cal-detail-title">Próximos eventos</h4>
+                    <h4 class="fam__cal-detail-title" data-i18n="comunidad-familias.proximos">Próximos eventos</h4>
                     <button type="button" class="fam__cal-reset" data-cal-reset hidden>
-                        <i class="fa-solid fa-arrow-left"></i> Próximos
+                        <i class="fa-solid fa-arrow-left"></i> <span data-i18n="comunidad-familias.volverProximos">Próximos</span>
                     </button>
                 </div>
                 <ul class="fam__cal-detail-list" data-cal-list></ul>

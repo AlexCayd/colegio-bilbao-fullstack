@@ -52,13 +52,6 @@ $usos = $usos ?? null;
                     <small class="admin-form__hint">Debe ser único. Es el nombre que se busca al importar horarios por CSV.</small>
                 </div>
 
-                <div class="admin-form__group">
-                    <label class="admin-form__label" for="descripcion">Descripción <span class="cat-opt">(opcional)</span></label>
-                    <input type="text" name="descripcion" id="descripcion" class="admin-form__input"
-                           value="<?= s((string)$aula->descripcion) ?>" maxlength="160"
-                           placeholder="Ej. Planta alta, capacidad 30">
-                </div>
-
                 <div class="cat-form__acts">
                     <a href="/dashboard/aulas" class="admin-btn admin-btn--ghost">Cancelar</a>
                     <button type="submit" class="admin-btn admin-btn--primary">

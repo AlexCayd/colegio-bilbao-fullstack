@@ -103,6 +103,25 @@ usa ningún modelo. No construir nada sobre ella.
 Lo normal es re-ejecutar los archivos. Si en algún caso hace falta conservar los
 datos, se aplica el `ALTER` a mano — **no se crea un archivo para ello**.
 
+**Eliminación del rol `superadmin` (julio 2026).** El orden importa: primero el
+`UPDATE`, después el `MODIFY`. Al revés, MySQL trunca los `superadmin` a cadena
+vacía al reducir el ENUM y esas cuentas se quedan sin rol.
+
+```sql
+UPDATE usuarios SET rol = 'administrador' WHERE rol = 'superadmin';
+ALTER TABLE usuarios
+    MODIFY COLUMN rol ENUM('administrador','usuario') NOT NULL DEFAULT 'usuario';
+```
+
+**Catálogos simplificados (julio 2026).** `aulas.descripcion` no aportaba nada al
+horario y `grupos.orden` había que mantenerlo a mano; el orden se deduce ya del
+nivel + el nombre (ver `Grupo::todos()`).
+
+```sql
+ALTER TABLE aulas  DROP COLUMN descripcion;
+ALTER TABLE grupos DROP COLUMN orden;
+```
+
 Ejemplo, el cambio de `notificaciones` a avisos transversales (julio 2026):
 
 ```sql

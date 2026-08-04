@@ -20,9 +20,6 @@
                     <i class="fa-solid fa-plus"></i> Nueva categoría
                 </a>
                 <?php include __DIR__ . '/../../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
@@ -79,8 +76,7 @@
                                         <a href="/dashboard/noticias/categorias/editar?id=<?= (int)$c->id ?>" class="admin-act admin-act--edit" title="Editar categoría">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <?php /* superadmin también: un === 'administrador' lo dejaba fuera */ ?>
-                                        <?php if (in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador', 'superadmin'], true)): ?>
+                                        <?php if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'): ?>
                                         <button
                                             type="button"
                                             class="admin-act admin-act--del"

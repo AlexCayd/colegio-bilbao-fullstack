@@ -384,14 +384,22 @@
 
         &.is-plain { color: #9fb0c4; background: #f8fafc; }
 
+        /* Día con evento: fondo plano y anillo fino. El degradado anterior
+           (linear-gradient 160deg + doble sombra) hacía que cada celda pareciera un
+           botón en relieve y la rejilla entera se leía como un tablero de fichas. */
         &.has-event {
             cursor: pointer;
-            background: linear-gradient(160deg, #e8f1fd 0%, #d6e6fb 100%);
+            background: #eef4fc;
             color: var(--col-bilbao);
             font-weight: 800;
-            box-shadow: inset 0 0 0 1.5px rgba(66, 103, 172, .3), 0 4px 12px -6px rgba(66, 103, 172, .5);
+            box-shadow: inset 0 0 0 1.5px rgba(66, 103, 172, .28);
 
-            &:hover { transform: translateY(-4px) scale(1.06); box-shadow: inset 0 0 0 1.5px var(--col-bilbao), 0 10px 20px -8px rgba(66, 103, 172, .6); }
+            /* El hover ya no desplaza ni escala: con `translateY(-4px) scale(1.06)`
+               la celda invadía a sus vecinas y la rejilla parecía saltar. */
+            &:hover {
+                background: #e2ecfa;
+                box-shadow: inset 0 0 0 2px var(--col-bilbao);
+            }
         }
 
         &.is-today {
@@ -399,10 +407,17 @@
             color: var(--cal-evento);
         }
 
+        /* Hoy Y con evento: antes `is-today` pisaba el anillo de `has-event` por
+           orden de fuente y el día perdía la marca de que tenía algo. Se combinan. */
+        &.is-today.has-event {
+            box-shadow: inset 0 0 0 2px var(--cal-evento), inset 0 0 0 4px #fff;
+            color: var(--cal-evento);
+        }
+
         &.is-active {
             background: var(--col-bilbao);
             color: #fff;
-            transform: translateY(-3px) scale(1.04);
+            box-shadow: inset 0 0 0 1.5px var(--col-bilbao);
         }
     }
 

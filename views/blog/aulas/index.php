@@ -35,15 +35,6 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
             </div>
             <?php endif; ?>
 
-            <div class="cat-intro">
-                <img src="/build/assets/img/alex/alex-point.png" alt="Alex">
-                <div>
-                    <strong>Catálogo de espacios</strong>
-                    <span>Las aulas alimentan el horario y las suplencias. Al renombrar una, el cambio
-                          se refleja en todas las clases que la usan.</span>
-                </div>
-            </div>
-
             <div class="admin-panel">
                 <div class="admin-panel__header">
                     <h2 class="admin-panel__title">
@@ -63,11 +54,18 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                 </div>
                 <?php else: ?>
                 <div class="admin-table-scroll">
-                    <table class="admin-table" data-table data-table-per="12" data-table-noun="aulas">
+                    <?php /* --cat reparte los anchos a mano: con solo tres columnas de
+                             contenido corto el algoritmo automático volcaba toda la holgura
+                             en la primera y la tabla se veía medio vacía. */ ?>
+                    <table class="admin-table admin-table--cat" data-table data-table-per="12" data-table-noun="aulas">
+                        <colgroup>
+                            <col class="admin-table__col--main">
+                            <col class="admin-table__col--dato">
+                            <col class="admin-table__col--acts">
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th data-sort="text">Aula</th>
-                                <th data-sort="text">Descripción</th>
                                 <th data-sort="num">Clases asignadas</th>
                                 <th>Acciones</th>
                             </tr>
@@ -78,7 +76,6 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                                 <td data-val="<?= s($a->nombre) ?>">
                                     <div class="cat-name"><i class="fa-solid fa-door-open"></i> <?= s($a->nombre) ?></div>
                                 </td>
-                                <td class="cat-desc"><?= $a->descripcion ? s($a->descripcion) : '<span class="cat-nil">—</span>' ?></td>
                                 <td data-val="<?= $uso ?>">
                                     <?php if ($uso): ?>
                                         <span class="admin-badge admin-badge--published"><?= $uso ?></span>
@@ -88,6 +85,11 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                                 </td>
                                 <td>
                                     <div class="admin-table__actions">
+                                        <?php /* Ver en qué horas está ocupada el aula: es lo que hace falta
+                                                 para saber cuándo se puede usar por un caso especial. */ ?>
+                                        <a href="/dashboard/horarios/aula?id=<?= (int)$a->id ?>" class="admin-act admin-act--horario" title="Ver horario del aula">
+                                            <i class="fa-regular fa-calendar"></i>
+                                        </a>
                                         <a href="/dashboard/aulas/editar?id=<?= (int)$a->id ?>" class="admin-act admin-act--edit" title="Editar aula">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>

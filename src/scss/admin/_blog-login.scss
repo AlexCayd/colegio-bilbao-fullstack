@@ -1,8 +1,340 @@
 /* =========================================================
-   blog-login
-   Migrado desde el <style> embebido de views/blog/login.php
+   blog-login — pantalla única con el bosque Three.js de fondo
+   y el formulario centrado en una tarjeta de cristal.
+
+   El bosque (src/js/public/forest.js) se pinta en paleta OSCURA: el panel no
+   tiene selector de tema y sobre fondo oscuro el cristal se lee mucho mejor.
+   Si no hay WebGL o el usuario pidió menos movimiento, el canvas queda
+   transparente y se ve el gradiente de respaldo de .admin-login.
 ========================================================= */
 body[data-page="blog-login"] {
-    .admin-form__eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;padding:6px;line-height:1;font-size:.9rem;}
-    .admin-form__eye-btn:hover{color:#4267ac;}
+
+    /* La pantalla no scrollea: es un único bloque a pantalla completa */
+    &.admin-body { overflow: hidden; }
+
+    .admin-login {
+        position: relative;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 28px 20px;
+        overflow: hidden;
+        /* Respaldo sin WebGL: mismo azul profundo al que tiende la niebla */
+        background: radial-gradient(circle at 50% 18%, #12304d 0%, #081320 62%, #050c15 100%);
+    }
+
+    .admin-login__canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* Velo: garantiza el contraste del texto pase lo que pase con la escena,
+       y oscurece los bordes para que la tarjeta destaque en el centro. */
+    .admin-login__veil {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background:
+            radial-gradient(ellipse at 50% 45%, rgba(8, 19, 32, .35) 0%, rgba(5, 12, 21, .82) 78%),
+            linear-gradient(180deg, rgba(5, 12, 21, .45) 0%, transparent 30%, rgba(5, 12, 21, .6) 100%);
+    }
+
+    /* ── Tarjeta de cristal ── */
+    .admin-login__card {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        max-width: 452px;
+        padding: 22px 42px 26px;
+        border-radius: 26px;
+        text-align: center;
+
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .18);
+        -webkit-backdrop-filter: blur(18px) saturate(150%);
+        backdrop-filter: blur(18px) saturate(150%);
+        box-shadow:
+            0 30px 70px -20px rgba(0, 0, 0, .6),
+            inset 0 1px 0 rgba(255, 255, 255, .22);
+
+        /* .admin-body lleva `overflow: hidden` para que el bosque no genere scroll,
+           así que en una pantalla baja la tarjeta se recortaría sin remedio: aquí
+           se le da su propio scroll como red de seguridad. */
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+
+        /* Brillo superior, como la luz que atraviesa el bosque */
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto;
+            height: 45%;
+            border-radius: 26px 26px 0 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, .10), transparent);
+            pointer-events: none;
+        }
+
+        @media (max-width: 480px) { padding: 22px 22px 22px; }
+    }
+
+    /* Sin backdrop-filter (Firefox antiguo, algunos móviles) el cristal se ve
+       como un panel casi transparente e ilegible: se compensa con opacidad. */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .admin-login__card { background: rgba(9, 22, 38, .88); }
+    }
+
+    /* El logo institucional solo existe en azul: se blanquea por filtro. */
+    .admin-login__logo {
+        height: 128px;
+        width: auto;
+        margin: 0 auto;
+        filter: brightness(0) invert(1);
+        opacity: 1;
+
+        @media (max-width: 480px) { height: 96px; }
+    }
+
+    /* ── Jerarquía ──
+       Tres niveles bien separados (título · subtítulo · formulario) en vez de la
+       escala plana anterior, donde h1, sub y labels pesaban casi lo mismo. */
+    .admin-login__heading {
+        font-size: 1.95rem;
+        font-weight: 900;
+        color: #fff;
+        letter-spacing: -.035em;
+        line-height: 1.05;
+        margin-bottom: 7px;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, .45);
+
+        @media (max-width: 480px) { font-size: 1.65rem; }
+    }
+
+    .admin-login__sub {
+        /* Baja de .78 a .62: es apoyo del título, no un segundo mensaje.
+           Sobre el velo sigue pasando AA. */
+        color: rgba(255, 255, 255, .62);
+        font-size: .84rem;
+        line-height: 1.55;
+        max-width: 30ch;
+        margin: 0 auto 18px;
+    }
+
+    /* ── Formulario sobre cristal ──
+       Los .admin-form__* del panel están pensados para fondo blanco: aquí se
+       reescriben en clave oscura sin tocar los del resto de vistas. */
+    form { text-align: left; }
+
+    .admin-form__group { margin-bottom: 12px; }
+
+    /* Etiqueta en clave de metadato: pequeña, en versalitas y con menos peso
+       visual que el input al que acompaña. */
+    .admin-form__label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255, 255, 255, .58);
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        margin-bottom: 7px;
+
+        i { color: #7DC6E5; font-size: .78rem; }
+    }
+
+    /* La etiqueta acompaña el foco de su campo: se enciende cuando escribes ahí */
+    .admin-form__group:has(.admin-form__input:focus) .admin-form__label {
+        color: #A6DCF0;
+
+        i { color: #A6DCF0; transform: scale(1.12); }
+    }
+    .admin-form__label i { transition: color .18s ease, transform .18s ease; }
+
+    /* El wrapper era un bloque, así que el hueco de línea que deja el input
+       inline-block añadía unos píxeles por abajo y descentraba el ojo, que se
+       posiciona contra este contenedor. Como flex, su alto es el del input. */
+    .admin-form__input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        /* ── Haz de foco ──
+           Barra que se despliega desde el centro al enfocar. Va en el wrapper y no
+           en el input para no competir con su borde ni con el anillo de foco. */
+        &::after {
+            content: '';
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: -1px;
+            height: 2px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, transparent, #7DC6E5, transparent);
+            transform: scaleX(0);
+            opacity: 0;
+            transition: transform .28s cubic-bezier(.2, .8, .2, 1), opacity .2s ease;
+            pointer-events: none;
+        }
+
+        &:has(.admin-form__input:focus)::after {
+            transform: scaleX(1);
+            opacity: 1;
+        }
+
+        /* Pulso al teclear: lo marca blog-login.js en cada `input` y se retira sola
+           tras la última pulsación, así el campo "responde" mientras escribes. */
+        &.is-typing::after { animation: login-teclea .45s ease-out; }
+    }
+
+    .admin-form__input {
+        width: 100%;
+        height: 48px;
+        padding: 0 16px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .07);
+        border: 1.5px solid rgba(255, 255, 255, .2);
+        color: #fff;
+        font-family: 'Outfit', sans-serif;
+        font-size: .92rem;
+        transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+
+        &::placeholder { color: rgba(255, 255, 255, .42); }
+
+        &:focus {
+            outline: none;
+            border-color: #7DC6E5;
+            background: rgba(255, 255, 255, .12);
+            /* Anillo fino: sobre el cristal, un halo de 4px se leía como sombra
+               difusa y ensuciaba el formulario. */
+            box-shadow: 0 0 0 3px rgba(125, 198, 229, .12);
+        }
+
+        /* El autofill de Chrome pinta un fondo blanco opaco que rompe el cristal */
+        &:-webkit-autofill,
+        &:-webkit-autofill:hover,
+        &:-webkit-autofill:focus {
+            -webkit-text-fill-color: #fff;
+            -webkit-box-shadow: 0 0 0 1000px rgba(18, 41, 66, .96) inset;
+            caret-color: #fff;
+            transition: background-color 9999s ease-in-out 0s;
+        }
+    }
+
+    .admin-form__input-wrapper.is-error .admin-form__input {
+        border-color: #ff8a8a;
+        background: rgba(229, 16, 34, .12);
+    }
+
+    /* Hueco para el ojo: antes era un style="padding-right:44px" inline */
+    .admin-form__input-wrapper.has-eye .admin-form__input { padding-right: 50px; }
+
+    /* Centrado con top/bottom + margin auto en vez de translateY(-50%): así el
+       botón se centra por su caja real y no depende del line-height del icono. */
+    .admin-form__eye-btn {
+        position: absolute;
+        right: 9px;
+        top: 0;
+        bottom: 0;
+        margin: auto 0;
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border: none;
+        border-radius: 9px;
+        background: none;
+        cursor: pointer;
+        color: rgba(255, 255, 255, .5);
+        font-size: .9rem;
+        transition: color .15s ease, background .15s ease;
+
+        &:hover { color: #7DC6E5; background: rgba(255, 255, 255, .08); }
+        &:focus-visible { outline: 2px solid #7DC6E5; outline-offset: 1px; }
+    }
+
+    .admin-form__submit {
+        width: 100%;
+        height: 48px;
+        margin-top: 6px;
+        padding: 0 20px;
+        border: none;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        background: linear-gradient(135deg, #4D8ABB, #7DC6E5);
+        color: #06182b;
+        font-family: 'Outfit', sans-serif;
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: -.01em;
+        cursor: pointer;
+        box-shadow: 0 8px 20px -12px rgba(125, 198, 229, .75);
+        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.06);
+            box-shadow: 0 12px 26px -14px rgba(125, 198, 229, .9);
+        }
+        &:active { transform: translateY(0); }
+    }
+
+    /* Separado del CTA por una línea: es una salida, no una alternativa al login */
+    .admin-form__back {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, .12);
+        font-size: .8rem;
+        color: rgba(255, 255, 255, .45);
+
+        i { font-size: .72rem; }
+
+        a {
+            color: rgba(255, 255, 255, .7);
+            text-decoration: none;
+            font-weight: 600;
+
+            &:hover { color: #7DC6E5; text-decoration: underline; }
+        }
+    }
+
+    /* Alerta inline en clave oscura (la base es para fondo blanco) */
+    .admin-login-alerta {
+        background: rgba(229, 16, 34, .16);
+        border-color: rgba(255, 138, 138, .45);
+        color: #ffc9c9;
+        text-align: left;
+
+        button { color: #ffc9c9; }
+    }
+
+    /* Menos movimiento: el canvas ni se inicia (lo decide forest.js), pero además
+       se apagan el shake de error y la reacción al teclear. El haz de foco se
+       queda —es un cambio de estado, no una animación— pero sin transición. */
+    @media (prefers-reduced-motion: reduce) {
+        .admin-login__card.has-shake { animation: none; }
+        .admin-form__input-wrapper.is-typing::after { animation: none; }
+        .admin-form__input-wrapper::after { transition: none; }
+    }
+}
+
+/* Fuera del scope de página: los @keyframes son globales */
+@keyframes login-teclea {
+    0%   { transform: scaleX(1);    filter: brightness(1); }
+    35%  { transform: scaleX(1.04); filter: brightness(1.7); }
+    100% { transform: scaleX(1);    filter: brightness(1); }
 }

@@ -25,7 +25,7 @@
             function render() {
                 const y = view.getFullYear(), m = view.getMonth();
                 label.textContent = MESES[m] + ' ' + y;
-                let fd = new Date(y, m, 1).getDay(); fd = (fd === 0) ? 6 : fd - 1;
+                const fd = new Date(y, m, 1).getDay();   // domingo = 0
                 const days = new Date(y, m + 1, 0).getDate();
                 grid.innerHTML = '';
                 for (let i = 0; i < fd; i++) { const b = document.createElement('span'); b.className = 'bilbao-cal__cell bilbao-cal__cell--empty'; grid.appendChild(b); }
@@ -50,13 +50,55 @@
                     } else { cell.disabled = true; cell.classList.add('is-plain'); }
                     grid.appendChild(cell);
                 }
+                if (window.BilbaoCalAnim) window.BilbaoCalAnim.entrada(grid);
             }
             root.querySelector('[data-cal-prev]').addEventListener('click', () => { view.setMonth(view.getMonth() - 1); render(); });
             root.querySelector('[data-cal-next]').addEventListener('click', () => { view.setMonth(view.getMonth() + 1); render(); });
             render();
         }
 
-        // La paginación de cumpleaños la monta el módulo compartido admin-pager.js
-        // a partir de [data-pager] en la vista.
+        /* ── Cuántos cumpleaños caben en la columna ──
+           La monta admin-pager.js a partir de [data-pager]; aquí solo se ajusta
+           `data-pager-per` al alto REAL disponible. La altura de esta columna la
+           fija el calendario de al lado (celdas cuadradas, depende del ancho), así
+           que no se puede acertar con un número fijo: con 10 sobraba hueco y la
+           lista quedaba desparramada. */
+        (function () {
+            const lista = document.getElementById('mhBdayList');
+            const pager = document.getElementById('mhPager');
+            if (!lista || !pager || !window.AdminPager) return;
+
+            const cuerpo = lista.parentElement;   // .mh-panel__body
+
+            function ajustar() {
+                const item = lista.querySelector('[data-pager-item]');
+                if (!item) return;
+
+                // Se mide sobre un elemento visible; si la página actual los oculta
+                // todos, no hay nada fiable que medir y se deja como está.
+                const alto = item.getBoundingClientRect().height;
+                if (!alto) return;
+
+                const gap  = parseFloat(getComputedStyle(lista).rowGap) || 0;
+                // El alto disponible es el del cuerpo menos su padding vertical.
+                const cs   = getComputedStyle(cuerpo);
+                const util = cuerpo.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+                if (util <= 0) return;
+
+                const caben = Math.max(3, Math.floor((util + gap) / (alto + gap)));
+                if (String(caben) === pager.dataset.pagerPer) return;   // sin cambios
+
+                pager.dataset.pagerPer = String(caben);
+                window.AdminPager.reset(pager);
+            }
+
+            ajustar();
+
+            let t;
+            window.addEventListener('resize', function () {
+                clearTimeout(t);
+                t = setTimeout(ajustar, 150);
+            });
+        })();
     })();
 })();

@@ -42,13 +42,23 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
             </div>
             <?php endif; ?>
 
-            <div class="cat-intro">
-                <img src="/build/assets/img/alex/alex-lee.png" alt="Alex">
-                <div>
-                    <strong>Catálogo de grupos</strong>
-                    <span>El campo <em>orden</em> fija la secuencia académica (Maternal → Bachillerato):
-                          ordenar por nivel saldría alfabético y descolocaría los listados.</span>
-                </div>
+            <?php /* Tabs de nivel a ancho completo. Filtran la tabla en cliente marcando
+                     las filas descartadas con `is-filtered` y repaginando — el mismo patrón
+                     que usan los buscadores del resto del panel. */ ?>
+            <?php
+            $porNivel = [];
+            foreach ($grupos as $g) { $porNivel[$g->nivel] = ($porNivel[$g->nivel] ?? 0) + 1; }
+            ?>
+            <div class="cat-tabs" data-nivel-tabs>
+                <button type="button" class="cat-tab is-active" data-nivel="">
+                    Todos <span class="cat-tab__n"><?= $total ?></span>
+                </button>
+                <?php foreach (\Model\Grupo::NIVELES as $niv): $n = $porNivel[$niv] ?? 0; ?>
+                <button type="button" class="cat-tab" data-nivel="<?= s($niv) ?>"
+                        style="--c:<?= $nivelColor[$niv] ?? '#94a3b8' ?>;"<?= $n ? '' : ' disabled' ?>>
+                    <?= s($niv) ?> <span class="cat-tab__n"><?= $n ?></span>
+                </button>
+                <?php endforeach; ?>
             </div>
 
             <div class="admin-panel">
@@ -70,10 +80,16 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                 </div>
                 <?php else: ?>
                 <div class="admin-table-scroll">
-                    <table class="admin-table" data-table data-table-per="12" data-table-noun="grupos">
+                    <?php /* --cat reparte los anchos a mano: ver la nota en aulas/index.php */ ?>
+                    <table class="admin-table admin-table--cat" data-table data-table-per="12" data-table-noun="grupos">
+                        <colgroup>
+                            <col class="admin-table__col--main">
+                            <col class="admin-table__col--dato">
+                            <col class="admin-table__col--dato">
+                            <col class="admin-table__col--acts">
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th data-sort="num">Orden</th>
                                 <th data-sort="text">Grupo</th>
                                 <th data-sort="text">Nivel</th>
                                 <th data-sort="num">Clases asignadas</th>
@@ -82,8 +98,7 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                         </thead>
                         <tbody>
                         <?php foreach ($grupos as $i => $g): $uso = (int)$g->total_horarios; $col = $nivelColor[$g->nivel] ?? '#94a3b8'; ?>
-                            <tr data-pager-item<?= $i >= 12 ? ' class="is-hidden"' : '' ?>>
-                                <td data-val="<?= (int)$g->orden ?>"><span class="cat-orden"><?= (int)$g->orden ?></span></td>
+                            <tr data-pager-item data-nivel="<?= s($g->nivel) ?>"<?= $i >= 12 ? ' class="is-hidden"' : '' ?>>
                                 <td data-val="<?= s($g->nombre) ?>">
                                     <div class="cat-name"><i class="fa-solid fa-layer-group"></i> <?= s($g->nombre) ?></div>
                                 </td>
@@ -99,6 +114,9 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                                 </td>
                                 <td>
                                     <div class="admin-table__actions">
+                                        <a href="/dashboard/horarios/grupo?id=<?= (int)$g->id ?>" class="admin-act admin-act--horario" title="Ver horario del grupo">
+                                            <i class="fa-regular fa-calendar"></i>
+                                        </a>
                                         <a href="/dashboard/grupos/editar?id=<?= (int)$g->id ?>" class="admin-act admin-act--edit" title="Editar grupo">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>

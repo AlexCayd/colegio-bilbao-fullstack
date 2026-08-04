@@ -45,9 +45,6 @@ $estadoBadge = $badgeMap[$articulo->estado ?? 'borrador'] ?? $badgeMap['borrador
                 </a>
                 <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 

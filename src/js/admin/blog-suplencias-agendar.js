@@ -7,6 +7,22 @@
     var main = document.querySelector('.admin-content[data-fecha]');
     if (!main) return;
 
+    /* Modal de "Aprobar y eliminar justificante". El borrado es irreversible y el
+       archivo es un parte médico, así que se confirma y se ofrece la descarga
+       dentro del propio modal. */
+    (function () {
+        var modal = document.getElementById('justifModal');
+        if (!modal) return;
+        var abrir = document.querySelector('[data-justif-abrir]');
+        if (abrir) abrir.addEventListener('click', function () { modal.hidden = false; });
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal || e.target.closest('[data-justif-cancel]')) modal.hidden = true;
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !modal.hidden) modal.hidden = true;
+        });
+    })();
+
     var fecha        = main.dataset.fecha;
     var ausente      = main.dataset.ausente || '0';
     var puedeAgendar = main.dataset.puedeAgendar === '1';

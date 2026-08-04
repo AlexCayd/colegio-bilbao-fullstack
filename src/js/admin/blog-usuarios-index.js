@@ -55,5 +55,78 @@
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarModalEliminar(); });
     })();
 
+    /* ── Buscador ──
+       Un solo input para las tres tablas (administradores · profesores ·
+       administrativos y prefectura). Filtra con `is-filtered` en vez de `hidden`
+       porque es lo que admin-table.js sabe recontar: las filas filtradas pierden
+       `data-pager-item` y la paginación deja de contarlas. */
+    (function () {
+        const input = document.querySelector('[data-usr-buscar]');
+        if (!input) return;
+
+        const limpiar  = document.querySelector('[data-usr-limpiar]');
+        const resumen  = document.querySelector('[data-usr-resumen]');
+        const paneles  = Array.prototype.map.call(
+            document.querySelectorAll('[data-usr-panel]'),
+            function (panel) {
+                return {
+                    filas:  panel.querySelectorAll('[data-usr-row]'),
+                    tabla:  panel.querySelector('[data-table]'),
+                    cuenta: panel.querySelector('[data-usr-count]'),
+                    vacio:  panel.querySelector('[data-usr-empty]')
+                };
+            }
+        );
+        if (!paneles.length) return;
+
+        /** Quita acentos para que "Perez" encuentre a "Pérez". */
+        function normalizar(s) {
+            return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+        }
+
+        function filtrar() {
+            // Varios términos = todos deben aparecer, en cualquier orden y campo.
+            const terminos = normalizar(input.value).split(/\s+/).filter(Boolean);
+            const activo   = terminos.length > 0;
+            let total = 0;
+
+            paneles.forEach(function (p) {
+                let visibles = 0;
+
+                Array.prototype.forEach.call(p.filas, function (fila) {
+                    const heno  = normalizar(fila.dataset.buscar || '');
+                    const match = !activo || terminos.every(function (t) { return heno.indexOf(t) !== -1; });
+                    fila.classList.toggle('is-filtered', !match);
+                    if (match) visibles++;
+                });
+
+                total += visibles;
+                if (p.cuenta) p.cuenta.textContent = visibles;
+                if (p.vacio)  p.vacio.hidden = visibles > 0;
+                if (p.tabla)  p.tabla.closest('.admin-table-scroll').hidden = visibles === 0;
+                if (p.tabla && window.AdminTable) window.AdminTable.refrescar(p.tabla);
+            });
+
+            if (limpiar) limpiar.hidden = !activo;
+            if (resumen) {
+                resumen.hidden = !activo;
+                resumen.textContent = total === 1
+                    ? '1 persona coincide con la búsqueda.'
+                    : total + ' personas coinciden con la búsqueda.';
+            }
+        }
+
+        input.addEventListener('input', filtrar);
+        input.addEventListener('search', filtrar);   // la "x" nativa de type="search"
+
+        if (limpiar) {
+            limpiar.addEventListener('click', function () {
+                input.value = '';
+                filtrar();
+                input.focus();
+            });
+        }
+    })();
+
     // El toast de Alex lo lleva admin-toast.js (#alexToast)
 })();

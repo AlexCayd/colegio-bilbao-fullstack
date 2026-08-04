@@ -3,12 +3,11 @@ namespace Model;
 
 class Grupo extends ActiveRecord {
     protected static $tabla      = 'grupos';
-    protected static $columnasDB = ['id', 'nombre', 'nivel', 'orden'];
+    protected static $columnasDB = ['id', 'nombre', 'nivel'];
 
     public $id;
     public $nombre;
     public $nivel;
-    public $orden;
 
     /** Alias de conteo (no es columna: hay que declararlo o crearObjeto() lo descarta). */
     public $total_horarios;
@@ -16,10 +15,14 @@ class Grupo extends ActiveRecord {
     /** Mismo ENUM que `materias.nivel`. */
     public const NIVELES = ['Maternal', 'Kinder', 'Primaria', 'Secundaria', 'Bachillerato'];
 
-    /** Todos en secuencia académica (Maternal → Bachillerato). */
+    /**
+     * Todos en secuencia académica (Maternal → Bachillerato) y, dentro de cada
+     * nivel, alfabéticamente. Antes había una columna `orden` que había que
+     * mantener a mano; el orden se deduce ya del nivel + el nombre.
+     */
     public static function todos(): array {
         return static::consultarSQL(
-            "SELECT * FROM grupos ORDER BY orden ASC, " . Materia::ordenNivel() . ", nombre ASC"
+            "SELECT * FROM grupos ORDER BY " . Materia::ordenNivel() . ", nombre ASC"
         );
     }
 
@@ -39,7 +42,7 @@ class Grupo extends ActiveRecord {
             FROM grupos g
             LEFT JOIN horarios h ON h.grupo_id = g.id
             GROUP BY g.id
-            ORDER BY g.orden ASC, " . Materia::ordenNivel() . ", g.nombre ASC
+            ORDER BY " . Materia::ordenNivel('g.nivel') . ", g.nombre ASC
         ");
     }
 
@@ -53,17 +56,10 @@ class Grupo extends ActiveRecord {
         ];
     }
 
-    /** Siguiente hueco en la secuencia, para sugerirlo al crear. */
-    public static function siguienteOrden(): int {
-        $r = self::$db->query("SELECT COALESCE(MAX(orden), 0) + 1 AS n FROM grupos");
-        return (int) ($r?->fetch_assoc()['n'] ?? 1);
-    }
-
     public function validar() {
         static::$alertas = [];
 
         $this->nombre = trim((string) $this->nombre);
-        $this->orden  = (int) $this->orden;
 
         if ($this->nombre === '') {
             self::setAlerta('error', 'El nombre del grupo es obligatorio');
@@ -75,11 +71,6 @@ class Grupo extends ActiveRecord {
 
         if (!in_array($this->nivel, self::NIVELES, true)) {
             self::setAlerta('error', 'Elige un nivel académico válido');
-        }
-
-        // `orden` fija la secuencia académica: ordenar por `nivel` saldría alfabético
-        if ($this->orden < 1 || $this->orden > 999) {
-            self::setAlerta('error', 'El orden debe estar entre 1 y 999');
         }
 
         return static::$alertas;

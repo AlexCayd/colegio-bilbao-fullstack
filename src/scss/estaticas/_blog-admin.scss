@@ -10,157 +10,11 @@
 
 /* =====================================================
    LOGIN PAGE
+   El diseño vive en src/scss/admin/_blog-login.scss, con scope
+   body[data-page="blog-login"]: la pantalla usa el bosque Three.js a pantalla
+   completa y no comparte nada con el resto del panel. Aquí solo quedan las
+   piezas que sí se reutilizan (.admin-form__*, el shake y la alerta inline).
 ===================================================== */
-
-.admin-login {
-    height: 100vh;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 1fr;
-
-    @media (min-width: 900px) {
-        grid-template-columns: 55% 45%;
-    }
-}
-
-.admin-login__brand {
-    background: linear-gradient(140deg, var(--col-herencia) 0%, var(--col-bilbao) 100%);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 44px 40px;
-    color: white;
-    position: relative;
-    overflow: hidden;
-    height: 100%;
-
-    @media (min-width: 900px) {
-        display: flex;
-    }
-
-    &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1.5px, transparent 1.5px);
-        background-size: 28px 28px;
-        pointer-events: none;
-    }
-
-    &::after {
-        content: '';
-        position: absolute;
-        bottom: -80px;
-        right: -80px;
-        width: 320px;
-        height: 320px;
-        border-radius: 50%;
-        background: rgba(125, 198, 229, 0.12);
-        pointer-events: none;
-    }
-}
-
-.admin-login__brand-content {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    max-width: 420px;
-}
-
-.admin-login__brand-logo {
-    height: 48px;
-    width: auto;
-    margin: 0 auto 18px;
-    filter: brightness(0) invert(1);
-    opacity: 0.92;
-}
-
-.admin-login__brand-alex {
-    width: 190px;
-    margin: 0 auto 18px;
-    filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.25));
-}
-
-.admin-login__brand-title {
-    font-size: 1.65rem;
-    font-weight: 900;
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-    margin-bottom: 10px;
-}
-
-.admin-login__brand-sub {
-    font-size: 0.92rem;
-    opacity: 0.75;
-    line-height: 1.7;
-}
-
-/* FORM SIDE */
-.admin-login__form-side {
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 20px;
-    height: 100%;
-    overflow-y: auto;
-
-    @media (min-width: 900px) {
-        padding: 40px 60px;
-    }
-}
-
-.admin-login__card {
-    width: 100%;
-    max-width: 400px;
-}
-
-.admin-login__logo-mobile {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-
-    @media (min-width: 900px) {
-        display: none;
-    }
-
-    img {
-        height: 40px;
-        width: auto;
-    }
-}
-
-.admin-login__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 12px;
-    border-radius: 999px;
-    background: rgba(77, 138, 187, 0.08);
-    color: var(--col-bilbao);
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 8px;
-}
-
-.admin-login__heading {
-    font-size: 1.8rem;
-    font-weight: 900;
-    color: var(--col-herencia);
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-    margin-bottom: 6px;
-}
-
-.admin-login__sub {
-    color: var(--text-gray);
-    font-size: 0.88rem;
-    line-height: 1.65;
-    margin-bottom: 18px;
-}
 
 .admin-form__group {
     margin-bottom: 14px;
@@ -499,6 +353,100 @@
     }
 }
 
+/* ── Acordeón de módulos ──
+   El sidebar es permanente: siempre están todos los módulos y el activo se
+   despliega. `is-current` es la señal de "estás aquí" a nivel de módulo; el
+   `active` del sublink lo es a nivel de página. Los pinta views/blog/_sidebar.php
+   desde blog_modulos_subnav(), y el JS es src/js/admin/admin-sidebar-nav.js. */
+.admin-nav__mod {
+    position: relative;
+    margin-bottom: 2px;
+
+    /* Barra de acento del módulo en el que estás */
+    &.is-current > .admin-nav__toggle {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.06);
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: var(--col-espiritu);
+        }
+    }
+}
+
+/* El toggle es un <button>: hay que neutralizar los estilos de formulario */
+.admin-nav__toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: 'Outfit', sans-serif;
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-nav__caret {
+    margin-left: auto;
+    font-size: 0.62rem !important;
+    width: auto !important;
+    opacity: 0.5;
+    transition: transform 0.2s ease;
+}
+.admin-nav__toggle[aria-expanded="true"] .admin-nav__caret { transform: rotate(180deg); }
+
+/* Submenú: sangrado con guía vertical, para que se lea como dependiente */
+.admin-nav__sub {
+    margin: 2px 0 6px 22px;
+    padding-left: 10px;
+    border-left: 1.5px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+
+    /* Obligatorio: el `display:flex` de arriba gana al `display:none` que el
+       navegador aplica por el atributo `hidden`, así que sin esta regla TODOS los
+       acordeones se pintaban abiertos aunque el servidor los marcara cerrados. */
+    &[hidden] { display: none; }
+}
+
+.admin-nav__sublink {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-decoration: none;
+    transition: background var(--transition-fast), color var(--transition-fast);
+
+    i { font-size: 0.75rem; width: 15px; text-align: center; flex-shrink: 0; opacity: 0.8; }
+
+    &:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+
+    &.active {
+        background: var(--col-bilbao);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(77, 138, 187, 0.38);
+
+        i { opacity: 1; }
+    }
+}
+
+/* Bloque final: notificaciones + salida al sitio público */
+.admin-nav__section--fin {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.admin-nav__link--salida { color: rgba(255, 255, 255, 0.45); }
+
 .admin-sidebar__alex {
     padding: 20px 20px 24px;
     border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -582,6 +530,22 @@
         i { width: auto; font-size: 1.05rem; }
     }
 
+    /* Plegado no hay ancho para submenús ni chevrones: solo el icono del módulo.
+       Pulsarlo expande el sidebar y abre su acordeón (admin-sidebar-nav.js), así
+       que la navegación no se pierde, solo se aplaza un clic. */
+    .admin-nav__sub,
+    .admin-nav__caret {
+        display: none;
+    }
+    /* La barra de acento pasa a rodear el icono: plegado, un filete de 3px a la
+       izquierda del sidebar no se distingue del borde. */
+    .admin-nav__mod.is-current > .admin-nav__toggle {
+        background: rgba(125, 198, 229, 0.16);
+        box-shadow: inset 0 0 0 1.5px rgba(125, 198, 229, 0.45);
+
+        &::before { display: none; }
+    }
+
     .admin-sidebar__collapse-btn i {
         transform: rotate(180deg);
     }
@@ -645,6 +609,34 @@
 /* Sidebar transition */
 .admin-sidebar {
     transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Guard anti-salto de carga ──
+   Lo estampa el script síncrono del <head> de views/layout-admin.php ANTES del
+   primer pintado, leyendo el mismo `bilbao_sidebar_collapsed` que usa
+   blog-_sidebar.js. Sin esto la página se dibujaba con el sidebar expandido y
+   luego se encogía animándose, en cada navegación.
+
+   Solo el ancho y el margen: el resto del estado colapsado (ocultar etiquetas,
+   centrar iconos) lo pone .admin-sidebar--collapsed cuando el bundle arranca, y
+   como no mueve la caja no produce salto perceptible. */
+html.sidebar-boot-collapsed {
+    .admin-sidebar { width: 72px; }
+    .admin-main    { margin-left: 72px; }
+}
+
+/* Primer frame sin transiciones: si no, la corrección del estado inicial se ve
+   igualmente como una animación. Se retira en el segundo requestAnimationFrame. */
+html.no-transition,
+html.no-transition * {
+    transition: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+}
+
+@media (max-width: 1024px) {
+    /* En móvil el sidebar es un cajón superpuesto: no hay margen que ajustar */
+    html.sidebar-boot-collapsed .admin-main { margin-left: 0; }
 }
 
 /* ── RESPONSIVE MOBILE ─────────────────────────────────── */
@@ -737,9 +729,12 @@
     }
 }
 
+/* 40px, como la campana y el logout: los tres son círculos de la misma familia y
+   con 36px el avatar se leía como un elemento de segunda. El tamaño está en
+   `--tb-btn` para que cambiarlo una vez los mueva a los tres. */
 .admin-topbar__avatar {
-    width: 36px;
-    height: 36px;
+    width: var(--tb-btn);
+    height: var(--tb-btn);
     border-radius: 50%;
     background: linear-gradient(135deg, var(--col-bilbao), var(--col-espiritu));
     display: flex;
@@ -747,7 +742,7 @@
     justify-content: center;
     color: white;
     font-weight: 800;
-    font-size: 0.85rem;
+    font-size: 0.92rem;
     flex-shrink: 0;
     overflow: hidden;
     cursor: pointer;
@@ -755,32 +750,42 @@
     transition: transform 0.18s, box-shadow 0.18s;
 
     &:hover {
-        transform: scale(1.08);
+        transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(66, 103, 172, 0.4);
     }
 }
 
-.admin-logout-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 16px;
-    border-radius: var(--radius-pill);
-    border: 1.5px solid #E2E8F0;
-    background: transparent;
-    color: var(--text-gray);
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.84rem;
-    font-weight: 600;
+/* Cerrar sesión — vive en views/blog/_topbar-avatar.php, así que sale en todas
+   las vistas del panel. Círculo de 40px, igual que .admin-topbar__site y
+   .admin-topbar__bell, pero en rojo sólido: es la única acción del topbar que
+   te saca del panel.
+
+   Sustituye a la antigua .admin-logout-btn (píldora "Salir" con texto), que cada
+   vista repetía en su propio <form> y que las vistas ya migradas al partial
+   habían perdido por completo. */
+.admin-topbar__logout-form { display: flex; align-items: center; }
+
+.admin-topbar__logout {
+    width: var(--tb-btn);
+    height: var(--tb-btn);
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--pal-rojo);
+    color: #fff;
+    font-size: 1rem;
     cursor: pointer;
-    transition: all var(--transition-fast);
-    text-decoration: none;
+    box-shadow: 0 6px 16px -8px rgba(229, 16, 34, .8);
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 
     &:hover {
-        border-color: #fc8181;
-        color: #e53e3e;
-        background: #fff5f5;
+        background: #c8102e;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px -8px rgba(229, 16, 34, .95);
     }
+    &:active { transform: translateY(0); }
+    &:focus-visible { outline: 2px solid var(--pal-rojo); outline-offset: 3px; }
 }
 
 /* CONTENT AREA */
@@ -1064,6 +1069,10 @@
         color: var(--text-gray);
         background: #F8FAFC;
         border-bottom: 1px solid #E8EDF3;
+        /* El nombre del campo y la flecha de orden van SIEMPRE en la misma línea:
+           admin-table.js añade un <span> al final y, con uppercase + letter-spacing,
+           el navegador partía el encabezado en dos renglones y duplicaba su alto. */
+        white-space: nowrap;
     }
 
     td {
@@ -1269,23 +1278,35 @@ tbody tr.is-filtered { display: none; }
     &--wide { width: auto; padding: 0 14px; }
 
     &--edit {
-        background: #f5b400;
-        // Tinta oscura: blanco sobre #f5b400 no llega al contraste AA
-        color: #0B1F3D;
+        /* Ámbar de la paleta (--pal-ambar). El icono va en tinta oscura, no en
+           blanco: sobre este amarillo el blanco no llega a AA, mientras que
+           #0B1F3D pasa AAA holgadamente. Antes se oscurecía el fondo a #b87503
+           para poder usar blanco, a costa de salirse de la paleta. */
+        background: var(--pal-ambar);
+        color: var(--pal-tinta);
         box-shadow: 0 6px 14px -8px rgba(245, 180, 0, .95);
 
         &:hover { background: #ffc21f; box-shadow: 0 10px 20px -10px rgba(245, 180, 0, 1); }
     }
 
     &--del {
-        background: #e51022;
+        background: var(--pal-rojo);
         color: #fff;
         box-shadow: 0 6px 14px -8px rgba(229, 16, 34, .95);
 
         &:hover { background: #c8102e; box-shadow: 0 10px 20px -10px rgba(229, 16, 34, 1); }
     }
 
-    /* Acción neutra que convive con las dos anteriores (p. ej. "Ver horario") */
+    /* Consultar horario (directorio de personal, aulas y grupos) */
+    &--horario {
+        background: var(--pal-naranja);
+        color: #fff;
+        box-shadow: 0 6px 14px -8px rgba(252, 103, 34, .95);
+
+        &:hover { background: #e2571a; box-shadow: 0 10px 20px -10px rgba(252, 103, 34, 1); }
+    }
+
+    /* Acción neutra que convive con las anteriores */
     &--ghost {
         background: #F1F5F9;
         color: #475569;
@@ -1566,22 +1587,51 @@ tbody tr.is-filtered { display: none; }
         }
     }
 
+    /* Acciones irreversibles (eliminar un usuario, borrar un justificante,
+       vaciar la bandeja). Rojo sólido de la paleta: es la acción que destruye
+       datos, no puede leerse como un botón secundario más.
+
+       Ojo: había un segundo `&--danger` más abajo, con fondo transparente y
+       borde rosa, que anulaba este por orden de cascada — de ahí que el botón
+       de eliminar usuario no saliera rojo. */
+    &--danger {
+        background: var(--pal-rojo);
+        color: #fff;
+        box-shadow: 0 6px 18px -6px rgba(229, 16, 34, .55);
+
+        &:hover {
+            background: #c8102e;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px -8px rgba(229, 16, 34, .7);
+        }
+
+        &:active { transform: translateY(0); }
+    }
+
+    /* Cierre de un flujo completado (el "Finalizar" de agendar cuando ya no queda
+       ninguna hora por asignar). Verde sólido: es la confirmación, no una acción más. */
+    &--ok {
+        background: var(--pal-verde);
+        color: #fff;
+        box-shadow: 0 6px 18px -6px rgba(52, 168, 83, .6);
+
+        &:hover {
+            background: #2b8c45;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px -8px rgba(52, 168, 83, .75);
+        }
+        &:active { transform: translateY(0); }
+    }
+
+    &:disabled { opacity: .55; cursor: default; transform: none; box-shadow: none; }
+
     // Variante compacta para barras de herramientas y cabeceras de panel
     &--sm {
         padding: 7px 14px;
         font-size: .8rem;
         gap: 6px;
-    }
-
-    &--danger {
-        background: transparent;
-        color: #e53e3e;
-        border: 1.5px solid #fed7d7;
-
-        &:hover {
-            background: #fff5f5;
-            border-color: #fc8181;
-        }
     }
 }
 
@@ -1629,6 +1679,25 @@ tbody tr.is-filtered { display: none; }
     line-height: 1.65;
     position: relative;
     z-index: 1;
+}
+
+/* Apunte contextual dentro de la tarjeta: lo escribe el JS cuando ya hay datos
+   suficientes (en Suplencias, el día concreto que hay que tocar en la rejilla).
+   Vacío no ocupa nada, así que la tarjeta no reserva hueco de más. */
+.admin-helper-card__extra {
+    position: relative;
+    z-index: 1;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, .18);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #fff;
+
+    &:empty { display: none; }
+
+    i { margin-right: 6px; opacity: .75; }
+    b { font-weight: 800; }
 }
 
 .admin-tips {
@@ -1705,6 +1774,26 @@ tbody tr.is-filtered { display: none; }
     color: var(--text-gray);
     line-height: 1.6;
     max-width: 460px;
+}
+
+/* Refuerzo en CSS del gesto que anima src/js/admin/admin-danger.js: si GSAP no
+   carga o el usuario pidió menos movimiento, la zona sigue reaccionando. Cuando
+   GSAP sí está, escribe estilos inline que ganan a estas reglas. */
+.admin-danger-zone {
+    transition: border-color .28s ease, box-shadow .28s ease;
+
+    &:has(.admin-danger-zone__btn:hover) {
+        border-color: var(--pal-rojo);
+        box-shadow: 0 14px 34px -18px rgba(229, 16, 34, .75);
+    }
+}
+.admin-danger-zone__header { transition: background-color .28s ease; }
+
+/* El icono se anima por su cuenta: se aísla en su propia capa para que el
+   `rotation` no fuerce repintados de todo el botón. */
+.admin-danger-zone__btn [data-danger-ico] {
+    display: inline-block;
+    will-change: transform;
 }
 
 /* COLOR SWATCHES */
@@ -3136,6 +3225,9 @@ tbody tr.is-filtered { display: none; }
     border-radius: 20px;
     padding: 28px;
     display: flex;
+    /* El texto arrancaba arriba mientras Alex iba anclado al pie de la tarjeta:
+       con dos o tres líneas de mensaje el desfase era de medio bloque. */
+    align-items: center;
     gap: 22px;
     max-width: 500px;
     width: calc(100% - 32px);
@@ -3152,14 +3244,16 @@ tbody tr.is-filtered { display: none; }
 
 .alex-modal__img {
     width: 130px;
+    max-height: 190px;
     object-fit: contain;
     flex-shrink: 0;
-    align-self: flex-end;
+    align-self: center;
 }
 
 .alex-modal__body {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 10px;
     flex: 1;
     min-width: 0;
@@ -3212,6 +3306,24 @@ tbody tr.is-filtered { display: none; }
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
+}
+/* Los 10 módulos se agrupan por las mismas 3 categorías del home y del sidebar:
+   en una sola rejilla plana eran una lista indistinguible. */
+.admin-modulos__cat {
+    & + & { margin-top: 18px; }
+}
+.admin-modulos__cat-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-gray, #64748B);
+
+    i { color: var(--col-herencia, #4285f4); }
 }
 .admin-modulo-check {
     /* flex (no block) para que la caja estire a la altura de la fila del grid:
@@ -3485,48 +3597,40 @@ tbody tr.is-filtered { display: none; }
 .admin-crumbs__sep { font-size: 9px; color: #cbd5e1; }
 .admin-crumbs__cur { font-size: 0.9rem; font-weight: 800; color: #0B1F3D; }
 
-.admin-topbar__site {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--col-borde, #e2e8f0);
-    background: #fff;
-    color: #4267ac;
-    display: grid;
-    place-items: center;
-    text-decoration: none;
-    font-size: 14px;
-    transition: background .18s ease, transform .18s ease, color .18s ease;
-
-    &:hover { background: #eef4ff; transform: translateY(-2px); }
-}
+/* `.admin-topbar__site` se retiró: "Ver sitio público" bajó al sidebar como
+   última opción de navegación (views/blog/_sidebar.php). */
 
 /* Campana de notificaciones — vive junto al avatar en todas las vistas del panel
-   (views/blog/_topbar-avatar.php), no dentro de un módulo concreto. */
+   (views/blog/_topbar-avatar.php), no dentro de un módulo concreto.
+
+   Ámbar de la paleta en su estado base, con tinta oscura: el blanco sobre este
+   amarillo no pasa AA (mismo criterio que .admin-act--edit). Antes era un
+   círculo blanco neutro y solo se teñía con pendientes. */
 .admin-topbar__bell {
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: var(--tb-btn);
+    height: var(--tb-btn);
     border-radius: 50%;
-    border: 1px solid var(--col-borde, #e2e8f0);
-    background: #fff;
-    color: #4267ac;
+    border: none;
+    background: var(--pal-ambar);
+    color: var(--pal-tinta);
     display: grid;
     place-items: center;
     text-decoration: none;
-    font-size: 15px;
-    transition: background .18s ease, transform .18s ease, color .18s ease;
+    font-size: 1rem;
+    box-shadow: 0 6px 16px -8px rgba(245, 180, 0, .9);
+    transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
 
-    &:hover { background: #eef4ff; transform: translateY(-2px); }
-
-    /* Con pendientes la campana deja de ser decorativa: se tiñe y llama la atención */
-    &.has-pend {
-        border-color: #ffd9a1;
-        background: #fff8ee;
-        color: #d9770a;
-
-        i { animation: bellNudge 3.2s ease-in-out infinite; transform-origin: 50% 12%; }
+    &:hover {
+        background: #ffc21f;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px -8px rgba(245, 180, 0, 1);
     }
+    &:focus-visible { outline: 2px solid var(--pal-ambar); outline-offset: 3px; }
+
+    // Con pendientes, la diferencia la marcan el badge rojo y el movimiento:
+    // el color ya no está disponible como señal.
+    &.has-pend i { animation: bellNudge 3.2s ease-in-out infinite; transform-origin: 50% 12%; }
 }
 
 .admin-topbar__bell-badge {

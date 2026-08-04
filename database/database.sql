@@ -36,7 +36,7 @@ CREATE TABLE usuarios (
     nombre           VARCHAR(120)  NOT NULL,
     email            VARCHAR(180)  NOT NULL,
     password         VARCHAR(255)  NOT NULL,
-    rol              ENUM('superadmin','administrador','usuario') NOT NULL DEFAULT 'usuario',
+    rol              ENUM('administrador','usuario') NOT NULL DEFAULT 'usuario',
     rol_redaccion    ENUM('revisor','editor') NULL,  -- solo aplica si tiene el módulo 'redaccion'
     tipo_personal    SET('profesor','prefecto','administrativo') NULL, -- combinable (ej. 'profesor,administrativo')
     puede_suplir     TINYINT(1)    NOT NULL DEFAULT 1, -- 0 = "No puede suplir a otros profesores"
@@ -63,19 +63,18 @@ CREATE TABLE periodos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE aulas (
-    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    nombre      VARCHAR(80)  NOT NULL,
-    descripcion VARCHAR(160) NULL,
+    id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    nombre VARCHAR(80)  NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_aula (nombre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Grupos de alumnos. `orden` fija la secuencia académica (Maternal → Bachillerato).
+-- Grupos de alumnos. El orden de listado se deduce del nivel (Maternal →
+-- Bachillerato, via Materia::ordenNivel()) y, dentro de él, del nombre.
 CREATE TABLE grupos (
     id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     nombre VARCHAR(80)  NOT NULL,                     -- ej. '3A Primaria'
     nivel  ENUM('Maternal','Kinder','Primaria','Secundaria','Bachillerato') NOT NULL,
-    orden  SMALLINT UNSIGNED NOT NULL DEFAULT 0,      -- posición en la secuencia académica
     PRIMARY KEY (id),
     UNIQUE KEY uq_grupo (nombre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -278,9 +277,13 @@ CREATE TABLE suplencia_horas (
     suplente_id  INT UNSIGNED NULL,
     estado_hora  ENUM('pendiente','agendada','validada') NOT NULL DEFAULT 'pendiente',
     validado_en  DATETIME     NULL,
+    -- Marca anti-duplicado del aviso "confirma si cubriste": se emite al entrar
+    -- al panel cuando la fecha ya pasó y la hora sigue 'agendada'.
+    recordatorio_en DATETIME  NULL,
     PRIMARY KEY (id),
     KEY idx_suplencia (suplencia_id),
     KEY idx_suplente (suplente_id),
+    KEY idx_pendientes (suplente_id, estado_hora),
     CONSTRAINT fk_sh_suplencia FOREIGN KEY (suplencia_id) REFERENCES suplencias (id) ON DELETE CASCADE,
     CONSTRAINT fk_sh_periodo   FOREIGN KEY (periodo_id)   REFERENCES periodos (id)   ON DELETE CASCADE,
     CONSTRAINT fk_sh_grupo     FOREIGN KEY (grupo_id)     REFERENCES grupos (id)     ON DELETE SET NULL,

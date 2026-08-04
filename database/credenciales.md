@@ -14,7 +14,7 @@ Todas con la contraseña **`Tlalmimilolpan39%`**. Solo existen en `development.s
 
 | Email | Nombre | Rol | Tipo de personal | Módulos |
 |-------|--------|-----|------------------|---------|
-| `admin@bilbao.edu.mx` | Administrador Bilbao | superadmin | — | todos (implícito) |
+| `admin@bilbao.edu.mx` | Administrador Bilbao | administrador | — | todos (implícito) |
 | `profesor1@bilbao.edu.mx` | Profesor Uno (prueba) | usuario | profesor | `suplencias,horarios` |
 | `profesor2@bilbao.edu.mx` | Profesor Dos (prueba) | usuario | profesor | `suplencias,horarios` |
 | `prefecto@bilbao.edu.mx` | Prefectura (prueba) | usuario | prefecto | `suplencias,horarios` |
@@ -32,9 +32,9 @@ prefectura (`/dashboard/suplencias/crear`, con opción "sin aviso").
 
 | Email | Contraseña | Rol | Tipo de personal | Módulos |
 |-------|-----------|-----|------------------|---------|
-| `admin@bilbao.edu.mx` | `Tlalmimilolpan39%` | superadmin | — | todos (implícito) |
-| `alexander.oliva@bilbao.edu.mx` | *(propia)* | superadmin | — | todos (implícito) |
-| `dr.ludlow@bilbao.edu.mx` | *(propia)* | superadmin | profesor, administrativo | todos (implícito) |
+| `admin@bilbao.edu.mx` | `Tlalmimilolpan39%` | administrador | — | todos (implícito) |
+| `alexander.oliva@bilbao.edu.mx` | *(propia)* | administrador | — | todos (implícito) |
+| `dr.ludlow@bilbao.edu.mx` | *(propia)* | administrador | profesor, administrativo | todos (implícito) |
 | `majo.soberon@bilbao.edu.mx` | *(propia)* | usuario · revisor | profesor | `redaccion,suplencias,horarios` |
 | `sasha@bilbao.edu.mx` | `EditorBilbao25` | usuario · editor | profesor | `redaccion,suplencias,horarios` |
 | `mauricio@bilbao.edu.mx` | *(propia)* | usuario | profesor | `suplencias,horarios` |
@@ -58,8 +58,9 @@ la contraseña de desarrollo **`EditorBilbao25`**. Todos son `usuario` · `profe
 
 ## Notas sobre roles y tipos
 
-- **Roles** (`usuarios.rol`): `superadmin`, `administrador` (**Admin** en la UI) y `usuario`.
-  Los dos primeros acceden a todos los módulos; `usuario` solo a los del CSV `modulos`.
+- **Roles** (`usuarios.rol`): solo dos — `administrador` (**Admin** en la UI) y `usuario`.
+  El admin accede a **todo** el panel sin excepción; `usuario` solo a los módulos del CSV
+  `modulos`. El antiguo `superadmin` se eliminó: sus cuentas pasaron a `administrador`.
 - **Tipo de personal** (`usuarios.tipo_personal`): `profesor`, `prefecto` y `administrativo`.
   `prefecto` es **excluyente** — no se combina con ningún otro tipo. `profesor` y `administrativo`
   sí se combinan (ej. Alfonso Ludlow).

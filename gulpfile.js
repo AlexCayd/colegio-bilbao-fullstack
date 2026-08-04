@@ -22,7 +22,11 @@ const paths = {
     scss:            'src/scss/**/*.scss',
     // Dos bundles: público (layout.php) y panel de administración (layout-admin.php)
     js:              'src/js/public/**/*.js',
-    jsAdmin:         'src/js/admin/**/*.js',
+    // Estos dos viven en public/ pero el panel también los necesita, así que van
+    // en los dos bundles. Ambos son autónomos:
+    //   forest.js   — el login lo usa y el login carga admin.min.js.
+    //   cal-anim.js — anima .bilbao-cal, que existe en el panel y en Comunidad.
+    jsAdmin:         ['src/js/public/forest.js', 'src/js/public/cal-anim.js', 'src/js/admin/**/*.js'],
     imagenes:        'src/img/**/*',
     // Imágenes subidas dinámicamente por PHP
     uploadsBlog:     'public/build/assets/blog/**/*.{jpg,jpeg,png}',

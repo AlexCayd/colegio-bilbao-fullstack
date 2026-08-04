@@ -17,6 +17,22 @@ Sitio web institucional del **Colegio Bilbao** (colegio privado, México) + pane
 - `index.php` — dispatcher principal; sirve también assets estáticos de `/build/` hacia `public/build/`
 - `Router.php` — router custom; soporta `get()`, `post()`, patrones con `{param}`
 - `includes/app.php` — bootstrap: inicia sesión, carga Dotenv, conecta BD
+- `dev-server.php` — **router file obligatorio** para `php -S` (ver abajo)
+
+**⚠️ En local hay que arrancar con `php -S localhost:3000 dev-server.php`.** Sin el router file,
+el servidor embebido devuelve 404 en todo `/build/*`: esos assets no existen físicamente (los sirve
+un shim dentro de `index.php`), y el servidor solo cae al front controller cuando la URI *no* parece
+un archivo — `/build/css/app.css` tiene extensión, así que nunca llega. Resultado: el sitio se pinta
+sin CSS ni JS. `dev-server.php` replica la condición `IsFile` de `web.config`, veta las carpetas
+sensibles (`includes/`, `vendor/`, `database/`, dotfiles) y manda todo lo demás a `index.php`.
+
+> No renombrarlo a `router.php`: en Windows el FS es case-insensitive y chocaría con `Router.php`.
+> En producción (IIS) no se usa: el reparto lo hace `web.config`.
+
+> **⚠️ El archivo no está en el repo.** `dev-server.php` no aparece en el índice de git ni en el
+> working tree (`git log -- dev-server.php` sale vacío), así que en un clon limpio `php -S localhost:3000
+> dev-server.php` aborta con *Failed opening required*. Está pendiente de crear con el comportamiento
+> descrito arriba; hasta entonces, para levantar el entorno hay que escribirlo a mano.
 
 ### MVC custom
 
@@ -88,8 +104,8 @@ bloqueados, y prefectura se quedaba sin opciones reales.
 
 **Catálogos del módulo Horarios:** `periodos` (jornada), `aulas`, `grupos`, **`materias`**.
 `grupos` y `materias` comparten el ENUM `nivel` (`Maternal|Kinder|Primaria|Secundaria|Bachillerato`);
-`grupos.orden` fija la secuencia académica (Maternal → Bachillerato) porque ordenar por `nivel` sería
-alfabético. `Materia::ordenNivel()` genera el `FIELD(...)` para ordenar por nivel en cualquier consulta.
+El orden de listado de `grupos` **no se configura**: sale de `Materia::ordenNivel()` (el `FIELD(...)`
+que ordena Maternal → Bachillerato) y, dentro de cada nivel, del nombre. `aulas` solo tiene `nombre`.
 La materia **no** es texto libre: `horarios.materia_id` y `suplencia_horas.materia_id` son FK a `materias`,
 y los `selectBase()` de `Horario`/`SuplenciaHora` la traen con el alias `materia` (más `materia_nivel`),
 así que las vistas siguen leyendo `$h->materia`.
@@ -154,6 +170,11 @@ Usar **exactamente** estos 10 colores, en este orden cromático (naranja → roj
 #4285f4  #4267ac  #aa2296  #ea075a  #e51022
 ```
 
+Están declarados como custom properties en el `:root` de `src/scss/estaticas/_variables.scss`
+(`--pal-naranja` … `--pal-rojo`, más `--pal-tinta` para el texto oscuro sobre los claros).
+**Usar los tokens en el código nuevo**, no el hex a mano. Los usos antiguos siguen hardcodeados en
+varios partials: se migran cuando se toque cada uno.
+
 Los selectores de color en `views/blog/categorias/crear.php`, `editar.php`, `views/blog/noticias/categorias/crear.php` y `editar.php` ya están configurados con esta paleta. No usar otros colores para categorías.
 
 ---
@@ -213,16 +234,21 @@ Los layouts lo emiten como `<body data-page="blog-usuarios-index">`. Con eso:
 | `.admin-file` | `admin-file.js` (`[data-file]`) | Zona de subida con nombre de archivo y validación de tamaño |
 | `.supl-week` | `admin-supl-week.js` (`window.SuplWeek`) | Rejilla semanal de horario, en modo `select` o `preview` |
 | `.hor-select` | — | Select estilizado del módulo Horarios (soporta `<optgroup>`) |
-| `.bilbao-cal` | por vista | Calendario reutilizable (cumpleaños, eventos, resumen diario) |
-| `.bilbao-date` | `admin-datepicker.js` (`[data-datepicker]`) | Selector de fecha propio; sustituye a `<input type="date">`. **La semana empieza en domingo.** Escribe un hidden en `Y-m-d` y emite `change`. Con `data-habiles="1"` bloquea fines de semana. Lo pinta el partial `views/blog/_campo-fecha.php` |
+| `.bilbao-cal` | por vista + `cal-anim.js` | Calendario reutilizable (cumpleaños, eventos, resumen diario, agenda de suplencias). La animación de entrada la pone `window.BilbaoCalAnim.entrada(grid)` con **GSAP**: cada vista repinta su rejilla por su cuenta, así que debe llamarla al final de su `render()`. Vive en `src/js/public/` porque `.bilbao-cal` también existe en Comunidad, y va en **los dos bundles** (ver `gulpfile.js`). Sin GSAP o con `prefers-reduced-motion` no hace nada |
+| `.admin-nav__mod` | `admin-sidebar-nav.js` (`[data-nav-toggle]`) | Acordeón de módulo del sidebar. Abierto = módulo activo; plegado, pulsarlo expande el sidebar |
+| `.bilbao-date` | `admin-datepicker.js` (`[data-datepicker]`) | Selector de fecha propio; sustituye a `<input type="date">`. **La semana empieza en domingo** (igual que `.bilbao-cal`). Tres vistas encadenadas **días → meses → años**: la cabecera sube de nivel, elegir baja. Escribe un hidden en `Y-m-d` y emite `change`. `data-habiles="1"` (default) bloquea fines de semana — **suplencias lo desactiva**: cualquier día es elegible. Se voltea solo (`.is-flipped`) si se saldría del viewport, y levanta el `overflow: clip` de **todos** los ancestros que recorten (`.admin-panel`, `.admin-form-section`, `.admin-form-row`). Lo pinta el partial `views/blog/_campo-fecha.php` |
 | `.mh-pager` / `.cb-pager` / `.supl-pager` | `admin-pager.js` (`[data-pager]`) | Paginación en cliente de una lista ya renderizada (`[data-pager-item]`, `data-pager-per`). `window.AdminPager.reset()` la relista tras repintarla |
 | `.admin-table` | `admin-table.js` (`[data-table]`) | Ordenamiento por columna (`<th data-sort="text\|num\|date">`) + paginación. Genera solo el paginador si hay `data-table-per` |
-| `.admin-act` | — | Acciones de fila: `--edit` amarillo sólido + lápiz, `--del` rojo sólido + papelera, `--ghost` neutra |
+| `.admin-act` | — | Acciones de fila: `--edit` ámbar de la paleta (`--pal-ambar`, `#f5b400`) con lápiz en **tinta oscura** (`--pal-tinta`; el blanco sobre ese amarillo no pasa AA), `--del` rojo `--pal-rojo` + papelera, `--horario` naranja `--pal-naranja` + calendario, `--ghost` neutra |
+| `.admin-danger-zone` | `admin-danger.js` (`[data-danger]`) | Zona de acciones irreversibles. El botón usa `.admin-btn--danger` (rojo sólido). La animación la pone **GSAP** (CDN en `layout-admin.php`); el módulo sale sin hacer nada si no hay `window.gsap` o si el usuario pidió `prefers-reduced-motion`, y el estado visual completo vive en CSS |
+| `.admin-topbar__logout` | — | Cerrar sesión: círculo rojo de 40px con `POST /logout`. Vive en `_topbar-avatar.php`, así que sale en **todo** el panel. Sustituye a la antigua `.admin-logout-btn`, que cada vista repetía en su propio `<form>` (y que las vistas ya migradas al partial habían perdido) |
 | `.at-wrap` | `admin-toast.js` (`#alexToast`) | Aviso de Alex tras una acción, disparado por query params (`?success`, `?deleted`…) |
 | `.admin-topbar__bell` | `blog-notificaciones-index.js` | Campana con badge de pendientes; vive en `_topbar-avatar.php`, así que sale en todo el panel |
 | `.cat-modal` | `admin-catalogo.js` (`#catModal`) | Confirmación de borrado de los catálogos (aulas, grupos) |
 | — | `admin-usuario-permisos.js` | Reglas del formulario de usuarios: rol→módulos, `no_puede_suplir` y exclusividad de `prefecto` |
 | — | `admin-motivo.js` (`[data-motivo]`) | El select de motivo revela el campo de texto al elegir "Otro" |
+| `.cat-tabs` | `admin-nivel-tabs.js` (`[data-nivel-tabs]`) | Tabs de nivel académico a ancho completo. Filtran una tabla ya renderizada (`is-filtered` + `AdminTable.refrescar()`) o hacen de radios en un formulario |
+| — | `forest.js` (`window.BilbaoForest.init(canvas, opts)`) | Bosque Three.js reutilizable (landing y login). Vive en `src/js/public/` pero **va en los dos bundles** (ver `gulpfile.js`), porque el login carga `admin.min.js`. Devuelve `null` sin WebGL o con `prefers-reduced-motion`: el llamador necesita fondo de respaldo en CSS |
 
 > **Tablas de lectura:** todas usan `admin-table.js`. El servidor preoculta las filas que pasan de
 > `data-table-per` con la clase `is-hidden` (evita el parpadeo inicial) y marca cada `<tr>` con
@@ -237,8 +263,14 @@ Los layouts lo emiten como `<body data-page="blog-usuarios-index">`. Con eso:
 exponerse con `window.miFuncion = miFuncion;` dentro del módulo, o dejarán de existir al quedar
 encapsuladas en el bundle.
 
-> Única excepción: el guard anti-FOUC de i18n en el `<head>` de `views/layout.php` sigue inline
-> porque debe ejecutarse antes de pintar.
+> Únicas excepciones, ambas por el mismo motivo (deben correr **antes del primer pintado**, y el
+> bundle va con `defer` al final del `<body>`):
+> - el guard anti-FOUC de i18n en el `<head>` de `views/layout.php`;
+> - el **guard anti-salto del sidebar** en el `<head>` de `views/layout-admin.php`: lee
+>   `bilbao_sidebar_collapsed` de `localStorage` y estampa `sidebar-boot-collapsed` +
+>   `no-transition` en `<html>`. Sin él la página se pintaba con el sidebar expandido y luego se
+>   encogía animándose (0.28s) en **cada** navegación. `blog-_sidebar.js` sigue mandando al alternar;
+>   solo ha dejado de decidir el estado inicial.
 
 ### Imágenes subidas por PHP
 
@@ -327,31 +359,45 @@ El panel está organizado en **módulos**. Tras iniciar sesión se llega a un **
 | `/dashboard/suplencias/buscar-colaboradores` | `BlogController::buscarColaboradores` | Endpoint JSON de autocompletado (ausente/suplente desde `usuarios`) |
 | `/dashboard/suplencias/sugerir` | `BlogController::sugerirSuplentes` | Endpoint JSON: candidatos a cubrir una hora (algoritmo de equidad) |
 | `/dashboard/suplencias/horario` | `BlogController::horarioProfesorJson` | Endpoint JSON: horario semanal + horas libres de un profesor en una fecha |
-| `/dashboard/suplencias/dashboard` | `BlogController::suplenciasDashboard` | Tablero de estadísticas — **administrador y superadmin** |
+| `/dashboard/suplencias/dashboard` | `BlogController::suplenciasDashboard` | Tablero de estadísticas — solo **administrador** |
 | `/dashboard/horarios/profesor\|aula\|grupo` | `BlogController::horariosVista` | **Horarios** en solo lectura (requiere módulo `horarios`) |
 | `/dashboard/horarios/mi-horario` | `BlogController::miHorario` | El colaborador ve **su propio** horario, sin edición (solo `requireAuth`) |
-| `/dashboard/horarios/importar` | `BlogController::importarHorarios` | Carga de horarios por **CSV** — solo superadmin |
+| `/dashboard/horarios/importar` | `BlogController::importarHorarios` | Carga de horarios por **CSV** — módulo `horarios` + **admin** (es destructivo) |
 | `/dashboard/usuarios*` | varios | **Usuarios** (requiere módulo `usuarios`) |
 | `/dashboard/usuarios/cumpleanos` | `BlogController::cumpleanos` | Calendario de cumpleaños (módulo Usuarios) |
-| `/dashboard/aulas*` | `BlogController::aulas`, `crearAula`, `editarAula`, `eliminarAula` | **Aulas** — CRUD del catálogo, solo superadmin |
-| `/dashboard/grupos*` | `BlogController::grupos`, `crearGrupo`, `editarGrupo`, `eliminarGrupo` | **Grupos** — CRUD del catálogo, solo superadmin |
+| `/dashboard/aulas*` | `BlogController::aulas`, `crearAula`, `editarAula`, `eliminarAula` | **Aulas** — CRUD del catálogo (módulo `aulas`) |
+| `/dashboard/grupos*` | `BlogController::grupos`, `crearGrupo`, `editarGrupo`, `eliminarGrupo` | **Grupos** — CRUD del catálogo (módulo `grupos`) |
 | `/dashboard/notificaciones*` | `notificaciones`, `marcarNotificacionLeida`, `marcarTodasLeidas`, `eliminarNotificacion`, `restaurarNotificacion`, `limpiarNotificaciones` | **Notificaciones** — transversal, solo `requireAuth` |
 
 **Home de módulos y sidebar comparten catálogo.** `views/blog/_modulos.php` define las funciones
-`blog_modulos_catalogo()` / `blog_modulos_categorias()` / `blog_modulos_visibles()`, y las usan
-tanto `home.php` como `_sidebar.php`: **añadir un módulo se hace en un solo sitio**. Las tres
+`blog_modulos_catalogo()` / `blog_modulos_categorias()` / `blog_modulos_visibles()` /
+`blog_modulos_coordina()`, y las usan tanto `home.php` como `_sidebar.php`: **añadir un módulo se
+hace en un solo sitio**.
+
+> **El catálogo es sensible al rol.** `blog_modulos_catalogo()` sin argumento se adapta a quien mira
+> (vía `blog_modulos_coordina()`, la fuente canónica de la regla admin-o-prefecto en vistas, que
+> `_sidebar.php` reexporta como `_blog_coordina()`). Un profesor raso ve **«Mi horario» →
+> `/dashboard/horarios/mi-horario`**, porque la vista general no puede abrirla, y Suplencias le habla
+> de *sus* ausencias y coberturas. Hay que pasar **`blog_modulos_catalogo(true)`** cuando el catálogo
+> describa los módulos de **otra** persona y no los del usuario en sesión — es el caso de
+> `views/blog/usuarios/_permisos-fields.php`. Las tres
 categorías van en este orden: **Personal y accesos** · **Operación académica** · **Contenido**.
 El color **lo asigna la posición de render**, no el módulo: `mh-card--c1` es cyan y de ahí sigue el
 curso cromático, así la primera tarjeta visible es siempre cyan tenga el usuario 2 módulos u 8.
 
-**Catálogos Aulas y Grupos.** CRUD solo-superadmin sobre tablas que ya alimentaban el horario.
+**Catálogos Aulas y Grupos.** CRUD sobre tablas que ya alimentaban el horario; cada uno es su
+propio módulo asignable. Ambos listados llevan la acción **Ver horario** (`--horario`, naranja) que
+abre `/dashboard/horarios/aula|grupo?id=N`: es lo que hace falta para saber cuándo un espacio está
+libre. Grupos filtra por **tabs de nivel** a ancho completo (`admin-nivel-tabs.js`, mismo patrón
+`is-filtered` + `AdminTable.refrescar()` de los buscadores), y su formulario elige el nivel con esas
+mismas tabs.
 Antes de borrar se cuentan las dependencias (`Aula::usos()` / `Grupo::usos()` sobre `horarios` y
 `suplencia_horas`) y, si las hay, el botón sale deshabilitado y el POST redirige con `?enuso=N`
 en vez de dejar reventar la FK. En Grupos, `orden` fija la secuencia académica: ordenar por `nivel`
 saldría alfabético.
 
 **Módulo Horarios.** Es de **solo lectura** en todo el panel: el horario se carga por CSV desde
-`/dashboard/horarios/importar` (superadmin). El importador va en dos pasos — subir → vista previa con
+`/dashboard/horarios/importar` (admin). El importador va en dos pasos — subir → vista previa con
 el estado de cada fila → confirmar — y guarda el payload validado en `$_SESSION['horarios_import']`.
 El archivo **reemplaza el horario completo** de los profesores que aparecen en él
 (`Horario::borrarDeProfesores()`) y no toca al resto. Formato:
@@ -385,9 +431,74 @@ formulario**, no solo en el topbar.
 dato dominante), a la derecha los candidatos + preview + confirmación. El preview del horario se abre
 como **acordeón bajo el candidato pulsado**, y los candidatos bloqueados por las reglas **no** ofrecen
 asignación (no hay "asignar de todos modos": el sistema decide). Ambas listas se paginan de 5 en 5.
-El justificante de una ausencia `sin_aviso` vive en su propia tarjeta visible sobre los paneles.
-Al quedar todas asignadas aparece el cierre "Finalizar y volver a suplencias". El home `/dashboard`
-muestra un **calendario interactivo** (`.bilbao-cal`) que combina **cumpleaños + eventos**.
+Sobre los paneles van dos tarjetas propias: el **motivo completo** (antes era un `<small>` recortado
+con ellipsis dentro de la cabecera, justo el dato con el que prefectura decide) y el **justificante**.
+Este último se muestra **siempre que exista archivo, sea cual sea el origen**: `crear` y `solicitar`
+permiten adjuntarlo también en ausencias `anticipada`, y ahí quedaba invisible e indescargable. La
+tarjeta solo *reclama* un archivo que falta cuando el origen es `sin_aviso`, que es cuando es
+obligatorio.
+**Estado de las horas por color, no por banner.** En `agendar`, cada `.supl-hora-card` dice su estado:
+**ámbar** sin asignar · **azul** con suplente · **verde** validada. La selección se marca solo con un
+anillo, porque el relleno ya significa otra cosa. Se retiró el bloque `.supl-done`
+(«Falta 1 hora por asignar» / «Todas las horas ya tienen suplente»), que repetía el `X/Y` de la barra
+de progreso; el cierre del flujo es ahora el botón **«Finalizar»** (verde, `.admin-btn--ok`) en el que
+se convierte «Volver» cuando no queda ninguna hora pendiente. El motivo vive en la cabecera
+(`.supl-fact--motivo`, sin el recorte a 190px del resto de facts), no en una tarjeta aparte.
+
+**El listado abre por calendario.** `/dashboard/suplencias` no tiene botones de acción en el topbar:
+sobre la tabla hay un `.bilbao-cal` que cuenta las suplencias por día (`Suplencia::resumenDiario()`).
+Pulsar un día filtra la tabla a esa fecha y ofrece **Abrir suplencia** (solo `puedeAgendar`) y
+**Solicitar**, ambas con `?fecha=YYYY-MM-DD`, que `crear` y `solicitar` recogen vía
+`BlogController::fechaDeQuery()` (valida formato y fecha real, o cae al valor por defecto).
+A diferencia del resto de `.bilbao-cal`, **ningún día se deshabilita**: también sirve para abrir una
+ausencia futura. `resumenDiario($usuarioId)` acepta el mismo filtro que `conteos()`, para que un
+profesor no vea en la rejilla cuántas ausencias tiene el resto del claustro.
+
+> **Fines de semana:** bloqueados en `crear` y `solicitar` (no hay clases que cubrir), **libres** en
+> los filtros `desde`/`hasta` del listado, que son un rango de consulta y no la fecha de una clase.
+
+El home `/dashboard` muestra un **calendario interactivo** (`.bilbao-cal`) que combina **cumpleaños +
+eventos**, más una lista de **próximos eventos** y el panel de cumpleaños — todo visible para
+cualquier usuario, no solo para quien tenga el módulo `usuarios`. Cuántos cumpleaños entran por
+página **no es un número fijo**: `blog-home.js` mide el alto real de la columna (que la fija el
+calendario de al lado) y ajusta `data-pager-per`; por eso `admin-pager.js` relee `per` en cada
+pintado en vez de capturarlo al montar.
+
+**El hero del home es el estado del día.** `.mh-hero` incorpora una segunda fila (`.mh-estado`) con
+tarjetas enlazadas: cumpleaños de hoy, notificaciones sin leer, coberturas por confirmar, ausencias
+sin suplente (solo quien coordina) y eventos de hoy. **Las que están a cero no se pintan**, así que
+un día tranquilo el hero vuelve a ser solo el saludo. Los datos los pasa `BlogController::home()` en
+`pendientes`, con métodos que ya existían (`Notificacion::noLeidasPorUsuario()`,
+`SuplenciaHora::porValidarDeSuplente()`, `Suplencia::conteos()`).
+
+**Quién ve qué.** El listado se filtra por usuario cuando `!puedeCoordinar()`: un profesor ve **solo
+sus** suplencias (como ausente **o** como suplente, vía el filtro `mias` de `Suplencia::listar()`) y
+el título pasa a "Mis suplencias". Antes cualquiera con el módulo veía las ausencias de todo el
+claustro **con su motivo** ("Incapacidad médica", "Luto") y podía abrir el justificante ajeno
+cambiando el `?id=` de `/agendar`. Los endpoints JSON `sugerir`, `buscar-colaboradores` y
+`horario` exigen coordinar; el último admite además el `profesor` de la propia sesión, que es lo que
+necesita `/solicitar`.
+
+**Cierre del ciclo (post-fecha).** `SuplenciaHora::validarHora()` exige `sup.fecha <= CURDATE()`:
+antes se podía confirmar "sí la cubrí" semanas antes de la clase, justo lo contrario de lo que
+promete la UI. Si la fecha pasa y nadie confirma:
+
+1. Al entrar al panel, `BlogController::recordarCoberturasVencidas()` avisa al suplente
+   (`suplencia_horas.recordatorio_en` evita repetir el aviso). No hay cron: el disparador es la
+   carga de `/dashboard`, con la consulta indexada por `(suplente_id, estado_hora)`.
+2. Si aun así no responde, prefectura cierra con **«Sí se cubrió» / «No se cubrió»** en `/agendar`
+   (`SuplenciaHora::resolverPorPrefectura()`). "No" devuelve la hora a `pendiente` y notifica a los
+   dos implicados.
+
+**Justificantes.** El límite es `Suplencia::MAX_JUSTIFICANTE_MB` (**50 MB**) — fuente única que leen
+el guard del servidor y el `data-file-max` de las vistas. Prefectura los aprueba con
+**«Aprobar y eliminar»**, que borra el archivo del disco tras un modal con la descarga a mano: el
+parte médico vive en una carpeta pública y no conviene conservarlo de más.
+
+> ⚠️ **50 MB supera los defaults de PHP e IIS.** Hay que subir `upload_max_filesize` y
+> `post_max_size` en `php.ini` (defaults 2M/8M) y `maxAllowedContentLength` en `web.config`
+> (default 30 MB). Sin eso el archivo llega vacío; `subirJustificante()` detecta
+> `UPLOAD_ERR_INI_SIZE` y lo explica en vez de fallar en silencio.
 
 ### Notificaciones (transversales)
 
@@ -411,6 +522,27 @@ reinserta vía `/dashboard/notificaciones/restaurar` si el usuario se arrepiente
 y se restaura después —en vez de diferir el DELETE— para que recargar o cerrar la pestaña a mitad
 de la cuenta atrás no deje basura. «Vaciar bandeja» pide confirmación en modal.
 
+**La bandeja es su propio módulo activo.** `_sidebar.php` detecta `notificaciones` por URL y el
+breadcrumb dice **Inicio › Notificaciones**. Antes el `else` final de esa cadena asignaba
+`'redaccion'`, así que la bandeja (y `/dashboard/perfil`) se pintaban con el menú completo de
+Redacción y una miga «Redacción» que un profesor ni siquiera puede abrir. Ahora Redacción se declara
+por sus rutas y el default es `home`.
+
+**Filas.** Dos acciones explícitas —**«Marcar como completada»** (verde, sólida: es la que cierra el
+aviso) y **«Ver detalle»** (outline de contraste alto)— más separadores temporales
+*Hoy / Esta semana / Anteriores*, que viajan dentro de su primera fila para no dejar encabezados
+huérfanos al paginar. Las notificaciones de `suplencias` pintan una tira **L·M·X·J·V** con el día
+resaltado: la fecha llega como alias `ref_fecha` de `Notificacion::porUsuario()`, nunca parseando el
+mensaje.
+
+**⚠️ El CTA del modal de Alex debe marcar como leída antes de navegar** (`data-alex-cta` +
+`fetch` con `keepalive`). Sin eso se producía el bucle de "Ver detalle": el `<a>` está dentro de la
+tarjeta, así que no disparaba el `dismiss()` enganchado al botón "Entendido" y al backdrop, la
+notificación seguía pendiente y el mismo modal reaparecía en la página de destino indefinidamente.
+
+**Rebote por permisos.** `requireModulo()` redirige con `?sinacceso=<modulo>` y el home lo explica
+con un toast de Alex. Antes era un `Location: /dashboard` mudo y parecía que el enlace estaba roto.
+
 ⚠️ Si actualizas una BD existente en vez de recargar el seed, el `ALTER` que añade `modulo`,
 `nivel` y `enlace` conservando los datos está documentado en
 [`database/CLAUDE.md`](database/CLAUDE.md).
@@ -426,14 +558,36 @@ de la cuenta atrás no deje basura. «Vaciar bandeja» pide confirmación en mod
   (`requireModulo('suplencias')` + `requireAdmin()`). Los usuarios con módulo `redaccion` conservan el
   flujo borrador → revisión → aprobación (antes rol `editor`; en el código la variable `$esEditor`
   significa "no es admin").
-- `requireSuperadmin()` queda para los directorios de personal (Profesores/Prefectura/Administrativos)
-  y para la importación de horarios por CSV.
-- El **sidebar** (`views/blog/_sidebar.php`) es contextual: detecta el módulo activo por la URL y
-  muestra solo la navegación de ese módulo; en el home lista los módulos permitidos agrupados por
-  las mismas tres categorías (ver `_modulos.php`). Un botón **Inicio** (icono casa) vuelve al home.
-  El **perfil**, **Ver sitio público** y la **campana de notificaciones** viven en el topbar
-  (`_topbar-avatar.php` → sitio público · campana · avatar). Ese partial lo incluyen todas las
-  vistas del panel, así que basta tocarlo una vez para que un elemento salga en todas.
+- `requireSuperadmin()` **ya no existe**: el rol `superadmin` se eliminó y sus cuentas pasaron a
+  `administrador`. Los directorios de personal y los catálogos Aulas/Grupos son ahora módulos
+  asignables normales; la importación de horarios por CSV pide `requireModulo('horarios')` +
+  `requireAdmin()` porque reemplaza el horario completo de los profesores del archivo.
+- `puedeCoordinar()` (= admin **o** `prefecto`) marca quién puede ver datos de terceros: horarios
+  ajenos, motivos de ausencia y justificantes. `puedeAgendar()` es un alias suyo.
+- El **sidebar** (`views/blog/_sidebar.php`) es **permanente**, no contextual: siempre lista todos
+  los módulos del usuario agrupados por las tres categorías de `_modulos.php`, y el módulo activo
+  se despliega en **acordeón** con sus subopciones. Antes solo se pintaba la navegación del módulo
+  activo, así que desde Suplencias había que pasar por Inicio para llegar a cualquier otra cosa.
+  - Las subopciones son **datos**, no markup: `blog_modulos_subnav(string $clave)` en `_modulos.php`
+    devuelve `['label','icon','url','prefijo','ver']` por módulo, y `ver` recoge los guards
+    (`$esAdmin` para «Nuevo usuario», «Importar CSV» y «Tablero»; revisor para revisiones y
+    testimoniales; `blog_modulos_coordina()` para las vistas generales de Horarios). Añadir una
+    subopción se hace en un solo sitio.
+  - Un módulo **sin** subopciones (los tres directorios de personal) se pinta como enlace directo;
+    también si su única opción apunta a la propia URL del módulo (Horarios visto por un profesor).
+  - Estado: `is-current` en el módulo (barra de acento + acordeón abierto) y `active` en el sublink
+    que casa con la URL. Solo un acordeón abierto a la vez, sin persistencia: cada navegación
+    reafirma dónde estás. Lo alterna `src/js/admin/admin-sidebar-nav.js` (`aria-expanded` + `hidden`).
+  - **Plegado (72px)** no hay sitio para submenús: pulsar un módulo con subopciones expande el
+    sidebar y abre su acordeón, escribiendo `bilbao_sidebar_collapsed = '0'`.
+  - Cierran la lista dos transversales: **Notificaciones** (con badge) y **Ver sitio público**, que
+    bajó del topbar por ser una salida del panel y no una acción de la página.
+  - ⚠️ La lista de módulos del admin sale de `UsuarioBlog::MODULOS_ASIGNABLES`, igual que
+    `BlogController::modulosDisponibles()`. Estuvo escrita a mano con cinco claves y dejaba fuera
+    aulas, grupos y los tres directorios: el sidebar mostraba menos módulos que el home.
+- En el topbar quedan **campana** (ámbar de la paleta, `--pal-ambar` + tinta oscura) y **avatar**,
+  más el **logout** rojo. Los pinta `_topbar-avatar.php`, que incluyen todas las vistas del panel,
+  así que basta tocarlo una vez para que un elemento salga en todas.
 - **Breadcrumb global:** `_sidebar.php` construye la ruta (`Inicio › Módulo › Subpágina`) desde la URL y
   el JS la mueve al `.admin-topbar__left` (ocultando el `.admin-topbar__title`). Vive en un solo lugar.
   La **última miga siempre se fuerza a `url = null`**, si no la raíz de un módulo se enlazaba a sí misma
@@ -449,11 +603,8 @@ de la cuenta atrás no deje basura. «Vaciar bandeja» pide confirmación en mod
   `administrativo` sí es válido. Lo impone `UsuarioBlog::normalizarTipoPersonal()` —única puerta de
   entrada, así que también cubre un POST manipulado—; `admin-usuario-permisos.js` solo desactiva las
   casillas para que se vea venir.
-- **Comparaciones de rol:** usar siempre `in_array($rol, ['administrador','superadmin'], true)`.
-  Un `=== 'administrador'` a secas deja al superadmin fuera de su propia UI (era el bug de
-  `views/blog/usuarios/index.php`, que le mostraba "Solo lectura" en cada fila; quedaba también en
-  las dos vistas de categorías, que ocultaban el botón de eliminar al superadmin).
-- **La lista de usuarios va en tres tablas** (superadmins · profesores · administrativos y
+- **Comparaciones de rol:** `=== 'administrador'`, sin más. Solo hay dos roles.
+- **La lista de usuarios va en tres tablas** (administradores · profesores · administrativos y
   prefectura). No son grupos excluyentes: quien tenga varios tipos aparece en todas las que le
   correspondan, y el reparto se hace en la vista sobre una única consulta.
 
@@ -477,7 +628,7 @@ panel, enlaza a `/login`). *Exalumnos fue eliminado.* El calendario usa el compo
 ```bash
 # Backend
 composer install               # instalar deps PHP
-php -S localhost:3000          # servidor de desarrollo
+php -S localhost:3000 dev-server.php   # servidor de desarrollo (el router file es obligatorio)
 
 # Frontend
 npm install                    # instalar deps Node

@@ -61,15 +61,28 @@ if ($fechaValor !== '') {
 
         <div class="bilbao-date__pop" data-date-pop hidden role="dialog" aria-label="Elegir fecha">
             <div class="bilbao-date__head">
-                <button type="button" class="bilbao-date__nav" data-date-prev aria-label="Mes anterior"><i class="fa-solid fa-chevron-left"></i></button>
-                <span class="bilbao-date__month" data-date-month>—</span>
-                <button type="button" class="bilbao-date__nav" data-date-next aria-label="Mes siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+                <button type="button" class="bilbao-date__nav" data-date-prev aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                <?php /* La cabecera es un botón: abre el selector de mes y, desde ahí, el de año.
+                         Con solo ‹ › una fecha de nacimiento de 1990 eran cientos de clics. */ ?>
+                <button type="button" class="bilbao-date__month" data-date-month data-date-salto aria-label="Elegir mes y año">—</button>
+                <button type="button" class="bilbao-date__nav" data-date-next aria-label="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
-            <?php /* La semana empieza en domingo (ver admin-datepicker.js) */ ?>
-            <div class="bilbao-date__weekdays">
-                <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+
+            <?php /* VISTA DÍAS · la semana empieza en DOMINGO (igual que los calendarios .bilbao-cal).
+                     El orden de estos <span> y el offset de admin-datepicker.js van siempre juntos. */ ?>
+            <div data-date-panel="dias">
+                <div class="bilbao-date__weekdays">
+                    <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                </div>
+                <div class="bilbao-date__grid" data-date-grid></div>
             </div>
-            <div class="bilbao-date__grid" data-date-grid></div>
+
+            <?php /* VISTA MESES */ ?>
+            <div class="bilbao-date__panel" data-date-panel="meses" hidden></div>
+
+            <?php /* VISTA AÑOS · bloques de 12 */ ?>
+            <div class="bilbao-date__panel" data-date-panel="anios" hidden></div>
+
             <div class="bilbao-date__foot">
                 <button type="button" class="bilbao-date__hoy" data-date-hoy>Hoy</button>
                 <?php if ($fechaLimpiar): ?>

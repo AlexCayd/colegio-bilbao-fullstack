@@ -6,9 +6,6 @@
             <div class="admin-topbar__left"><span class="admin-topbar__title">Editar evento</span></div>
             <div class="admin-topbar__actions">
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
         <main class="admin-content">

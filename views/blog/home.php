@@ -9,8 +9,7 @@ else                 $saludo = 'Buenas noches';
 $nombreCompleto = $_SESSION['blog_usuario']['nombre'] ?? 'Colaborador';
 $nombreCorto    = explode(' ', trim($nombreCompleto))[0];
 $rolSesion      = $_SESSION['blog_usuario']['rol'] ?? '';
-$esAdmin        = in_array($rolSesion, ['administrador', 'superadmin'], true);
-$esSuper        = $rolSesion === 'superadmin';
+$esAdmin        = $rolSesion === 'administrador';
 
 // Catálogo y agrupación de módulos: fuente única compartida con el sidebar.
 // El color NO se fija ahí: se asigna por posición al pintar, para que la primera
@@ -18,7 +17,7 @@ $esSuper        = $rolSesion === 'superadmin';
 require_once __DIR__ . '/_modulos.php';
 $CAT = blog_modulos_catalogo();
 
-$disponibles    = blog_modulos_disponibles($modulos ?? [], $esSuper);
+$disponibles    = $modulos ?? [];
 $gruposVisibles = blog_modulos_visibles($disponibles);
 // Contador global: la secuencia cromática atraviesa las categorías sin reiniciarse.
 // mh-card--c1 es cyan y de ahí sigue el curso cromático (ver _admin-home.scss).
@@ -74,7 +73,33 @@ foreach (($eventos ?? []) as $ev) {
         $cursor->modify('+1 day');
     }
 }
-$verCumples  = in_array('usuarios', $disponibles, true);
+// Próximos eventos: una entrada por evento (no por día), de hoy en adelante.
+$hoyYmd = $now->format('Y-m-d');
+$proxEventos = [];
+foreach (($eventos ?? []) as $ev) {
+    if (empty($ev->fecha)) continue;
+    // Un evento sigue siendo "próximo" mientras no haya terminado su rango
+    $finYmd = !empty($ev->fecha_fin) && $ev->fecha_fin >= $ev->fecha ? $ev->fecha_fin : $ev->fecha;
+    if ($finYmd < $hoyYmd) continue;
+    $ini = new \DateTime($ev->fecha);
+    $proxEventos[] = [
+        'titulo'  => $ev->titulo,
+        'tipo'    => $ev->tipo,
+        'ymd'     => $ev->fecha,
+        'dia'     => (int)$ini->format('j'),
+        'mes'     => $mesesEs[(int)$ini->format('n') - 1],
+        'rango'   => $finYmd !== $ev->fecha,
+        'finDia'  => $finYmd !== $ev->fecha ? (int)(new \DateTime($finYmd))->format('j') : null,
+        'finMes'  => $finYmd !== $ev->fecha ? $mesesEs[(int)(new \DateTime($finYmd))->format('n') - 1] : null,
+        'hoy'     => $ev->fecha <= $hoyYmd && $finYmd >= $hoyYmd,
+    ];
+}
+usort($proxEventos, fn($a, $b) => strcmp($a['ymd'], $b['ymd']));
+
+// Cumpleaños y eventos los ve TODO el usuario autenticado: son información de
+// convivencia, no datos sensibles. El módulo `usuarios` sigue controlando quién
+// puede *editar* colaboradores, que es distinto.
+$verCumples  = !empty($bdaySorted);
 $verCalendar = $verCumples || !empty($eventos);
 $legendLabel = \Model\Evento::TIPO_LABEL;
 ?>
@@ -91,16 +116,27 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
             </div>
             <div class="admin-topbar__actions">
                 <?php include __DIR__ . '/_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
         <main class="admin-content">
 
-            <!-- HERO claro con tile de fecha -->
-            <div class="mh-hero">
+            <?php
+            // ── Estado del día ──
+            // El hero dejó de ser un saludo decorativo: es el panel donde se ve de un
+            // vistazo qué pasa hoy y qué está pendiente. Las tarjetas a cero no se
+            // pintan, así que un día tranquilo el hero vuelve a ser solo el saludo.
+            $pend       = $pendientes ?? [];
+            $evHoy      = array_values(array_filter($proxEventos, fn($e) => $e['hoy']));
+            $cumpleHoyL = array_values($cumpleHoy);
+            $verCumpleCta = in_array('usuarios', $disponibles, true);
+            $hayEstado  = $cumpleHoyL || $evHoy
+                          || ($pend['notificaciones'] ?? 0) || ($pend['coberturas'] ?? 0) || ($pend['sinSuplente'] ?? 0);
+            ?>
+
+            <!-- HERO: saludo + estado del día -->
+            <div class="mh-hero<?= $hayEstado ? ' has-estado' : '' ?>">
+                <div class="mh-hero__top">
                 <div class="mh-hero__left">
                     <?php /* Con cumpleaños hoy el tile de fecha se pone naranja: se ve desde el primer vistazo */ ?>
                     <div class="mh-datetile<?= !empty($cumpleHoy) ? ' mh-datetile--cumple' : '' ?>">
@@ -115,14 +151,72 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
                     </div>
                 </div>
                 <img src="/build/assets/img/alex/<?= $heroAlex ?>.png" alt="Alex" class="mh-hero__alex">
-            </div>
+                </div><!-- /.mh-hero__top -->
 
-            <?php if (!empty($cumpleHoy)): ?>
-            <div class="mh-today-banner">
-                <i class="fa-solid fa-cake-candles"></i>
-                <p>¡Hoy cumple años <?= htmlspecialchars(implode(', ', array_map(fn($e) => $e['nombre'], $cumpleHoy))) ?>! No olvides felicitar. 🎉</p>
+                <?php if ($hayEstado): ?>
+                <div class="mh-estado">
+
+                    <?php if ($cumpleHoyL): ?>
+                    <?php $cn = count($cumpleHoyL); ?>
+                    <a class="mh-est mh-est--cumple<?= $verCumpleCta ? '' : ' is-static' ?>"
+                       <?= $verCumpleCta ? 'href="/dashboard/usuarios/cumpleanos"' : '' ?>>
+                        <span class="mh-est__avas">
+                            <?php foreach (array_slice($cumpleHoyL, 0, 3) as $c): ?>
+                            <span class="mh-cumple__ava" title="<?= htmlspecialchars($c['nombre']) ?>">
+                                <?php if (!empty($c['avatar'])): ?><img src="<?= htmlspecialchars($c['avatar']) ?>" alt=""><?php else: ?><?= htmlspecialchars($c['inicial']) ?><?php endif; ?>
+                            </span>
+                            <?php endforeach; ?>
+                        </span>
+                        <span class="mh-est__txt">
+                            <span class="mh-est__label"><i class="fa-solid fa-cake-candles"></i> Cumpleaños</span>
+                            <span class="mh-est__dato"><?= htmlspecialchars($cumpleHoyL[0]['nombre']) ?><?= $cn > 1 ? ' y ' . ($cn - 1) . ' más' : '' ?></span>
+                        </span>
+                    </a>
+                    <?php endif; ?>
+
+                    <?php if (!empty($pend['notificaciones'])): ?>
+                    <a class="mh-est mh-est--notif" href="/dashboard/notificaciones">
+                        <span class="mh-est__ico"><i class="fa-regular fa-bell"></i></span>
+                        <span class="mh-est__txt">
+                            <span class="mh-est__label">Sin leer</span>
+                            <span class="mh-est__dato"><?= (int)$pend['notificaciones'] ?> notificación<?= $pend['notificaciones'] == 1 ? '' : 'es' ?></span>
+                        </span>
+                    </a>
+                    <?php endif; ?>
+
+                    <?php if (!empty($pend['coberturas'])): ?>
+                    <a class="mh-est mh-est--cobertura" href="/dashboard/suplencias/mis-coberturas">
+                        <span class="mh-est__ico"><i class="fa-solid fa-clipboard-check"></i></span>
+                        <span class="mh-est__txt">
+                            <span class="mh-est__label">Por confirmar</span>
+                            <span class="mh-est__dato"><?= (int)$pend['coberturas'] ?> cobertura<?= $pend['coberturas'] == 1 ? '' : 's' ?></span>
+                        </span>
+                    </a>
+                    <?php endif; ?>
+
+                    <?php if (!empty($pend['sinSuplente'])): ?>
+                    <a class="mh-est mh-est--suplente" href="/dashboard/suplencias">
+                        <span class="mh-est__ico"><i class="fa-solid fa-user-clock"></i></span>
+                        <span class="mh-est__txt">
+                            <span class="mh-est__label">Sin suplente</span>
+                            <span class="mh-est__dato"><?= (int)$pend['sinSuplente'] ?> ausencia<?= $pend['sinSuplente'] == 1 ? '' : 's' ?></span>
+                        </span>
+                    </a>
+                    <?php endif; ?>
+
+                    <?php if ($evHoy): ?>
+                    <a class="mh-est mh-est--evento" href="/dashboard/eventos">
+                        <span class="mh-est__ico"><i class="fa-solid fa-calendar-day"></i></span>
+                        <span class="mh-est__txt">
+                            <span class="mh-est__label">Hoy</span>
+                            <span class="mh-est__dato"><?= htmlspecialchars($evHoy[0]['titulo']) ?><?= count($evHoy) > 1 ? ' y ' . (count($evHoy) - 1) . ' más' : '' ?></span>
+                        </span>
+                    </a>
+                    <?php endif; ?>
+
+                </div>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
 
             <!-- MÓDULOS, agrupados por categoría -->
             <?php if (empty($gruposVisibles)): ?>
@@ -157,7 +251,7 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
                                 <h3 class="bilbao-cal__month" data-cal-label>—</h3>
                                 <button type="button" class="bilbao-cal__nav" data-cal-next aria-label="Mes siguiente"><i class="fa-solid fa-chevron-right"></i></button>
                             </div>
-                            <div class="bilbao-cal__weekdays"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
+                            <div class="bilbao-cal__weekdays"><span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span></div>
                             <div class="bilbao-cal__grid" data-cal-grid></div>
                             <div class="bilbao-cal__legend">
                                 <?php if ($verCumples): ?><span class="bilbao-cal__leg" data-type="cumple"><i></i> Cumpleaños</span><?php endif; ?>
@@ -166,6 +260,41 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
                                 <?php endforeach; ?>
                             </div>
                         </div>
+
+                        <?php /* Próximos eventos, bajo el calendario. El calendario marca los
+                                 días pero no dice qué pasa en ellos sin pasar el ratón. */ ?>
+                        <?php if ($proxEventos): ?>
+                        <div class="mh-next">
+                            <div class="mh-next__label"><i class="fa-regular fa-clock"></i> Próximos eventos</div>
+                            <div class="mh-next__list" id="mhNextList">
+                                <?php foreach ($proxEventos as $i => $e): ?>
+                                <div class="mh-next__item<?= $e['hoy'] ? ' is-today' : '' ?><?= $i >= 8 ? ' is-hidden' : '' ?>" data-pager-item>
+                                    <span class="mh-next__date" data-type="<?= s($e['tipo']) ?>">
+                                        <strong><?= $e['dia'] ?></strong>
+                                        <small><?= s($e['mes']) ?></small>
+                                    </span>
+                                    <div class="mh-next__body">
+                                        <div class="mh-next__title"><?= s($e['titulo']) ?></div>
+                                        <div class="mh-next__meta">
+                                            <?= s($legendLabel[$e['tipo']] ?? $e['tipo']) ?>
+                                            <?php if ($e['rango']): ?> · hasta el <?= $e['finDia'] ?> <?= s($e['finMes']) ?><?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php if ($e['hoy']): ?><span class="mh-next__chip">Hoy</span><?php endif; ?>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php if (count($proxEventos) > 8): ?>
+                            <div class="mh-pager" data-pager data-pager-for="#mhNextList" data-pager-per="8" data-pager-noun="eventos">
+                                <span class="mh-pager__info" data-pager-info></span>
+                                <div class="mh-pager__btns">
+                                    <button type="button" class="mh-pager__btn" data-pager-prev aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                                    <button type="button" class="mh-pager__btn" data-pager-next aria-label="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -182,7 +311,7 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
                             <?php else: foreach ($bdaySorted as $i => $c):
                                 $mes = $mesesLg[$c['mes'] - 1] ?? '';
                             ?>
-                            <div class="mh-bday-item<?= $c['hoy'] ? ' is-today' : '' ?><?= $i >= 5 ? ' is-hidden' : '' ?>" data-pager-item>
+                            <div class="mh-bday-item<?= $c['hoy'] ? ' is-today' : '' ?><?= $i >= 10 ? ' is-hidden' : '' ?>" data-pager-item>
                                 <div class="mh-bday-ava"><?php if (!empty($c['avatar'])): ?><img src="<?= htmlspecialchars($c['avatar']) ?>" alt=""><?php else: ?><?= htmlspecialchars($c['inicial']) ?><?php endif; ?></div>
                                 <div>
                                     <div class="mh-bday-name"><?= htmlspecialchars($c['nombre']) ?></div>
@@ -193,15 +322,16 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
                             <?php endforeach; endif; ?>
                         </div>
                     </div>
-                    <?php if (count($bdaySorted) > 5): ?>
-                    <div class="mh-pager" id="mhPager" data-pager data-pager-for="#mhBdayList" data-pager-per="5" data-pager-noun="colaboradores">
+                    <?php /* El paginador se pinta siempre: cuántos caben lo decide el JS
+                             midiendo la columna (blog-home.js), así que el servidor no
+                             puede saber si hará falta. Con una sola página se oculta solo. */ ?>
+                    <div class="mh-pager" id="mhPager" data-pager data-pager-for="#mhBdayList" data-pager-per="10" data-pager-noun="colaboradores">
                         <span class="mh-pager__info" data-pager-info></span>
                         <div class="mh-pager__btns">
                             <button type="button" class="mh-pager__btn" data-pager-prev aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
                             <button type="button" class="mh-pager__btn" data-pager-next aria-label="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
-                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
             </div>
@@ -210,3 +340,28 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
         </main>
     </div>
 </div>
+
+<?php /* Rebote por permisos: si una notificación apunta a un módulo que el usuario
+         ya no tiene, requireModulo() lo trae aquí. Antes el rebote era mudo y
+         parecía que el enlace estaba roto. */ ?>
+<?php if (isset($_GET['sinacceso'])):
+    $_modSin = blog_modulos_catalogo()[$_GET['sinacceso']]['nombre'] ?? null;
+?>
+<div class="at-wrap" id="alexToast">
+    <span class="at-stripe" style="background:#f5b400;"></span>
+    <img src="/build/assets/img/alex/alex-point.png" alt="Alex" class="at-alex">
+    <div class="at-body">
+        <p class="at-title"><i class="fa-solid fa-lock" style="color:#f5b400;"></i> Sin acceso a ese módulo</p>
+        <p class="at-msg">
+            <?php if ($_modSin): ?>
+                Esa página pertenece a <strong><?= s($_modSin) ?></strong> y tu cuenta no tiene ese módulo.
+            <?php else: ?>
+                Esa página pertenece a un módulo al que tu cuenta no tiene acceso.
+            <?php endif; ?>
+            Si crees que deberías entrar, pídeselo a un administrador.
+        </p>
+    </div>
+    <button type="button" class="at-close" onclick="cerrarAlexToast()"><i class="fa-solid fa-xmark"></i></button>
+    <span class="at-bar" style="background:#f5b400;"></span>
+</div>
+<?php endif; ?>

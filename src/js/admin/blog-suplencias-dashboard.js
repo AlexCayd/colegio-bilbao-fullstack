@@ -143,7 +143,7 @@
         function draw() {
             var y = cur.getFullYear(), m = cur.getMonth();
             label.textContent = MESES[m] + ' ' + y;
-            var offset = (new Date(y, m, 1).getDay() + 6) % 7;   // lunes = 0
+            var offset = new Date(y, m, 1).getDay();   // domingo = 0
             var days   = new Date(y, m + 1, 0).getDate();
             var html   = '';
 
@@ -160,6 +160,7 @@
                 }
             }
             grid.innerHTML = html;
+            if (window.BilbaoCalAnim) window.BilbaoCalAnim.entrada(grid);
         }
 
         grid.addEventListener('click', function (e) {

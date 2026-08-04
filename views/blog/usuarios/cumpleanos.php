@@ -50,11 +50,6 @@ $porPagina = 5;
             </div>
             <div class="admin-topbar__actions">
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn">
-                        <i class="fa-solid fa-right-from-bracket"></i> Salir
-                    </button>
-                </form>
             </div>
         </header>
 
@@ -82,7 +77,7 @@ $porPagina = 5;
                         <button type="button" class="bilbao-cal__nav" data-cal-next aria-label="Mes siguiente"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                     <div class="bilbao-cal__weekdays">
-                        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                        <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
                     </div>
                     <div class="bilbao-cal__grid" data-cal-grid></div>
                     <div class="bilbao-cal__legend">

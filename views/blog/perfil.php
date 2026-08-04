@@ -15,12 +15,6 @@
                     <i class="fa-solid fa-floppy-disk"></i>
                     Guardar cambios
                 </button>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        Salir
-                    </button>
-                </form>
                 <?php include __DIR__ . '/_topbar-avatar.php'; ?>
             </div>
         </header>

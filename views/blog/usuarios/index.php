@@ -2,8 +2,8 @@
 <?php
 $avatarColors = ['#4D8ABB', '#374C69', '#38A169', '#E67E22', '#9B59B6', '#319795'];
 
-// Admin y superadmin gestionan usuarios; el resto entra en solo lectura.
-$puedeGestionar = in_array($_SESSION['blog_usuario']['rol'] ?? '', ['administrador', 'superadmin'], true);
+// Solo el admin gestiona usuarios; el resto entra en solo lectura.
+$puedeGestionar = ($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador';
 
 function formatAcceso(?string $fecha): string {
     if (!$fecha) return 'Nunca';
@@ -16,35 +16,34 @@ function formatAcceso(?string $fecha): string {
 }
 
 function rolBadgeClass(string $rol): string {
-    return match($rol) {
-        'superadmin'    => 'admin-badge--scheduled',
-        'administrador' => 'admin-badge--published',
-        default         => '',
-    };
+    return $rol === 'administrador' ? 'admin-badge--published' : '';
 }
 
 /** Etiqueta de rol para la UI: `administrador` se muestra como "Admin". */
 function rolLabel(string $rol): string {
-    return match($rol) {
-        'superadmin'    => 'Superadmin',
-        'administrador' => 'Admin',
-        default         => 'Usuario',
-    };
+    return $rol === 'administrador' ? 'Admin' : 'Usuario';
 }
 
 // Reparto en tres tablas. Un usuario con varios tipos aparece en todas las que le
 // correspondan (p. ej. profesor + administrativo sale en dos), así que no son
 // grupos excluyentes: se filtra la misma lista tres veces.
-$tiposDe = fn($u) => array_filter(array_map('trim', explode(',', (string)($u->tipo_personal ?? ''))));
+// Orden de presentación fijo (administrativo · profesor · prefecto), el mismo del
+// formulario. No basta con el orden del CSV: los registros guardados antes del
+// cambio conservan el orden anterior y solo se reescriben al volver a guardarlos.
+$ORDEN_TIPOS = ['administrativo', 'profesor', 'prefecto'];
+$tiposDe = function ($u) use ($ORDEN_TIPOS) {
+    $lista = array_filter(array_map('trim', explode(',', (string)($u->tipo_personal ?? ''))));
+    return array_values(array_intersect($ORDEN_TIPOS, $lista));
+};
 
 $grupos = [
     [
-        'clave'  => 'superadmins',
-        'titulo' => 'Superadmins y administradores',
+        'clave'  => 'administradores',
+        'titulo' => 'Administradores',
         'sub'    => 'Acceso a todos los módulos del panel.',
         'icon'   => 'fa-user-shield',
         'lista'  => array_values(array_filter($usuarios ?? [],
-            fn($u) => in_array($u->rol, ['superadmin', 'administrador'], true))),
+            fn($u) => $u->rol === 'administrador')),
     ],
     [
         'clave'  => 'profesores',
@@ -83,11 +82,6 @@ $grupos = [
                 </a>
                 <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn">
-                        <i class="fa-solid fa-right-from-bracket"></i> Salir
-                    </button>
-                </form>
             </div>
         </header>
 
@@ -107,13 +101,30 @@ $grupos = [
             </div>
             <?php else: ?>
 
+            <?php /* Buscador único para las tres tablas: filtra por nombre, correo, rol,
+                     tipo de personal y módulos, sin acentos y con varios términos a la vez
+                     ("juan prof"). Marca las filas descartadas con is-filtered y llama a
+                     AdminTable.refrescar() para que la paginación recuente solo las visibles. */ ?>
+            <div class="usr-toolbar">
+                <div class="usr-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="search" class="usr-search__input" data-usr-buscar
+                           placeholder="Buscar por nombre, correo, rol o tipo…"
+                           aria-label="Buscar colaborador" autocomplete="off">
+                    <button type="button" class="usr-search__clear" data-usr-limpiar hidden aria-label="Limpiar búsqueda">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <p class="usr-search__resumen" data-usr-resumen hidden></p>
+            </div>
+
             <?php foreach ($grupos as $g): ?>
-            <div class="admin-panel usr-panel">
+            <div class="admin-panel usr-panel" data-usr-panel>
                 <div class="admin-panel__header">
                     <h2 class="admin-panel__title">
                         <i class="fa-solid <?= $g['icon'] ?> usr-panel__icon"></i>
                         <?= s($g['titulo']) ?>
-                        <span class="admin-panel__count"><?= count($g['lista']) ?></span>
+                        <span class="admin-panel__count" data-usr-count><?= count($g['lista']) ?></span>
                     </h2>
                     <?php if ($puedeGestionar): ?>
                     <a href="/dashboard/usuarios/crear" class="admin-panel__action">+ Nuevo</a>
@@ -124,6 +135,7 @@ $grupos = [
                 <?php if (!$g['lista']): ?>
                 <p class="usr-panel__vacio">Nadie en este grupo por ahora.</p>
                 <?php else: ?>
+                <p class="usr-panel__vacio" data-usr-empty hidden>Nadie coincide con la búsqueda en este grupo.</p>
                 <div class="admin-table-scroll">
                     <table class="admin-table" data-table data-table-per="10" data-table-noun="personas">
                         <thead>
@@ -132,7 +144,6 @@ $grupos = [
                                 <th data-sort="text">Email</th>
                                 <th data-sort="text">Rol</th>
                                 <th data-sort="text">Tipo</th>
-                                <th data-sort="num">Artículos</th>
                                 <th data-sort="date">Último acceso</th>
                                 <th>Acciones</th>
                             </tr>
@@ -143,8 +154,17 @@ $grupos = [
                                 $color   = $avatarColors[$u->id % count($avatarColors)];
                                 $inicial = strtoupper(mb_substr($u->nombre, 0, 1));
                                 $tipos   = $tiposDe($u);
+                                // Todo lo buscable de la fila en un solo atributo; el JS normaliza
+                                // acentos antes de comparar, aquí basta con bajar a minúsculas.
+                                $buscable = mb_strtolower(implode(' ', array_filter([
+                                    $u->nombre,
+                                    $u->email,
+                                    rolLabel($u->rol),
+                                    implode(' ', $tipos),
+                                    str_replace(',', ' ', (string)($u->modulos ?? '')),
+                                ])), 'UTF-8');
                             ?>
-                            <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
+                            <tr data-pager-item data-usr-row data-buscar="<?= s($buscable) ?>"<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
                                 <td data-val="<?= s($u->nombre) ?>">
                                     <div style="display:flex;align-items:center;gap:.75rem;">
                                         <div class="admin-topbar__avatar" style="width:38px;height:38px;font-size:.875rem;flex-shrink:0;background:<?= s($color) ?>;">
@@ -170,7 +190,6 @@ $grupos = [
                                         <span class="usr-nil">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td style="font-weight:700;color:var(--col-herencia);"><?= (int)$u->total_articulos ?></td>
                                 <?php /* data-val en Y-m-d: "Hoy, 09:14" no ordena cronológicamente */ ?>
                                 <td data-val="<?= $u->ultimo_acceso ? s(date('Y-m-d H:i', strtotime($u->ultimo_acceso))) : '' ?>"
                                     style="font-size:.85rem;color:var(--text-gray);"><?= s(formatAcceso($u->ultimo_acceso)) ?></td>

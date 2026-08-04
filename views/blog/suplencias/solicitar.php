@@ -14,9 +14,6 @@ $inicial = mb_strtoupper(mb_substr($sesion['nombre'] ?? 'U', 0, 1));
             <div class="admin-topbar__actions">
                 <button type="submit" form="form-solicitar" class="admin-btn admin-btn--primary"><i class="fa-solid fa-paper-plane"></i> Enviar solicitud</button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
@@ -50,9 +47,12 @@ $inicial = mb_strtoupper(mb_substr($sesion['nombre'] ?? 'U', 0, 1));
                             </div>
 
                             <div class="admin-form-row">
+                                <?php /* Fin de semana bloqueado (default) y mínimo hoy: no se puede
+                                         solicitar una ausencia pasada ni un día sin clases. */ ?>
                                 <?php
                                 $fechaMin   = date('Y-m-d');
                                 $fechaLabel = 'Fecha de la ausencia';
+                                $fechaValor = $fechaPrefijada ?? date('Y-m-d');
                                 include __DIR__ . '/../_campo-fecha.php';
                                 ?>
                                 <?php include __DIR__ . '/_campo-motivo.php'; ?>
@@ -76,12 +76,12 @@ $inicial = mb_strtoupper(mb_substr($sesion['nombre'] ?? 'U', 0, 1));
 
                             <div class="admin-form__group">
                                 <label class="admin-form__label"><i class="fa-solid fa-paperclip"></i> Justificante <span style="font-weight:400;color:var(--text-gray);">(opcional)</span></label>
-                                <label class="admin-file" data-file data-file-max="4">
+                                <label class="admin-file" data-file data-file-max="<?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?>">
                                     <input type="file" name="justificante" accept="application/pdf,image/jpeg,image/png,image/webp">
                                     <span class="admin-file__ico"><i class="fa-solid fa-paperclip"></i></span>
                                     <span class="admin-file__text">
                                         <span class="admin-file__title" data-file-title>Elige un archivo o arrástralo aquí</span>
-                                        <span class="admin-file__hint" data-file-hint>PDF o imagen (JPG, PNG, WebP) · máximo 4 MB</span>
+                                        <span class="admin-file__hint" data-file-hint>PDF o imagen (JPG, PNG, WebP) · máximo <?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?> MB</span>
                                     </span>
                                 </label>
                             </div>
@@ -94,10 +94,13 @@ $inicial = mb_strtoupper(mb_substr($sesion['nombre'] ?? 'U', 0, 1));
                         </div>
                     </div>
 
+                    <?php /* Un solo tip: la leyenda del día la escribe admin-supl-week.js
+                             dentro de esta misma tarjeta (ver la nota en crear.php). */ ?>
                     <div class="admin-helper-card">
                         <img src="/build/assets/img/alex/bby-alex-piensa.png" alt="Alex" class="admin-helper-card__alex">
                         <h3 class="admin-helper-card__title">¿Cómo funciona?</h3>
-                        <p class="admin-helper-card__text">Elige la fecha en que faltarás y toca en tu horario las clases que deben cubrirse. Prefectura asignará un suplente disponible y él confirmará la cobertura.</p>
+                        <p class="admin-helper-card__text">Elige la fecha en que faltarás y toca en tu horario las clases que deben cubrirse. Prefectura asignará un suplente disponible y confirmará la cobertura.</p>
+                        <p class="admin-helper-card__extra" data-week-legend></p>
                     </div>
                 </div>
             </form>

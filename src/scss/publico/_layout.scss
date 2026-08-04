@@ -2,4 +2,11 @@
    layout
    Migrado desde el <style> embebido de views/layout.php
 ========================================================= */
-html.i18n-pending body{visibility:visible!important}
+/* Aquí vivía `html.i18n-pending body{visibility:visible!important}`, que anulaba
+   por completo el guard anti-FOUC de views/layout.php + base/_globales.scss: en
+   modo EN se veía el español un instante antes de traducir.
+
+   La regla tenía sentido mientras el bundle no cargaba en local (todo /build/*
+   devolvía 404 sin router file) y las páginas quedaban en blanco los 2 s del
+   temporizador de respaldo. Con dev-server.php eso ya no pasa, y la red de
+   seguridad sigue siendo ese `i18n-fallback` a los 2 s. */

@@ -27,6 +27,17 @@ class Suplencia extends ActiveRecord {
     public $horas_agendadas;
 
     public const ESTADOS = ['solicitada', 'agendada', 'en_curso', 'por_justificar', 'completada', 'cancelada'];
+
+    /**
+     * Tamaño máximo del justificante, en MB. Fuente única: lo lee el guard del
+     * servidor (BlogController::subirJustificante) y también las vistas, que lo
+     * emiten como `data-file-max` para admin-file.js.
+     *
+     * ⚠️ Superar los defaults de PHP (upload_max_filesize=2M, post_max_size=8M) o
+     * el maxAllowedContentLength de IIS (30 MB) hace que el archivo llegue vacío.
+     * Ver la nota de despliegue en CLAUDE.md.
+     */
+    public const MAX_JUSTIFICANTE_MB = 50;
     public const ESTADO_LABEL = [
         'solicitada'     => 'Solicitada',
         'agendada'       => 'Agendada',
@@ -145,6 +156,14 @@ class Suplencia extends ActiveRecord {
             $sid = (int)$f['suplente_id'];
             $where[] = "sup.id IN (SELECT suplencia_id FROM suplencia_horas WHERE suplente_id = {$sid})";
         }
+        // `mias`: OR entre ausente y suplente. Es lo que ve un profesor raso —
+        // sus propias ausencias y las coberturas que hizo—, no un AND de los dos
+        // filtros anteriores, que nunca devolvería nada.
+        if (!empty($f['mias'])) {
+            $mid = (int)$f['mias'];
+            $where[] = "(sup.profesor_ausente_id = {$mid}"
+                     . " OR sup.id IN (SELECT suplencia_id FROM suplencia_horas WHERE suplente_id = {$mid}))";
+        }
 
         $sql = self::selectBase();
         if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -159,11 +178,16 @@ class Suplencia extends ActiveRecord {
         return $r[0] ?? null;
     }
 
-    /** Conteos por estado para las tarjetas de encabezado (+ total). */
-    public static function conteos(): array {
+    /**
+     * Conteos por estado para las tarjetas de encabezado (+ total).
+     * Con `$usuarioId` se ciñe a las suplencias de esa persona (como ausente o
+     * como suplente): a un profesor no le sirve —ni le corresponde— el total del
+     * claustro sobre unas tarjetas que encabezan una lista ya filtrada.
+     */
+    public static function conteos(int $usuarioId = 0): array {
         $out = ['total' => 0];
         foreach (self::ESTADOS as $e) $out[$e] = 0;
-        foreach (self::porEstado() as $estado => $n) {
+        foreach (self::porEstado($usuarioId) as $estado => $n) {
             $out[$estado] = $n;
             $out['total'] += $n;
         }
@@ -197,14 +221,20 @@ class Suplencia extends ActiveRecord {
         $db->query("UPDATE suplencias SET estado='" . $db->escape_string($nuevo) . "' WHERE id={$id} LIMIT 1");
     }
 
-    // ── Agregados para el dashboard (superadmin) ────────────────────────────────
+    // ── Agregados para el dashboard (admin) ─────────────────────────────────────
     /**
      * Conteo por estado. `conteos()` es lo mismo más el total, así que se deriva de aquí
      * en lugar de repetir el GROUP BY en dos consultas.
      */
-    public static function porEstado(): array {
+    public static function porEstado(int $usuarioId = 0): array {
         $out = [];
-        $r = self::$db->query("SELECT estado, COUNT(*) n FROM suplencias GROUP BY estado");
+        $where = '';
+        if ($usuarioId > 0) {
+            $uid = (int)$usuarioId;
+            $where = " WHERE profesor_ausente_id = {$uid}"
+                   . " OR id IN (SELECT suplencia_id FROM suplencia_horas WHERE suplente_id = {$uid})";
+        }
+        $r = self::$db->query("SELECT estado, COUNT(*) n FROM suplencias{$where} GROUP BY estado");
         if ($r) while ($row = $r->fetch_assoc()) $out[$row['estado']] = (int)$row['n'];
         return $out;
     }
@@ -286,8 +316,24 @@ class Suplencia extends ActiveRecord {
     }
 
     /** Resumen diario (conteo por fecha) para el calendario del dashboard. */
-    public static function resumenDiario(): array {
-        $r = self::$db->query("SELECT fecha, COUNT(*) n FROM suplencias GROUP BY fecha");
+    /**
+     * Conteo de suplencias por día, para los calendarios.
+     *
+     * @param int $usuarioId 0 = todas (prefectura/admin). Con un id, solo las de esa
+     *        persona —como ausente o como suplente—, igual que el filtro `mias` de
+     *        listar(). Sin esto, el calendario del listado delataría a un profesor
+     *        cuántas ausencias tiene el resto del claustro, que es justo lo que el
+     *        listado evita.
+     */
+    public static function resumenDiario(int $usuarioId = 0): array {
+        $where = '';
+        if ($usuarioId > 0) {
+            $uid = (int)$usuarioId;
+            $where = " WHERE sup.profesor_ausente_id = $uid
+                       OR EXISTS (SELECT 1 FROM suplencia_horas sh
+                                  WHERE sh.suplencia_id = sup.id AND sh.suplente_id = $uid)";
+        }
+        $r = self::$db->query("SELECT sup.fecha, COUNT(*) n FROM suplencias sup$where GROUP BY sup.fecha");
         $out = [];
         if ($r) while ($row = $r->fetch_assoc()) $out[] = ['fecha' => $row['fecha'], 'n' => (int)$row['n']];
         return $out;

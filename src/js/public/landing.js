@@ -241,11 +241,11 @@
 
     /* ---- DARK MODE (forest recoloring — toggle handled by theme.js) ---- */
     document.addEventListener('bilbao:theme', function (e) {
-        if (three) recolorForest(e.detail === 'dark');
+        if (bosque) bosque.recolor(e.detail === 'dark');
     });
     /* Aplicar paleta del bosque al cargar según tema guardado */
     var _initDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    setTimeout(function () { if (three) recolorForest(_initDark); }, 300);
+    setTimeout(function () { if (bosque) bosque.recolor(_initDark); }, 300);
 
     /* ---- STAT COUNTERS ---- */
     var cio = new IntersectionObserver(function (entries) {
@@ -276,13 +276,13 @@
     if (descubreSection && forestCanvasEl) {
         var fio = new IntersectionObserver(function (entries) {
             var e = entries[0];
+            if (!bosque) return;
             if (e.isIntersecting || e.boundingClientRect.top <= 0) {
-                forestPaused = true;
+                bosque.pause();
                 forestCanvasEl.style.opacity = '0';
-            } else if (forestPaused) {
-                forestPaused = false;
+            } else if (bosque.estaPausado()) {
                 forestCanvasEl.style.opacity = '';
-                if (forestLoop) forestLoop();
+                bosque.resume();
             }
         }, { threshold: 0, rootMargin: '0px 0px -45% 0px' });
         fio.observe(descubreSection);
@@ -373,178 +373,16 @@
     }
 
     /* ---- THREE.JS FOREST ---- */
-    var three         = null;
-    var scrollP       = 0;
-    var mouse         = { x: 0, y: 0 };
-    var tmouse        = { x: 0, y: 0 };
-    var forestPaused  = false;
-    var forestLoop     = null;
-
-    function glowTex() {
-        var c = document.createElement('canvas'); c.width = c.height = 64;
-        var x = c.getContext('2d');
-        var g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-        g.addColorStop(0,    'rgba(255,255,255,1)');
-        g.addColorStop(0.35, 'rgba(255,255,255,.55)');
-        g.addColorStop(1,    'rgba(255,255,255,0)');
-        x.fillStyle = g; x.fillRect(0, 0, 64, 64);
-        return new THREE.CanvasTexture(c);
-    }
-    function treeTex(kind) {
-        var c = document.createElement('canvas'); c.width = 160; c.height = 320;
-        var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(72, 180, 16, 140);
-        if (kind === 'pine') {
-            [[80,20,66],[80,90,80],[80,160,94]].forEach(function (a) {
-                x.beginPath(); x.moveTo(a[0],a[1]); x.lineTo(a[0]-a[2],a[1]+120); x.lineTo(a[0]+a[2],a[1]+120); x.closePath(); x.fill();
-            });
-        } else {
-            [[80,90,60],[48,140,42],[112,140,42],[80,150,58],[60,110,38],[100,110,38]].forEach(function (a) {
-                x.beginPath(); x.arc(a[0],a[1],a[2],0,Math.PI*2); x.fill();
-            });
-        }
-        return new THREE.CanvasTexture(c);
-    }
-    function rayTex() {
-        var c = document.createElement('canvas'); c.width = 32; c.height = 256;
-        var x = c.getContext('2d');
-        var g = x.createLinearGradient(0,0,0,256);
-        g.addColorStop(0,    'rgba(255,255,255,0)');
-        g.addColorStop(0.18, 'rgba(255,255,255,.9)');
-        g.addColorStop(0.55, 'rgba(255,255,255,.35)');
-        g.addColorStop(1,    'rgba(255,255,255,0)');
-        x.fillStyle = g; x.fillRect(0,0,32,256);
-        return new THREE.CanvasTexture(c);
-    }
-
-    function getPal(dark) {
-        return dark
-            ? { fog:0x081320, tree:0x16314c, treeFar:0x0f2236, fly1:0x7DC6E5, fly2:0xFFFFFF, ray:0x7DC6E5, rayOp:0.10 }
-            : { fog:0xDCEAF7, tree:0x6f9cc6, treeFar:0xa9c6e3, fly1:0x4D8ABB, fly2:0x7DC6E5, ray:0xFFFFFF, rayOp:0.16 };
-    }
-
-    function recolorForest(dark) {
-        if (!three) return;
-        var P = getPal(dark), T = three;
-        T.scene.fog.color.set(P.fog);
-        T.trees.forEach(function (o) { o.sp.material.color.set(o.far ? P.treeFar : P.tree); });
-        T.rays.forEach(function (o) { o.pl.material.color.set(P.ray); o.base = P.rayOp; });
-        var c1 = new THREE.Color(P.fly1), c2 = new THREE.Color(P.fly2), col = T.geo.attributes.color.array;
-        for (var i = 0; i < T.N; i++) {
-            var c = Math.random() < 0.62 ? c1 : c2;
-            col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
-        }
-        T.geo.attributes.color.needsUpdate = true;
-    }
+    /* La escena vive en src/js/public/forest.js: se extrajo de aquí para poder
+       reutilizarla en el login, que carga otro bundle. Aquí solo queda el
+       cableado propio de la landing (tema y pausa al salir del hero). */
+    var bosque = null;
 
     function initForest() {
-        try {
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-            var canvas = document.getElementById('forest-canvas');
-            var w = window.innerWidth, h = window.innerHeight;
-            var scene    = new THREE.Scene();
-            var camera   = new THREE.PerspectiveCamera(60, w / h, 0.1, 200);
-            camera.position.set(0, 1, 12);
-            var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
-            renderer.setSize(w, h);
-
-            var dark = document.documentElement.getAttribute('data-theme') === 'dark';
-            var P    = getPal(dark);
-            scene.fog = new THREE.FogExp2(P.fog, 0.021);
-
-            var glow = glowTex(), texPine = treeTex('pine'), texRound = treeTex('round'), rayT = rayTex();
-            var treeGroup = new THREE.Group(); scene.add(treeGroup);
-            var trees = [], groundY = -7;
-            var bands = [
-                { n:9,  zc:-10, zs:6,  sc:7,  op:.96, far:false },
-                { n:13, zc:-26, zs:10, sc:13, op:.82, far:false },
-                { n:16, zc:-46, zs:14, sc:22, op:.6,  far:true  }
-            ];
-            bands.forEach(function (b) {
-                for (var i = 0; i < b.n; i++) {
-                    var tex = Math.random() < 0.62 ? texPine : texRound;
-                    var mat = new THREE.SpriteMaterial({ map: tex, color: b.far ? P.treeFar : P.tree, transparent: true, opacity: b.op, depthWrite: false, fog: true });
-                    var sp  = new THREE.Sprite(mat);
-                    var sw  = b.sc * (0.7 + Math.random() * 0.6), sh = sw * (1.7 + Math.random() * 0.5);
-                    sp.scale.set(sw, sh, 1);
-                    sp.position.set((Math.random() - 0.5) * b.sc * 7.5, groundY + sh / 2, b.zc + (Math.random() - 0.5) * b.zs * 1.8);
-                    sp.material.rotation = (Math.random() - 0.5) * 0.05;
-                    treeGroup.add(sp);
-                    trees.push({ sp: sp, phase: Math.random() * 6.28, far: b.far });
-                }
-            });
-
-            var N   = 720;
-            var geo = new THREE.BufferGeometry();
-            var pos = new Float32Array(N * 3), col = new Float32Array(N * 3), spd = new Float32Array(N), ph = new Float32Array(N);
-            var c1  = new THREE.Color(P.fly1), c2 = new THREE.Color(P.fly2);
-            for (var i = 0; i < N; i++) {
-                pos[i*3]   = (Math.random() - 0.5) * 90;
-                pos[i*3+1] = groundY + Math.random() * 26;
-                pos[i*3+2] = -Math.random() * 55 + 5;
-                var c = Math.random() < 0.62 ? c1 : c2;
-                col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
-                spd[i] = 0.05 + Math.random() * 0.12;
-                ph[i]  = Math.random() * 6.28;
-            }
-            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
-            var fmat  = new THREE.PointsMaterial({ size: 0.42, map: glow, vertexColors: true, transparent: true, opacity: .92, depthWrite: false, blending: THREE.AdditiveBlending });
-            var flies = new THREE.Points(geo, fmat);
-            scene.add(flies);
-
-            var rays = [], rayGroup = new THREE.Group(); scene.add(rayGroup);
-            for (var i = 0; i < 5; i++) {
-                var m  = new THREE.MeshBasicMaterial({ map: rayT, color: P.ray, transparent: true, opacity: P.rayOp, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
-                var pl = new THREE.Mesh(new THREE.PlaneGeometry(7, 46), m);
-                pl.position.set((Math.random() - 0.5) * 44, 9, -16 - Math.random() * 26);
-                pl.rotation.z = (Math.random() - 0.5) * 0.5;
-                rayGroup.add(pl);
-                rays.push({ pl: pl, phase: Math.random() * 6.28, base: P.rayOp });
-            }
-
-            three = { scene: scene, camera: camera, renderer: renderer, treeGroup: treeGroup, trees: trees, flies: flies, geo: geo, pos: pos, spd: spd, ph: ph, N: N, groundY: groundY, rays: rays, baseZ: 12 };
-
-            window.addEventListener('mousemove', function (e) {
-                tmouse.x = (e.clientX / window.innerWidth  - 0.5);
-                tmouse.y = (e.clientY / window.innerHeight - 0.5);
-            });
-            window.addEventListener('resize', function () {
-                var W = window.innerWidth, H = window.innerHeight;
-                camera.aspect = W / H; camera.updateProjectionMatrix(); renderer.setSize(W, H);
-            });
-            window.addEventListener('scroll', function () {
-                var max = document.body.scrollHeight - window.innerHeight;
-                scrollP = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
-            }, { passive: true });
-
-            var clock = new THREE.Clock();
-            forestLoop = function loop() {
-                if (forestPaused) return;
-                var t = clock.getElapsedTime(), T = three;
-                for (var i = 0; i < T.N; i++) {
-                    T.pos[i*3+1] += Math.sin(t * 0.7 + T.ph[i]) * 0.01 + T.spd[i] * 0.02;
-                    T.pos[i*3]   += Math.cos(t * 0.5 + T.ph[i]) * 0.012;
-                    if (T.pos[i*3+1] > T.groundY + 30) T.pos[i*3+1] = T.groundY + 1;
-                }
-                T.geo.attributes.position.needsUpdate = true;
-                T.flies.material.size = 0.42 + Math.sin(t * 2) * 0.08;
-                T.trees.forEach(function (o) { o.sp.material.rotation = Math.sin(t * 0.6 + o.phase) * 0.025; });
-                T.rays.forEach(function (o)  { o.pl.material.opacity  = o.base * (0.5 + 0.5 * Math.abs(Math.sin(t * 0.4 + o.phase))); });
-                mouse.x += (tmouse.x - mouse.x) * 0.05;
-                mouse.y += (tmouse.y - mouse.y) * 0.05;
-                var targetZ = T.baseZ - scrollP * 42;
-                T.camera.position.z += (targetZ - T.camera.position.z) * 0.06;
-                T.camera.position.x += (mouse.x * 4 - T.camera.position.x) * 0.05;
-                T.camera.position.y += ((1 - mouse.y * 2.5) - T.camera.position.y) * 0.05;
-                T.camera.lookAt(mouse.x * 2, 0.5, T.camera.position.z - 20);
-                T.renderer.render(T.scene, T.camera);
-                requestAnimationFrame(forestLoop);
-            };
-            forestLoop();
-        } catch (err) {
-            console.warn('Forest canvas init failed:', err);
-        }
+        var canvas = document.getElementById('forest-canvas');
+        bosque = window.BilbaoForest
+            ? window.BilbaoForest.init(canvas, { scroll: true })
+            : null;
     }
 
     /* ---- GSAP ---- */

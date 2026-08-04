@@ -3,11 +3,10 @@ namespace Model;
 
 class Aula extends ActiveRecord {
     protected static $tabla      = 'aulas';
-    protected static $columnasDB = ['id', 'nombre', 'descripcion'];
+    protected static $columnasDB = ['id', 'nombre'];
 
     public $id;
     public $nombre;
-    public $descripcion;
 
     /** Alias de conteo (no es columna: hay que declararlo o crearObjeto() lo descarta). */
     public $total_horarios;
@@ -43,8 +42,7 @@ class Aula extends ActiveRecord {
     public function validar() {
         static::$alertas = [];
 
-        $this->nombre      = trim((string) $this->nombre);
-        $this->descripcion = trim((string) $this->descripcion) ?: null;
+        $this->nombre = trim((string) $this->nombre);
 
         if ($this->nombre === '') {
             self::setAlerta('error', 'El nombre del aula es obligatorio');
@@ -52,10 +50,6 @@ class Aula extends ActiveRecord {
             self::setAlerta('error', 'El nombre no puede pasar de 80 caracteres');
         } elseif (self::nombreRepetido($this->nombre, (int) $this->id)) {
             self::setAlerta('error', "Ya existe un aula llamada «{$this->nombre}»");
-        }
-
-        if ($this->descripcion !== null && mb_strlen($this->descripcion) > 160) {
-            self::setAlerta('error', 'La descripción no puede pasar de 160 caracteres');
         }
 
         return static::$alertas;

@@ -6,9 +6,9 @@
         <?php $bg_scene = 'bosque'; $bg_colores = ['#4D8ABB', '#7DC6E5', '#46bdc6', '#374C69', '#F1C400']; include __DIR__ . '/_bg.php'; ?>
         <div class="comunidad-est__hero-inner">
             <div class="comunidad-est__hero-text" data-est-reveal>
-                <span class="comunidad-est__eyebrow"><i class="fa-solid fa-graduation-cap"></i> Comunidad estudiantil</span>
-                <h1 class="comunidad-est__title">La vida de nuestros estudiantes</h1>
-                <p class="comunidad-est__lead">
+                <span class="comunidad-est__eyebrow"><i class="fa-solid fa-graduation-cap"></i> <span data-i18n="comunidad-estudiantes.eyebrow">Comunidad estudiantil</span></span>
+                <h1 class="comunidad-est__title" data-i18n="comunidad-estudiantes.title">La vida de nuestros estudiantes</h1>
+                <p class="comunidad-est__lead" data-i18n="comunidad-estudiantes.lead">
                     Proyectos, deportes, arte y momentos que hacen del Colegio Bilbao un lugar
                     para crecer. Así se vive el día a día en la voz de quienes lo protagonizan.
                 </p>
@@ -21,15 +21,15 @@
                     </a>
                 </div>
             </div>
-            <img src="/build/assets/img/alex/alex-toca.png" alt="Alex" class="comunidad-est__hero-img" loading="lazy" data-est-reveal>
+            <img src="/build/assets/img/alex/alex-toca.png" alt="Alex" data-i18n-attr="alt:comunidad-estudiantes.alexAlt" class="comunidad-est__hero-img" loading="lazy" data-est-reveal>
         </div>
     </section>
 
     <!-- ── FEED DE INSTAGRAM ────────────────────── -->
     <section class="comunidad-est__feed">
         <div class="comunidad-est__feed-head" data-est-reveal>
-            <h2 class="comunidad-est__feed-title"><i class="fa-brands fa-instagram"></i> Lo más reciente</h2>
-            <p class="comunidad-est__feed-sub">Publicaciones destacadas de nuestras redes.</p>
+            <h2 class="comunidad-est__feed-title"><i class="fa-brands fa-instagram"></i> <span data-i18n="comunidad-estudiantes.feedTitle">Lo más reciente</span></h2>
+            <p class="comunidad-est__feed-sub" data-i18n="comunidad-estudiantes.feedSub">Publicaciones destacadas de nuestras redes.</p>
         </div>
 
         <div class="comunidad-est__grid">
@@ -47,7 +47,7 @@
                     data-instgrm-permalink="<?= htmlspecialchars($url) ?>"
                     data-instgrm-version="14"
                     style="background:#FFF; border:0; border-radius:16px; box-shadow:none; margin:0; max-width:600px; min-width:280px; width:100%;">
-                    <a href="<?= htmlspecialchars($url) ?>" target="_blank" rel="noopener">Ver esta publicación en Instagram</a>
+                    <a href="<?= htmlspecialchars($url) ?>" target="_blank" rel="noopener" data-i18n="comunidad-estudiantes.verPost">Ver esta publicación en Instagram</a>
                 </blockquote>
             </div>
             <?php endforeach; ?>

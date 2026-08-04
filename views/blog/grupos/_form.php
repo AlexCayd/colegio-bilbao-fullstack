@@ -43,7 +43,7 @@ $usos = $usos ?? null;
             </div>
             <?php endif; ?>
 
-            <form method="POST" action="<?= s($accion) ?>" id="formGrupo" class="admin-panel cat-form">
+            <form method="POST" action="<?= s($accion) ?>" id="formGrupo" class="admin-panel cat-form cat-form--wide">
                 <div class="admin-form__group">
                     <label class="admin-form__label" for="nombre">Nombre del grupo</label>
                     <input type="text" name="nombre" id="nombre" class="admin-form__input"
@@ -52,23 +52,29 @@ $usos = $usos ?? null;
                     <small class="admin-form__hint">Debe ser único. Es el nombre que se busca al importar horarios por CSV.</small>
                 </div>
 
-                <div class="cat-form__row">
-                    <div class="admin-form__group">
-                        <label class="admin-form__label" for="nivel">Nivel académico</label>
-                        <select name="nivel" id="nivel" class="hor-select" required>
-                            <option value="">Elige un nivel…</option>
-                            <?php foreach (\Model\Grupo::NIVELES as $n): ?>
-                            <option value="<?= s($n) ?>" <?= $grupo->nivel === $n ? 'selected' : '' ?>><?= s($n) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                <?php /* Nivel como tabs (radios estilizados), mismo componente visual que el
+                         filtro del listado. El orden de los grupos ya no se configura: se
+                         deduce del nivel y, dentro de él, del nombre alfabéticamente. */ ?>
+                <?php
+                $nivelColorForm = [
+                    'Maternal'     => '#fc6722',
+                    'Kinder'       => '#f5b400',
+                    'Primaria'     => '#8ac926',
+                    'Secundaria'   => '#46bdc6',
+                    'Bachillerato' => '#4267ac',
+                ];
+                ?>
+                <div class="admin-form__group">
+                    <label class="admin-form__label">Nivel académico</label>
+                    <div class="cat-tabs cat-tabs--radio">
+                        <?php foreach (\Model\Grupo::NIVELES as $n): ?>
+                        <label class="cat-tab" style="--c:<?= $nivelColorForm[$n] ?? '#94a3b8' ?>;">
+                            <input type="radio" name="nivel" value="<?= s($n) ?>" <?= $grupo->nivel === $n ? 'checked' : '' ?> required>
+                            <span><?= s($n) ?></span>
+                        </label>
+                        <?php endforeach; ?>
                     </div>
-
-                    <div class="admin-form__group">
-                        <label class="admin-form__label" for="orden">Orden</label>
-                        <input type="number" name="orden" id="orden" class="admin-form__input"
-                               value="<?= (int)$grupo->orden ?>" min="1" max="999" required>
-                        <small class="admin-form__hint">Posición en la secuencia académica, de menor a mayor.</small>
-                    </div>
+                    <small class="admin-form__hint">Fija la posición del grupo en los listados: primero por nivel, después alfabéticamente.</small>
                 </div>
 
                 <div class="cat-form__acts">

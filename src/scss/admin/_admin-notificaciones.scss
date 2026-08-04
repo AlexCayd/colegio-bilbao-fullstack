@@ -41,21 +41,38 @@ body[data-page="blog-notificaciones-index"] {
     /* ── Lista ── */
     .nt-list { margin: 0; padding: 0; list-style: none; }
 
+    /* Cuatro zonas: icono de módulo · cuerpo · marca temporal · acciones.
+       Antes toda la información temporal se aplanaba en una línea gris de .74rem
+       ("SUPLENCIAS · 03 Aug 2026, 12:41"), donde nada destacaba sobre nada. */
     .nt-row {
+        position: relative;   /* ancla del separador temporal (.nt-row__tramo) */
         display: flex;
         align-items: flex-start;
-        gap: 14px;
-        padding: 15px 20px;
+        gap: 16px;
+        padding: 20px 22px;
         border-bottom: 1px solid #f1f5f9;
         transition: background .16s ease, opacity .3s ease, transform .3s ease;
 
         &:last-child { border-bottom: none; }
         &:hover { background: #fafcff; }
 
-        /* Sin leer: barra de color a la izquierda + fondo tenue */
+        /* La fila que abre tramo necesita aire para el badge superpuesto */
+        &:has(.nt-row__tramo) { margin-top: 22px; }
+
+        /* En estrecho las acciones bajan a su propia línea, a ancho completo */
+        @media (max-width: 900px) {
+            flex-wrap: wrap;
+
+            .nt-row__cuando { order: 3; flex-direction: row; align-items: center; gap: 8px; text-align: left; padding-left: 52px; }
+            .nt-row__acts   { order: 4; width: 100%; justify-content: flex-start; padding-left: 52px; }
+        }
+
+        /* Sin leer: riel de color a la izquierda + fondo tenue. El riel sube a 4px
+           y el mensaje gana cuerpo: es la única diferencia real entre una fila
+           pendiente y una ya atendida. */
         &.is-unread {
             background: #f7fbff;
-            box-shadow: inset 3px 0 0 var(--nt-col, #4285f4);
+            box-shadow: inset 4px 0 0 var(--nt-col, #4285f4);
 
             .nt-row__msg { font-weight: 700; color: #0B1F3D; }
         }
@@ -71,23 +88,32 @@ body[data-page="blog-notificaciones-index"] {
         &--error { --nt-col: #e51022; }
     }
 
+    /* El icono lo tiñe el MÓDULO, no el nivel: el nivel ya se ve en el riel
+       izquierdo, y así de un vistazo se sabe de dónde viene cada aviso. */
     .nt-row__icon {
         flex-shrink: 0;
-        width: 36px;
-        height: 36px;
-        border-radius: 11px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
-        font-size: .85rem;
-        color: var(--nt-col, #4285f4);
-        background: color-mix(in srgb, var(--nt-col, #4285f4) 12%, #fff);
+        font-size: .9rem;
+        color: var(--nt-mod, #4267ac);
+        background: color-mix(in srgb, var(--nt-mod, #4267ac) 12%, #fff);
+
+        &--redaccion  { --nt-mod: #aa2296; }
+        &--suplencias { --nt-mod: #4267ac; }
+        &--horarios   { --nt-mod: #46bdc6; }
+        &--eventos    { --nt-mod: #fc6722; }
+        &--usuarios   { --nt-mod: #8ac926; }
+        &--general    { --nt-mod: #94a3b8; }
     }
 
     .nt-row__body { flex: 1; min-width: 0; }
 
     .nt-row__msg {
-        margin: 0 0 3px;
-        font-size: .9rem;
+        margin: 0 0 8px;
+        font-size: .95rem;
         line-height: 1.45;
         color: #374C69;
     }
@@ -102,40 +128,158 @@ body[data-page="blog-notificaciones-index"] {
         gap: 5px;
     }
 
+    /* Chip de módulo con el color del módulo, no gris para todos */
     .nt-row__mod {
-        background: #eef2f7;
-        color: #4267ac;
+        background: color-mix(in srgb, var(--nt-mod, #4267ac) 13%, #fff);
+        color: var(--nt-mod, #4267ac);
         font-weight: 800;
         font-size: .66rem;
-        letter-spacing: .3px;
+        letter-spacing: .4px;
         text-transform: uppercase;
-        padding: 2px 7px;
-        border-radius: 5px;
+        padding: 3px 9px;
+        border-radius: 6px;
+
+        &--redaccion  { --nt-mod: #8e1c7d; }
+        &--suplencias { --nt-mod: #4267ac; }
+        &--horarios   { --nt-mod: #1f8189; }
+        &--eventos    { --nt-mod: #c2500f; }
+        &--usuarios   { --nt-mod: #5b8a19; }
+        &--general    { --nt-mod: #64748b; }
     }
 
-    .nt-row__link {
-        color: #4267ac;
-        text-decoration: none;
-        font-weight: 700;
-
-        i { font-size: .62rem; }
-        &:hover { text-decoration: underline; }
-    }
-
-    .nt-row__del {
+    /* ── Marca temporal ──
+       El chip relativo (Hoy / Ayer / Martes / 12 Jul) responde a "¿esto es de
+       ahora?", que es la pregunta real; la hora queda de apoyo y la fecha
+       completa vive en el title, sin gastar una línea. */
+    .nt-row__cuando {
         flex-shrink: 0;
-        width: 32px;
-        height: 32px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 3px;
+        text-align: right;
+        padding-top: 2px;
+        cursor: default;
+    }
+
+    .nt-row__chip {
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #eef2f7;
+        color: #475569;
+        font-size: .7rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+    /* Solo "Hoy" se colorea: si todo destaca, no destaca nada */
+    .nt-row.is-unread .nt-row__chip { background: color-mix(in srgb, var(--nt-col, #4285f4) 15%, #fff); color: var(--nt-col, #4285f4); }
+
+    .nt-row__hora {
+        font-size: .72rem;
+        font-weight: 600;
+        color: #A3AEC0;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Acciones de fila ──
+       Dos botones explícitos en vez de un icono ambiguo: hay que dejar claro que
+       "completada" es lo que saca el aviso de la bandeja, y "Ver detalle" tenía
+       tan poco contraste que no se leía como algo pulsable. */
+    .nt-row__acts {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .nt-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 13px;
         border-radius: 9px;
-        border: 1.5px solid #e2e8f0;
-        background: #fff;
-        color: #94A3B8;
+        border: 1.5px solid transparent;
+        font-family: 'Outfit', sans-serif;
+        font-size: .76rem;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
         cursor: pointer;
-        display: grid;
-        place-items: center;
         transition: all .16s ease;
 
-        &:hover { border-color: #34a853; color: #34a853; background: #f2fbf5; }
+        i { font-size: .68rem; }
+
+        /* Secundaria pero visible: outline de contraste alto */
+        &--ver {
+            background: #fff;
+            border-color: #4267ac;
+            color: #4267ac;
+
+            &:hover { background: #4267ac; color: #fff; }
+        }
+
+        /* Primaria: es la que cierra el aviso */
+        &--ok {
+            background: #34a853;
+            border-color: #34a853;
+            color: #fff;
+
+            &:hover { background: #2c8f46; }
+        }
+    }
+
+    /* ── Separador temporal (Hoy / Esta semana / Anteriores) ──
+       Va dentro de su primera fila, no como <li> aparte: paginado por separado
+       dejaría encabezados huérfanos al cambiar de página. */
+    .nt-row__tramo {
+        position: absolute;
+        top: -9px;
+        left: 18px;
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: #0B1F3D;
+        color: #fff;
+        font-size: .62rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    /* ── Tira L·M·X·J·V de una cobertura ──
+       X para el miércoles (M ya es martes), como en cualquier horario escolar. */
+    .nt-dias {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0 0 10px;
+        padding: 6px 12px 6px 8px;
+        border-radius: 12px;
+        background: #f7fafd;
+        border: 1px solid #e9eef5;
+        flex-wrap: wrap;
+    }
+    .nt-dias__d {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        background: #fff;
+        border: 1px solid #eef2f7;
+        color: #b3c0d0;
+        font-size: .7rem;
+        font-weight: 800;
+
+        &.is-on { background: #4285f4; border-color: #4285f4; color: #fff; box-shadow: 0 4px 10px -4px rgba(66,133,244,.9); }
+    }
+    .nt-dias__txt {
+        margin-left: 8px;
+        font-size: .76rem;
+        font-weight: 700;
+        color: #4267ac;
+        text-transform: capitalize;
     }
 
     /* ── Vacío ── */
@@ -144,7 +288,9 @@ body[data-page="blog-notificaciones-index"] {
         text-align: center;
         color: #94A3B8;
 
-        img { width: 92px; height: auto; margin-bottom: 10px; }
+        /* display:block + margin auto: como <img> inline el centrado dependía solo
+           del text-align heredado y de que `width` ganara a la regla global. */
+        img { display: block; width: 92px; height: auto; margin: 0 auto 10px; }
         p   { margin: 0; font-size: .88rem; }
         strong { color: #0B1F3D; font-size: 1rem; }
     }

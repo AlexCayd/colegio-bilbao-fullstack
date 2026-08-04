@@ -37,6 +37,75 @@ body[data-page="blog-usuarios-index"] {
 
     .usr-nil { font-size: .8rem; color: #94A3B8; }
 
+    /* ── Buscador (filtra las tres tablas a la vez) ── */
+    .usr-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+    .usr-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 260px;
+        max-width: 460px;
+
+        > i {
+            position: absolute;
+            left: 16px;
+            font-size: .85rem;
+            color: #94A3B8;
+            pointer-events: none;
+        }
+    }
+    .usr-search__input {
+        width: 100%;
+        height: 46px;
+        padding: 0 42px 0 42px;
+        border: 1.5px solid #E2E8F0;
+        border-radius: 13px;
+        background: #fff;
+        font-family: 'Outfit', sans-serif;
+        font-size: .9rem;
+        color: #1e293b;
+        transition: border-color .18s ease, box-shadow .18s ease;
+
+        &::placeholder { color: #A3AEC0; }
+        &:focus {
+            outline: none;
+            border-color: var(--col-bilbao);
+            box-shadow: 0 0 0 3px rgba(77, 138, 187, .12);
+        }
+        /* La "x" nativa de type="search" duplicaría el botón propio */
+        &::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+    }
+    .usr-search__clear {
+        position: absolute;
+        right: 8px;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 8px;
+        background: #F1F5F9;
+        color: #64748B;
+        font-size: .78rem;
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease;
+
+        &:hover { background: #E2E8F0; color: var(--col-herencia); }
+    }
+    .usr-search__resumen {
+        margin: 0;
+        font-size: .84rem;
+        font-weight: 600;
+        color: #64748B;
+    }
+
     .ubm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s ease}
     .ubm-backdrop.is-open{opacity:1;pointer-events:all}
     .ubm-card{background:#fff;border-radius:20px;padding:40px 32px 32px;max-width:420px;width:92%;text-align:center;box-shadow:0 40px 80px rgba(15,23,42,.22),0 8px 24px rgba(15,23,42,.1);transform:scale(.84) translateY(20px);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .22s ease}
@@ -60,10 +129,10 @@ body[data-page="blog-usuarios-index"] {
     .ubm-confirm:not([disabled]):hover{background:#c53030;transform:translateY(-2px);box-shadow:0 8px 24px rgba(229,62,62,.4)}
     .ubm-confirm[disabled]{opacity:.42;cursor:not-allowed;box-shadow:none;transform:none}
     .admin-main{animation:pageIn .4s ease both}
-    .at-wrap{position:fixed;top:-160px;right:24px;z-index:8500;background:#fff;border-radius:18px;box-shadow:0 24px 56px rgba(15,23,42,.16),0 4px 14px rgba(15,23,42,.08);border:1px solid #E8EDF3;display:flex;align-items:center;gap:14px;padding:18px 48px 22px 0;max-width:360px;min-width:300px;overflow:hidden;transition:top .5s cubic-bezier(.34,1.56,.64,1),opacity .35s ease}
+    .at-wrap{position:fixed;top:-160px;right:24px;z-index:8500;background:#fff;border-radius:18px;box-shadow:0 24px 56px rgba(15,23,42,.16),0 4px 14px rgba(15,23,42,.08);border:1px solid #E8EDF3;display:flex;align-items:center;gap:14px;padding:20px 48px 20px 0;max-width:360px;min-width:300px;overflow:hidden;transition:top .5s cubic-bezier(.34,1.56,.64,1),opacity .35s ease}
     .at-wrap.is-visible{top:24px}
     .at-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:18px 0 0 18px}
-    .at-alex{width:72px;flex-shrink:0;margin-left:14px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.15));animation:alexBounce .6s .35s ease-in-out both}
+    .at-alex{width:72px;max-height:86px;object-fit:contain;flex-shrink:0;align-self:center;margin-left:14px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.15));animation:alexBounce .6s .35s ease-in-out both}
     .at-body{flex:1}
     .at-title{font-size:.9rem;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:7px}
     .at-title i{font-size:.85rem}

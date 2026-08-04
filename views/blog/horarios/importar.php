@@ -21,9 +21,6 @@ $iconoFila  = ['ok' => 'fa-circle-check', 'aviso' => 'fa-triangle-exclamation', 
                     <i class="fa-solid fa-download"></i> Plantilla CSV
                 </a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
@@ -34,7 +31,7 @@ $iconoFila  = ['ok' => 'fa-circle-check', 'aviso' => 'fa-triangle-exclamation', 
             <div class="hoi-aviso-super">
                 <img src="/build/assets/img/alex/alex-cientifico.png" alt="Alex">
                 <div>
-                    <strong>Herramienta de superadmin</strong>
+                    <strong>Herramienta de administrador</strong>
                     <span>Carga el horario de <em>cualquier</em> profesor. El archivo
                           <strong>reemplaza el horario completo</strong> de cada profesor que aparezca
                           en él; a los que no aparezcan no les pasa nada. Siempre podrás revisar la

@@ -29,6 +29,13 @@ class Notificacion extends ActiveRecord {
     public $leida     = 0;
     public $creado_en;
 
+    /**
+     * Alias de JOIN (no es columna: hay que declararlo o crearObjeto() lo descarta).
+     * Fecha de la suplencia referenciada, para pintar la tira L·M·X·J·V sin tener
+     * que parsear el texto del mensaje.
+     */
+    public $ref_fecha;
+
     /** Módulos que pueden emitir notificaciones (fija el icono en la UI). */
     public const MODULOS = ['general', 'redaccion', 'suplencias', 'horarios', 'eventos', 'usuarios'];
     public const NIVELES = ['info', 'exito', 'aviso', 'error'];
@@ -96,11 +103,21 @@ class Notificacion extends ActiveRecord {
         return (int) ($row['total'] ?? 0);
     }
 
+    /**
+     * Bandeja del usuario. Trae también la fecha de la suplencia referenciada
+     * (`ref_fecha`) para que la vista pueda destacar el día de la semana sin
+     * releer el mensaje.
+     */
     public static function porUsuario(int $usuarioId, int $limite = 20): array {
         $uid = (int) $usuarioId;
         $lim = max(1, (int) $limite);
         return static::consultarSQL(
-            "SELECT * FROM notificaciones WHERE usuario_id = {$uid} ORDER BY creado_en DESC LIMIT {$lim}"
+            "SELECT n.*, sup.fecha AS ref_fecha
+             FROM notificaciones n
+             LEFT JOIN suplencias sup
+                    ON n.referencia_tipo = 'suplencia' AND sup.id = n.referencia_id
+             WHERE n.usuario_id = {$uid}
+             ORDER BY n.creado_en DESC LIMIT {$lim}"
         );
     }
 

@@ -149,7 +149,10 @@
             if (!th.dataset.sort) return;
             th.classList.add('is-sortable');
             th.tabIndex = 0;
-            th.insertAdjacentHTML('beforeend', ' <span class="admin-table__sortico" aria-hidden="true"></span>');
+            // Sin espacio literal antes del span: era un punto de salto de línea
+            // válido y partía el encabezado en dos renglones. La separación la
+            // pone el margin-left del propio .admin-table__sortico.
+            th.insertAdjacentHTML('beforeend', '<span class="admin-table__sortico" aria-hidden="true"></span>');
             th.addEventListener('click', function () { ordenar(th, idx); });
             th.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ordenar(th, idx); }

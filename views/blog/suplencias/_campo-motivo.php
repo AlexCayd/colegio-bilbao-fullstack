@@ -22,9 +22,8 @@ $esOtro      = $motivoValor !== '' && !$esCatalogo;
         </select>
     </div>
 
-    <div class="admin-form__input-wrapper supl-motivo__otro" data-motivo-otro <?= $esOtro ? '' : 'hidden' ?> style="margin-top:10px;">
+    <div class="admin-form__input-wrapper supl-motivo__otro" data-motivo-otro <?= $esOtro ? '' : 'hidden' ?>>
         <input type="text" name="motivo_otro" class="admin-form__input" maxlength="150"
                placeholder="Describe el motivo…" value="<?= $esOtro ? s($motivoValor) : '' ?>" data-motivo-otro-input>
     </div>
-    <span class="admin-form__hint">Se usa en el tablero para ver qué motiva más ausencias.</span>
 </div>

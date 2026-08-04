@@ -20,6 +20,10 @@ $pct = $total ? round($cubiertas / $total * 100) : 0;
 $todoCubierto = $total > 0 && $pendientes === 0;
 $activa = $suplencia->estado !== 'cancelada';
 
+// La fecha ya pasó: las horas todavía 'agendada' necesitan que alguien confirme
+// si se cubrieron, y si el suplente no responde lo cierra prefectura.
+$vencida = $fecha < date('Y-m-d');
+
 $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 ?>
 <div class="admin-layout">
@@ -29,11 +33,15 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
         <header class="admin-topbar">
             <div class="admin-topbar__left"><span class="admin-topbar__title">Agendar suplencia</span></div>
             <div class="admin-topbar__actions">
+                <?php /* Con todo cubierto, "Volver" se convierte en el cierre del flujo.
+                         Antes esto era una banda verde a media página; aquí está siempre
+                         visible y no compite con el contenido. */ ?>
+                <?php if ($todoCubierto && $activa): ?>
+                <a href="/dashboard/suplencias" class="admin-btn admin-btn--ok"><i class="fa-solid fa-check"></i> Finalizar</a>
+                <?php else: ?>
                 <a href="/dashboard/suplencias" class="admin-btn admin-btn--ghost"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
@@ -62,6 +70,14 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                     <span class="supl-fact">
                         <i class="fa-solid <?= $suplencia->origen === 'sin_aviso' ? 'fa-bolt' : 'fa-hand' ?>"></i>
                         <b><?= $suplencia->origen === 'sin_aviso' ? 'Sin aviso' : 'Anticipada' ?></b>
+                        <small><?= $suplencia->origen === 'sin_aviso' ? 'Ausencia no avisada' : 'Avisada con antelación' ?></small>
+                    </span>
+                    <?php /* El motivo vive en la cabecera, no en una tarjeta aparte: era un
+                             bloque más de los cinco que se apilaban antes del contenido.
+                             Aquí va completo, sin el recorte a 190px del resto de .supl-fact. */ ?>
+                    <span class="supl-fact supl-fact--motivo">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <b>Motivo</b>
                         <small><?= $suplencia->motivo ? s($suplencia->motivo) : 'Sin motivo indicado' ?></small>
                     </span>
                 </div>
@@ -84,60 +100,89 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
             </div>
             <?php endif; ?>
 
-            <?php /* Justificante: tarjeta propia y visible, solo en ausencias sin aviso */ ?>
-            <?php if ($suplencia->origen === 'sin_aviso'): ?>
+            <?php /* Justificante.
+                     Antes toda esta tarjeta iba envuelta en `origen === 'sin_aviso'`, pese a
+                     que crear.php y solicitar.php permiten adjuntar un archivo también en
+                     las ausencias anticipadas: ese justificante quedaba invisible e
+                     indescargable. Ahora se muestra siempre que haya archivo, y sin él solo
+                     se reclama cuando la ausencia fue sin aviso (que es cuando es obligatorio). */ ?>
+            <?php $exigeJustif = $suplencia->origen === 'sin_aviso'; ?>
+            <?php if (!empty($suplencia->justificante) || $exigeJustif): ?>
             <div class="supl-justif <?= !empty($suplencia->justificante) ? 'is-ok' : 'is-pending' ?>">
                 <div class="supl-justif__msg">
                     <i class="fa-solid <?= !empty($suplencia->justificante) ? 'fa-file-circle-check' : 'fa-file-circle-exclamation' ?>"></i>
                     <div>
                         <strong><?= !empty($suplencia->justificante) ? 'Justificante recibido' : 'Falta el justificante' ?></strong>
                         <?php if (!empty($suplencia->justificante)): ?>
-                            <span>La ausencia queda documentada. <a href="<?= s($suplencia->justificante) ?>" target="_blank" rel="noopener">Ver archivo</a></span>
+                            <span>La ausencia queda documentada. Descárgalo si necesitas conservarlo:
+                                  al aprobarlo se elimina del servidor.</span>
                         <?php else: ?>
                             <span>La suplencia no puede completarse hasta que <?= s($suplencia->ausente_nombre ?: 'el profesor ausente') ?> suba su comprobante.</span>
                         <?php endif; ?>
                     </div>
                 </div>
-                <?php if (empty($suplencia->justificante)): ?>
+
+                <?php if (!empty($suplencia->justificante)): ?>
+                <div class="supl-justif__acts">
+                    <a href="<?= s($suplencia->justificante) ?>" download class="admin-btn admin-btn--ghost">
+                        <i class="fa-solid fa-download"></i> Descargar
+                    </a>
+                    <?php if ($puedeAgendar): ?>
+                    <?php /* Borrado deliberado y con confirmación: el parte médico vive en una
+                             carpeta pública, así que no conviene conservarlo más de lo necesario,
+                             pero tampoco que desaparezca sin que nadie lo haya visto. */ ?>
+                    <button type="button" class="admin-btn admin-btn--primary" data-justif-abrir>
+                        <i class="fa-solid fa-check-double"></i> Aprobar y eliminar
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <?php else: ?>
                 <form method="POST" action="/dashboard/suplencias/justificar" enctype="multipart/form-data" class="supl-justif__form">
                     <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
-                    <label class="admin-file" data-file data-file-max="4">
+                    <label class="admin-file" data-file data-file-max="<?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?>">
                         <input type="file" name="justificante" accept="application/pdf,image/jpeg,image/png,image/webp" required>
                         <span class="admin-file__ico"><i class="fa-solid fa-paperclip"></i></span>
                         <span class="admin-file__text">
                             <span class="admin-file__title" data-file-title>Elige el justificante</span>
-                            <span class="admin-file__hint" data-file-hint>PDF o imagen · máx. 4 MB</span>
+                            <span class="admin-file__hint" data-file-hint>PDF o imagen · máx. <?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?> MB</span>
                         </span>
                     </label>
                     <button type="submit" class="admin-btn admin-btn--primary"><i class="fa-solid fa-upload"></i> Subir</button>
                 </form>
                 <?php endif; ?>
             </div>
-            <?php endif; ?>
 
-            <!-- Cierre del flujo -->
-            <?php if ($total && $activa): ?>
-            <div class="supl-done<?= $todoCubierto ? ' is-ok' : ' is-pending' ?>">
-                <?php if ($todoCubierto): ?>
-                    <img src="/build/assets/img/alex/alex-mano.png" alt="Alex" class="supl-done__alex">
-                    <div class="supl-done__text">
-                        <strong>Suplencia lista: las <?= $total ?> hora<?= $total === 1 ? '' : 's' ?> tiene<?= $total === 1 ? '' : 'n' ?> suplente</strong>
-                        <small>Ya no queda nada por asignar. Cada suplente confirmará su cobertura
-                               desde «Mis coberturas» y la suplencia pasará a completada.</small>
-                    </div>
-                    <a href="/dashboard/suplencias" class="admin-btn supl-done__cta">
-                        <i class="fa-solid fa-check"></i> Finalizar y volver a suplencias
+            <?php if (!empty($suplencia->justificante) && $puedeAgendar): ?>
+            <div class="supl-modal" id="justifModal" hidden>
+                <div class="supl-modal__card">
+                    <span class="supl-modal__ico"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <h3 class="supl-modal__title">Aprobar y eliminar el justificante</h3>
+                    <p class="supl-modal__text">
+                        El archivo se borrará del servidor <strong>de forma permanente</strong>.
+                        Descárgalo antes si lo necesitas: después no habrá forma de recuperarlo.
+                    </p>
+                    <a href="<?= s($suplencia->justificante) ?>" download class="admin-btn admin-btn--ghost supl-modal__dl">
+                        <i class="fa-solid fa-download"></i> Descargar ahora
                     </a>
-                <?php else: ?>
-                    <span class="supl-done__ico"><i class="fa-solid fa-circle-exclamation"></i></span>
-                    <div class="supl-done__text">
-                        <strong>Falta<?= $pendientes === 1 ? '' : 'n' ?> <?= $pendientes ?> hora<?= $pendientes === 1 ? '' : 's' ?> por asignar</strong>
-                        <small>Elige una hora de la lista y asígnale un suplente.</small>
+                    <div class="supl-modal__acts">
+                        <button type="button" class="admin-btn admin-btn--ghost" data-justif-cancel>Cancelar</button>
+                        <form method="POST" action="/dashboard/suplencias/aprobar-justificante">
+                            <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
+                            <button type="submit" class="admin-btn admin-btn--danger">
+                                <i class="fa-solid fa-trash"></i> Aprobar y eliminar
+                            </button>
+                        </form>
                     </div>
-                    <span class="supl-done__cuenta"><?= $cubiertas ?>/<?= $total ?></span>
-                <?php endif; ?>
+                </div>
             </div>
             <?php endif; ?>
+            <?php endif; ?>
+
+            <?php /* Aquí iba el bloque .supl-done ("Falta 1 hora por asignar" / "Todas las
+                     horas ya tienen suplente"). Se retiró: repetía el X/Y de la barra de
+                     progreso de la cabecera y el estado se lee mejor en las propias
+                     tarjetas —ámbar sin asignar, azul con suplente, verde validada—.
+                     El cierre del flujo vive ahora en el botón "Finalizar" del topbar. */ ?>
 
             <div class="supl-agenda">
                 <!-- ══ Izquierda: horas a cubrir ══ -->
@@ -147,7 +192,14 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                         <?php if (!$total): ?>
                             <p class="supl-week-empty">No hay horas registradas todavía.</p>
                         <?php else: foreach ($horas as $h): ?>
-                            <div class="supl-hora-card<?= $h->estado_hora === 'pendiente' ? ' is-open' : '' ?>"
+                            <?php /* El estado de la hora es lo primero que se lee, así que va en el
+                                     color de la tarjeta y no en un bloque de resumen aparte:
+                                       ámbar → sin asignar · azul → con suplente · verde → validada */ ?>
+                            <?php
+                            $estadoClase = $h->estado_hora === 'validada' ? 'is-validada'
+                                         : ($h->estado_hora === 'agendada' ? 'is-agendada' : 'is-pendiente');
+                            ?>
+                            <div class="supl-hora-card <?= $estadoClase ?><?= $h->estado_hora === 'pendiente' ? ' is-open' : '' ?>"
                                  data-hora-card
                                  data-hora="<?= (int)$h->id ?>"
                                  data-periodo="<?= (int)$h->periodo_id ?>"
@@ -182,6 +234,24 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                                             <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
                                             <button type="submit" class="supl-icon-btn supl-icon-btn--danger" title="Quitar suplente"><i class="fa-solid fa-user-xmark"></i></button>
                                         </form>
+                                        <?php endif; ?>
+                                        <?php /* La clase ya pasó y el suplente no confirmó: prefectura cierra el
+                                                 ciclo. Sin esto la hora se quedaba 'agendada' para siempre y la
+                                                 suplencia nunca llegaba a 'completada'. */ ?>
+                                        <?php if ($puedeAgendar && $vencida): ?>
+                                        <div class="supl-resolver">
+                                            <span class="supl-resolver__q"><i class="fa-solid fa-circle-question"></i> ¿Se cubrió esta clase?</span>
+                                            <form method="POST" action="/dashboard/suplencias/validar-prefectura" style="display:inline;">
+                                                <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
+                                                <input type="hidden" name="cubrio" value="1">
+                                                <button type="submit" class="supl-resolver__btn supl-resolver__btn--si">Sí se cubrió</button>
+                                            </form>
+                                            <form method="POST" action="/dashboard/suplencias/validar-prefectura" style="display:inline;">
+                                                <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
+                                                <input type="hidden" name="cubrio" value="0">
+                                                <button type="submit" class="supl-resolver__btn supl-resolver__btn--no">No se cubrió</button>
+                                            </form>
+                                        </div>
                                         <?php endif; ?>
                                     <?php elseif ($puedeAgendar): ?>
                                         <span class="supl-hora-card__pending"><i class="fa-solid fa-hourglass-half"></i> Sin asignar</span>

@@ -33,8 +33,7 @@
     function render() {
         const y = view.getFullYear(), m = view.getMonth();
         label.textContent = MESES[m] + ' ' + y;
-        let firstDow = new Date(y, m, 1).getDay();
-        firstDow = (firstDow === 0) ? 6 : firstDow - 1;
+        const firstDow = new Date(y, m, 1).getDay();   // domingo = 0
         const days = new Date(y, m + 1, 0).getDate();
         grid.innerHTML = '';
         for (let i = 0; i < firstDow; i++) {
@@ -68,6 +67,7 @@
             }
             grid.appendChild(cell);
         }
+        if (window.BilbaoCalAnim) window.BilbaoCalAnim.entrada(grid);
     }
 
     function itemHTML(e) {

@@ -129,6 +129,51 @@ class SuplenciaHora extends ActiveRecord {
         return static::consultarSQL($sql);
     }
 
+    /**
+     * Coberturas ya vencidas (fecha pasada) sin confirmar y sin recordatorio previo.
+     * Alimenta el aviso que se emite al entrar al panel: si nadie confirma, la hora
+     * se quedaba 'agendada' para siempre y la suplencia nunca llegaba a 'completada'.
+     */
+    public static function vencidasSinRecordatorio(int $suplenteId): array {
+        $id = (int)$suplenteId;
+        $sql = "
+            SELECT sh.id, sh.suplencia_id, sup.fecha AS s_fecha,
+                   p.etiqueta AS periodo_etiqueta,
+                   g.nombre AS grupo_nombre, m.nombre AS materia
+            FROM suplencia_horas sh
+            JOIN suplencias sup ON sup.id = sh.suplencia_id
+            LEFT JOIN periodos p ON p.id = sh.periodo_id
+            LEFT JOIN grupos   g ON g.id = sh.grupo_id
+            LEFT JOIN materias m ON m.id = sh.materia_id
+            WHERE sh.suplente_id = {$id}
+              AND sh.estado_hora = 'agendada'
+              AND sh.recordatorio_en IS NULL
+              AND sup.fecha < CURDATE()
+            ORDER BY sup.fecha ASC
+        ";
+        return static::consultarSQL($sql);
+    }
+
+    /** Marca que ya se avisó de esta hora, para no repetir el recordatorio en cada carga. */
+    public static function marcarRecordatorio(int $horaId): void {
+        $horaId = (int)$horaId;
+        self::$db->query("UPDATE suplencia_horas SET recordatorio_en = NOW() WHERE id = {$horaId} LIMIT 1");
+    }
+
+    /** Horas de una suplencia que ya vencieron sin confirmar (para que las cierre prefectura). */
+    public static function vencidasDeSuplencia(int $suplenciaId): array {
+        $id = (int)$suplenciaId;
+        $sql = "
+            SELECT sh.id
+            FROM suplencia_horas sh
+            JOIN suplencias sup ON sup.id = sh.suplencia_id
+            WHERE sh.suplencia_id = {$id}
+              AND sh.estado_hora = 'agendada'
+              AND sup.fecha < CURDATE()
+        ";
+        return array_map(fn($r) => (int)$r->id, static::consultarSQL($sql));
+    }
+
     /** Asigna un suplente a una hora (pasa a 'agendada'). */
     public static function asignar(int $horaId, int $suplenteId): bool {
         $horaId = (int)$horaId; $suplenteId = (int)$suplenteId;
@@ -142,10 +187,45 @@ class SuplenciaHora extends ActiveRecord {
         return (bool)self::$db->query("UPDATE suplencia_horas SET suplente_id=NULL, estado_hora='pendiente', validado_en=NULL WHERE id={$horaId} LIMIT 1");
     }
 
-    /** El suplente valida que cubrió la hora. Solo si él es el suplente asignado. */
+    /**
+     * El suplente valida que cubrió la hora. Solo si él es el suplente asignado
+     * y **la clase ya ocurrió**: sin el `sup.fecha <= CURDATE()` se podía confirmar
+     * una cobertura de dentro de tres semanas, que es justo lo contrario de lo que
+     * promete la UI ("podrás confirmarla en cuanto la hayas impartido").
+     */
     public static function validarHora(int $horaId, int $suplenteId): bool {
         $horaId = (int)$horaId; $suplenteId = (int)$suplenteId;
-        $ok = self::$db->query("UPDATE suplencia_horas SET estado_hora='validada', validado_en=NOW() WHERE id={$horaId} AND suplente_id={$suplenteId} AND estado_hora='agendada' LIMIT 1");
+        $ok = self::$db->query("
+            UPDATE suplencia_horas sh
+            JOIN suplencias sup ON sup.id = sh.suplencia_id
+            SET sh.estado_hora = 'validada', sh.validado_en = NOW()
+            WHERE sh.id = {$horaId}
+              AND sh.suplente_id = {$suplenteId}
+              AND sh.estado_hora = 'agendada'
+              AND sup.fecha <= CURDATE()
+        ");
+        return $ok && self::$db->affected_rows > 0;
+    }
+
+    /**
+     * Cierre por prefectura de una cobertura vencida que el suplente no confirmó.
+     * `$cubrio = true` la da por impartida; `false` la devuelve a 'pendiente' para
+     * que se reasigne. Sin esto, un suplente que nunca responde dejaba la suplencia
+     * bloqueada indefinidamente.
+     */
+    public static function resolverPorPrefectura(int $horaId, bool $cubrio): bool {
+        $horaId = (int)$horaId;
+        $set = $cubrio
+            ? "sh.estado_hora = 'validada', sh.validado_en = NOW()"
+            : "sh.estado_hora = 'pendiente', sh.suplente_id = NULL, sh.validado_en = NULL";
+        $ok = self::$db->query("
+            UPDATE suplencia_horas sh
+            JOIN suplencias sup ON sup.id = sh.suplencia_id
+            SET {$set}
+            WHERE sh.id = {$horaId}
+              AND sh.estado_hora = 'agendada'
+              AND sup.fecha <= CURDATE()
+        ");
         return $ok && self::$db->affected_rows > 0;
     }
 

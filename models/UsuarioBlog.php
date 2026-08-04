@@ -38,20 +38,7 @@ class UsuarioBlog extends ActiveRecord {
     public function validar(): array {
         static::$alertas = [];
 
-        $this->nombre = trim($this->nombre ?? '');
-        $this->email  = trim($this->email  ?? '');
-
-        // Nombre
-        if (!$this->nombre) {
-            static::setAlerta('error', 'El nombre completo es obligatorio');
-        }
-
-        // Email
-        if (!trim($this->email ?? '')) {
-            static::setAlerta('error', 'El correo electrónico es obligatorio');
-        } elseif (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
-            static::setAlerta('error', 'El correo electrónico no tiene un formato válido');
-        }
+        $this->validarIdentidad();
 
         // Password
         if (!trim($this->password ?? '')) {
@@ -69,8 +56,34 @@ class UsuarioBlog extends ActiveRecord {
             static::setAlerta('error', 'Las contraseñas no coinciden');
         }
 
-        // Rol
-        if (!\in_array($this->rol ?? '', ['superadmin', 'administrador', 'usuario'])) {
+        $this->validarRolYPermisos();
+
+        return static::$alertas;
+    }
+
+    /** Nombre y correo: común a alta y edición. */
+    private function validarIdentidad(): void {
+        $this->nombre = trim($this->nombre ?? '');
+        $this->email  = trim($this->email  ?? '');
+
+        if (!$this->nombre) {
+            static::setAlerta('error', 'El nombre completo es obligatorio');
+        }
+
+        if (!$this->email) {
+            static::setAlerta('error', 'El correo electrónico es obligatorio');
+        } elseif (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
+            static::setAlerta('error', 'El correo electrónico no tiene un formato válido');
+        }
+    }
+
+    /**
+     * Rol, módulos, sub-rol editorial, tipo de personal y fecha de nacimiento.
+     * Común a alta y edición: antes estaba duplicado en validar() y validarEdicion(),
+     * y las dos copias ya habían empezado a divergir.
+     */
+    private function validarRolYPermisos(): void {
+        if (!\in_array($this->rol ?? '', self::ROLES, true)) {
             static::setAlerta('error', 'Selecciona un rol válido');
         }
 
@@ -88,16 +101,21 @@ class UsuarioBlog extends ActiveRecord {
 
         // Fecha de nacimiento (opcional, pero si viene debe ser válida)
         $this->validarFechaNacimiento();
-
-        return static::$alertas;
     }
 
-    /** Lista blanca de módulos asignables a un rol 'usuario' (los directorios superadmin no van aquí). */
-    public const MODULOS_ASIGNABLES = ['redaccion', 'suplencias', 'usuarios', 'horarios', 'eventos'];
+    /** Roles del panel. `administrador` accede a todo; `usuario` solo a su CSV `modulos`. */
+    public const ROLES = ['administrador', 'usuario'];
 
-    /** Normaliza $modulos: super/admin no guardan módulos; usuario guarda CSV limpio. */
+    /** Lista blanca de módulos asignables a un rol 'usuario'. */
+    public const MODULOS_ASIGNABLES = [
+        'usuarios', 'profesores', 'prefectura', 'administrativos',
+        'eventos', 'horarios', 'aulas', 'grupos', 'suplencias',
+        'redaccion',
+    ];
+
+    /** Normaliza $modulos: el admin no guarda módulos; usuario guarda CSV limpio. */
     private function normalizarModulos(): void {
-        if (\in_array($this->rol ?? '', ['administrador', 'superadmin'], true)) {
+        if (($this->rol ?? '') === 'administrador') {
             $this->modulos = null;
             return;
         }
@@ -113,14 +131,13 @@ class UsuarioBlog extends ActiveRecord {
 
     /** El rol de redacción solo aplica si el usuario tiene el módulo 'redaccion'. */
     private function validarRolRedaccion(): void {
-        $tieneRedaccion = \in_array($this->rol ?? '', ['administrador', 'superadmin'], true)
-            || \in_array('redaccion', array_filter(array_map('trim', explode(',', (string) $this->modulos))), true);
-        if (!$tieneRedaccion) { $this->rol_redaccion = null; return; }
-        // Admin/superadmin actúan siempre como revisor implícito; no requieren el campo.
-        if (\in_array($this->rol ?? '', ['administrador', 'superadmin'], true)) {
+        // El admin actúa siempre como revisor implícito; no requiere el campo.
+        if (($this->rol ?? '') === 'administrador') {
             $this->rol_redaccion = null;
             return;
         }
+        $tieneRedaccion = \in_array('redaccion', array_filter(array_map('trim', explode(',', (string) $this->modulos))), true);
+        if (!$tieneRedaccion) { $this->rol_redaccion = null; return; }
         if (!\in_array($this->rol_redaccion ?? '', ['revisor', 'editor'], true)) {
             static::setAlerta('error', 'Elige si el usuario será revisor o editor en Redacción');
             $this->rol_redaccion = null;
@@ -139,7 +156,11 @@ class UsuarioBlog extends ActiveRecord {
      * que aquí queda cubierto tanto el formulario como cualquier POST manipulado.
      */
     private function normalizarTipoPersonal(): void {
-        $permitidos = ['profesor', 'prefecto', 'administrativo'];
+        // El orden manda: array_intersect conserva el del primer array, así que
+        // este literal decide en qué orden se guarda el CSV y, por tanto, cómo
+        // salen los chips en los listados. Va alineado con el orden del
+        // formulario (views/blog/usuarios/_permisos-fields.php).
+        $permitidos = ['administrativo', 'profesor', 'prefecto'];
         $raw = $this->tipo_personal;
         if (\is_array($raw)) {
             $lista = $raw;
@@ -178,16 +199,15 @@ class UsuarioBlog extends ActiveRecord {
         return $resultado->num_rows > 0;
     }
 
-    /** Devuelve todos los usuarios con el conteo de artículos asociados. */
-    public static function allConArticulos(): array {
-        $query = "
-            SELECT u.*, COUNT(a.id) AS total_articulos
-            FROM   usuarios u
-            LEFT JOIN articulos a ON a.autor_id = u.id
-            GROUP BY u.id
-            ORDER BY u.id ASC
-        ";
-        return static::consultarSQL($query);
+    /**
+     * Todos los usuarios del panel, en orden de alta.
+     * (Antes traía además un COUNT de artículos por un LEFT JOIN a `articulos`;
+     * la lista de usuarios ya no muestra esa columna, así que el JOIN sobraba.
+     * El conteo por usuario sigue disponible en findConArticulos(), que lo usa
+     * la ficha de perfil.)
+     */
+    public static function todos(): array {
+        return static::consultarSQL("SELECT * FROM usuarios ORDER BY id ASC");
     }
 
     /** Devuelve un usuario por id con su conteo de artículos. */
@@ -318,31 +338,8 @@ class UsuarioBlog extends ActiveRecord {
     public function validarEdicion(): array {
         static::$alertas = [];
 
-        $this->nombre = trim($this->nombre ?? '');
-        $this->email  = trim($this->email  ?? '');
-
-        if (!$this->nombre) {
-            static::setAlerta('error', 'El nombre completo es obligatorio');
-        }
-
-        if (!$this->email) {
-            static::setAlerta('error', 'El correo electrónico es obligatorio');
-        } elseif (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
-            static::setAlerta('error', 'El correo electrónico no tiene un formato válido');
-        }
-
-        if (!\in_array($this->rol ?? '', ['superadmin', 'administrador', 'usuario'])) {
-            static::setAlerta('error', 'Selecciona un rol válido');
-        }
-
-        $this->normalizarModulos();
-        if (($this->rol ?? '') === 'usuario' && empty($this->modulos)) {
-            static::setAlerta('error', 'Selecciona al menos un módulo para el usuario');
-        }
-
-        $this->validarRolRedaccion();
-        $this->normalizarTipoPersonal();
-        $this->validarFechaNacimiento();
+        $this->validarIdentidad();
+        $this->validarRolYPermisos();
 
         return static::$alertas;
     }
@@ -417,9 +414,9 @@ class UsuarioBlog extends ActiveRecord {
         return static::consultarSQL($query);
     }
 
-    /** ¿Este usuario puede acceder al módulo indicado? Super/admin = todos. */
+    /** ¿Este usuario puede acceder al módulo indicado? El admin accede a todos. */
     public function puedeModulo(string $modulo): bool {
-        if (\in_array($this->rol ?? '', ['administrador', 'superadmin'], true)) return true;
+        if (($this->rol ?? '') === 'administrador') return true;
         $lista = array_filter(array_map('trim', explode(',', (string) $this->modulos)));
         return \in_array($modulo, $lista, true);
     }

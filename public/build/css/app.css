@@ -356,6 +356,24 @@ h3 {
   --col-espiritu: #7DC6E5;
   --col-herencia: #374C69;
   --col-accent-pop: #F1C400;
+  /* ---------- PALETA DE CATEGORÍAS ----------
+     Los 10 colores del proyecto, en su orden cromático (naranja → rojo). Se
+     usan en las categorías del blog y en los acentos del panel (acciones de
+     tabla, chips, tarjetas del home). Hasta ahora solo existían en prosa en
+     CLAUDE.md y repetidos a mano en cada partial. */
+  --pal-naranja: #fc6722;
+  --pal-ambar: #f5b400;
+  --pal-lima: #8ac926;
+  --pal-verde: #34a853;
+  --pal-turquesa: #46bdc6;
+  --pal-azul: #4285f4;
+  --pal-indigo: #4267ac;
+  --pal-morado: #aa2296;
+  --pal-magenta: #ea075a;
+  --pal-rojo: #e51022;
+  /* Tinta oscura para fondos claros de la paleta (ámbar, lima, turquesa):
+     el blanco no pasa AA sobre ellos. */
+  --pal-tinta: #0B1F3D;
   /* ---------- TEXTO ---------- */
   --col-texto: #1A202C;
   --text-dark: #1A202C;
@@ -371,6 +389,9 @@ h3 {
   /* ---------- LAYOUT ---------- */
   --container-width: 1280px;
   --header-height: 80px;
+  /* Botones circulares del topbar del panel (campana · avatar · salir).
+     Un solo token: los tres deben medir lo mismo. */
+  --tb-btn: 40px;
   /* ---------- ESPACIADO ---------- */
   --sp-sm: 24px;
   --sp-md: 48px;
@@ -11357,158 +11378,11 @@ h2.section-title::after {
 
 /* =====================================================
    LOGIN PAGE
+   El diseño vive en src/scss/admin/_blog-login.scss, con scope
+   body[data-page="blog-login"]: la pantalla usa el bosque Three.js a pantalla
+   completa y no comparte nada con el resto del panel. Aquí solo quedan las
+   piezas que sí se reutilizan (.admin-form__*, el shake y la alerta inline).
 ===================================================== */
-.admin-login {
-  height: 100vh;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 900px) {
-  .admin-login {
-    grid-template-columns: 55% 45%;
-  }
-}
-
-.admin-login__brand {
-  background: linear-gradient(140deg, var(--col-herencia) 0%, var(--col-bilbao) 100%);
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 44px 40px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  height: 100%;
-}
-@media (min-width: 900px) {
-  .admin-login__brand {
-    display: flex;
-  }
-}
-.admin-login__brand::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1.5px, transparent 1.5px);
-  background-size: 28px 28px;
-  pointer-events: none;
-}
-.admin-login__brand::after {
-  content: "";
-  position: absolute;
-  bottom: -80px;
-  right: -80px;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  background: rgba(125, 198, 229, 0.12);
-  pointer-events: none;
-}
-
-.admin-login__brand-content {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  max-width: 420px;
-}
-
-.admin-login__brand-logo {
-  height: 48px;
-  width: auto;
-  margin: 0 auto 18px;
-  filter: brightness(0) invert(1);
-  opacity: 0.92;
-}
-
-.admin-login__brand-alex {
-  width: 190px;
-  margin: 0 auto 18px;
-  filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.25));
-}
-
-.admin-login__brand-title {
-  font-size: 1.65rem;
-  font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  margin-bottom: 10px;
-}
-
-.admin-login__brand-sub {
-  font-size: 0.92rem;
-  opacity: 0.75;
-  line-height: 1.7;
-}
-
-/* FORM SIDE */
-.admin-login__form-side {
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 20px;
-  height: 100%;
-  overflow-y: auto;
-}
-@media (min-width: 900px) {
-  .admin-login__form-side {
-    padding: 40px 60px;
-  }
-}
-
-.admin-login__card {
-  width: 100%;
-  max-width: 400px;
-}
-
-.admin-login__logo-mobile {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-@media (min-width: 900px) {
-  .admin-login__logo-mobile {
-    display: none;
-  }
-}
-.admin-login__logo-mobile img {
-  height: 40px;
-  width: auto;
-}
-
-.admin-login__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(77, 138, 187, 0.08);
-  color: var(--col-bilbao);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-}
-
-.admin-login__heading {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: var(--col-herencia);
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  margin-bottom: 6px;
-}
-
-.admin-login__sub {
-  color: var(--text-gray);
-  font-size: 0.88rem;
-  line-height: 1.65;
-  margin-bottom: 18px;
-}
-
 .admin-form__group {
   margin-bottom: 14px;
 }
@@ -11886,6 +11760,112 @@ h2.section-title::after {
   box-shadow: 0 4px 16px rgba(77, 138, 187, 0.4);
 }
 
+/* ── Acordeón de módulos ──
+   El sidebar es permanente: siempre están todos los módulos y el activo se
+   despliega. `is-current` es la señal de "estás aquí" a nivel de módulo; el
+   `active` del sublink lo es a nivel de página. Los pinta views/blog/_sidebar.php
+   desde blog_modulos_subnav(), y el JS es src/js/admin/admin-sidebar-nav.js. */
+.admin-nav__mod {
+  position: relative;
+  margin-bottom: 2px;
+  /* Barra de acento del módulo en el que estás */
+}
+.admin-nav__mod.is-current > .admin-nav__toggle {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+.admin-nav__mod.is-current > .admin-nav__toggle::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--col-espiritu);
+}
+
+/* El toggle es un <button>: hay que neutralizar los estilos de formulario */
+.admin-nav__toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: "Outfit", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-nav__caret {
+  margin-left: auto;
+  font-size: 0.62rem !important;
+  width: auto !important;
+  opacity: 0.5;
+  transition: transform 0.2s ease;
+}
+
+.admin-nav__toggle[aria-expanded=true] .admin-nav__caret {
+  transform: rotate(180deg);
+}
+
+/* Submenú: sangrado con guía vertical, para que se lea como dependiente */
+.admin-nav__sub {
+  margin: 2px 0 6px 22px;
+  padding-left: 10px;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* Obligatorio: el `display:flex` de arriba gana al `display:none` que el
+     navegador aplica por el atributo `hidden`, así que sin esta regla TODOS los
+     acordeones se pintaban abiertos aunque el servidor los marcara cerrados. */
+}
+.admin-nav__sub[hidden] {
+  display: none;
+}
+
+.admin-nav__sublink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-decoration: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.admin-nav__sublink i {
+  font-size: 0.75rem;
+  width: 15px;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.admin-nav__sublink:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+.admin-nav__sublink.active {
+  background: var(--col-bilbao);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(77, 138, 187, 0.38);
+}
+.admin-nav__sublink.active i {
+  opacity: 1;
+}
+
+/* Bloque final: notificaciones + salida al sitio público */
+.admin-nav__section--fin {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.admin-nav__link--salida {
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .admin-sidebar__alex {
   padding: 20px 20px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -11964,6 +11944,26 @@ h2.section-title::after {
   width: auto;
   font-size: 1.05rem;
 }
+.admin-sidebar--collapsed {
+  /* Plegado no hay ancho para submenús ni chevrones: solo el icono del módulo.
+     Pulsarlo expande el sidebar y abre su acordeón (admin-sidebar-nav.js), así
+     que la navegación no se pierde, solo se aplaza un clic. */
+}
+.admin-sidebar--collapsed .admin-nav__sub,
+.admin-sidebar--collapsed .admin-nav__caret {
+  display: none;
+}
+.admin-sidebar--collapsed {
+  /* La barra de acento pasa a rodear el icono: plegado, un filete de 3px a la
+     izquierda del sidebar no se distingue del borde. */
+}
+.admin-sidebar--collapsed .admin-nav__mod.is-current > .admin-nav__toggle {
+  background: rgba(125, 198, 229, 0.16);
+  box-shadow: inset 0 0 0 1.5px rgba(125, 198, 229, 0.45);
+}
+.admin-sidebar--collapsed .admin-nav__mod.is-current > .admin-nav__toggle::before {
+  display: none;
+}
 .admin-sidebar--collapsed .admin-sidebar__collapse-btn i {
   transform: rotate(180deg);
 }
@@ -12026,6 +12026,37 @@ h2.section-title::after {
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Guard anti-salto de carga ──
+   Lo estampa el script síncrono del <head> de views/layout-admin.php ANTES del
+   primer pintado, leyendo el mismo `bilbao_sidebar_collapsed` que usa
+   blog-_sidebar.js. Sin esto la página se dibujaba con el sidebar expandido y
+   luego se encogía animándose, en cada navegación.
+
+   Solo el ancho y el margen: el resto del estado colapsado (ocultar etiquetas,
+   centrar iconos) lo pone .admin-sidebar--collapsed cuando el bundle arranca, y
+   como no mueve la caja no produce salto perceptible. */
+html.sidebar-boot-collapsed .admin-sidebar {
+  width: 72px;
+}
+html.sidebar-boot-collapsed .admin-main {
+  margin-left: 72px;
+}
+
+/* Primer frame sin transiciones: si no, la corrección del estado inicial se ve
+   igualmente como una animación. Se retira en el segundo requestAnimationFrame. */
+html.no-transition,
+html.no-transition * {
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
+@media (max-width: 1024px) {
+  /* En móvil el sidebar es un cajón superpuesto: no hay margen que ajustar */
+  html.sidebar-boot-collapsed .admin-main {
+    margin-left: 0;
+  }
+}
 /* ── RESPONSIVE MOBILE ─────────────────────────────────── */
 @media (max-width: 1024px) {
   .admin-sidebar {
@@ -12113,9 +12144,12 @@ h2.section-title::after {
   transform: translateY(-1px);
 }
 
+/* 40px, como la campana y el logout: los tres son círculos de la misma familia y
+   con 36px el avatar se leía como un elemento de segunda. El tamaño está en
+   `--tb-btn` para que cambiarlo una vez los mueva a los tres. */
 .admin-topbar__avatar {
-  width: 36px;
-  height: 36px;
+  width: var(--tb-btn);
+  height: var(--tb-btn);
   border-radius: 50%;
   background: linear-gradient(135deg, var(--col-bilbao), var(--col-espiritu));
   display: flex;
@@ -12123,7 +12157,7 @@ h2.section-title::after {
   justify-content: center;
   color: white;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   flex-shrink: 0;
   overflow: hidden;
   cursor: pointer;
@@ -12131,30 +12165,48 @@ h2.section-title::after {
   transition: transform 0.18s, box-shadow 0.18s;
 }
 .admin-topbar__avatar:hover {
-  transform: scale(1.08);
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(66, 103, 172, 0.4);
 }
 
-.admin-logout-btn {
-  display: inline-flex;
+/* Cerrar sesión — vive en views/blog/_topbar-avatar.php, así que sale en todas
+   las vistas del panel. Círculo de 40px, igual que .admin-topbar__site y
+   .admin-topbar__bell, pero en rojo sólido: es la única acción del topbar que
+   te saca del panel.
+
+   Sustituye a la antigua .admin-logout-btn (píldora "Salir" con texto), que cada
+   vista repetía en su propio <form> y que las vistas ya migradas al partial
+   habían perdido por completo. */
+.admin-topbar__logout-form {
+  display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  border-radius: var(--radius-pill);
-  border: 1.5px solid #E2E8F0;
-  background: transparent;
-  color: var(--text-gray);
-  font-family: "Outfit", sans-serif;
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-decoration: none;
 }
-.admin-logout-btn:hover {
-  border-color: #fc8181;
-  color: #e53e3e;
-  background: #fff5f5;
+
+.admin-topbar__logout {
+  width: var(--tb-btn);
+  height: var(--tb-btn);
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--pal-rojo);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 6px 16px -8px rgba(229, 16, 34, 0.8);
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.admin-topbar__logout:hover {
+  background: #c8102e;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px -8px rgba(229, 16, 34, 0.95);
+}
+.admin-topbar__logout:active {
+  transform: translateY(0);
+}
+.admin-topbar__logout:focus-visible {
+  outline: 2px solid var(--pal-rojo);
+  outline-offset: 3px;
 }
 
 /* CONTENT AREA */
@@ -12453,6 +12505,10 @@ h2.section-title::after {
   color: var(--text-gray);
   background: #F8FAFC;
   border-bottom: 1px solid #E8EDF3;
+  /* El nombre del campo y la flecha de orden van SIEMPRE en la misma línea:
+     admin-table.js añade un <span> al final y, con uppercase + letter-spacing,
+     el navegador partía el encabezado en dos renglones y duplicaba su alto. */
+  white-space: nowrap;
 }
 .admin-table td {
   padding: 16px 20px;
@@ -12684,8 +12740,12 @@ tbody tr.is-filtered {
   padding: 0 14px;
 }
 .admin-act--edit {
-  background: #f5b400;
-  color: #0B1F3D;
+  /* Ámbar de la paleta (--pal-ambar). El icono va en tinta oscura, no en
+     blanco: sobre este amarillo el blanco no llega a AA, mientras que
+     #0B1F3D pasa AAA holgadamente. Antes se oscurecía el fondo a #b87503
+     para poder usar blanco, a costa de salirse de la paleta. */
+  background: var(--pal-ambar);
+  color: var(--pal-tinta);
   box-shadow: 0 6px 14px -8px rgba(245, 180, 0, 0.95);
 }
 .admin-act--edit:hover {
@@ -12693,7 +12753,7 @@ tbody tr.is-filtered {
   box-shadow: 0 10px 20px -10px rgb(245, 180, 0);
 }
 .admin-act--del {
-  background: #e51022;
+  background: var(--pal-rojo);
   color: #fff;
   box-shadow: 0 6px 14px -8px rgba(229, 16, 34, 0.95);
 }
@@ -12702,7 +12762,19 @@ tbody tr.is-filtered {
   box-shadow: 0 10px 20px -10px rgb(229, 16, 34);
 }
 .admin-act {
-  /* Acción neutra que convive con las dos anteriores (p. ej. "Ver horario") */
+  /* Consultar horario (directorio de personal, aulas y grupos) */
+}
+.admin-act--horario {
+  background: var(--pal-naranja);
+  color: #fff;
+  box-shadow: 0 6px 14px -8px rgba(252, 103, 34, 0.95);
+}
+.admin-act--horario:hover {
+  background: #e2571a;
+  box-shadow: 0 10px 20px -10px rgb(252, 103, 34);
+}
+.admin-act {
+  /* Acción neutra que convive con las anteriores */
 }
 .admin-act--ghost {
   background: #F1F5F9;
@@ -12976,19 +13048,57 @@ tbody tr.is-filtered {
   color: var(--col-bilbao);
   background: rgba(77, 138, 187, 0.04);
 }
+.admin-btn {
+  /* Acciones irreversibles (eliminar un usuario, borrar un justificante,
+     vaciar la bandeja). Rojo sólido de la paleta: es la acción que destruye
+     datos, no puede leerse como un botón secundario más.
+
+     Ojo: había un segundo `&--danger` más abajo, con fondo transparente y
+     borde rosa, que anulaba este por orden de cascada — de ahí que el botón
+     de eliminar usuario no saliera rojo. */
+}
+.admin-btn--danger {
+  background: var(--pal-rojo);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px rgba(229, 16, 34, 0.55);
+}
+.admin-btn--danger:hover {
+  background: #c8102e;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px -8px rgba(229, 16, 34, 0.7);
+}
+.admin-btn--danger:active {
+  transform: translateY(0);
+}
+.admin-btn {
+  /* Cierre de un flujo completado (el "Finalizar" de agendar cuando ya no queda
+     ninguna hora por asignar). Verde sólido: es la confirmación, no una acción más. */
+}
+.admin-btn--ok {
+  background: var(--pal-verde);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px rgba(52, 168, 83, 0.6);
+}
+.admin-btn--ok:hover {
+  background: #2b8c45;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px -8px rgba(52, 168, 83, 0.75);
+}
+.admin-btn--ok:active {
+  transform: translateY(0);
+}
+.admin-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
 .admin-btn--sm {
   padding: 7px 14px;
   font-size: 0.8rem;
   gap: 6px;
-}
-.admin-btn--danger {
-  background: transparent;
-  color: #e53e3e;
-  border: 1.5px solid #fed7d7;
-}
-.admin-btn--danger:hover {
-  background: #fff5f5;
-  border-color: #fc8181;
 }
 
 /* HELPER / ALEX CARD */
@@ -13034,6 +13144,30 @@ tbody tr.is-filtered {
   line-height: 1.65;
   position: relative;
   z-index: 1;
+}
+
+/* Apunte contextual dentro de la tarjeta: lo escribe el JS cuando ya hay datos
+   suficientes (en Suplencias, el día concreto que hay que tocar en la rejilla).
+   Vacío no ocupa nada, así que la tarjeta no reserva hueco de más. */
+.admin-helper-card__extra {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #fff;
+}
+.admin-helper-card__extra:empty {
+  display: none;
+}
+.admin-helper-card__extra i {
+  margin-right: 6px;
+  opacity: 0.75;
+}
+.admin-helper-card__extra b {
+  font-weight: 800;
 }
 
 .admin-tips {
@@ -13108,6 +13242,28 @@ tbody tr.is-filtered {
   color: var(--text-gray);
   line-height: 1.6;
   max-width: 460px;
+}
+
+/* Refuerzo en CSS del gesto que anima src/js/admin/admin-danger.js: si GSAP no
+   carga o el usuario pidió menos movimiento, la zona sigue reaccionando. Cuando
+   GSAP sí está, escribe estilos inline que ganan a estas reglas. */
+.admin-danger-zone {
+  transition: border-color 0.28s ease, box-shadow 0.28s ease;
+}
+.admin-danger-zone:has(.admin-danger-zone__btn:hover) {
+  border-color: var(--pal-rojo);
+  box-shadow: 0 14px 34px -18px rgba(229, 16, 34, 0.75);
+}
+
+.admin-danger-zone__header {
+  transition: background-color 0.28s ease;
+}
+
+/* El icono se anima por su cuenta: se aísla en su propia capa para que el
+   `rotation` no fuerce repintados de todo el botón. */
+.admin-danger-zone__btn [data-danger-ico] {
+  display: inline-block;
+  will-change: transform;
 }
 
 /* COLOR SWATCHES */
@@ -14542,6 +14698,9 @@ tbody tr.is-filtered {
   border-radius: 20px;
   padding: 28px;
   display: flex;
+  /* El texto arrancaba arriba mientras Alex iba anclado al pie de la tarjeta:
+     con dos o tres líneas de mensaje el desfase era de medio bloque. */
+  align-items: center;
   gap: 22px;
   max-width: 500px;
   width: calc(100% - 32px);
@@ -14558,15 +14717,17 @@ tbody tr.is-filtered {
 
 .alex-modal__img {
   width: 130px;
+  max-height: 190px;
   -o-object-fit: contain;
      object-fit: contain;
   flex-shrink: 0;
-  align-self: flex-end;
+  align-self: center;
 }
 
 .alex-modal__body {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 10px;
   flex: 1;
   min-width: 0;
@@ -14624,6 +14785,27 @@ tbody tr.is-filtered {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
+}
+
+/* Los 10 módulos se agrupan por las mismas 3 categorías del home y del sidebar:
+   en una sola rejilla plana eran una lista indistinguible. */
+.admin-modulos__cat + .admin-modulos__cat {
+  margin-top: 18px;
+}
+
+.admin-modulos__cat-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-gray, #64748B);
+}
+.admin-modulos__cat-label i {
+  color: var(--col-herencia, #4285f4);
 }
 
 .admin-modulo-check {
@@ -15010,51 +15192,37 @@ tbody tr.is-filtered {
   color: #0B1F3D;
 }
 
-.admin-topbar__site {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--col-borde, #e2e8f0);
-  background: #fff;
-  color: #4267ac;
-  display: grid;
-  place-items: center;
-  text-decoration: none;
-  font-size: 14px;
-  transition: background 0.18s ease, transform 0.18s ease, color 0.18s ease;
-}
-.admin-topbar__site:hover {
-  background: #eef4ff;
-  transform: translateY(-2px);
-}
-
+/* `.admin-topbar__site` se retiró: "Ver sitio público" bajó al sidebar como
+   última opción de navegación (views/blog/_sidebar.php). */
 /* Campana de notificaciones — vive junto al avatar en todas las vistas del panel
-   (views/blog/_topbar-avatar.php), no dentro de un módulo concreto. */
+   (views/blog/_topbar-avatar.php), no dentro de un módulo concreto.
+
+   Ámbar de la paleta en su estado base, con tinta oscura: el blanco sobre este
+   amarillo no pasa AA (mismo criterio que .admin-act--edit). Antes era un
+   círculo blanco neutro y solo se teñía con pendientes. */
 .admin-topbar__bell {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: var(--tb-btn);
+  height: var(--tb-btn);
   border-radius: 50%;
-  border: 1px solid var(--col-borde, #e2e8f0);
-  background: #fff;
-  color: #4267ac;
+  border: none;
+  background: var(--pal-ambar);
+  color: var(--pal-tinta);
   display: grid;
   place-items: center;
   text-decoration: none;
-  font-size: 15px;
-  transition: background 0.18s ease, transform 0.18s ease, color 0.18s ease;
+  font-size: 1rem;
+  box-shadow: 0 6px 16px -8px rgba(245, 180, 0, 0.9);
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 .admin-topbar__bell:hover {
-  background: #eef4ff;
+  background: #ffc21f;
   transform: translateY(-2px);
+  box-shadow: 0 10px 22px -8px rgb(245, 180, 0);
 }
-.admin-topbar__bell {
-  /* Con pendientes la campana deja de ser decorativa: se tiñe y llama la atención */
-}
-.admin-topbar__bell.has-pend {
-  border-color: #ffd9a1;
-  background: #fff8ee;
-  color: #d9770a;
+.admin-topbar__bell:focus-visible {
+  outline: 2px solid var(--pal-ambar);
+  outline-offset: 3px;
 }
 .admin-topbar__bell.has-pend i {
   animation: bellNudge 3.2s ease-in-out infinite;
@@ -17899,25 +18067,40 @@ tbody tr.is-filtered {
   color: #9fb0c4;
   background: #f8fafc;
 }
+.bilbao-cal__cell {
+  /* Día con evento: fondo plano y anillo fino. El degradado anterior
+     (linear-gradient 160deg + doble sombra) hacía que cada celda pareciera un
+     botón en relieve y la rejilla entera se leía como un tablero de fichas. */
+}
 .bilbao-cal__cell.has-event {
   cursor: pointer;
-  background: linear-gradient(160deg, #e8f1fd 0%, #d6e6fb 100%);
+  background: #eef4fc;
   color: var(--col-bilbao);
   font-weight: 800;
-  box-shadow: inset 0 0 0 1.5px rgba(66, 103, 172, 0.3), 0 4px 12px -6px rgba(66, 103, 172, 0.5);
+  box-shadow: inset 0 0 0 1.5px rgba(66, 103, 172, 0.28);
+  /* El hover ya no desplaza ni escala: con `translateY(-4px) scale(1.06)`
+     la celda invadía a sus vecinas y la rejilla parecía saltar. */
 }
 .bilbao-cal__cell.has-event:hover {
-  transform: translateY(-4px) scale(1.06);
-  box-shadow: inset 0 0 0 1.5px var(--col-bilbao), 0 10px 20px -8px rgba(66, 103, 172, 0.6);
+  background: #e2ecfa;
+  box-shadow: inset 0 0 0 2px var(--col-bilbao);
 }
 .bilbao-cal__cell.is-today {
   box-shadow: inset 0 0 0 2px var(--cal-evento);
   color: var(--cal-evento);
 }
+.bilbao-cal__cell {
+  /* Hoy Y con evento: antes `is-today` pisaba el anillo de `has-event` por
+     orden de fuente y el día perdía la marca de que tenía algo. Se combinan. */
+}
+.bilbao-cal__cell.is-today.has-event {
+  box-shadow: inset 0 0 0 2px var(--cal-evento), inset 0 0 0 4px #fff;
+  color: var(--cal-evento);
+}
 .bilbao-cal__cell.is-active {
   background: var(--col-bilbao);
   color: #fff;
-  transform: translateY(-3px) scale(1.04);
+  box-shadow: inset 0 0 0 1.5px var(--col-bilbao);
 }
 .bilbao-cal__dots {
   position: absolute;
@@ -18331,10 +18514,14 @@ body[data-page=errors-404] {
    layout
    Migrado desde el \3c style> embebido de views/layout.php
 ========================================================= */
-html.i18n-pending body {
-  visibility: visible !important;
-}
+/* Aquí vivía `html.i18n-pending body{visibility:visible!important}`, que anulaba
+   por completo el guard anti-FOUC de views/layout.php + base/_globales.scss: en
+   modo EN se veía el español un instante antes de traducir.
 
+   La regla tenía sentido mientras el bundle no cargaba en local (todo /build/*
+   devolvía 404 sin router file) y las páginas quedaban en blanco los 2 s del
+   temporizador de respaldo. Con dev-server.php eso ya no pasa, y la red de
+   seguridad sigue siendo ese `i18n-fallback` a los 2 s. */
 /* Catálogos académicos (Aulas y Grupos) — solo superadmin.
    Las cuatro vistas comparten estilos, así que se agrupan los selectores en vez
    de crear un partial por página. */
@@ -18344,53 +18531,89 @@ body[data-page=blog-aulas-form],
 body[data-page=blog-grupos-form] {
   /* Banda de contexto con Alex: estos catálogos alimentan el horario y conviene
      decirlo antes de que alguien renombre un aula con 40 clases colgando. */
+  /* ── Tabla de catálogo ──
+     .admin-table no fija anchos (min-width:680px y nada más), así que con 3-4
+     columnas de contenido muy corto en ~1200px el reparto automático volcaba
+     toda la holgura en la primera columna: "Arce" ocupaba media tabla y los
+     iconos de acción quedaban en el extremo opuesto, con un vacío enorme
+     en medio. Aquí los anchos se reparten a mano. */
 }
-body[data-page=blog-aulas-index] .cat-intro,
-body[data-page=blog-grupos-index] .cat-intro,
-body[data-page=blog-aulas-form] .cat-intro,
-body[data-page=blog-grupos-form] .cat-intro {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 20px;
-  padding: 12px 18px 12px 10px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #eef3fb, #e3f4f6);
-  border: 1.5px solid #c9dcf2;
+body[data-page=blog-aulas-index] .admin-table--cat,
+body[data-page=blog-grupos-index] .admin-table--cat,
+body[data-page=blog-aulas-form] .admin-table--cat,
+body[data-page=blog-grupos-form] .admin-table--cat {
+  table-layout: fixed;
+  min-width: 560px;
 }
-body[data-page=blog-aulas-index] .cat-intro img,
-body[data-page=blog-grupos-index] .cat-intro img,
-body[data-page=blog-aulas-form] .cat-intro img,
-body[data-page=blog-grupos-form] .cat-intro img {
-  width: 54px;
-  height: auto;
-  flex-shrink: 0;
+body[data-page=blog-aulas-index] .admin-table__col--main,
+body[data-page=blog-grupos-index] .admin-table__col--main,
+body[data-page=blog-aulas-form] .admin-table__col--main,
+body[data-page=blog-grupos-form] .admin-table__col--main {
+  width: auto;
 }
-body[data-page=blog-aulas-index] .cat-intro strong,
-body[data-page=blog-grupos-index] .cat-intro strong,
-body[data-page=blog-aulas-form] .cat-intro strong,
-body[data-page=blog-grupos-form] .cat-intro strong {
-  display: block;
-  font-size: 0.92rem;
-  color: #0B1F3D;
-  font-weight: 800;
+body[data-page=blog-aulas-index] .admin-table__col--dato,
+body[data-page=blog-grupos-index] .admin-table__col--dato,
+body[data-page=blog-aulas-form] .admin-table__col--dato,
+body[data-page=blog-grupos-form] .admin-table__col--dato {
+  width: 190px;
 }
-body[data-page=blog-aulas-index] .cat-intro span,
-body[data-page=blog-grupos-index] .cat-intro span,
-body[data-page=blog-aulas-form] .cat-intro span,
-body[data-page=blog-grupos-form] .cat-intro span {
-  display: block;
-  font-size: 0.82rem;
-  color: #22417e;
-  line-height: 1.45;
-  margin-top: 2px;
+body[data-page=blog-aulas-index] .admin-table__col--acts,
+body[data-page=blog-grupos-index] .admin-table__col--acts,
+body[data-page=blog-aulas-form] .admin-table__col--acts,
+body[data-page=blog-grupos-form] .admin-table__col--acts {
+  width: 168px;
 }
-body[data-page=blog-aulas-index] .cat-intro em,
-body[data-page=blog-grupos-index] .cat-intro em,
-body[data-page=blog-aulas-form] .cat-intro em,
-body[data-page=blog-grupos-form] .cat-intro em {
-  font-style: normal;
-  font-weight: 700;
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* Las acciones dejan de irse al borde derecho de la tabla: se quedan al
+     principio de su propia columna, junto al dato que las precede. */
+}
+body[data-page=blog-aulas-index] .admin-table--cat .admin-table__actions,
+body[data-page=blog-grupos-index] .admin-table--cat .admin-table__actions,
+body[data-page=blog-aulas-form] .admin-table--cat .admin-table__actions,
+body[data-page=blog-grupos-form] .admin-table--cat .admin-table__actions {
+  justify-content: flex-start;
+}
+body[data-page=blog-aulas-index] .admin-table--cat td:last-child,
+body[data-page=blog-aulas-index] .admin-table--cat th:last-child,
+body[data-page=blog-grupos-index] .admin-table--cat td:last-child,
+body[data-page=blog-grupos-index] .admin-table--cat th:last-child,
+body[data-page=blog-aulas-form] .admin-table--cat td:last-child,
+body[data-page=blog-aulas-form] .admin-table--cat th:last-child,
+body[data-page=blog-grupos-form] .admin-table--cat td:last-child,
+body[data-page=blog-grupos-form] .admin-table--cat th:last-child {
+  padding-right: 20px;
+}
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* El nombre puede ser largo (aulas tipo "Laboratorio de Ciencias") */
+}
+body[data-page=blog-aulas-index] .admin-table--cat .cat-name,
+body[data-page=blog-grupos-index] .admin-table--cat .cat-name,
+body[data-page=blog-aulas-form] .admin-table--cat .cat-name,
+body[data-page=blog-grupos-form] .admin-table--cat .cat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  body[data-page=blog-aulas-index] .admin-table__col--dato,
+  body[data-page=blog-grupos-index] .admin-table__col--dato,
+  body[data-page=blog-aulas-form] .admin-table__col--dato,
+  body[data-page=blog-grupos-form] .admin-table__col--dato {
+    width: 140px;
+  }
+}
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* .cat-intro (la tira "Catálogo de espacios" con Alex) se retiró: explicaba
+     lo evidente y robaba altura a la tabla. Grupos nunca la tuvo. */
 }
 body[data-page=blog-aulas-index] .cat-name,
 body[data-page=blog-grupos-index] .cat-name,
@@ -18410,33 +18633,125 @@ body[data-page=blog-grupos-form] .cat-name i {
   font-size: 0.82rem;
   opacity: 0.7;
 }
-body[data-page=blog-aulas-index] .cat-desc,
-body[data-page=blog-grupos-index] .cat-desc,
-body[data-page=blog-aulas-form] .cat-desc,
-body[data-page=blog-grupos-form] .cat-desc {
-  font-size: 0.85rem;
-  color: var(--text-gray);
-}
 body[data-page=blog-aulas-index] .cat-nil,
 body[data-page=blog-grupos-index] .cat-nil,
 body[data-page=blog-aulas-form] .cat-nil,
 body[data-page=blog-grupos-form] .cat-nil {
   color: #A0AEC0;
 }
-body[data-page=blog-aulas-index] .cat-orden,
-body[data-page=blog-grupos-index] .cat-orden,
-body[data-page=blog-aulas-form] .cat-orden,
-body[data-page=blog-grupos-form] .cat-orden {
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* ── Tabs de nivel académico ──
+     Ocupan todo el ancho disponible y funcionan como grupo para la tabla
+     (listado, vía admin-nivel-tabs.js) o como radios (formulario). */
+}
+body[data-page=blog-aulas-index] .cat-tabs,
+body[data-page=blog-grupos-index] .cat-tabs,
+body[data-page=blog-aulas-form] .cat-tabs,
+body[data-page=blog-grupos-form] .cat-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+@media (max-width: 720px) {
+  body[data-page=blog-aulas-index] .cat-tabs,
+  body[data-page=blog-grupos-index] .cat-tabs,
+  body[data-page=blog-aulas-form] .cat-tabs,
+  body[data-page=blog-grupos-form] .cat-tabs {
+    flex-wrap: wrap;
+  }
+}
+body[data-page=blog-aulas-index] .cat-tab,
+body[data-page=blog-grupos-index] .cat-tab,
+body[data-page=blog-aulas-form] .cat-tab,
+body[data-page=blog-grupos-form] .cat-tab {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 10px;
+  border: 1.5px solid #e6edf5;
+  border-radius: 12px;
+  background: #fff;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+body[data-page=blog-aulas-index] .cat-tab:hover:not(:disabled),
+body[data-page=blog-grupos-index] .cat-tab:hover:not(:disabled),
+body[data-page=blog-aulas-form] .cat-tab:hover:not(:disabled),
+body[data-page=blog-grupos-form] .cat-tab:hover:not(:disabled) {
+  border-color: var(--c, #4267ac);
+  color: var(--c, #4267ac);
+}
+body[data-page=blog-aulas-index] .cat-tab,
+body[data-page=blog-grupos-index] .cat-tab,
+body[data-page=blog-aulas-form] .cat-tab,
+body[data-page=blog-grupos-form] .cat-tab {
+  /* Activo (listado) y marcado (formulario) comparten aspecto */
+}
+body[data-page=blog-aulas-index] .cat-tab.is-active, body[data-page=blog-aulas-index] .cat-tab:has(input:checked),
+body[data-page=blog-grupos-index] .cat-tab.is-active,
+body[data-page=blog-grupos-index] .cat-tab:has(input:checked),
+body[data-page=blog-aulas-form] .cat-tab.is-active,
+body[data-page=blog-aulas-form] .cat-tab:has(input:checked),
+body[data-page=blog-grupos-form] .cat-tab.is-active,
+body[data-page=blog-grupos-form] .cat-tab:has(input:checked) {
+  border-color: var(--c, #4267ac);
+  background: color-mix(in srgb, var(--c, #4267ac) 12%, #fff);
+  color: var(--c, #4267ac);
+}
+body[data-page=blog-aulas-index] .cat-tab:disabled,
+body[data-page=blog-grupos-index] .cat-tab:disabled,
+body[data-page=blog-aulas-form] .cat-tab:disabled,
+body[data-page=blog-grupos-form] .cat-tab:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+body[data-page=blog-aulas-index] .cat-tab,
+body[data-page=blog-grupos-index] .cat-tab,
+body[data-page=blog-aulas-form] .cat-tab,
+body[data-page=blog-grupos-form] .cat-tab {
+  /* Variante radio: el input real se oculta, la etiqueta hace de botón */
+}
+body[data-page=blog-aulas-index] .cat-tab input,
+body[data-page=blog-grupos-index] .cat-tab input,
+body[data-page=blog-aulas-form] .cat-tab input,
+body[data-page=blog-grupos-form] .cat-tab input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+body[data-page=blog-aulas-index] .cat-tab__n,
+body[data-page=blog-grupos-index] .cat-tab__n,
+body[data-page=blog-aulas-form] .cat-tab__n,
+body[data-page=blog-grupos-form] .cat-tab__n {
   display: inline-grid;
   place-items: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 7px;
-  border-radius: 8px;
-  background: #F1F5F9;
-  color: #475569;
-  font-size: 0.78rem;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #eef2f7;
+  font-size: 0.68rem;
   font-weight: 800;
+  color: #64748b;
+}
+body[data-page=blog-aulas-index] .cat-tab.is-active .cat-tab__n,
+body[data-page=blog-grupos-index] .cat-tab.is-active .cat-tab__n,
+body[data-page=blog-aulas-form] .cat-tab.is-active .cat-tab__n,
+body[data-page=blog-grupos-form] .cat-tab.is-active .cat-tab__n {
+  background: color-mix(in srgb, var(--c, #4267ac) 22%, #fff);
+  color: var(--c, #4267ac);
 }
 body[data-page=blog-aulas-index],
 body[data-page=blog-grupos-index],
@@ -18469,6 +18784,19 @@ body[data-page=blog-aulas-form] .cat-form,
 body[data-page=blog-grupos-form] .cat-form {
   padding: 26px 28px 22px;
   max-width: 620px;
+}
+body[data-page=blog-aulas-index],
+body[data-page=blog-grupos-index],
+body[data-page=blog-aulas-form],
+body[data-page=blog-grupos-form] {
+  /* Grupos: el formulario ocupa todo el ancho disponible, porque las tabs de
+     nivel necesitan sitio para las cinco opciones. */
+}
+body[data-page=blog-aulas-index] .cat-form--wide,
+body[data-page=blog-grupos-index] .cat-form--wide,
+body[data-page=blog-aulas-form] .cat-form--wide,
+body[data-page=blog-grupos-form] .cat-form--wide {
+  max-width: none;
 }
 body[data-page=blog-aulas-index] .cat-form__row,
 body[data-page=blog-grupos-index] .cat-form__row,
@@ -18919,14 +19247,22 @@ body[data-page=blog-grupos-form] .cat-aviso {
   z-index: 60;
   top: calc(100% + 8px);
   left: 0;
-  width: 306px;
+  width: 268px;
   max-width: calc(100vw - 40px);
-  padding: 14px;
+  padding: 10px;
   background: #fff;
   border: 1px solid #e6edf5;
   border-radius: 18px;
   box-shadow: 0 24px 48px -18px rgba(11, 31, 61, 0.38);
   animation: bilbao-date-in 0.16s ease;
+}
+
+/* Anclado a la derecha cuando el popover se saldría del viewport: pasa
+   en la toolbar de filtros de suplencias, donde el campo mide 172px y va pegado
+   al borde. Lo decide admin-datepicker.js en abrir(). */
+.bilbao-date.is-flipped .bilbao-date__pop {
+  left: auto;
+  right: 0;
 }
 
 @keyframes bilbao-date-in {
@@ -18939,19 +19275,82 @@ body[data-page=blog-grupos-form] .cat-aviso {
     transform: translateY(0);
   }
 }
+/* `.admin-panel { overflow: clip }` recorta el popover por geometría, y el
+   z-index no puede con eso: el calendario de "Fecha de nacimiento" quedaba
+   cortado por el borde inferior del panel. Se levanta el recorte solo mientras
+   hay un datepicker abierto, para no perder el clip el resto del tiempo.
+   El JS marca TODOS los ancestros que recortan, no solo el más cercano. */
+.admin-panel.has-datepicker-open,
+.admin-form-section.has-datepicker-open,
+.admin-form-row.has-datepicker-open {
+  overflow: visible;
+}
+
 .bilbao-date__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 
+/* La cabecera es un botón: sube de días → meses → años */
 .bilbao-date__month {
+  flex: 1;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  font-family: inherit;
   font-size: 0.92rem;
   font-weight: 800;
   color: #0B1F3D;
   text-transform: capitalize;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.bilbao-date__month:hover {
+  background: #eef4fc;
+  color: #4267ac;
+}
+
+/* Rejillas de meses y años (3 columnas × 4 filas) */
+.bilbao-date__panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  /* Misma altura aproximada que la rejilla de días, para que el popover no
+     "salte" de tamaño al cambiar de vista. Va atada a la altura de celda de
+     .bilbao-date__cell: si cambia una, recalcular la otra. */
+  min-height: 170px;
+  align-content: center;
+}
+
+.bilbao-date__opt {
+  padding: 9px 4px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: #f6f9fd;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #33415a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.bilbao-date__opt:hover:not(:disabled) {
+  border-color: #4267ac;
+  color: #4267ac;
+  background: #eef4fc;
+}
+.bilbao-date__opt.is-selected {
+  background: #4267ac;
+  border-color: #4267ac;
+  color: #fff;
+}
+.bilbao-date__opt.is-off, .bilbao-date__opt:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
 }
 
 .bilbao-date__nav {
@@ -18975,8 +19374,8 @@ body[data-page=blog-grupos-form] .cat-aviso {
 .bilbao-date__weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-  margin-bottom: 4px;
+  gap: 2px;
+  margin-bottom: 3px;
 }
 .bilbao-date__weekdays span {
   text-align: center;
@@ -18990,11 +19389,13 @@ body[data-page=blog-grupos-form] .cat-aviso {
 .bilbao-date__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 2px;
 }
 
 .bilbao-date__cell {
-  aspect-ratio: 1;
+  /* Altura fija en vez de `aspect-ratio: 1`: atada al ancho, el popover crecía
+     hasta ~40px por fila y seis filas lo dejaban desproporcionadamente alto. */
+  height: 28px;
   display: grid;
   place-items: center;
   border: none;
@@ -19038,8 +19439,8 @@ body[data-page=blog-grupos-form] .cat-aviso {
   align-items: center;
   justify-content: flex-end;
   gap: 14px;
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid #f1f5f9;
 }
 
@@ -19213,12 +19614,14 @@ body[data-page=blog-eventos-editar] .admin-switch-row {
 /* =========================================================
    PANEL · HOME DE MÓDULOS (/dashboard)
 ========================================================= */
-/* ── Hero claro con tile de fecha ── */
+/* ── Hero: saludo + estado del día ──
+   Dejó de ser un saludo decorativo. Con `has-estado` incorpora una segunda fila
+   con lo que pasa hoy y lo que está pendiente, en vez de la tira suelta que
+   colgaba debajo del panel. Las tarjetas a cero no se pintan, así que un día sin
+   nada el hero vuelve a ser exactamente lo que era. */
 .mh-hero {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  flex-direction: column;
   background: #fff;
   border: 1px solid #eef2f7;
   border-radius: 22px;
@@ -19240,6 +19643,13 @@ body[data-page=blog-eventos-editar] .admin-switch-row {
   background: radial-gradient(circle, rgba(66, 103, 172, 0.06), transparent 70%);
 }
 
+.mh-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
 .mh-hero__left {
   display: flex;
   align-items: center;
@@ -19248,6 +19658,119 @@ body[data-page=blog-eventos-editar] .admin-switch-row {
   z-index: 1;
 }
 
+/* ── Fila de estado ── */
+.mh-estado {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #eef2f7;
+}
+
+/* Cada tarjeta: etiqueta pequeña arriba, dato con peso abajo. Es un enlace,
+   así que el estado no solo informa: lleva a resolverlo. */
+.mh-est {
+  --est: #4267ac;
+  flex: 1 1 190px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--est) 7%, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--est) 22%, #fff);
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.mh-est:not(.is-static):hover {
+  transform: translateY(-2px);
+  border-color: var(--est);
+  box-shadow: 0 12px 24px -14px color-mix(in srgb, var(--est) 90%, transparent);
+}
+.mh-est.is-static {
+  cursor: default;
+}
+.mh-est--cumple {
+  --est: #fc6722;
+}
+.mh-est--notif {
+  --est: #4285f4;
+}
+.mh-est--cobertura {
+  --est: #8ac926;
+}
+.mh-est--suplente {
+  --est: #e51022;
+}
+.mh-est--evento {
+  --est: #aa2296;
+}
+
+.mh-est__ico {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--est);
+  color: #fff;
+  font-size: 15px;
+  box-shadow: 0 6px 14px -8px var(--est);
+}
+
+.mh-est__avas {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.mh-est__avas .mh-cumple__ava {
+  width: 38px;
+  height: 38px;
+  font-size: 14px;
+  border-width: 2px;
+}
+
+.mh-est__txt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mh-est__label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--est) 78%, #0B1F3D);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mh-est__dato {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0B1F3D;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .mh-estado {
+    gap: 10px;
+  }
+  .mh-est {
+    flex: 1 1 100%;
+  }
+}
 .mh-datetile {
   width: 118px;
   height: 118px;
@@ -19337,27 +19860,32 @@ body[data-page=blog-eventos-editar] .admin-switch-row {
     transform: translateY(-8px);
   }
 }
-.mh-today-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, #fff1e6, #fff8f2);
-  border: 1px solid #ffd8b8;
-  border-radius: 14px;
-  padding: 13px 18px;
-  margin-bottom: 24px;
+/* Avatares de quien cumple. Se solapan para que varios cumpleaños el mismo día
+   no empujen el texto fuera de la tarjeta. Los reusa .mh-est__avas en el hero;
+   el resto del bloque .mh-cumple desapareció al integrarse en .mh-hero. */
+.mh-cumple__ava {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--pal-naranja), var(--pal-ambar));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  border: 2.5px solid #fff;
+  box-shadow: 0 4px 10px -4px rgba(11, 31, 61, 0.35);
 }
-
-.mh-today-banner i {
-  color: #fc6722;
-  font-size: 18px;
+.mh-cumple__ava + .mh-cumple__ava {
+  margin-left: -12px;
 }
-
-.mh-today-banner p {
-  font-size: 13.5px;
-  color: #8a4b1f;
-  margin: 0;
-  font-weight: 600;
+.mh-cumple__ava img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
 }
 
 .mh-section-label {
@@ -19572,6 +20100,10 @@ body[data-page=blog-eventos-editar] .admin-switch-row {
   min-height: 0;
 }
 
+/* Sin `justify-content:space-between`: repartía las filas por todo el alto de la
+   columna y dejaba huecos enormes entre registros. Ahora se apilan con un gap
+   fijo y es blog-home.js quien mide cuántas caben y ajusta `data-pager-per`,
+   así que la lista llena la columna sin separar lo que no debe ir separado. */
 .mh-bday-list {
   display: flex;
   flex-direction: column;
@@ -19701,6 +20233,143 @@ body[data-page=blog-eventos-editar] .admin-switch-row {
   font-size: 13px;
 }
 
+/* ── Próximos eventos (bajo el calendario) ──
+   El calendario marca los días, pero sin pasar el ratón no dice qué pasa en ellos.
+   El color del tile de fecha lo hereda del tipo de evento, igual que la leyenda. */
+.mh-next {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.mh-next__label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.mh-next__label i {
+  color: #fc6722;
+}
+
+.mh-next__list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mh-next__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background 0.15s;
+}
+
+.mh-next__item:hover {
+  background: #f8fafc;
+}
+
+.mh-next__item.is-today {
+  background: #fff1e6;
+}
+
+.mh-next__item.is-hidden {
+  display: none;
+}
+
+.mh-next__date {
+  flex-shrink: 0;
+  width: 42px;
+  padding: 5px 0;
+  border-radius: 10px;
+  text-align: center;
+  line-height: 1.05;
+  background: #eef2f7;
+  color: #475569;
+}
+.mh-next__date strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+}
+.mh-next__date small {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+/* Mismos tipos que Evento::TIPO_LABEL y la leyenda del calendario */
+.mh-next__date[data-type=festivo] {
+  background: #ffe9ec;
+  color: #e51022;
+}
+
+.mh-next__date[data-type=evento] {
+  background: #e8f0fb;
+  color: #4285f4;
+}
+
+.mh-next__date[data-type=junta] {
+  background: #f8e7f5;
+  color: #aa2296;
+}
+
+.mh-next__date[data-type=entrega] {
+  background: #eaf7e2;
+  color: #57a11a;
+}
+
+.mh-next__date[data-type=suspension] {
+  background: #fff3e0;
+  color: #d1690f;
+}
+
+.mh-next__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.mh-next__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E293B;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mh-next__meta {
+  font-size: 11px;
+  color: #94A3B8;
+}
+
+.mh-next__chip {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #fc6722;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.mh-next .mh-pager {
+  padding: 10px 0 0;
+  margin-top: 10px;
+}
+
 /* En una columna las alturas vuelven a ser naturales: igualarlas no aporta nada */
 @media (max-width: 1050px) {
   .mh-cal-row {
@@ -19709,6 +20378,7 @@ body[data-page=blog-eventos-editar] .admin-switch-row {
   }
   .mh-bday-list {
     flex: none;
+    justify-content: flex-start;
   }
 }
 @media (max-width: 640px) {
@@ -20329,11 +20999,17 @@ body[data-page=blog-notificaciones-index] .nt-list {
   padding: 0;
   list-style: none;
 }
+body[data-page=blog-notificaciones-index] {
+  /* Cuatro zonas: icono de módulo · cuerpo · marca temporal · acciones.
+     Antes toda la información temporal se aplanaba en una línea gris de .74rem
+     ("SUPLENCIAS · 03 Aug 2026, 12:41"), donde nada destacaba sobre nada. */
+}
 body[data-page=blog-notificaciones-index] .nt-row {
+  position: relative; /* ancla del separador temporal (.nt-row__tramo) */
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 15px 20px;
+  gap: 16px;
+  padding: 20px 22px;
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.16s ease, opacity 0.3s ease, transform 0.3s ease;
 }
@@ -20344,11 +21020,41 @@ body[data-page=blog-notificaciones-index] .nt-row:hover {
   background: #fafcff;
 }
 body[data-page=blog-notificaciones-index] .nt-row {
-  /* Sin leer: barra de color a la izquierda + fondo tenue */
+  /* La fila que abre tramo necesita aire para el badge superpuesto */
+}
+body[data-page=blog-notificaciones-index] .nt-row:has(.nt-row__tramo) {
+  margin-top: 22px;
+}
+body[data-page=blog-notificaciones-index] .nt-row {
+  /* En estrecho las acciones bajan a su propia línea, a ancho completo */
+}
+@media (max-width: 900px) {
+  body[data-page=blog-notificaciones-index] .nt-row {
+    flex-wrap: wrap;
+  }
+  body[data-page=blog-notificaciones-index] .nt-row .nt-row__cuando {
+    order: 3;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    padding-left: 52px;
+  }
+  body[data-page=blog-notificaciones-index] .nt-row .nt-row__acts {
+    order: 4;
+    width: 100%;
+    justify-content: flex-start;
+    padding-left: 52px;
+  }
+}
+body[data-page=blog-notificaciones-index] .nt-row {
+  /* Sin leer: riel de color a la izquierda + fondo tenue. El riel sube a 4px
+     y el mensaje gana cuerpo: es la única diferencia real entre una fila
+     pendiente y una ya atendida. */
 }
 body[data-page=blog-notificaciones-index] .nt-row.is-unread {
   background: #f7fbff;
-  box-shadow: inset 3px 0 0 var(--nt-col, #4285f4);
+  box-shadow: inset 4px 0 0 var(--nt-col, #4285f4);
 }
 body[data-page=blog-notificaciones-index] .nt-row.is-unread .nt-row__msg {
   font-weight: 700;
@@ -20380,24 +21086,46 @@ body[data-page=blog-notificaciones-index] .nt-row--aviso {
 body[data-page=blog-notificaciones-index] .nt-row--error {
   --nt-col: #e51022;
 }
+body[data-page=blog-notificaciones-index] {
+  /* El icono lo tiñe el MÓDULO, no el nivel: el nivel ya se ve en el riel
+     izquierdo, y así de un vistazo se sabe de dónde viene cada aviso. */
+}
 body[data-page=blog-notificaciones-index] .nt-row__icon {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: 0.85rem;
-  color: var(--nt-col, #4285f4);
-  background: color-mix(in srgb, var(--nt-col, #4285f4) 12%, #fff);
+  font-size: 0.9rem;
+  color: var(--nt-mod, #4267ac);
+  background: color-mix(in srgb, var(--nt-mod, #4267ac) 12%, #fff);
+}
+body[data-page=blog-notificaciones-index] .nt-row__icon--redaccion {
+  --nt-mod: #aa2296;
+}
+body[data-page=blog-notificaciones-index] .nt-row__icon--suplencias {
+  --nt-mod: #4267ac;
+}
+body[data-page=blog-notificaciones-index] .nt-row__icon--horarios {
+  --nt-mod: #46bdc6;
+}
+body[data-page=blog-notificaciones-index] .nt-row__icon--eventos {
+  --nt-mod: #fc6722;
+}
+body[data-page=blog-notificaciones-index] .nt-row__icon--usuarios {
+  --nt-mod: #8ac926;
+}
+body[data-page=blog-notificaciones-index] .nt-row__icon--general {
+  --nt-mod: #94a3b8;
 }
 body[data-page=blog-notificaciones-index] .nt-row__body {
   flex: 1;
   min-width: 0;
 }
 body[data-page=blog-notificaciones-index] .nt-row__msg {
-  margin: 0 0 3px;
-  font-size: 0.9rem;
+  margin: 0 0 8px;
+  font-size: 0.95rem;
   line-height: 1.45;
   color: #374C69;
 }
@@ -20410,44 +21138,187 @@ body[data-page=blog-notificaciones-index] .nt-row__meta {
   flex-wrap: wrap;
   gap: 5px;
 }
+body[data-page=blog-notificaciones-index] {
+  /* Chip de módulo con el color del módulo, no gris para todos */
+}
 body[data-page=blog-notificaciones-index] .nt-row__mod {
-  background: #eef2f7;
-  color: #4267ac;
+  background: color-mix(in srgb, var(--nt-mod, #4267ac) 13%, #fff);
+  color: var(--nt-mod, #4267ac);
   font-weight: 800;
   font-size: 0.66rem;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
 }
-body[data-page=blog-notificaciones-index] .nt-row__link {
-  color: #4267ac;
-  text-decoration: none;
-  font-weight: 700;
+body[data-page=blog-notificaciones-index] .nt-row__mod--redaccion {
+  --nt-mod: #8e1c7d;
 }
-body[data-page=blog-notificaciones-index] .nt-row__link i {
-  font-size: 0.62rem;
+body[data-page=blog-notificaciones-index] .nt-row__mod--suplencias {
+  --nt-mod: #4267ac;
 }
-body[data-page=blog-notificaciones-index] .nt-row__link:hover {
-  text-decoration: underline;
+body[data-page=blog-notificaciones-index] .nt-row__mod--horarios {
+  --nt-mod: #1f8189;
 }
-body[data-page=blog-notificaciones-index] .nt-row__del {
+body[data-page=blog-notificaciones-index] .nt-row__mod--eventos {
+  --nt-mod: #c2500f;
+}
+body[data-page=blog-notificaciones-index] .nt-row__mod--usuarios {
+  --nt-mod: #5b8a19;
+}
+body[data-page=blog-notificaciones-index] .nt-row__mod--general {
+  --nt-mod: #64748b;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Marca temporal ──
+     El chip relativo (Hoy / Ayer / Martes / 12 Jul) responde a "¿esto es de
+     ahora?", que es la pregunta real; la hora queda de apoyo y la fecha
+     completa vive en el title, sin gastar una línea. */
+}
+body[data-page=blog-notificaciones-index] .nt-row__cuando {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+  padding-top: 2px;
+  cursor: default;
+}
+body[data-page=blog-notificaciones-index] .nt-row__chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+body[data-page=blog-notificaciones-index] {
+  /* Solo "Hoy" se colorea: si todo destaca, no destaca nada */
+}
+body[data-page=blog-notificaciones-index] .nt-row.is-unread .nt-row__chip {
+  background: color-mix(in srgb, var(--nt-col, #4285f4) 15%, #fff);
+  color: var(--nt-col, #4285f4);
+}
+body[data-page=blog-notificaciones-index] .nt-row__hora {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #A3AEC0;
+  font-variant-numeric: tabular-nums;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Acciones de fila ──
+     Dos botones explícitos en vez de un icono ambiguo: hay que dejar claro que
+     "completada" es lo que saca el aviso de la bandeja, y "Ver detalle" tenía
+     tan poco contraste que no se leía como algo pulsable. */
+}
+body[data-page=blog-notificaciones-index] .nt-row__acts {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+body[data-page=blog-notificaciones-index] .nt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
   border-radius: 9px;
-  border: 1.5px solid #e2e8f0;
-  background: #fff;
-  color: #94A3B8;
+  border: 1.5px solid transparent;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
-  display: grid;
-  place-items: center;
   transition: all 0.16s ease;
 }
-body[data-page=blog-notificaciones-index] .nt-row__del:hover {
+body[data-page=blog-notificaciones-index] .nt-btn i {
+  font-size: 0.68rem;
+}
+body[data-page=blog-notificaciones-index] .nt-btn {
+  /* Secundaria pero visible: outline de contraste alto */
+}
+body[data-page=blog-notificaciones-index] .nt-btn--ver {
+  background: #fff;
+  border-color: #4267ac;
+  color: #4267ac;
+}
+body[data-page=blog-notificaciones-index] .nt-btn--ver:hover {
+  background: #4267ac;
+  color: #fff;
+}
+body[data-page=blog-notificaciones-index] .nt-btn {
+  /* Primaria: es la que cierra el aviso */
+}
+body[data-page=blog-notificaciones-index] .nt-btn--ok {
+  background: #34a853;
   border-color: #34a853;
-  color: #34a853;
-  background: #f2fbf5;
+  color: #fff;
+}
+body[data-page=blog-notificaciones-index] .nt-btn--ok:hover {
+  background: #2c8f46;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Separador temporal (Hoy / Esta semana / Anteriores) ──
+     Va dentro de su primera fila, no como <li> aparte: paginado por separado
+     dejaría encabezados huérfanos al cambiar de página. */
+}
+body[data-page=blog-notificaciones-index] .nt-row__tramo {
+  position: absolute;
+  top: -9px;
+  left: 18px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #0B1F3D;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+body[data-page=blog-notificaciones-index] {
+  /* ── Tira L·M·X·J·V de una cobertura ──
+     X para el miércoles (M ya es martes), como en cualquier horario escolar. */
+}
+body[data-page=blog-notificaciones-index] .nt-dias {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding: 6px 12px 6px 8px;
+  border-radius: 12px;
+  background: #f7fafd;
+  border: 1px solid #e9eef5;
+  flex-wrap: wrap;
+}
+body[data-page=blog-notificaciones-index] .nt-dias__d {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  color: #b3c0d0;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+body[data-page=blog-notificaciones-index] .nt-dias__d.is-on {
+  background: #4285f4;
+  border-color: #4285f4;
+  color: #fff;
+  box-shadow: 0 4px 10px -4px rgba(66, 133, 244, 0.9);
+}
+body[data-page=blog-notificaciones-index] .nt-dias__txt {
+  margin-left: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #4267ac;
+  text-transform: capitalize;
 }
 body[data-page=blog-notificaciones-index] {
   /* ── Vacío ── */
@@ -20456,11 +21327,14 @@ body[data-page=blog-notificaciones-index] .nt-empty {
   padding: 44px 20px 48px;
   text-align: center;
   color: #94A3B8;
+  /* display:block + margin auto: como <img> inline el centrado dependía solo
+     del text-align heredado y de que `width` ganara a la regla global. */
 }
 body[data-page=blog-notificaciones-index] .nt-empty img {
+  display: block;
   width: 92px;
   height: auto;
-  margin-bottom: 10px;
+  margin: 0 auto 10px;
 }
 body[data-page=blog-notificaciones-index] .nt-empty p {
   margin: 0;
@@ -21635,10 +22509,181 @@ body[data-page=blog-personal-index] .per-empty {
   color: #4267ac;
 }
 
-/* Motivo: el select del catálogo ocupa el ancho del grupo */
+/* ── Calendario del listado ──
+   Reemplaza a los botones que vivían en el topbar: la acción sale de aquí ya con
+   la fecha elegida. A diferencia del resto de .bilbao-cal, ningún día se
+   deshabilita: también sirve para abrir una ausencia futura. */
+.supl-cal-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.supl-cal {
+  padding: 18px;
+}
+.supl-cal .bilbao-cal__cell {
+  font-size: 0.82rem;
+  border-radius: 11px;
+  cursor: pointer;
+}
+.supl-cal {
+  /* Sin evento tampoco se apaga: sigue siendo pulsable para abrir una ausencia */
+}
+.supl-cal .bilbao-cal__cell:not(.has-event):not(.bilbao-cal__cell--empty):hover {
+  background: #eef3fb;
+  color: #22417e;
+}
+.supl-cal .bilbao-cal__month {
+  font-size: 1rem;
+}
+
+.supl-cal-side {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 18px;
+  padding: 18px;
+  min-height: 180px;
+}
+
+.supl-cal-side__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  height: 100%;
+  color: #94a3b8;
+}
+.supl-cal-side__empty i {
+  font-size: 24px;
+  opacity: 0.5;
+}
+.supl-cal-side__empty p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.supl-cal-side__fecha {
+  margin: 0 0 3px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0B1F3D;
+  text-transform: capitalize;
+}
+
+.supl-cal-side__conteo {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.supl-cal-side__acts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.supl-cal-side__acts .admin-btn {
+  width: 100%;
+}
+
+.supl-cal-side__reset {
+  margin-top: 14px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+.supl-cal-side__reset:hover {
+  color: #4267ac;
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .supl-cal-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+/* ── Motivo ──
+   Alineado con .bilbao-date__field, que suele ir en la misma fila: mismo alto,
+   mismo radio y mismo anillo de foco. Con el .hor-select genérico (44px, pensado
+   para las toolbars de Horarios) los dos campos quedaban desparejados. */
 .supl-motivo__select {
   width: 100%;
   min-width: 0;
+  height: 46px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  background-position: right 15px center;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.supl-motivo__select:hover {
+  border-color: #c7d6ea;
+}
+.supl-motivo__select:focus {
+  outline: none;
+  border-color: #4267ac;
+  box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
+}
+.supl-motivo__select {
+  /* Placeholder: mientras no se ha elegido, en gris como el datepicker vacío */
+}
+.supl-motivo__select:invalid {
+  color: #a3aec0;
+}
+.supl-motivo__select option {
+  color: #1e293b;
+}
+
+/* El campo libre que revela "Otro": entra con su propio acento para que se vea
+   que es consecuencia de la elección anterior, no un campo suelto más. */
+.supl-motivo__otro {
+  margin-top: 10px;
+  position: relative;
+  padding-left: 14px;
+}
+.supl-motivo__otro::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 3px;
+  background: #4267ac;
+}
+.supl-motivo__otro .admin-form__input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 11px;
+  background: #f9fbfe;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.9rem;
+  color: #1e293b;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.supl-motivo__otro .admin-form__input::-moz-placeholder {
+  color: #a3aec0;
+}
+.supl-motivo__otro .admin-form__input::placeholder {
+  color: #a3aec0;
+}
+.supl-motivo__otro .admin-form__input:focus {
+  outline: none;
+  border-color: #4267ac;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
 }
 
 /* ── Profesor ausente leído de la sesión (solicitar) ── */
@@ -21980,12 +23025,15 @@ body[data-page=blog-personal-index] .per-empty {
 /* Aviso de la rejilla en modo select: banda contrastante con Alex, no un <p> gris.
    Va con título + apoyo (antes era una sola frase corrida) y con margen inferior:
    sin él quedaba pegado al siguiente campo del formulario. */
+/* Vive bajo el tip de Alex, en la columna derecha (ver [data-week-legend] en
+   crear.php y solicitar.php). Sigue valiendo dentro de la rejilla para cualquier
+   llamador que no pase `legend`. */
 .supl-week-legend {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 14px 0 28px;
-  padding: 14px 20px 14px 12px;
+  margin: 0 0 16px;
+  padding: 14px 18px 14px 12px;
   border-radius: 16px;
   background: linear-gradient(135deg, #eef3fb, #e3f4f6);
   border: 1.5px solid #c9dcf2;
@@ -22045,6 +23093,20 @@ body[data-page=blog-personal-index] .per-empty {
   align-items: center;
   gap: 14px;
   min-width: 0;
+}
+
+/* Sin reglas propias, los márgenes por defecto del <h2> y el <p> descolgaban el
+   nombre respecto al avatar, que sí queda centrado por el flex de arriba. */
+.supl-detail-head__id {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.supl-detail-head__id .supl-detail-head__name,
+.supl-detail-head__id .supl-detail-head__meta {
+  margin: 0;
 }
 
 .supl-detail-head__id {
@@ -22109,6 +23171,18 @@ body[data-page=blog-personal-index] .per-empty {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* El motivo es el dato con el que prefectura decide si la ausencia procede: se
+   lee entero, sin el recorte a 190px del resto de facts. */
+.supl-fact--motivo small {
+  max-width: 280px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
 }
 
 @media (max-width: 1100px) {
@@ -22189,6 +23263,138 @@ body[data-page=blog-personal-index] .per-empty {
   min-width: 230px;
 }
 
+.supl-justif__acts {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Modal de confirmación (aprobar y eliminar justificante) ──
+   El archivo es un parte médico y el borrado es irreversible: se confirma y se
+   ofrece la descarga dentro del propio modal, no solo antes de abrirlo. */
+.supl-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(11, 31, 61, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.supl-modal[hidden] {
+  display: none;
+}
+
+.supl-modal__card {
+  width: min(440px, 100%);
+  padding: 28px 26px 22px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 30px 60px -20px rgba(11, 31, 61, 0.45);
+  text-align: center;
+}
+
+.supl-modal__ico {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fdeef0;
+  color: #e51022;
+  font-size: 21px;
+}
+
+.supl-modal__title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0B1F3D;
+  margin-bottom: 8px;
+}
+
+.supl-modal__text {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.supl-modal__dl {
+  margin-bottom: 18px;
+}
+
+.supl-modal__acts {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Cierre por prefectura de una cobertura vencida sin confirmar ── */
+.supl-resolver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.supl-resolver__q {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.supl-resolver__btn {
+  padding: 5px 12px;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.supl-resolver__btn--si {
+  background: #e8f7ee;
+  border-color: #bfe6cd;
+  color: #15803d;
+}
+.supl-resolver__btn--si:hover {
+  background: #15803d;
+  color: #fff;
+}
+.supl-resolver__btn--no {
+  background: #fdeef0;
+  border-color: #f6c9ce;
+  color: #b42318;
+}
+.supl-resolver__btn--no:hover {
+  background: #b42318;
+  color: #fff;
+}
+
+/* Cobertura futura: aún no se puede confirmar */
+.supl-cover-card__wait {
+  text-align: right;
+}
+.supl-cover-card__wait small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: #94A3B8;
+}
+
 .supl-detail-head__right {
   display: flex;
   align-items: center;
@@ -22219,94 +23425,9 @@ body[data-page=blog-personal-index] .per-empty {
   margin-top: 2px;
 }
 
-/* ── Cierre del flujo ── */
-.supl-done {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  border-radius: 16px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
-
-.supl-done__alex {
-  width: 62px;
-  flex-shrink: 0;
-}
-
-.supl-done__text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 220px;
-}
-
-.supl-done__text strong {
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.3;
-}
-
-.supl-done__text small {
-  font-size: 12.5px;
-  opacity: 0.9;
-  line-height: 1.5;
-}
-
-.supl-done.is-ok {
-  background: #e8f7ee;
-  border: 1.5px solid #9fd9b5;
-  color: #15803d;
-  box-shadow: 0 10px 26px -20px rgba(21, 128, 61, 0.9);
-}
-
-/* CTA de cierre en verde sólido: es la acción que remata el flujo */
-.supl-done__cta {
-  background: #34a853;
-  color: #fff;
-  flex-shrink: 0;
-  box-shadow: 0 8px 18px -10px rgba(52, 168, 83, 0.95);
-}
-.supl-done__cta:hover {
-  background: #2b8c45;
-  color: #fff;
-  transform: translateY(-2px);
-}
-
-/* Pendiente: el ámbar anterior (#fff6e8/#ffdcae) apenas se despegaba del fondo.
-   Se sube la saturación del borde, se añade barra lateral y el icono va en pastilla. */
-.supl-done.is-pending {
-  background: #fff4e0;
-  border: 1.5px solid #f5b400;
-  color: #8a5a05;
-  box-shadow: inset 4px 0 0 #f5b400, 0 10px 26px -20px rgba(245, 180, 0, 0.9);
-}
-
-.supl-done__ico {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: #f5b400;
-  color: #fff;
-  font-size: 18px;
-}
-
-.supl-done__cuenta {
-  flex-shrink: 0;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1.5px solid #f5b400;
-  font-size: 14px;
-  font-weight: 800;
-  color: #8a5a05;
-}
-
+/* El bloque .supl-done ("Falta N horas" / "Todas cubiertas") se retiró: el
+   estado lo comunican ahora las propias tarjetas de hora (ámbar/azul/verde) y
+   el cierre del flujo es el botón "Finalizar" del topbar de agendar. */
 /* ── Layout de dos paneles ── */
 .supl-agenda {
   display: grid;
@@ -22330,9 +23451,12 @@ body[data-page=blog-personal-index] .per-empty {
 /* ── Tarjeta de hora (seleccionable) ──
    Una sola fila: tile | clase (crece) | estado a la derecha. Antes el estado
    caía a una segunda fila y la tarjeta desperdiciaba todo el ancho del panel. */
+/* La tercera columna era `auto`, así que crecía con su contenido: una tarjeta ya
+   asignada ("Ana Torres (por validar)" + botón de quitar) estrujaba la columna de
+   la clase hasta dejarla en "I…". Con minmax(0,auto) la que cede es la de estado. */
 .supl-hora-card {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(130px, 1fr) minmax(0, auto);
   gap: 8px 14px;
   align-items: center;
   border: 1.5px solid #eef2f7;
@@ -22346,14 +23470,53 @@ body[data-page=blog-personal-index] .per-empty {
 }
 
 .supl-hora-card.is-open:hover {
-  border-color: #c7d6ea;
   transform: translateX(2px);
 }
 
+/* ── Estado por color ──
+   Sustituye al bloque .supl-done: el estado se lee en cada tarjeta, no en un
+   resumen aparte que además duplicaba el X/Y de la barra de progreso. */
+.supl-hora-card.is-pendiente {
+  border-color: #f8d98a;
+  background: #fffbf2;
+}
+.supl-hora-card.is-pendiente .supl-hora-card__tile {
+  background: #fdf0d2;
+}
+.supl-hora-card.is-pendiente .supl-hora-card__tile strong {
+  color: #8a5a05;
+}
+.supl-hora-card.is-pendiente .supl-hora-card__tile small {
+  color: #b08324;
+}
+
+.supl-hora-card.is-agendada {
+  border-color: #c3d5f0;
+  background: #f7faff;
+}
+.supl-hora-card.is-agendada .supl-hora-card__tile {
+  background: #e4edfb;
+}
+
+.supl-hora-card.is-validada {
+  border-color: #bfe6cd;
+  background: #f7fdf9;
+}
+.supl-hora-card.is-validada .supl-hora-card__tile {
+  background: #dcf3e4;
+}
+.supl-hora-card.is-validada .supl-hora-card__tile strong {
+  color: #15803d;
+}
+.supl-hora-card.is-validada .supl-hora-card__tile small {
+  color: #4f9a69;
+}
+
+/* La selección ya no puede distinguirse por relleno —ese canal lo usa el estado—,
+   así que se marca con anillo y desplazamiento. */
 .supl-hora-card.is-active {
-  border-color: #4267ac;
-  background: #f6f9fe;
-  box-shadow: 0 8px 20px -14px rgba(66, 103, 172, 0.9);
+  box-shadow: 0 0 0 2px #4267ac, 0 8px 20px -14px rgba(66, 103, 172, 0.9);
+  transform: translateX(3px);
 }
 
 .supl-hora-card:focus-visible {
@@ -22390,13 +23553,8 @@ body[data-page=blog-personal-index] .per-empty {
   white-space: nowrap;
 }
 
-.supl-hora-card.is-active .supl-hora-card__tile {
-  background: #4267ac;
-}
-.supl-hora-card.is-active .supl-hora-card__tile strong, .supl-hora-card.is-active .supl-hora-card__tile small {
-  color: #fff;
-}
-
+/* El tile ya no se rellena de azul al seleccionar: ese color significa ahora
+   "tiene suplente". Seleccionada se distingue por el anillo. */
 .supl-hora-card__info {
   display: flex;
   flex-direction: column;
@@ -22433,12 +23591,16 @@ body[data-page=blog-personal-index] .per-empty {
   gap: 10px;
   text-align: right;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .supl-hora-card__suplente {
   font-size: 13.5px;
   font-weight: 600;
   color: #334155;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -23266,7 +24428,7 @@ body[data-page=blog-personal-index] .per-empty {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 48px 22px 0;
+  padding: 20px 48px 20px 0;
   max-width: 360px;
   min-width: 300px;
   overflow: hidden;
@@ -23288,7 +24450,11 @@ body[data-page=blog-personal-index] .per-empty {
 
 .at-alex {
   width: 72px;
+  max-height: 86px;
+  -o-object-fit: contain;
+     object-fit: contain;
   flex-shrink: 0;
+  align-self: center;
   margin-left: 14px;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
   animation: alexBounce 0.6s 0.35s ease-in-out both;
@@ -24689,7 +25855,7 @@ body[data-page=blog-articulos-index] .at-wrap {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 48px 22px 0;
+  padding: 20px 48px 20px 0;
   max-width: 360px;
   min-width: 300px;
   overflow: hidden;
@@ -24708,7 +25874,11 @@ body[data-page=blog-articulos-index] .at-stripe {
 }
 body[data-page=blog-articulos-index] .at-alex {
   width: 72px;
+  max-height: 86px;
+  -o-object-fit: contain;
+     object-fit: contain;
   flex-shrink: 0;
+  align-self: center;
   margin-left: 14px;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
   animation: alexBounce 0.6s 0.35s ease-in-out both;
@@ -25363,7 +26533,7 @@ body[data-page=blog-categorias-index] .at-wrap {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 48px 22px 0;
+  padding: 20px 48px 20px 0;
   max-width: 360px;
   min-width: 300px;
   overflow: hidden;
@@ -25382,7 +26552,11 @@ body[data-page=blog-categorias-index] .at-stripe {
 }
 body[data-page=blog-categorias-index] .at-alex {
   width: 72px;
+  max-height: 86px;
+  -o-object-fit: contain;
+     object-fit: contain;
   flex-shrink: 0;
+  align-self: center;
   margin-left: 14px;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
   animation: alexBounce 0.6s 0.35s ease-in-out both;
@@ -26185,26 +27359,396 @@ body[data-page=blog-dashboard] .db-panel.active {
   }
 }
 /* =========================================================
-   blog-login
-   Migrado desde el \3c style> embebido de views/blog/login.php
+   blog-login — pantalla única con el bosque Three.js de fondo
+   y el formulario centrado en una tarjeta de cristal.
+
+   El bosque (src/js/public/forest.js) se pinta en paleta OSCURA: el panel no
+   tiene selector de tema y sobre fondo oscuro el cristal se lee mucho mejor.
+   Si no hay WebGL o el usuario pidió menos movimiento, el canvas queda
+   transparente y se ve el gradiente de respaldo de .admin-login.
 ========================================================= */
+body[data-page=blog-login] {
+  /* La pantalla no scrollea: es un único bloque a pantalla completa */
+}
+body[data-page=blog-login].admin-body {
+  overflow: hidden;
+}
+body[data-page=blog-login] .admin-login {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 28px 20px;
+  overflow: hidden;
+  /* Respaldo sin WebGL: mismo azul profundo al que tiende la niebla */
+  background: radial-gradient(circle at 50% 18%, #12304d 0%, #081320 62%, #050c15 100%);
+}
+body[data-page=blog-login] .admin-login__canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+body[data-page=blog-login] {
+  /* Velo: garantiza el contraste del texto pase lo que pase con la escena,
+     y oscurece los bordes para que la tarjeta destaque en el centro. */
+}
+body[data-page=blog-login] .admin-login__veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, rgba(8, 19, 32, 0.35) 0%, rgba(5, 12, 21, 0.82) 78%), linear-gradient(180deg, rgba(5, 12, 21, 0.45) 0%, transparent 30%, rgba(5, 12, 21, 0.6) 100%);
+}
+body[data-page=blog-login] {
+  /* ── Tarjeta de cristal ── */
+}
+body[data-page=blog-login] .admin-login__card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 452px;
+  padding: 22px 42px 26px;
+  border-radius: 26px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  /* .admin-body lleva `overflow: hidden` para que el bosque no genere scroll,
+     así que en una pantalla baja la tarjeta se recortaría sin remedio: aquí
+     se le da su propio scroll como red de seguridad. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Brillo superior, como la luz que atraviesa el bosque */
+}
+body[data-page=blog-login] .admin-login__card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 45%;
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
+}
+@media (max-width: 480px) {
+  body[data-page=blog-login] .admin-login__card {
+    padding: 22px 22px 22px;
+  }
+}
+body[data-page=blog-login] {
+  /* Sin backdrop-filter (Firefox antiguo, algunos móviles) el cristal se ve
+     como un panel casi transparente e ilegible: se compensa con opacidad. */
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body[data-page=blog-login] .admin-login__card {
+    background: rgba(9, 22, 38, 0.88);
+  }
+}
+body[data-page=blog-login] {
+  /* El logo institucional solo existe en azul: se blanquea por filtro. */
+}
+body[data-page=blog-login] .admin-login__logo {
+  height: 128px;
+  width: auto;
+  margin: 0 auto;
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
+@media (max-width: 480px) {
+  body[data-page=blog-login] .admin-login__logo {
+    height: 96px;
+  }
+}
+body[data-page=blog-login] {
+  /* ── Jerarquía ──
+     Tres niveles bien separados (título · subtítulo · formulario) en vez de la
+     escala plana anterior, donde h1, sub y labels pesaban casi lo mismo. */
+}
+body[data-page=blog-login] .admin-login__heading {
+  font-size: 1.95rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin-bottom: 7px;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+}
+@media (max-width: 480px) {
+  body[data-page=blog-login] .admin-login__heading {
+    font-size: 1.65rem;
+  }
+}
+body[data-page=blog-login] .admin-login__sub {
+  /* Baja de .78 a .62: es apoyo del título, no un segundo mensaje.
+     Sobre el velo sigue pasando AA. */
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  max-width: 30ch;
+  margin: 0 auto 18px;
+}
+body[data-page=blog-login] {
+  /* ── Formulario sobre cristal ──
+     Los .admin-form__* del panel están pensados para fondo blanco: aquí se
+     reescriben en clave oscura sin tocar los del resto de vistas. */
+}
+body[data-page=blog-login] form {
+  text-align: left;
+}
+body[data-page=blog-login] .admin-form__group {
+  margin-bottom: 12px;
+}
+body[data-page=blog-login] {
+  /* Etiqueta en clave de metadato: pequeña, en versalitas y con menos peso
+     visual que el input al que acompaña. */
+}
+body[data-page=blog-login] .admin-form__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 7px;
+}
+body[data-page=blog-login] .admin-form__label i {
+  color: #7DC6E5;
+  font-size: 0.78rem;
+}
+body[data-page=blog-login] {
+  /* La etiqueta acompaña el foco de su campo: se enciende cuando escribes ahí */
+}
+body[data-page=blog-login] .admin-form__group:has(.admin-form__input:focus) .admin-form__label {
+  color: #A6DCF0;
+}
+body[data-page=blog-login] .admin-form__group:has(.admin-form__input:focus) .admin-form__label i {
+  color: #A6DCF0;
+  transform: scale(1.12);
+}
+body[data-page=blog-login] .admin-form__label i {
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+body[data-page=blog-login] {
+  /* El wrapper era un bloque, así que el hueco de línea que deja el input
+     inline-block añadía unos píxeles por abajo y descentraba el ojo, que se
+     posiciona contra este contenedor. Como flex, su alto es el del input. */
+}
+body[data-page=blog-login] .admin-form__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* ── Haz de foco ──
+     Barra que se despliega desde el centro al enfocar. Va en el wrapper y no
+     en el input para no competir con su borde ni con el anillo de foco. */
+}
+body[data-page=blog-login] .admin-form__input-wrapper::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #7DC6E5, transparent);
+  transform: scaleX(0);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+  pointer-events: none;
+}
+body[data-page=blog-login] .admin-form__input-wrapper:has(.admin-form__input:focus)::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
+body[data-page=blog-login] .admin-form__input-wrapper {
+  /* Pulso al teclear: lo marca blog-login.js en cada `input` y se retira sola
+     tras la última pulsación, así el campo "responde" mientras escribes. */
+}
+body[data-page=blog-login] .admin-form__input-wrapper.is-typing::after {
+  animation: login-teclea 0.45s ease-out;
+}
+body[data-page=blog-login] .admin-form__input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.92rem;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+body[data-page=blog-login] .admin-form__input::-moz-placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+body[data-page=blog-login] .admin-form__input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+body[data-page=blog-login] .admin-form__input:focus {
+  outline: none;
+  border-color: #7DC6E5;
+  background: rgba(255, 255, 255, 0.12);
+  /* Anillo fino: sobre el cristal, un halo de 4px se leía como sombra
+     difusa y ensuciaba el formulario. */
+  box-shadow: 0 0 0 3px rgba(125, 198, 229, 0.12);
+}
+body[data-page=blog-login] .admin-form__input {
+  /* El autofill de Chrome pinta un fondo blanco opaco que rompe el cristal */
+}
+body[data-page=blog-login] .admin-form__input:-webkit-autofill, body[data-page=blog-login] .admin-form__input:-webkit-autofill:hover, body[data-page=blog-login] .admin-form__input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px rgba(18, 41, 66, 0.96) inset;
+  caret-color: #fff;
+  -webkit-transition: background-color 9999s ease-in-out 0s;
+  transition: background-color 9999s ease-in-out 0s;
+}
+body[data-page=blog-login] .admin-form__input-wrapper.is-error .admin-form__input {
+  border-color: #ff8a8a;
+  background: rgba(229, 16, 34, 0.12);
+}
+body[data-page=blog-login] {
+  /* Hueco para el ojo: antes era un style="padding-right:44px" inline */
+}
+body[data-page=blog-login] .admin-form__input-wrapper.has-eye .admin-form__input {
+  padding-right: 50px;
+}
+body[data-page=blog-login] {
+  /* Centrado con top/bottom + margin auto en vez de translateY(-50%): así el
+     botón se centra por su caja real y no depende del line-height del icono. */
+}
 body[data-page=blog-login] .admin-form__eye-btn {
   position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+  right: 9px;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border: none;
+  border-radius: 9px;
+  background: none;
   cursor: pointer;
-  color: #94A3B8;
-  padding: 6px;
-  line-height: 1;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.9rem;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 body[data-page=blog-login] .admin-form__eye-btn:hover {
-  color: #4267ac;
+  color: #7DC6E5;
+  background: rgba(255, 255, 255, 0.08);
+}
+body[data-page=blog-login] .admin-form__eye-btn:focus-visible {
+  outline: 2px solid #7DC6E5;
+  outline-offset: 1px;
+}
+body[data-page=blog-login] .admin-form__submit {
+  width: 100%;
+  height: 48px;
+  margin-top: 6px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: linear-gradient(135deg, #4D8ABB, #7DC6E5);
+  color: #06182b;
+  font-family: "Outfit", sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -12px rgba(125, 198, 229, 0.75);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+body[data-page=blog-login] .admin-form__submit:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 26px -14px rgba(125, 198, 229, 0.9);
+}
+body[data-page=blog-login] .admin-form__submit:active {
+  transform: translateY(0);
+}
+body[data-page=blog-login] {
+  /* Separado del CTA por una línea: es una salida, no una alternativa al login */
+}
+body[data-page=blog-login] .admin-form__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+body[data-page=blog-login] .admin-form__back i {
+  font-size: 0.72rem;
+}
+body[data-page=blog-login] .admin-form__back a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-weight: 600;
+}
+body[data-page=blog-login] .admin-form__back a:hover {
+  color: #7DC6E5;
+  text-decoration: underline;
+}
+body[data-page=blog-login] {
+  /* Alerta inline en clave oscura (la base es para fondo blanco) */
+}
+body[data-page=blog-login] .admin-login-alerta {
+  background: rgba(229, 16, 34, 0.16);
+  border-color: rgba(255, 138, 138, 0.45);
+  color: #ffc9c9;
+  text-align: left;
+}
+body[data-page=blog-login] .admin-login-alerta button {
+  color: #ffc9c9;
+}
+body[data-page=blog-login] {
+  /* Menos movimiento: el canvas ni se inicia (lo decide forest.js), pero además
+     se apagan el shake de error y la reacción al teclear. El haz de foco se
+     queda —es un cambio de estado, no una animación— pero sin transición. */
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-page=blog-login] .admin-login__card.has-shake {
+    animation: none;
+  }
+  body[data-page=blog-login] .admin-form__input-wrapper.is-typing::after {
+    animation: none;
+  }
+  body[data-page=blog-login] .admin-form__input-wrapper::after {
+    transition: none;
+  }
 }
 
+/* Fuera del scope de página: los @keyframes son globales */
+@keyframes login-teclea {
+  0% {
+    transform: scaleX(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scaleX(1.04);
+    filter: brightness(1.7);
+  }
+  100% {
+    transform: scaleX(1);
+    filter: brightness(1);
+  }
+}
 /* =========================================================
    blog-noticias-categorias-index
    Migrado desde el \3c style> embebido de views/blog/noticias/categorias/index.php
@@ -26356,7 +27900,7 @@ body[data-page=blog-noticias-categorias-index] .at-wrap {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 48px 22px 0;
+  padding: 20px 48px 20px 0;
   max-width: 360px;
   min-width: 300px;
   overflow: hidden;
@@ -26375,7 +27919,11 @@ body[data-page=blog-noticias-categorias-index] .at-stripe {
 }
 body[data-page=blog-noticias-categorias-index] .at-alex {
   width: 72px;
+  max-height: 86px;
+  -o-object-fit: contain;
+     object-fit: contain;
   flex-shrink: 0;
+  align-self: center;
   margin-left: 14px;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
   animation: alexBounce 0.6s 0.35s ease-in-out both;
@@ -27502,7 +29050,7 @@ body[data-page=blog-noticias-index] .at-wrap {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 48px 22px 0;
+  padding: 20px 48px 20px 0;
   max-width: 360px;
   min-width: 300px;
   overflow: hidden;
@@ -27521,7 +29069,11 @@ body[data-page=blog-noticias-index] .at-stripe {
 }
 body[data-page=blog-noticias-index] .at-alex {
   width: 72px;
+  max-height: 86px;
+  -o-object-fit: contain;
+     object-fit: contain;
   flex-shrink: 0;
+  align-self: center;
   margin-left: 14px;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
   animation: alexBounce 0.6s 0.35s ease-in-out both;
@@ -28439,6 +29991,86 @@ body[data-page=blog-usuarios-index] .usr-nil {
   font-size: 0.8rem;
   color: #94A3B8;
 }
+body[data-page=blog-usuarios-index] {
+  /* ── Buscador (filtra las tres tablas a la vez) ── */
+}
+body[data-page=blog-usuarios-index] .usr-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+body[data-page=blog-usuarios-index] .usr-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 260px;
+  max-width: 460px;
+}
+body[data-page=blog-usuarios-index] .usr-search > i {
+  position: absolute;
+  left: 16px;
+  font-size: 0.85rem;
+  color: #94A3B8;
+  pointer-events: none;
+}
+body[data-page=blog-usuarios-index] .usr-search__input {
+  width: 100%;
+  height: 46px;
+  padding: 0 42px 0 42px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 13px;
+  background: #fff;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.9rem;
+  color: #1e293b;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+body[data-page=blog-usuarios-index] .usr-search__input::-moz-placeholder {
+  color: #A3AEC0;
+}
+body[data-page=blog-usuarios-index] .usr-search__input::placeholder {
+  color: #A3AEC0;
+}
+body[data-page=blog-usuarios-index] .usr-search__input:focus {
+  outline: none;
+  border-color: var(--col-bilbao);
+  box-shadow: 0 0 0 3px rgba(77, 138, 187, 0.12);
+}
+body[data-page=blog-usuarios-index] .usr-search__input {
+  /* La "x" nativa de type="search" duplicaría el botón propio */
+}
+body[data-page=blog-usuarios-index] .usr-search__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+body[data-page=blog-usuarios-index] .usr-search__clear {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: #F1F5F9;
+  color: #64748B;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body[data-page=blog-usuarios-index] .usr-search__clear:hover {
+  background: #E2E8F0;
+  color: var(--col-herencia);
+}
+body[data-page=blog-usuarios-index] .usr-search__resumen {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748B;
+}
 body[data-page=blog-usuarios-index] .ubm-backdrop {
   position: fixed;
   inset: 0;
@@ -28598,7 +30230,7 @@ body[data-page=blog-usuarios-index] .at-wrap {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 48px 22px 0;
+  padding: 20px 48px 20px 0;
   max-width: 360px;
   min-width: 300px;
   overflow: hidden;
@@ -28617,7 +30249,11 @@ body[data-page=blog-usuarios-index] .at-stripe {
 }
 body[data-page=blog-usuarios-index] .at-alex {
   width: 72px;
+  max-height: 86px;
+  -o-object-fit: contain;
+     object-fit: contain;
   flex-shrink: 0;
+  align-self: center;
   margin-left: 14px;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
   animation: alexBounce 0.6s 0.35s ease-in-out both;

@@ -180,8 +180,100 @@
 .supl-origen__opt.is-fixed { cursor:default; border-color:#c9dcf2; background:#eef3fb; color:#22417e; }
 .supl-origen__opt.is-fixed i { color:#4267ac; }
 
-/* Motivo: el select del catálogo ocupa el ancho del grupo */
-.supl-motivo__select { width:100%; min-width:0; }
+/* ── Calendario del listado ──
+   Reemplaza a los botones que vivían en el topbar: la acción sale de aquí ya con
+   la fecha elegida. A diferencia del resto de .bilbao-cal, ningún día se
+   deshabilita: también sirve para abrir una ausencia futura. */
+.supl-cal-wrap {
+    display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px;
+    align-items:start; margin-bottom:18px;
+}
+.supl-cal {
+    padding:18px;
+
+    .bilbao-cal__cell { font-size:.82rem; border-radius:11px; cursor:pointer; }
+    /* Sin evento tampoco se apaga: sigue siendo pulsable para abrir una ausencia */
+    .bilbao-cal__cell:not(.has-event):not(.bilbao-cal__cell--empty):hover {
+        background:#eef3fb; color:#22417e;
+    }
+    .bilbao-cal__month { font-size:1rem; }
+}
+
+.supl-cal-side {
+    background:#fff; border:1px solid #eef2f7; border-radius:18px;
+    padding:18px; min-height:180px;
+}
+.supl-cal-side__empty {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; text-align:center; height:100%; color:#94a3b8;
+
+    i { font-size:24px; opacity:.5; }
+    p { margin:0; font-size:12.5px; line-height:1.5; }
+}
+.supl-cal-side__fecha {
+    margin:0 0 3px; font-size:15px; font-weight:800; color:#0B1F3D;
+    text-transform:capitalize;
+}
+.supl-cal-side__conteo { margin:0 0 16px; font-size:12.5px; color:#64748b; }
+.supl-cal-side__acts {
+    display:flex; flex-direction:column; gap:8px;
+
+    .admin-btn { width:100%; }
+}
+.supl-cal-side__reset {
+    margin-top:14px; width:100%;
+    background:none; border:none; cursor:pointer;
+    font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; color:#94a3b8;
+
+    &:hover { color:#4267ac; text-decoration:underline; }
+}
+
+@media (max-width:900px) {
+    .supl-cal-wrap { grid-template-columns:1fr; }
+}
+
+/* ── Motivo ──
+   Alineado con .bilbao-date__field, que suele ir en la misma fila: mismo alto,
+   mismo radio y mismo anillo de foco. Con el .hor-select genérico (44px, pensado
+   para las toolbars de Horarios) los dos campos quedaban desparejados. */
+.supl-motivo__select {
+    width:100%; min-width:0; height:46px;
+    border-radius:12px;
+    font-weight:600;
+    color:#1e293b;
+    background-position:right 15px center;
+    transition:border-color .18s ease, box-shadow .18s ease;
+
+    &:hover  { border-color:#c7d6ea; }
+    &:focus  { outline:none; border-color:#4267ac; box-shadow:0 0 0 3px rgba(66,103,172,.12); }
+    /* Placeholder: mientras no se ha elegido, en gris como el datepicker vacío */
+    &:invalid { color:#a3aec0; }
+
+    option { color:#1e293b; }
+}
+
+/* El campo libre que revela "Otro": entra con su propio acento para que se vea
+   que es consecuencia de la elección anterior, no un campo suelto más. */
+.supl-motivo__otro {
+    margin-top:10px;
+    position:relative;
+    padding-left:14px;
+
+    &::before {
+        content:''; position:absolute; left:0; top:6px; bottom:6px;
+        width:3px; border-radius:3px; background:#4267ac;
+    }
+
+    .admin-form__input {
+        width:100%; height:44px; padding:0 14px;
+        border:1.5px solid #e2e8f0; border-radius:11px; background:#f9fbfe;
+        font-family:'Outfit', sans-serif; font-size:.9rem; color:#1e293b;
+        transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+
+        &::placeholder { color:#a3aec0; }
+        &:focus { outline:none; border-color:#4267ac; background:#fff; box-shadow:0 0 0 3px rgba(66,103,172,.12); }
+    }
+}
 
 /* ── Profesor ausente leído de la sesión (solicitar) ── */
 .supl-self { display:flex; align-items:center; gap:13px; padding:13px 16px; border:1.5px solid #e2e8f0; border-radius:14px; background:#f9fbfe; }
@@ -282,10 +374,13 @@
 /* Aviso de la rejilla en modo select: banda contrastante con Alex, no un <p> gris.
    Va con título + apoyo (antes era una sola frase corrida) y con margen inferior:
    sin él quedaba pegado al siguiente campo del formulario. */
+/* Vive bajo el tip de Alex, en la columna derecha (ver [data-week-legend] en
+   crear.php y solicitar.php). Sigue valiendo dentro de la rejilla para cualquier
+   llamador que no pase `legend`. */
 .supl-week-legend {
     display:flex; align-items:center; gap:14px;
-    margin:14px 0 28px;
-    padding:14px 20px 14px 12px; border-radius:16px;
+    margin:0 0 16px;
+    padding:14px 18px 14px 12px; border-radius:16px;
     background:linear-gradient(135deg,#eef3fb,#e3f4f6);
     border:1.5px solid #c9dcf2;
     box-shadow:0 6px 18px -14px rgba(66,103,172,.8);
@@ -310,6 +405,14 @@
     padding:16px 22px; margin-bottom:16px;
 }
 .supl-detail-head__main { display:flex; align-items:center; gap:14px; min-width:0; }
+/* Sin reglas propias, los márgenes por defecto del <h2> y el <p> descolgaban el
+   nombre respecto al avatar, que sí queda centrado por el flex de arriba. */
+.supl-detail-head__id {
+    display:flex; flex-direction:column; justify-content:center; gap:2px; min-width:0;
+
+    .supl-detail-head__name,
+    .supl-detail-head__meta { margin:0; }
+}
 .supl-detail-head__id   { min-width:0; }
 .supl-detail-head__ava  { width:52px; height:52px; font-size:18px; flex-shrink:0; }
 .supl-detail-head__name { font-size:18px; font-weight:800; color:#0B1F3D; line-height:1.2; }
@@ -325,6 +428,12 @@
     b     { font-size:13.5px; font-weight:800; color:#334155; line-height:1.2; }
     small { font-size:11.5px; color:#94a3b8; line-height:1.3; max-width:190px;
             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
+/* El motivo es el dato con el que prefectura decide si la ausencia procede: se
+   lee entero, sin el recorte a 190px del resto de facts. */
+.supl-fact--motivo small {
+    max-width:280px; white-space:normal; overflow:visible; text-overflow:clip;
+    font-size:12.5px; font-weight:600; color:#334155;
 }
 
 @media (max-width:1100px) {
@@ -343,6 +452,63 @@
 .supl-justif a { font-weight:700; text-decoration:underline; color:inherit; }
 .supl-justif__form { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .supl-justif__form .admin-file { min-width:230px; }
+.supl-justif__acts { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+/* ── Modal de confirmación (aprobar y eliminar justificante) ──
+   El archivo es un parte médico y el borrado es irreversible: se confirma y se
+   ofrece la descarga dentro del propio modal, no solo antes de abrirlo. */
+.supl-modal {
+    position:fixed; inset:0; z-index:120;
+    display:grid; place-items:center;
+    padding:20px;
+    background:rgba(11,31,61,.55);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+
+    &[hidden] { display:none; }
+}
+.supl-modal__card {
+    width:min(440px,100%);
+    padding:28px 26px 22px;
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 30px 60px -20px rgba(11,31,61,.45);
+    text-align:center;
+}
+.supl-modal__ico {
+    display:grid; place-items:center;
+    width:52px; height:52px; margin:0 auto 14px;
+    border-radius:50%;
+    background:#fdeef0; color:#e51022;
+    font-size:21px;
+}
+.supl-modal__title { font-size:17px; font-weight:800; color:#0B1F3D; margin-bottom:8px; }
+.supl-modal__text  { font-size:13.5px; color:#475569; line-height:1.6; margin-bottom:16px; }
+.supl-modal__dl    { margin-bottom:18px; }
+.supl-modal__acts  { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+/* ── Cierre por prefectura de una cobertura vencida sin confirmar ── */
+.supl-resolver {
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    width:100%; margin-top:9px; padding-top:9px;
+    border-top:1px dashed #e2e8f0;
+}
+.supl-resolver__q { font-size:12px; font-weight:700; color:#b45309; display:flex; align-items:center; gap:6px; }
+.supl-resolver__btn {
+    padding:5px 12px; border-radius:9px; border:1.5px solid transparent;
+    font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; cursor:pointer;
+    transition:all .15s ease;
+
+    &--si { background:#e8f7ee; border-color:#bfe6cd; color:#15803d;
+            &:hover { background:#15803d; color:#fff; } }
+    &--no { background:#fdeef0; border-color:#f6c9ce; color:#b42318;
+            &:hover { background:#b42318; color:#fff; } }
+}
+
+/* Cobertura futura: aún no se puede confirmar */
+.supl-cover-card__wait { text-align:right;
+    small { display:block; margin-top:5px; font-size:11.5px; color:#94A3B8; }
+}
 
 .supl-detail-head__right { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .supl-detail-head__cover { min-width:150px; }
@@ -350,41 +516,9 @@
 .supl-notas { display:flex; align-items:flex-start; gap:11px; padding:12px 16px; border-radius:13px; background:#fffaf0; border:1px solid #ffe4bd; font-size:13px; color:#8a5a1f; line-height:1.55; margin-bottom:16px; }
 .supl-notas i { color:#e0a800; margin-top:2px; }
 
-/* ── Cierre del flujo ── */
-.supl-done { display:flex; align-items:center; gap:16px; padding:16px 20px; border-radius:16px; margin-bottom:18px; flex-wrap:wrap; }
-.supl-done__alex { width:62px; flex-shrink:0; }
-.supl-done__text { flex:1; display:flex; flex-direction:column; gap:3px; min-width:220px; }
-.supl-done__text strong { font-size:15px; font-weight:800; line-height:1.3; }
-.supl-done__text small  { font-size:12.5px; opacity:.9; line-height:1.5; }
-
-.supl-done.is-ok {
-    background:#e8f7ee; border:1.5px solid #9fd9b5; color:#15803d;
-    box-shadow:0 10px 26px -20px rgba(21,128,61,.9);
-}
-/* CTA de cierre en verde sólido: es la acción que remata el flujo */
-.supl-done__cta {
-    background:#34a853; color:#fff; flex-shrink:0;
-    box-shadow:0 8px 18px -10px rgba(52,168,83,.95);
-
-    &:hover { background:#2b8c45; color:#fff; transform:translateY(-2px); }
-}
-
-/* Pendiente: el ámbar anterior (#fff6e8/#ffdcae) apenas se despegaba del fondo.
-   Se sube la saturación del borde, se añade barra lateral y el icono va en pastilla. */
-.supl-done.is-pending {
-    background:#fff4e0; border:1.5px solid #f5b400; color:#8a5a05;
-    box-shadow:inset 4px 0 0 #f5b400, 0 10px 26px -20px rgba(245,180,0,.9);
-}
-.supl-done__ico {
-    width:42px; height:42px; flex-shrink:0; border-radius:12px;
-    display:grid; place-items:center;
-    background:#f5b400; color:#fff; font-size:18px;
-}
-.supl-done__cuenta {
-    flex-shrink:0; padding:7px 14px; border-radius:999px;
-    background:#fff; border:1.5px solid #f5b400;
-    font-size:14px; font-weight:800; color:#8a5a05;
-}
+/* El bloque .supl-done ("Falta N horas" / "Todas cubiertas") se retiró: el
+   estado lo comunican ahora las propias tarjetas de hora (ámbar/azul/verde) y
+   el cierre del flujo es el botón "Finalizar" del topbar de agendar. */
 
 /* ── Layout de dos paneles ── */
 .supl-agenda { display:grid; grid-template-columns:1fr 1.1fr; gap:18px; align-items:start; }
@@ -394,14 +528,45 @@
 /* ── Tarjeta de hora (seleccionable) ──
    Una sola fila: tile | clase (crece) | estado a la derecha. Antes el estado
    caía a una segunda fila y la tarjeta desperdiciaba todo el ancho del panel. */
+/* La tercera columna era `auto`, así que crecía con su contenido: una tarjeta ya
+   asignada ("Ana Torres (por validar)" + botón de quitar) estrujaba la columna de
+   la clase hasta dejarla en "I…". Con minmax(0,auto) la que cede es la de estado. */
 .supl-hora-card {
-    display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px 14px; align-items:center;
+    display:grid; grid-template-columns:auto minmax(130px,1fr) minmax(0,auto); gap:8px 14px; align-items:center;
     border:1.5px solid #eef2f7; border-radius:14px; padding:12px 15px;
     transition:border-color .16s ease, background .16s ease, transform .16s ease;
 }
 .supl-hora-card.is-open { cursor:pointer; }
-.supl-hora-card.is-open:hover { border-color:#c7d6ea; transform:translateX(2px); }
-.supl-hora-card.is-active { border-color:#4267ac; background:#f6f9fe; box-shadow:0 8px 20px -14px rgba(66,103,172,.9); }
+.supl-hora-card.is-open:hover { transform:translateX(2px); }
+
+/* ── Estado por color ──
+   Sustituye al bloque .supl-done: el estado se lee en cada tarjeta, no en un
+   resumen aparte que además duplicaba el X/Y de la barra de progreso. */
+.supl-hora-card.is-pendiente {
+    border-color:#f8d98a;
+    background:#fffbf2;
+
+    .supl-hora-card__tile { background:#fdf0d2; strong { color:#8a5a05; } small { color:#b08324; } }
+}
+.supl-hora-card.is-agendada {
+    border-color:#c3d5f0;
+    background:#f7faff;
+
+    .supl-hora-card__tile { background:#e4edfb; }
+}
+.supl-hora-card.is-validada {
+    border-color:#bfe6cd;
+    background:#f7fdf9;
+
+    .supl-hora-card__tile { background:#dcf3e4; strong { color:#15803d; } small { color:#4f9a69; } }
+}
+
+/* La selección ya no puede distinguirse por relleno —ese canal lo usa el estado—,
+   así que se marca con anillo y desplazamiento. */
+.supl-hora-card.is-active {
+    box-shadow:0 0 0 2px #4267ac, 0 8px 20px -14px rgba(66,103,172,.9);
+    transform:translateX(3px);
+}
 .supl-hora-card:focus-visible { outline:2px solid #4267ac; outline-offset:2px; }
 
 /* Tile de la hora: el dato dominante de la tarjeta. Con holgura suficiente para que
@@ -414,7 +579,8 @@
     strong { font-size:13.5px; font-weight:800; color:#22417e; white-space:nowrap; }
     small  { font-size:11px; font-weight:600; color:#7189b8; white-space:nowrap; }
 }
-.supl-hora-card.is-active .supl-hora-card__tile { background:#4267ac; strong, small { color:#fff; } }
+/* El tile ya no se rellena de azul al seleccionar: ese color significa ahora
+   "tiene suplente". Seleccionada se distingue por el anillo. */
 
 .supl-hora-card__info { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .supl-hora-card__clase { font-size:14px; font-weight:700; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -423,9 +589,12 @@
 /* Estado alineado a la derecha, en su propia columna */
 .supl-hora-card__cover {
     display:flex; align-items:center; justify-content:flex-end; gap:10px;
-    text-align:right; flex-wrap:wrap;
+    text-align:right; flex-wrap:wrap; min-width:0;
 }
-.supl-hora-card__suplente { font-size:13.5px; font-weight:600; color:#334155; white-space:nowrap; }
+.supl-hora-card__suplente {
+    font-size:13.5px; font-weight:600; color:#334155;
+    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 .supl-hora-card__suplente em { color:#94a3b8; font-style:normal; font-size:12px; }
 .supl-hora-card__pending { font-size:12.5px; font-weight:700; color:#a16207; background:#fef6e0; padding:5px 12px; border-radius:20px; white-space:nowrap; }
 /* Siempre visible (antes solo en hover): en táctil no había forma de descubrirlo */

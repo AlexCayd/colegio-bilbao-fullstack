@@ -14,9 +14,6 @@ $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
             <div class="admin-topbar__actions">
                 <a href="/dashboard/eventos/crear" class="admin-topbar__new-btn"><i class="fa-solid fa-plus"></i> Nuevo evento</a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 

@@ -77,14 +77,14 @@
 
         <!-- NUESTRA MISIÓN -->
         <section id="mision" class="section-container">
-            <h2 class=”section-title” data-i18n=”conocenos-quienes-somos.mision.title”>Nuestra misión</h2>
-            <div class=”mission-section”>
-                <div class=”mission-text-content”>
-                    <p class=”mission-quote” data-i18n=”conocenos-quienes-somos.mision.quote”>”Educar integralmente para pensar en libertad, actuar con responsabilidad y construir un futuro sostenible.”</p>
-                    <p class=”mission-text” data-i18n=”conocenos-quienes-somos.mision.text”>Formamos estudiantes capaces de tomar decisiones informadas, cuidar a otros y anticipar el impacto de sus acciones. Integrar mente, emociones y vínculos sociales es parte esencial de nuestra forma de entender la educación.</p>
+            <h2 class="section-title" data-i18n="conocenos-quienes-somos.mision.title">Nuestra misión</h2>
+            <div class="mission-section">
+                <div class="mission-text-content">
+                    <p class="mission-quote" data-i18n="conocenos-quienes-somos.mision.quote">«Educar integralmente para pensar en libertad, actuar con responsabilidad y construir un futuro sostenible.»</p>
+                    <p class="mission-text" data-i18n="conocenos-quienes-somos.mision.text">Formamos estudiantes capaces de tomar decisiones informadas, cuidar a otros y anticipar el impacto de sus acciones. Integrar mente, emociones y vínculos sociales es parte esencial de nuestra forma de entender la educación.</p>
                 </div>
-                <div class=”mission-img-content”>
-                    <img src=”/build/assets/img/conocenos/quienes-somos/alumna-primaria-inspirada.png” alt=”Alumna de primaria mirando al horizonte con inspiración” data-i18n-attr=”alt:conocenos-quienes-somos.mision.imgAlt”>
+                <div class="mission-img-content">
+                    <img src="/build/assets/img/conocenos/quienes-somos/alumna-primaria-inspirada.png" alt="Alumna de primaria mirando al horizonte con inspiración" data-i18n-attr="alt:conocenos-quienes-somos.mision.imgAlt">
                 </div>
             </div>
         </section>

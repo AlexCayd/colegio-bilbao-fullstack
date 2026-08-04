@@ -7,7 +7,7 @@ $iconos = ['profesores' => 'fa-chalkboard-user', 'prefectura' => 'fa-user-shield
 $icono  = $iconos[$slug] ?? 'fa-users';
 
 $rolSesion = $_SESSION['blog_usuario']['rol'] ?? '';
-$puedeEditar = in_array($rolSesion, ['administrador', 'superadmin'], true);
+$puedeEditar = $rolSesion === 'administrador';
 
 function tipoChips(?string $tipos): string {
     $labels = ['profesor' => 'Profesor', 'prefecto' => 'Prefecto', 'administrativo' => 'Administrativo'];
@@ -52,20 +52,20 @@ foreach (($usuarios ?? []) as $u) {
                 </a>
                 <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
-                <form action="/logout" method="POST" style="display:flex;align-items:center;">
-                    <button type="submit" class="admin-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-                </form>
             </div>
         </header>
 
         <main class="admin-content">
 
+            <?php /* Las tarjetas de resumen solo tienen sentido en Profesores: en Prefectura
+                     y Administrativos la única cifra posible era el total de registros, que no
+                     dice nada que la tabla no diga ya (y dejaba dos huecos en el grid de 3). */ ?>
+            <?php if ($esDirectorioDocente): ?>
             <div class="per-stats">
                 <div class="per-stat">
                     <span class="per-stat__n"><?= $total ?></span>
                     <span class="per-stat__l">en el directorio</span>
                 </div>
-                <?php if ($esDirectorioDocente): ?>
                 <div class="per-stat per-stat--ok">
                     <span class="per-stat__n"><?= $nSuplen ?></span>
                     <span class="per-stat__l">pueden suplir</span>
@@ -74,14 +74,16 @@ foreach (($usuarios ?? []) as $u) {
                     <span class="per-stat__n"><?= $nDocente ?></span>
                     <span class="per-stat__l">con horario docente</span>
                 </div>
-                <?php endif; ?>
             </div>
+            <?php endif; ?>
 
             <div class="admin-panel">
                 <div class="admin-panel__header per-head">
                     <h2 class="admin-panel__title">
                         <i class="fa-solid <?= s($icono) ?>"></i> <?= s($titulo) ?>
+                        <?php if ($esDirectorioDocente): ?>
                         <span class="admin-panel__count" data-per-count><?= $total ?></span>
+                        <?php endif; ?>
                     </h2>
                     <?php if ($total): ?>
                     <?php /* El filtro "Solo quienes pueden suplir" se retiró: ordenar por la
@@ -151,7 +153,7 @@ foreach (($usuarios ?? []) as $u) {
                                         <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-act admin-act--edit" title="Editar"><i class="fa-solid fa-pen"></i></a>
                                         <?php endif; ?>
                                         <?php if (esDocente($u->tipo_personal)): ?>
-                                        <a href="/dashboard/horarios/profesor?id=<?= (int)$u->id ?>" class="admin-act admin-act--ghost" title="Ver horario"><i class="fa-regular fa-calendar"></i></a>
+                                        <a href="/dashboard/horarios/profesor?id=<?= (int)$u->id ?>" class="admin-act admin-act--horario" title="Ver horario"><i class="fa-regular fa-calendar"></i></a>
                                         <?php endif; ?>
                                         <?php if (!$puedeEditar && !esDocente($u->tipo_personal)): ?>
                                         <span class="per-nil">Solo lectura</span>

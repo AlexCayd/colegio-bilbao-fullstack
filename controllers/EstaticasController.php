@@ -24,7 +24,7 @@ class EstaticasController {
 
         $testimoniales = Testimonial::aprobados();
 
-        $extra_head = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
+        $extra_head = three_js_tag()
             . '<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>'
             . '<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>';
 
@@ -148,7 +148,7 @@ class EstaticasController {
     // ---- COMUNIDAD ----
     /** Three.js para los fondos animados de Comunidad (GSAP ya es global en header.php). */
     private static function comunidadThree(): string {
-        return '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
+        return three_js_tag();
     }
 
     public static function estudiantes(Router $router) {
@@ -212,7 +212,7 @@ class EstaticasController {
             strtotime($b->fecha_publicacion ?? '0') <=> strtotime($a->fecha_publicacion ?? '0')
         );
 
-        $extra_head = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
+        $extra_head = three_js_tag();
         $router->render('noticias/index', [
             'seo_titulo'      => 'Noticias · Colegio Bilbao',
             'seo_descripcion' => 'Mantente al día con todo lo que pasa en el Colegio Bilbao: logros académicos, eventos culturales, deportes y vida escolar.',

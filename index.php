@@ -3,8 +3,14 @@
 (function() {
     $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     if (!preg_match('#^/build/(.+)$#', $uri, $m)) return;
-    $file = __DIR__ . '/public/build/' . $m[1];
-    if (!is_file($file)) { http_response_code(404); exit; }
+
+    // Normalizar antes de tocar el disco: sin esto un `/build/../../includes/.env`
+    // se resolvería fuera de public/build/ y filtraría secretos.
+    $base = realpath(__DIR__ . '/public/build');
+    $file = realpath(__DIR__ . '/public/build/' . rawurldecode($m[1]));
+    if ($base === false || $file === false
+        || !str_starts_with($file, $base . DIRECTORY_SEPARATOR)
+        || !is_file($file)) { http_response_code(404); exit; }
     $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
     $types = [
         'css'  => 'text/css', 'js' => 'application/javascript',
@@ -174,6 +180,8 @@ $router->post('/dashboard/suplencias/justificar', [BlogController::class, 'justi
 $router->get('/dashboard/suplencias/mis-coberturas', [BlogController::class, 'misCoberturas']);
 $router->post('/dashboard/suplencias/validar', [BlogController::class, 'validarCobertura']);
 $router->post('/dashboard/suplencias/eliminar', [BlogController::class, 'eliminarSuplencia']);
+$router->post('/dashboard/suplencias/aprobar-justificante', [BlogController::class, 'aprobarJustificante']);
+$router->post('/dashboard/suplencias/validar-prefectura',   [BlogController::class, 'validarPrefectura']);
 $router->get('/dashboard/suplencias/buscar-colaboradores', [BlogController::class, 'buscarColaboradores']);
 $router->get('/dashboard/suplencias/sugerir', [BlogController::class, 'sugerirSuplentes']);
 $router->get('/dashboard/suplencias/horario', [BlogController::class, 'horarioProfesorJson']);
@@ -201,7 +209,7 @@ $router->post('/dashboard/usuarios/eliminar', [BlogController::class, 'eliminarU
 $router->get('/dashboard/perfil', [BlogController::class, 'perfil']);
 $router->post('/dashboard/perfil', [BlogController::class, 'perfil']);
 
-// Superadmin — Directorios de personal
+// Directorios de personal (módulos profesores / prefectura / administrativos)
 $router->get('/dashboard/profesores',      [BlogController::class, 'profesores']);
 $router->get('/dashboard/prefectura',      [BlogController::class, 'prefectura']);
 $router->get('/dashboard/administrativos', [BlogController::class, 'administrativos']);
@@ -214,7 +222,7 @@ $router->get('/dashboard/horarios/grupo',          [BlogController::class, 'hora
 $router->get('/dashboard/horarios/mi-horario',     [BlogController::class, 'miHorario']);
 $router->get('/dashboard/horarios/importar',       [BlogController::class, 'importarHorarios']);
 
-// Admin — Catálogos académicos (solo superadmin)
+// Catálogos académicos (módulos aulas / grupos)
 $router->get('/dashboard/aulas',          [BlogController::class, 'aulas']);
 $router->get('/dashboard/aulas/crear',    [BlogController::class, 'crearAula']);
 $router->post('/dashboard/aulas/crear',   [BlogController::class, 'crearAula']);
