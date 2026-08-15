@@ -1,0 +1,85 @@
+/* =========================================================
+   PANEL · COLA DE JUSTIFICANTES (/dashboard/suplencias/justificantes)
+========================================================= */
+body[data-page="blog-suplencias-justificantes"] {
+
+    /* Cabecera explicativa: la política de retención no es evidente, y sin ella
+       "eliminar" parece una acción arbitraria en vez del cierre de un plazo. */
+    .jus-intro {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 22px;
+        padding: 18px 20px;
+        border-radius: 16px;
+        background: rgba(66, 133, 244, .06);
+        border: 1px solid rgba(66, 133, 244, .2);
+
+        &__ico {
+            flex-shrink: 0;
+            width: 42px; height: 42px;
+            border-radius: 13px;
+            display: grid; place-items: center;
+            background: #4285f4; color: #fff;
+            font-size: 1rem;
+            box-shadow: 0 8px 18px -10px #4285f4;
+        }
+        &__titulo { font-size: 1rem; font-weight: 800; color: #0B1F3D; margin: 0 0 4px; }
+        &__txt    { font-size: .84rem; color: #5b708c; line-height: 1.5; margin: 0; }
+    }
+
+    .jus-motivo {
+        display: inline-block;
+        max-width: 220px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        vertical-align: bottom;
+        font-size: .84rem; color: #475569;
+    }
+
+    .jus-file {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-size: .82rem; color: #334155;
+
+        &__n {
+            max-width: 170px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            font-weight: 600;
+        }
+        small { color: #94A3B8; font-size: .72rem; }
+        i { color: #64748B; }
+
+        /* El registro apunta a un archivo que ya no existe en disco. Se puede cerrar
+           igualmente: dejarlo en la cola para siempre sería peor. */
+        &--roto { color: #b45309; i { color: #d97706; } }
+    }
+
+    /* Cuánto queda para el borrado automático. El rojo aparece solo en los últimos
+       días: si todo estuviera en rojo, el rojo no diría nada. */
+    .jus-plazo {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: .72rem; font-weight: 700; white-space: nowrap;
+
+        &--urgente {
+            background: rgba(229, 16, 34, .1);
+            color: #b3101f;
+        }
+    }
+
+    .jus-acciones { display: flex; gap: 7px; flex-wrap: wrap; }
+
+    .jus-vacio {
+        text-align: center;
+        padding: 46px 20px 52px;
+        background: #fff;
+        border: 1px solid #eef2f7;
+        border-radius: 18px;
+
+        &__alex { width: 108px; height: auto; margin-bottom: 14px; }
+        h3 { font-size: 1.05rem; font-weight: 800; color: #0B1F3D; margin: 0 0 5px; }
+        p  { font-size: .86rem; color: #64748B; margin: 0; }
+    }
+}

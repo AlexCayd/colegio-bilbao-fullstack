@@ -106,36 +106,52 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                      las ausencias anticipadas: ese justificante quedaba invisible e
                      indescargable. Ahora se muestra siempre que haya archivo, y sin él solo
                      se reclama cuando la ausencia fue sin aviso (que es cuando es obligatorio). */ ?>
-            <?php $exigeJustif = $suplencia->origen === 'sin_aviso'; ?>
-            <?php if (!empty($suplencia->justificante) || $exigeJustif): ?>
-            <div class="supl-justif <?= !empty($suplencia->justificante) ? 'is-ok' : 'is-pending' ?>">
+            <?php
+            $exigeJustif = $suplencia->origen === 'sin_aviso';
+            $hayJustif   = !empty($suplencia->justificante);
+            // ⚠️ El archivo es competencia de DIRECCIÓN. Prefectura ve el estado —lo
+            // necesita para saber si la ausencia está soportada— y nada más: ni
+            // descarga, ni nombre de archivo, ni modal de aprobación. Lo resuelve el
+            // controlador en `$veJustif`; aquí solo se pinta.
+            $veJustif = $veJustif ?? false;
+            // Subir el suyo sí puede el propio ausente, aunque no lo pueda releer.
+            $esAusente = (int)$suplencia->profesor_ausente_id === (int)($_SESSION['blog_usuario']['id'] ?? 0);
+            ?>
+            <?php if ($hayJustif || $exigeJustif): ?>
+            <div class="supl-justif <?= $hayJustif ? 'is-ok' : 'is-pending' ?>">
                 <div class="supl-justif__msg">
-                    <i class="fa-solid <?= !empty($suplencia->justificante) ? 'fa-file-circle-check' : 'fa-file-circle-exclamation' ?>"></i>
+                    <i class="fa-solid <?= $hayJustif ? 'fa-file-circle-check' : 'fa-file-circle-exclamation' ?>"></i>
                     <div>
-                        <strong><?= !empty($suplencia->justificante) ? 'Justificante recibido' : 'Falta el justificante' ?></strong>
-                        <?php if (!empty($suplencia->justificante)): ?>
+                        <strong><?= $hayJustif ? 'Justificante recibido' : 'Falta el justificante' ?></strong>
+                        <?php if ($hayJustif && $veJustif): ?>
                             <span>La ausencia queda documentada. Descárgalo si necesitas conservarlo:
                                   al aprobarlo se elimina del servidor.</span>
+                        <?php elseif ($hayJustif): ?>
+                            <span>La ausencia queda documentada. Su revisión corresponde a dirección.</span>
                         <?php else: ?>
                             <span>La suplencia no puede completarse hasta que <?= s($suplencia->ausente_nombre ?: 'el profesor ausente') ?> suba su comprobante.</span>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <?php if (!empty($suplencia->justificante)): ?>
+                <?php if ($hayJustif && $veJustif): ?>
                 <div class="supl-justif__acts">
-                    <a href="<?= s($suplencia->justificante) ?>" download class="admin-btn admin-btn--ghost">
+                    <?php /* El archivo vive fuera de public/: esta ruta es la única que lo
+                             sirve, y comprueba permisos antes de leerlo del disco. */ ?>
+                    <a href="/dashboard/suplencias/justificante?id=<?= (int)$suplencia->id ?>" class="admin-btn admin-btn--ghost">
                         <i class="fa-solid fa-download"></i> Descargar
                     </a>
-                    <?php if ($puedeAgendar): ?>
-                    <?php /* Borrado deliberado y con confirmación: el parte médico vive en una
-                             carpeta pública, así que no conviene conservarlo más de lo necesario,
-                             pero tampoco que desaparezca sin que nadie lo haya visto. */ ?>
+                    <?php /* Borrado deliberado y con confirmación: un parte médico no
+                             conviene conservarlo más de lo necesario, pero tampoco que
+                             desaparezca sin que nadie lo haya visto. */ ?>
                     <button type="button" class="admin-btn admin-btn--primary" data-justif-abrir>
                         <i class="fa-solid fa-check-double"></i> Aprobar y eliminar
                     </button>
-                    <?php endif; ?>
                 </div>
+                <?php elseif ($hayJustif): ?>
+                <?php /* Prefectura: sin acciones. El estado ya está dicho arriba. */ ?>
+                <?php elseif (!$esAusente && !$veJustif): ?>
+                <?php /* Prefectura tampoco lo sube por otro: subirlo es tenerlo en la mano. */ ?>
                 <?php else: ?>
                 <form method="POST" action="/dashboard/suplencias/justificar" enctype="multipart/form-data" class="supl-justif__form">
                     <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
@@ -152,23 +168,46 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                 <?php endif; ?>
             </div>
 
-            <?php if (!empty($suplencia->justificante) && $puedeAgendar): ?>
+            <?php if ($hayJustif && $veJustif): ?>
+            <?php /* El modal dice QUÉ se borra y en qué orden hacer las cosas:
+                     descargar primero (acción dominante), borrar después y solo tras
+                     marcar la casilla. Antes pedía una acción irreversible sin nombrar
+                     el archivo, con la descarga como un ghost perdido en medio y el
+                     botón rojo a un clic distraído de distancia. */ ?>
             <div class="supl-modal" id="justifModal" hidden>
                 <div class="supl-modal__card">
                     <span class="supl-modal__ico"><i class="fa-solid fa-triangle-exclamation"></i></span>
-                    <h3 class="supl-modal__title">Aprobar y eliminar el justificante</h3>
+                    <h3 class="supl-modal__title">Vas a borrar el justificante</h3>
                     <p class="supl-modal__text">
-                        El archivo se borrará del servidor <strong>de forma permanente</strong>.
-                        Descárgalo antes si lo necesitas: después no habrá forma de recuperarlo.
+                        Aprobarlo lo elimina del servidor <strong>de forma permanente</strong>. Se hace así
+                        a propósito: es un parte médico y no conviene conservarlo más de lo necesario.
                     </p>
-                    <a href="<?= s($suplencia->justificante) ?>" download class="admin-btn admin-btn--ghost supl-modal__dl">
-                        <i class="fa-solid fa-download"></i> Descargar ahora
+
+                    <?php if (!empty($justifInfo)): ?>
+                    <div class="supl-modal__file">
+                        <span class="supl-modal__file-ico"><i class="fa-regular <?= s($justifInfo['icono']) ?>"></i></span>
+                        <span class="supl-modal__file-body">
+                            <span class="supl-modal__file-name" title="<?= s($justifInfo['nombre']) ?>"><?= s($justifInfo['nombre']) ?></span>
+                            <span class="supl-modal__file-meta"><?= s(strtoupper($justifInfo['ext'])) ?> · <?= s($justifInfo['peso']) ?></span>
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                    <a href="/dashboard/suplencias/justificante?id=<?= (int)$suplencia->id ?>" class="admin-btn admin-btn--primary supl-modal__dl" data-justif-dl>
+                        <i class="fa-solid fa-download"></i> Descargar una copia
                     </a>
+
+                    <?php /* El botón rojo nace deshabilitado: esta casilla es la que lo suelta. */ ?>
+                    <label class="supl-modal__ack">
+                        <input type="checkbox" data-justif-ack>
+                        <span>Ya lo descargué o no lo necesito</span>
+                    </label>
+
                     <div class="supl-modal__acts">
                         <button type="button" class="admin-btn admin-btn--ghost" data-justif-cancel>Cancelar</button>
                         <form method="POST" action="/dashboard/suplencias/aprobar-justificante">
                             <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
-                            <button type="submit" class="admin-btn admin-btn--danger">
+                            <button type="submit" class="admin-btn admin-btn--danger" data-justif-ok disabled>
                                 <i class="fa-solid fa-trash"></i> Aprobar y eliminar
                             </button>
                         </form>
@@ -196,13 +235,22 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                                      color de la tarjeta y no en un bloque de resumen aparte:
                                        ámbar → sin asignar · azul → con suplente · verde → validada */ ?>
                             <?php
-                            $estadoClase = $h->estado_hora === 'validada' ? 'is-validada'
-                                         : ($h->estado_hora === 'agendada' ? 'is-agendada' : 'is-pendiente');
+                            $estadoClase = match ($h->estado_hora) {
+                                'validada'    => 'is-validada',
+                                'agendada'    => 'is-agendada',
+                                'no_cubierta' => 'is-incumplida',
+                                default       => 'is-pendiente',
+                            };
                             ?>
                             <div class="supl-hora-card <?= $estadoClase ?><?= $h->estado_hora === 'pendiente' ? ' is-open' : '' ?>"
                                  data-hora-card
                                  data-hora="<?= (int)$h->id ?>"
                                  data-periodo="<?= (int)$h->periodo_id ?>"
+                                 <?php /* El preview del candidato se marca por RANGO, no por periodo_id:
+                                          la hora a cubrir puede ser de un nivel distinto al que imparte
+                                          el candidato y entonces el id no coincide siendo la misma hora. */ ?>
+                                 data-inicio="<?= substr($h->periodo_inicio, 0, 5) ?>"
+                                 data-fin="<?= substr($h->periodo_fin, 0, 5) ?>"
                                  data-etiqueta="<?= s($h->periodo_etiqueta) ?>"
                                  data-rango="<?= substr($h->periodo_inicio, 0, 5) ?>–<?= substr($h->periodo_fin, 0, 5) ?>"
                                  data-clase="<?= s(trim(($h->materia ?: 'Clase') . ($h->grupo_nombre ? ' · ' . $h->grupo_nombre : '') . ($h->aula_nombre ? ' · ' . $h->aula_nombre : ''))) ?>"
@@ -217,8 +265,8 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                                 <div class="supl-hora-card__info">
                                     <span class="supl-hora-card__clase"><?= s($h->materia ?: 'Clase') ?></span>
                                     <span class="supl-hora-card__meta">
-                                        <?php if ($h->grupo_nombre): ?><i class="fa-solid fa-users-rectangle"></i> <?= s($h->grupo_nombre) ?><?php endif; ?>
-                                        <?php if ($h->aula_nombre): ?><i class="fa-solid fa-door-open"></i> <?= s($h->aula_nombre) ?><?php endif; ?>
+                                        <?php if ($h->grupo_nombre): ?><span><i class="fa-solid fa-users-rectangle"></i> <?= s($h->grupo_nombre) ?></span><?php endif; ?>
+                                        <?php if ($h->aula_nombre): ?><span><i class="fa-solid fa-door-open"></i> <?= s($h->aula_nombre) ?></span><?php endif; ?>
                                     </span>
                                 </div>
 
@@ -226,32 +274,33 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                                     <?php if ($h->estado_hora === 'validada'): ?>
                                         <span class="supl-hora-card__suplente"><i class="fa-solid fa-circle-check" style="color:#34a853;"></i> <?= s($h->suplente_nombre) ?> <em>(validada)</em></span>
                                     <?php elseif ($h->estado_hora === 'agendada'): ?>
-                                        <span class="supl-hora-card__suplente"><i class="fa-solid fa-user-check" style="color:#4285f4;"></i> <?= s($h->suplente_nombre) ?> <em>(por validar)</em></span>
+                                        <span class="supl-hora-card__linea">
+                                            <span class="supl-hora-card__suplente"><i class="fa-solid fa-user-check" style="color:#4285f4;"></i> <?= s($h->suplente_nombre) ?> <em>(por validar)</em></span>
+                                            <?php if ($puedeAgendar): ?>
+                                            <form method="POST" action="/dashboard/suplencias/agendar" style="display:inline;">
+                                                <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
+                                                <input type="hidden" name="_accion" value="desasignar">
+                                                <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
+                                                <button type="submit" class="supl-icon-btn supl-icon-btn--danger" title="Quitar suplente"><i class="fa-solid fa-user-xmark"></i></button>
+                                            </form>
+                                            <?php endif; ?>
+                                        </span>
+                                    <?php elseif ($h->estado_hora === 'no_cubierta'): ?>
+                                        <?php /* Incidencia cerrada, no una hora libre: el suplente asignado no se
+                                                 presentó. Queda a la vista con su responsable —y contando en el
+                                                 tablero— hasta que alguien decida reabrirla para reasignar. */ ?>
+                                        <span class="supl-hora-card__suplente supl-hora-card__suplente--fallo">
+                                            <i class="fa-solid fa-user-xmark"></i>
+                                            <?= s($h->incumplio_nombre ?: 'El suplente asignado') ?> <em>(no se presentó)</em>
+                                        </span>
                                         <?php if ($puedeAgendar): ?>
-                                        <form method="POST" action="/dashboard/suplencias/agendar" style="display:inline;">
+                                        <form method="POST" action="/dashboard/suplencias/reabrir-hora" style="display:inline;">
                                             <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
-                                            <input type="hidden" name="_accion" value="desasignar">
                                             <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
-                                            <button type="submit" class="supl-icon-btn supl-icon-btn--danger" title="Quitar suplente"><i class="fa-solid fa-user-xmark"></i></button>
+                                            <button type="submit" class="supl-resolver__btn supl-resolver__btn--si">
+                                                <i class="fa-solid fa-rotate-left"></i> Reasignar esta hora
+                                            </button>
                                         </form>
-                                        <?php endif; ?>
-                                        <?php /* La clase ya pasó y el suplente no confirmó: prefectura cierra el
-                                                 ciclo. Sin esto la hora se quedaba 'agendada' para siempre y la
-                                                 suplencia nunca llegaba a 'completada'. */ ?>
-                                        <?php if ($puedeAgendar && $vencida): ?>
-                                        <div class="supl-resolver">
-                                            <span class="supl-resolver__q"><i class="fa-solid fa-circle-question"></i> ¿Se cubrió esta clase?</span>
-                                            <form method="POST" action="/dashboard/suplencias/validar-prefectura" style="display:inline;">
-                                                <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
-                                                <input type="hidden" name="cubrio" value="1">
-                                                <button type="submit" class="supl-resolver__btn supl-resolver__btn--si">Sí se cubrió</button>
-                                            </form>
-                                            <form method="POST" action="/dashboard/suplencias/validar-prefectura" style="display:inline;">
-                                                <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
-                                                <input type="hidden" name="cubrio" value="0">
-                                                <button type="submit" class="supl-resolver__btn supl-resolver__btn--no">No se cubrió</button>
-                                            </form>
-                                        </div>
                                         <?php endif; ?>
                                     <?php elseif ($puedeAgendar): ?>
                                         <span class="supl-hora-card__pending"><i class="fa-solid fa-hourglass-half"></i> Sin asignar</span>
@@ -260,6 +309,74 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                                         <span class="supl-hora-card__pending">Sin asignar</span>
                                     <?php endif; ?>
                                 </div>
+
+                                <?php /* La clase ya pasó y el suplente no confirmó: prefectura cierra el
+                                         ciclo. Sin esto la hora se quedaba 'agendada' para siempre y la
+                                         suplencia nunca llegaba a 'completada'.
+
+                                         Va como hijo directo de la tarjeta y no dentro de .supl-hora-card__cover:
+                                         ahí era un flex-item de ancho 100% metido en la columna estrecha de la
+                                         derecha, y rompía la alineación de las otras tres zonas. */ ?>
+                                <?php if ($h->estado_hora === 'agendada' && $puedeAgendar && $vencida): ?>
+                                <div class="supl-resolver">
+                                    <span class="supl-resolver__q"><i class="fa-solid fa-circle-question"></i> ¿Se cubrió esta clase?</span>
+                                    <form method="POST" action="/dashboard/suplencias/validar-prefectura" style="display:inline;">
+                                        <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
+                                        <input type="hidden" name="cubrio" value="1">
+                                        <button type="submit" class="supl-resolver__btn supl-resolver__btn--si">Sí se cubrió</button>
+                                    </form>
+                                    <form method="POST" action="/dashboard/suplencias/validar-prefectura" style="display:inline;">
+                                        <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
+                                        <input type="hidden" name="cubrio" value="0">
+                                        <button type="submit" class="supl-resolver__btn supl-resolver__btn--no">No se cubrió</button>
+                                    </form>
+                                </div>
+                                <?php endif; ?>
+
+                                <?php /* ¿Dejó el ausente trabajo para el grupo? Es el dato que
+                                         prefectura observa cada día y que hasta ahora se perdía; de
+                                         aquí sale el porcentaje del tablero.
+
+                                         Va por HORA porque puede haber dejado material para 3º y no
+                                         para 5º. Sin marcar (NULL) NO cuenta como "no dejó": el
+                                         tablero lo excluye del denominador. Solo sobre clases: en
+                                         una guardia de patio no hay trabajo que dejar. */ ?>
+                                <?php if ($puedeAgendar && ($h->tipo ?? 'clase') !== 'guardia'): ?>
+                                <div class="supl-trabajo<?= $h->dejo_trabajo === null ? '' : ($h->dejo_trabajo ? ' is-si' : ' is-no') ?>">
+                                    <span class="supl-trabajo__q">
+                                        <i class="fa-regular fa-clipboard"></i>
+                                        <?php if ($h->dejo_trabajo === null): ?>
+                                            ¿Dejó trabajo para el grupo?
+                                        <?php elseif ($h->dejo_trabajo): ?>
+                                            Dejó trabajo para el grupo<?= $h->trabajo_por_nombre ? ' · lo marcó ' . s($h->trabajo_por_nombre) : '' ?>
+                                        <?php else: ?>
+                                            No dejó trabajo para el grupo<?= $h->trabajo_por_nombre ? ' · lo marcó ' . s($h->trabajo_por_nombre) : '' ?>
+                                        <?php endif; ?>
+                                    </span>
+                                    <div class="supl-trabajo__acts">
+                                        <?php foreach ([['1', 'Sí', 'si'], ['0', 'No', 'no']] as [$val, $txt, $cls]): ?>
+                                        <form method="POST" action="/dashboard/suplencias/trabajo" style="display:inline;">
+                                            <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
+                                            <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
+                                            <input type="hidden" name="dejo" value="<?= $val ?>">
+                                            <button type="submit" class="supl-trabajo__btn supl-trabajo__btn--<?= $cls ?><?= (string)$h->dejo_trabajo === $val ? ' is-on' : '' ?>"><?= $txt ?></button>
+                                        </form>
+                                        <?php endforeach; ?>
+                                        <?php if ($h->dejo_trabajo !== null): ?>
+                                        <?php /* Volver a "sin revisar": marcarlo por error no debe
+                                                 quedar registrado como un hecho. */ ?>
+                                        <form method="POST" action="/dashboard/suplencias/trabajo" style="display:inline;">
+                                            <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
+                                            <input type="hidden" name="hora_id" value="<?= (int)$h->id ?>">
+                                            <input type="hidden" name="dejo" value="-">
+                                            <button type="submit" class="supl-trabajo__btn supl-trabajo__btn--reset" title="Volver a sin revisar">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; endif; ?>
                     </div>

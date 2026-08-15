@@ -34,6 +34,10 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
 
         <main class="admin-content">
 
+            <?php /* Dirección revisa pero no edita: el guard real es requireEscritura(). */
+            if (blog_modulos_solo_lectura()) { $soloLecturaQue = 'el catálogo de grupos'; include __DIR__ . '/../_solo-lectura.php'; } ?>
+
+
             <?php if (isset($_GET['enuso'])): ?>
             <div class="admin-alerta admin-alerta--error">
                 <i class="fa-solid fa-circle-exclamation"></i>

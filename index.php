@@ -4,6 +4,13 @@
     $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     if (!preg_match('#^/build/(.+)$#', $uri, $m)) return;
 
+    // ⚠️ Los justificantes vivieron aquí y NO deben servirse por esta vía: este shim
+    // corre ANTES de includes/app.php, o sea sin sesión y sin permisos — cualquiera
+    // con la URL se descargaba el parte médico. Los nuevos van a storage/ y solo
+    // salen por /dashboard/suplencias/justificante, que sí comprueba quién pregunta;
+    // este portazo cubre los archivos heredados que sigan en disco.
+    if (str_starts_with($m[1], 'assets/suplencias/')) { http_response_code(404); exit; }
+
     // Normalizar antes de tocar el disco: sin esto un `/build/../../includes/.env`
     // se resolvería fuera de public/build/ y filtraría secretos.
     $base = realpath(__DIR__ . '/public/build');
@@ -178,9 +185,19 @@ $router->get('/dashboard/suplencias/agendar', [BlogController::class, 'agendarSu
 $router->post('/dashboard/suplencias/agendar', [BlogController::class, 'agendarSuplencia']);
 $router->post('/dashboard/suplencias/justificar', [BlogController::class, 'justificarSuplencia']);
 $router->get('/dashboard/suplencias/mis-coberturas', [BlogController::class, 'misCoberturas']);
+$router->get('/dashboard/suplencias/historial', [BlogController::class, 'historialSuplencias']);
 $router->post('/dashboard/suplencias/validar', [BlogController::class, 'validarCobertura']);
 $router->post('/dashboard/suplencias/eliminar', [BlogController::class, 'eliminarSuplencia']);
 $router->post('/dashboard/suplencias/aprobar-justificante', [BlogController::class, 'aprobarJustificante']);
+$router->post('/dashboard/suplencias/reabrir-hora',          [BlogController::class, 'reabrirHora']);
+// ¿El profesor ausente dejó trabajo para el grupo? Lo marca prefectura, hora a hora.
+$router->post('/dashboard/suplencias/trabajo',               [BlogController::class, 'marcarTrabajo']);
+// Única puerta al archivo del justificante: vive fuera de public/ y este endpoint
+// comprueba permisos (dirección, o el propio ausente).
+$router->get('/dashboard/suplencias/justificante',           [BlogController::class, 'descargarJustificante']);
+// Cola de justificantes vencidos (pasados Suplencia::DIAS_DESCARGA días)
+$router->get('/dashboard/suplencias/justificantes',          [BlogController::class, 'justificantes']);
+$router->post('/dashboard/suplencias/justificantes/resolver', [BlogController::class, 'resolverJustificante']);
 $router->post('/dashboard/suplencias/validar-prefectura',   [BlogController::class, 'validarPrefectura']);
 $router->get('/dashboard/suplencias/buscar-colaboradores', [BlogController::class, 'buscarColaboradores']);
 $router->get('/dashboard/suplencias/sugerir', [BlogController::class, 'sugerirSuplentes']);
@@ -206,13 +223,21 @@ $router->post('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario
 $router->get('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
 $router->post('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
 $router->post('/dashboard/usuarios/eliminar', [BlogController::class, 'eliminarUsuario']);
+// Editor del horario de un profesor. Vive en Usuarios (y no en Horarios) porque es el
+// único punto del panel que ESCRIBE horario: el módulo Horarios es de solo lectura.
+$router->get('/dashboard/usuarios/horario',           [BlogController::class, 'horarioEditor']);
+$router->post('/dashboard/usuarios/horario/bloque',   [BlogController::class, 'guardarBloqueHorario']);
+$router->post('/dashboard/usuarios/horario/lugar',    [BlogController::class, 'crearLugarGuardia']);
+$router->post('/dashboard/usuarios/horario/eliminar', [BlogController::class, 'eliminarBloqueHorario']);
+$router->get('/dashboard/usuarios/horario/profesores', [BlogController::class, 'buscarProfesoresHorario']);
 $router->get('/dashboard/perfil', [BlogController::class, 'perfil']);
 $router->post('/dashboard/perfil', [BlogController::class, 'perfil']);
 
-// Directorios de personal (módulos profesores / prefectura / administrativos)
+// Directorios de personal (módulos profesores / prefectura / administrativos / directivos)
 $router->get('/dashboard/profesores',      [BlogController::class, 'profesores']);
 $router->get('/dashboard/prefectura',      [BlogController::class, 'prefectura']);
 $router->get('/dashboard/administrativos', [BlogController::class, 'administrativos']);
+$router->get('/dashboard/directivos',      [BlogController::class, 'directivos']);
 
 // Admin — Módulo Horarios
 $router->get('/dashboard/horarios',                [BlogController::class, 'horarios']);
@@ -220,6 +245,8 @@ $router->get('/dashboard/horarios/profesor',       [BlogController::class, 'hora
 $router->get('/dashboard/horarios/aula',           [BlogController::class, 'horariosAula']);
 $router->get('/dashboard/horarios/grupo',          [BlogController::class, 'horariosGrupo']);
 $router->get('/dashboard/horarios/mi-horario',     [BlogController::class, 'miHorario']);
+// El mismo horario en PDF, para llevarlo en papel. Mismo guard: es el suyo.
+$router->get('/dashboard/horarios/mi-horario.pdf', [BlogController::class, 'miHorarioPdf']);
 $router->get('/dashboard/horarios/importar',       [BlogController::class, 'importarHorarios']);
 
 // Catálogos académicos (módulos aulas / grupos)
@@ -294,6 +321,20 @@ $router->post('/dashboard/notificaciones/restaurar',   [BlogController::class, '
 $router->post('/dashboard/notificaciones/limpiar',     [BlogController::class, 'limpiarNotificaciones']);
 
 // Admin — Autores
+// Intercambios de clase entre profesores (swap puntual, no altera el horario)
+$router->get('/dashboard/swaps',           [BlogController::class, 'swaps']);
+$router->get('/dashboard/swaps/crear',     [BlogController::class, 'crearSwap']);
+$router->post('/dashboard/swaps/crear',    [BlogController::class, 'crearSwap']);
+$router->get('/dashboard/swaps/clases',    [BlogController::class, 'clasesSwapJson']);
+$router->get('/dashboard/swaps/horario',   [BlogController::class, 'horarioSwapJson']);
+$router->get('/dashboard/swaps/buscar',    [BlogController::class, 'buscarProfesoresSwap']);
+$router->post('/dashboard/swaps/responder',[BlogController::class, 'responderSwap']);
+$router->post('/dashboard/swaps/validar',  [BlogController::class, 'validarSwap']);
+$router->post('/dashboard/swaps/cancelar', [BlogController::class, 'cancelarSwap']);
+
+// Soporte técnico: transversal, lo tiene todo el mundo (MODULOS_TRANSVERSALES)
+$router->get('/dashboard/soporte', [BlogController::class, 'soporte']);
+
 $router->get('/dashboard/autores', [BlogController::class, 'autores']);
 
 // Alias de compatibilidad (redirects 301)

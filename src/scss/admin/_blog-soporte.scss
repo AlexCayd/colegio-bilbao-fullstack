@@ -1,0 +1,209 @@
+/* =========================================================
+   PANEL · SOPORTE TÉCNICO (/dashboard/soporte)
+========================================================= */
+body[data-page="blog-soporte"] {
+
+    /* ── CTA ──
+       Ocupa la mitad superior entera: quien entra aquí tiene un problema y quiere
+       resolverlo, no leer. El verde es el de WhatsApp, para que el destino de la
+       acción se entienda antes de leer el botón. */
+    .sop-hero {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 26px;
+        margin-bottom: 30px;
+        padding: 28px 32px;
+        border-radius: 22px;
+        overflow: hidden;
+        background: radial-gradient(120% 150% at 100% 0%, #eafaf0 0%, #f6fdf9 55%, #ffffff 100%);
+        border: 1px solid #cdeddb;
+        box-shadow: 0 1px 3px rgba(11, 31, 61, .05), 0 18px 40px -32px rgba(22, 163, 74, .55);
+
+        &__alex {
+            width: 118px; height: auto; flex-shrink: 0;
+            filter: drop-shadow(0 12px 22px rgba(11, 31, 61, .22));
+        }
+        &__body { min-width: 0; flex: 1; }
+
+        &__eyebrow {
+            display: inline-flex; align-items: center; gap: 7px;
+            margin-bottom: 8px;
+            font-size: .72rem; font-weight: 800;
+            letter-spacing: .12em; text-transform: uppercase;
+            color: #15803d;
+
+            i { font-size: .95rem; }
+        }
+        &__titulo { font-size: 1.5rem; font-weight: 800; color: #0B1F3D; margin: 0 0 7px; letter-spacing: -.02em; line-height: 1.2; }
+        &__sub    { font-size: .9rem; color: #5b708c; line-height: 1.55; margin: 0 0 18px; max-width: 62ch; }
+
+        /* Sacudida breve al pulsar sin haber escrito nada */
+        &.is-falta .sop-campo__input {
+            border-color: #e51022;
+            animation: sop-shake .3s ease;
+        }
+    }
+    @keyframes sop-shake {
+        0%, 100% { transform: translateX(0); }
+        25%      { transform: translateX(-5px); }
+        75%      { transform: translateX(5px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .sop-hero.is-falta .sop-campo__input { animation: none; }
+    }
+
+    .sop-campo {
+        display: block;
+        margin-bottom: 16px;
+
+        &__label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: .82rem; font-weight: 700; color: #334155;
+        }
+        &__input {
+            width: 100%;
+            padding: 13px 15px;
+            border: 1.5px solid #d6e6dd;
+            border-radius: 13px;
+            background: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: .92rem;
+            color: #1E293B;
+            resize: vertical;
+            transition: border-color .18s, box-shadow .18s;
+
+            &::placeholder { color: #9db3a7; }
+            &:focus {
+                outline: none;
+                border-color: #16a34a;
+                box-shadow: 0 0 0 3px rgba(22, 163, 74, .14);
+            }
+        }
+        &__hint {
+            display: block;
+            margin-top: 6px;
+            font-size: .74rem; color: #7d93b0;
+        }
+    }
+
+    .sop-acciones {
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        margin-bottom: 12px;
+
+        &__nota { font-size: .78rem; color: #7d93b0; }
+    }
+
+    .sop-btn {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 13px 24px;
+        border-radius: 13px;
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: #fff;
+        font-size: .95rem; font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 14px 28px -14px rgba(22, 163, 74, .85);
+        transition: transform .18s cubic-bezier(.34, 1.56, .64, 1), box-shadow .18s, filter .18s;
+
+        i { font-size: 1.15rem; }
+
+        &:hover { transform: translateY(-2px); box-shadow: 0 20px 36px -16px rgba(22, 163, 74, .9); }
+
+        /* Sin problema escrito. No se oculta: se ve lo que va a pasar, pero no invita
+           a pulsarlo. */
+        &.is-off {
+            filter: grayscale(.85);
+            opacity: .55;
+            box-shadow: none;
+            cursor: not-allowed;
+
+            &:hover { transform: none; }
+        }
+    }
+
+    .sop-preview {
+        font-size: .8rem;
+
+        summary {
+            cursor: pointer;
+            color: #15803d;
+            font-weight: 700;
+            list-style: none;
+            display: inline-flex; align-items: center; gap: 6px;
+
+            &::-webkit-details-marker { display: none; }
+            &::before { content: '\f0d7'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: .7rem; }
+        }
+        &[open] summary::before { content: '\f0d8'; }
+
+        &__txt {
+            margin-top: 9px;
+            padding: 12px 14px;
+            border-radius: 11px;
+            background: #fff;
+            border: 1px dashed #cdeddb;
+            color: #475569;
+            line-height: 1.5;
+        }
+    }
+
+    /* ── Q&A ── */
+    .sop-faq {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 20px;
+        align-items: start;
+
+        &__bloque {
+            background: #fff;
+            border: 1px solid #eef2f7;
+            border-radius: 18px;
+            padding: 20px 22px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+        }
+        &__titulo {
+            display: flex; align-items: center; gap: 9px;
+            margin: 0 0 12px;
+            font-size: .95rem; font-weight: 800; color: #0B1F3D;
+
+            i { color: #4267ac; font-size: .9rem; }
+        }
+    }
+
+    .sop-qa {
+        border-top: 1px solid #f1f5f9;
+
+        &:first-of-type { border-top: none; }
+
+        &__q {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 12px 0;
+            cursor: pointer;
+            list-style: none;
+            font-size: .87rem; font-weight: 600; color: #334155;
+            transition: color .15s;
+
+            &::-webkit-details-marker { display: none; }
+            &:hover { color: #4267ac; }
+
+            i { flex-shrink: 0; font-size: .72rem; color: #94A3B8; transition: transform .2s ease; }
+        }
+        &[open] &__q i { transform: rotate(180deg); }
+        &[open] &__q   { color: #4267ac; }
+
+        &__a {
+            padding: 0 0 14px;
+            font-size: .85rem; color: #5b708c; line-height: 1.6;
+
+            strong { color: #334155; font-weight: 700; }
+        }
+    }
+
+    @media (max-width: 720px) {
+        .sop-hero { flex-direction: column; padding: 22px; }
+        .sop-hero__alex { width: 88px; align-self: center; }
+        .sop-hero__titulo { font-size: 1.22rem; }
+        .sop-faq { grid-template-columns: 1fr; }
+    }
+}

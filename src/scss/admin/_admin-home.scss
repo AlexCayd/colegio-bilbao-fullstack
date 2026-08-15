@@ -1,111 +1,138 @@
 /* =========================================================
    PANEL · HOME DE MÓDULOS (/dashboard)
 ========================================================= */
-/* ── Hero: saludo + estado del día ──
-   Dejó de ser un saludo decorativo. Con `has-estado` incorpora una segunda fila
-   con lo que pasa hoy y lo que está pendiente, en vez de la tira suelta que
-   colgaba debajo del panel. Las tarjetas a cero no se pintan, así que un día sin
-   nada el hero vuelve a ser exactamente lo que era. */
+/* ── Hero ──
+   Portada del panel, no tablero: el bosque WebGL del login de fondo y, sobre vidrio,
+   SOLO la marca y el saludo. El tile de fecha, el contador de módulos y la línea de
+   cumpleaños se retiraron del contenedor: la fecha la da el calendario de abajo, los
+   módulos los dicen sus propias tarjetas, y el cumpleaños del día se mudó a
+   `.mh-cumple-hoy` (junto al calendario) por ser el único dato de los tres que no
+   aparece en ningún otro sitio del panel.
+
+   El degradado del contenedor es el respaldo real: `BilbaoForest.init()` devuelve
+   null sin WebGL o con prefers-reduced-motion, y entonces el canvas queda vacío. */
 .mh-hero {
-    display:flex; flex-direction:column;
-    background:#fff; border:1px solid #eef2f7; border-radius:22px;
+    display:flex; flex-direction:column; justify-content:center;
+    position:relative; overflow:hidden; isolation:isolate;
+    border-radius:24px;
+    /* `min-height` y no `height`: el contenido sigue mandando si crece (un nombre
+       largo, el breakpoint móvil), pero por debajo de eso el hero reserva alto para
+       que se vea el bosque. Sin él lo medían el texto y el Alex de 118px, y el
+       canvas quedaba en una franja donde no se distinguía nada. */
+    min-height:270px;
     padding:26px 30px; margin-bottom:26px;
-    box-shadow:0 1px 3px rgba(0,0,0,.05), 0 12px 30px -22px rgba(11,31,61,.4);
-    position:relative; overflow:hidden;
+    /* El degradado replica la niebla clara del bosque (PALETAS.light.fog en
+       forest.js): sin WebGL el hero conserva el mismo aire, no se cae a gris. */
+    background:
+        radial-gradient(120% 150% at 15% 0%, #f4f9ff 0%, #dceaf7 55%, #c6dcf0 100%);
+    border:1px solid #dbe7f3;
+    box-shadow:0 1px 3px rgba(11,31,61,.05), 0 18px 40px -30px rgba(11,31,61,.5);
 }
-.mh-hero::after { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle,rgba(66,103,172,.06),transparent 70%); }
-.mh-hero__top  { display:flex; align-items:center; justify-content:space-between; gap:24px; }
-.mh-hero__left { display:flex; align-items:center; gap:22px; position:relative; z-index:1; }
+.mh-hero__canvas {
+    position:absolute; inset:0; width:100%; height:100%;
+    z-index:0; pointer-events:none;
+}
+/* Velo claro: aclara la izquierda para que el texto oscuro mantenga contraste AA
+   sobre los árboles, y difumina el pie para que el canvas no corte en seco. */
+.mh-hero__veil {
+    position:absolute; inset:0; z-index:1; pointer-events:none;
+    background:
+        linear-gradient(100deg, rgba(244,249,255,.88) 0%, rgba(244,249,255,.55) 42%, rgba(244,249,255,.10) 100%),
+        linear-gradient(to top, rgba(220,234,247,.65), transparent 55%);
+}
+.mh-hero__top  { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:22px; }
 
-/* ── Fila de estado ── */
-.mh-estado {
-    position:relative; z-index:1;
-    display:flex; flex-wrap:wrap; gap:12px;
-    margin-top:22px; padding-top:20px;
-    border-top:1px solid #eef2f7;
+/* Tarjeta de vidrio del texto. El fallback importa: sin backdrop-filter el texto
+   quedaría sobre los árboles sin nada que lo separe. */
+.mh-hero__texto {
+    min-width:0;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:26px 30px;
+    border-radius:20px;
+    background:rgba(255,255,255,.55);
+    border:1px solid rgba(255,255,255,.85);
+    -webkit-backdrop-filter:blur(16px) saturate(160%);
+    backdrop-filter:blur(16px) saturate(160%);
+    box-shadow:0 18px 40px -30px rgba(11,31,61,.55), inset 0 1px 0 rgba(255,255,255,.9);
 }
-
-/* Cada tarjeta: etiqueta pequeña arriba, dato con peso abajo. Es un enlace,
-   así que el estado no solo informa: lleva a resolverlo. */
-.mh-est {
-    --est: #4267ac;
-    flex:1 1 190px; min-width:0;
-    display:flex; align-items:center; gap:12px;
-    padding:12px 16px; border-radius:14px;
-    background:color-mix(in srgb, var(--est) 7%, #fff);
-    border:1.5px solid color-mix(in srgb, var(--est) 22%, #fff);
-    text-decoration:none;
-    transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
-
-    &:not(.is-static):hover {
-        transform:translateY(-2px);
-        border-color:var(--est);
-        box-shadow:0 12px 24px -14px color-mix(in srgb, var(--est) 90%, transparent);
-    }
-    &.is-static { cursor:default; }
-
-    &--cumple    { --est: #fc6722; }
-    &--notif     { --est: #4285f4; }
-    &--cobertura { --est: #8ac926; }
-    &--suplente  { --est: #e51022; }
-    &--evento    { --est: #aa2296; }
-}
-.mh-est__ico {
-    width:38px; height:38px; flex-shrink:0; border-radius:11px;
-    display:grid; place-items:center;
-    background:var(--est); color:#fff; font-size:15px;
-    box-shadow:0 6px 14px -8px var(--est);
-}
-.mh-est__avas { display:flex; flex-shrink:0; }
-.mh-est__avas .mh-cumple__ava { width:38px; height:38px; font-size:14px; border-width:2px; }
-.mh-est__txt   { display:flex; flex-direction:column; gap:1px; min-width:0; }
-.mh-est__label {
-    font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em;
-    color:color-mix(in srgb, var(--est) 78%, #0B1F3D);
-    display:flex; align-items:center; gap:6px;
-}
-.mh-est__dato {
-    font-size:14px; font-weight:700; color:#0B1F3D; line-height:1.3;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+    .mh-hero__texto { background:rgba(255,255,255,.9); }
 }
 
-@media (max-width:720px) {
-    .mh-estado { gap:10px; }
-    .mh-est { flex:1 1 100%; }
+/* ── Marca ──
+   Es la firma del producto, así que se compone tipográficamente en vez de con un
+   icono. Las dos palabras son UNA sola pieza: el degradado vive en el contenedor y
+   lo recorre entero, así que "Intranet" y "Bilbao" comparten tinta y se leen como un
+   lockup, no como un eyebrow gris con un logotipo al lado.
+
+   El degradado es el AZUL institucional (--col-bilbao → --col-espiritu), el mismo de
+   `.lnd-hero__hi` en el landing: el naranja es un color de la paleta de categorías,
+   el azul es la marca. Lo que sigue distinguiendo las dos palabras es el peso y el
+   tracking, no el color.
+
+   ⚠️ `background-clip:text` no convive con `text-shadow` (el halo se pintaría por
+   detrás del recorte y se vería la caja): el contraste sobre los árboles lo da el
+   vidrio de `.mh-hero__texto`, no un halo. */
+.mh-hero__eyebrow {
+    display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;
+    margin-bottom:12px;
+    line-height:1;
+    background:linear-gradient(110deg, #1f5a94, #2f7cb8);
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
 }
-.mh-datetile {
-    width:118px; height:118px; border-radius:24px; flex-shrink:0;
-    background:linear-gradient(150deg,#2e4b8a,#4267ac); color:#fff;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;
-    box-shadow:0 16px 32px -12px rgba(66,103,172,.65);
+.mh-hero__brand {
+    font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.24em;
 }
-/* Hay cumpleaños hoy: la fecha principal se tiñe de naranja institucional */
-.mh-datetile--cumple {
-    background:linear-gradient(150deg,#c74b12,#fc6722);
-    box-shadow:0 16px 32px -12px rgba(252,103,34,.7);
+.mh-hero__colegio {
+    font-size:24px; font-weight:900; letter-spacing:-.02em;
 }
-.mh-datetile__dow { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; opacity:.85; }
-.mh-datetile__d   { font-size:50px; font-weight:800; margin:4px 0; }
-.mh-datetile__mo  { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; opacity:.85; }
-.mh-hero__eyebrow { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#94A3B8; margin-bottom:5px; display:flex; align-items:center; gap:7px; }
-.mh-hero__title   { font-size:26px; font-weight:800; color:#0B1F3D; margin:0 0 5px; }
-.mh-hero__sub     { font-size:13.5px; color:#64748B; }
-.mh-hero__sub strong { color:#4267ac; }
-.mh-hero__alex    { width:120px; height:auto; position:relative; z-index:1; flex-shrink:0; filter:drop-shadow(0 12px 22px rgba(11,31,61,.28)); animation:mh-float 3.4s ease-in-out infinite; }
+
+/* El halo `text-shadow` es del color del fondo, igual que en el landing: mantiene
+   el título legible cuando el bosque pinta un árbol justo detrás. */
+.mh-hero__title {
+    font-size:clamp(1.9rem, 3.4vw, 2.9rem);
+    font-weight:900;
+    line-height:1.05;
+    letter-spacing:-.035em;
+    color:var(--pal-tinta,#0B1F3D);
+    margin:0;
+    text-shadow:0 2px 22px rgba(244,249,255,.9);
+}
+
+.mh-hero__alex    { width:118px; height:auto; align-self:center; position:relative; z-index:2; flex-shrink:0; filter:drop-shadow(0 14px 26px rgba(11,31,61,.3)); animation:mh-float 3.4s ease-in-out infinite; }
 @keyframes mh-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
 
-/* Avatares de quien cumple. Se solapan para que varios cumpleaños el mismo día
-   no empujen el texto fuera de la tarjeta. Los reusa .mh-est__avas en el hero;
-   el resto del bloque .mh-cumple desapareció al integrarse en .mh-hero. */
-.mh-cumple__ava {
-    width:42px; height:42px; border-radius:50%; overflow:hidden;
-    display:grid; place-items:center; flex-shrink:0;
-    background:linear-gradient(135deg,var(--pal-naranja),var(--pal-ambar));
-    color:#fff; font-size:16px; font-weight:800;
-    border:2.5px solid #fff; box-shadow:0 4px 10px -4px rgba(11,31,61,.35);
+@media (prefers-reduced-motion: reduce) {
+    .mh-hero__alex { animation:none; }
+}
+@media (max-width:720px) {
+    .mh-hero { padding:22px; min-height:210px; }
+    .mh-hero__top   { flex-direction:column; align-items:flex-start; }
+    .mh-hero__texto { padding:20px 22px; }
+    .mh-hero__alex  { display:none; }
+}
 
-    & + & { margin-left:-12px; }
-    img { width:100%; height:100%; object-fit:cover; }
+/* ── Cumpleaños de hoy ──
+   Bajó del hero pero no se elimina: es el único de los datos que había ahí arriba
+   que no aparece en ningún otro sitio del panel. Va pegado al calendario porque es
+   su mismo tema. */
+.mh-cumple-hoy {
+    display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+    margin:0 0 14px;
+    padding:12px 16px;
+    border-radius:14px;
+    background:#fff8f1;
+    border:1px solid #fbdcc4;
+    font-size:13px; color:#7a5433;
+
+    > i { color:var(--pal-naranja,#fc6722); }
+    strong { color:var(--pal-tinta,#0B1F3D); font-weight:800; }
+    a {
+        color:#c74b12; text-decoration:none; font-weight:700;
+        border-bottom:1px solid transparent;
+        &:hover { border-bottom-color:currentColor; }
+    }
 }
 
 .mh-section-label { font-size:12px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:#94A3B8; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
@@ -220,4 +247,86 @@
     .mh-cal-row   { grid-template-columns:1fr; align-items:start; }
     .mh-bday-list { flex:none; justify-content:flex-start; }
 }
-@media (max-width:640px){ .mh-hero{flex-direction:column; align-items:flex-start;} .mh-hero__alex{align-self:center;} }
+
+/* ── Detalle del día del calendario ──
+   Se abre al pulsar un día con marcas. Vive aquí y no en un componente compartido
+   porque el calendario público (Familias) resuelve lo mismo en línea, bajo la
+   rejilla, donde sí hay sitio; en el panel la columna es estrecha y el modal es la
+   única forma de leer varios eventos sin desplazar la página. */
+.mh-dia {
+    position:fixed; inset:0; z-index:1200;
+    display:none; align-items:center; justify-content:center;
+    padding:20px;
+    background:rgba(11,31,61,.55);
+    -webkit-backdrop-filter:blur(4px);
+    backdrop-filter:blur(4px);
+
+    &.is-open { display:flex; }
+}
+.mh-dia__card {
+    width:100%; max-width:460px;
+    max-height:85vh; display:flex; flex-direction:column;
+    background:#fff; border-radius:20px;
+    box-shadow:0 30px 70px -20px rgba(11,31,61,.6);
+    overflow:hidden;
+    animation:mh-dia-in .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes mh-dia-in { from { opacity:0; transform:translateY(14px) scale(.97); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) { .mh-dia__card { animation:none; } }
+
+.mh-dia__head {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:20px 22px 14px;
+    border-bottom:1px solid #eef2f7;
+}
+.mh-dia__eyebrow {
+    font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+    color:#94A3B8; margin-bottom:4px;
+    display:flex; align-items:center; gap:6px;
+}
+.mh-dia__titulo { font-size:17px; font-weight:800; color:#0B1F3D; margin:0; text-transform:capitalize; }
+.mh-dia__x {
+    flex-shrink:0; width:32px; height:32px; border-radius:10px;
+    border:1px solid #e2e8f0; background:#fff; color:#64748B;
+    display:grid; place-items:center; cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+
+    &:hover { background:#f1f5f9; color:#0B1F3D; }
+}
+
+.mh-dia__lista { list-style:none; margin:0; padding:12px 22px; overflow-y:auto; flex:1 1 auto; }
+.mh-dia__item {
+    --c:#4267ac;
+    display:flex; align-items:flex-start; gap:12px;
+    padding:11px 0;
+
+    & + & { border-top:1px solid #f1f5f9; }
+
+    /* Mismo código cromático que los puntos del calendario */
+    &--cumple     { --c:#fc6722; }
+    &--festivo    { --c:#e51022; }
+    &--evento     { --c:#4285f4; }
+    &--junta      { --c:#aa2296; }
+    &--entrega    { --c:#8ac926; }
+    &--suspension { --c:#94a3b8; }
+}
+.mh-dia__ico {
+    flex-shrink:0; width:34px; height:34px; border-radius:11px;
+    display:grid; place-items:center;
+    background:color-mix(in srgb, var(--c) 12%, #fff);
+    color:var(--c); font-size:14px;
+}
+.mh-dia__txt  { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.mh-dia__nom  { font-size:14px; font-weight:700; color:#0B1F3D; line-height:1.3; }
+.mh-dia__tipo {
+    font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--c);
+}
+.mh-dia__desc { font-size:12.5px; color:#64748B; line-height:1.4; }
+
+.mh-dia__foot {
+    display:flex; gap:10px; justify-content:flex-end;
+    padding:14px 22px 18px;
+    border-top:1px solid #eef2f7;
+    background:#fafbfc;
+}

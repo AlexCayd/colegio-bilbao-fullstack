@@ -1,6 +1,6 @@
 <?php $paginaVista = 'blog-suplencias-solicitar'; ?>
 <?php
-/** @var \Model\Periodo[] $periodos  @var array $matriz  @var array $alertas */
+/** @var array $alertas  @var string $fechaPrefijada */
 $dias   = \Model\Horario::DIAS;
 $sesion = $_SESSION['blog_usuario'] ?? [];
 $inicial = mb_strtoupper(mb_substr($sesion['nombre'] ?? 'U', 0, 1));

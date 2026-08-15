@@ -154,6 +154,28 @@
 .picker__clear:hover { background:#f1f5f9; color:#475569; }
 .picker.has-value .picker__clear { display:grid; }
 
+/* Chips del modo múltiple (`data-picker-multi`): los pinta admin-picker.js y cada uno
+   lleva dentro su propio hidden `<campo>[]`. Viven aquí, junto al resto del picker y sin
+   scope de página, porque el componente lo usan Suplencias, el editor de horario
+   (acompañantes de coteaching) y los intercambios. */
+.picker-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 6px 5px 11px;
+    border:1.5px solid #c9dcf2; border-radius:999px;
+    background:#eef3fb; color:#2e4b8a;
+    font-size:12.5px; font-weight:700;
+}
+.picker-chip__x {
+    display:grid; place-items:center;
+    width:18px; height:18px; padding:0;
+    border:none; border-radius:50%;
+    background:rgba(46,75,138,.12); color:#2e4b8a;
+    font-size:9px; cursor:pointer; line-height:0;
+    transition:background .15s ease, color .15s ease;
+
+    &:hover { background:#e51022; color:#fff; }
+}
+
 /* Barra de acciones al cierre del formulario (el topbar por sí solo confunde) */
 .supl-form-actions {
     display:flex; justify-content:flex-end; gap:10px;
@@ -185,45 +207,69 @@
    la fecha elegida. A diferencia del resto de .bilbao-cal, ningún día se
    deshabilita: también sirve para abrir una ausencia futura. */
 .supl-cal-wrap {
-    display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px;
+    display:grid; grid-template-columns:minmax(0,1fr) 268px; gap:16px;
     align-items:start; margin-bottom:18px;
 }
 .supl-cal {
-    padding:18px;
+    padding:14px 16px;
 
-    .bilbao-cal__cell { font-size:.82rem; border-radius:11px; cursor:pointer; }
+    /* ⚠️ `.bilbao-cal__cell` trae `aspect-ratio: 1` del componente compartido, que en
+       Familias vive en una columna estrecha. Aquí el calendario ocupa casi todo el
+       ancho del panel, así que cada celda salía de ~145px y las seis filas no cabían
+       en pantalla. Se cambia por alto fijo: el ancho deja de mandar. */
+    .bilbao-cal__cell {
+        aspect-ratio:auto; height:55px;
+        font-size:.88rem; border-radius:11px; cursor:pointer;
+    }
     /* Sin evento tampoco se apaga: sigue siendo pulsable para abrir una ausencia */
     .bilbao-cal__cell:not(.has-event):not(.bilbao-cal__cell--empty):hover {
         background:#eef3fb; color:#22417e;
     }
-    .bilbao-cal__month { font-size:1rem; }
+    .bilbao-cal__grid,
+    .bilbao-cal__weekdays { gap:5px; }
+    .bilbao-cal__header   { margin-bottom:10px; }
+    .bilbao-cal__month    { font-size:.95rem; }
+    .bilbao-cal__nav      { width:30px; height:30px; font-size:.72rem; }
+    .bilbao-cal__badge    { transform:scale(.9); }
 }
 
 .supl-cal-side {
+    display:flex; flex-direction:column;
     background:#fff; border:1px solid #eef2f7; border-radius:18px;
-    padding:18px; min-height:180px;
+    padding:16px;
 }
 .supl-cal-side__empty {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:10px; text-align:center; height:100%; color:#94a3b8;
+    gap:8px; text-align:center; color:#94a3b8; padding:14px 4px;
 
-    i { font-size:24px; opacity:.5; }
-    p { margin:0; font-size:12.5px; line-height:1.5; }
+    i { font-size:20px; opacity:.5; }
+    p { margin:0; font-size:12px; line-height:1.45; }
 }
+/* ⚠️ El `display:flex` de arriba gana al atributo `hidden` que pone el JS al elegir
+   día (blog-suplencias-index.js: `vacio.hidden = true`), así que la invitación a
+   elegir día seguía ahí debajo de la fecha ya elegida. */
+.supl-cal-side__empty[hidden] { display:none; }
+
+/* Cabecera del día elegido: la fecha manda y el conteo va pegado debajo, en una
+   tira con el mismo azul que el día activo del calendario. */
 .supl-cal-side__fecha {
-    margin:0 0 3px; font-size:15px; font-weight:800; color:#0B1F3D;
+    margin:0; font-size:14.5px; font-weight:800; color:#0B1F3D; line-height:1.3;
     text-transform:capitalize;
 }
-.supl-cal-side__conteo { margin:0 0 16px; font-size:12.5px; color:#64748b; }
+.supl-cal-side__conteo {
+    margin:2px 0 14px; padding-bottom:14px;
+    border-bottom:1px solid #f1f5f9;
+    font-size:12px; font-weight:600; color:#64748b;
+}
 .supl-cal-side__acts {
     display:flex; flex-direction:column; gap:8px;
 
     .admin-btn { width:100%; }
 }
 .supl-cal-side__reset {
-    margin-top:14px; width:100%;
+    margin-top:12px; width:100%;
     background:none; border:none; cursor:pointer;
-    font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; color:#94a3b8;
+    font-family:'Outfit',sans-serif; font-size:11.5px; font-weight:700; color:#94a3b8;
 
     &:hover { color:#4267ac; text-decoration:underline; }
 }
@@ -310,10 +356,19 @@
     thead th { font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#94a3b8; padding:4px 2px; }
     thead th.is-active-day { color:#4267ac; }
     th, td { text-align:center; vertical-align:middle; }
-    td { padding:0; height:46px; border-radius:10px; }
+    /* Las filas son tramos de reloj, no periodos, y su altura va en proporción a los
+       minutos. Así el alto de una celda con rowspan (más el border-spacing de en medio)
+       lo suma el navegador y no queda ninguna cuenta en el CSS. 50 min → 46px. */
+    tbody tr { height:calc(var(--min, 50) * .92px); }
+    /* El contenido se ancla al <td>: en una tabla `height` es un mínimo, y con rowspan
+       un height:100% del hijo no resuelve contra la altura real. */
+    td { padding:0; border-radius:10px; position:relative; }
 }
 .supl-week__corner  { width:74px; }
-.supl-week__dayhead { width:20%; }
+/* Reparto exacto del ancho restante: con `width:20%` la suma (74px + 5×20% + los
+   border-spacing) pasaba del 100% y el navegador reescalaba las cinco columnas, así
+   que nunca medían lo declarado y el reparto cambiaba con el ancho del panel. */
+.supl-week__dayhead { width:calc((100% - 74px) / 5); }
 .supl-week__hour {
     text-align:right; padding-right:9px; white-space:nowrap;
     span   { display:block; font-size:.75rem; font-weight:700; color:#475569; }
@@ -322,25 +377,41 @@
 .supl-week__receso    { background:#fff7e6; color:#e0a800; font-size:.8rem; }
 .supl-week__free      { background:repeating-linear-gradient(45deg,#f4f7fb,#f4f7fb 6px,#eef3f9 6px,#eef3f9 12px); }
 /* El span ocupa la celda entera para centrarse igual que un bloque de clase */
-.supl-week__free span { display:flex; align-items:center; justify-content:center; height:100%; font-size:.68rem; color:#b3c0d0; font-weight:700; }
+.supl-week__free span { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:.68rem; color:#b3c0d0; font-weight:700; }
 
 /* Bloque de clase */
 .supl-week__class {
-    height:100%; border-radius:10px; padding:6px 9px;
+    position:absolute; inset:0; border-radius:10px; padding:6px 9px;
     display:flex; flex-direction:column; justify-content:center; gap:1px;
     background:#4267ac; text-align:left; overflow:hidden;
-    border:none; width:100%; font-family:'Outfit',sans-serif;
+    border:none; font-family:'Outfit',sans-serif;
 
     &-mat { font-size:.76rem; font-weight:700; color:#fff; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     &-sec { font-size:.66rem; color:rgba(255,255,255,.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 }
+/* Clase de un nivel que el profesor no tiene declarado en su ficha */
+.supl-week__class.is-ajeno { outline:2px dashed #e0a800; outline-offset:-2px; }
+/* Tramo que ningún día usa: franja separadora en vez de fila entera */
+.supl-week__gap {
+    .supl-week__hour small { font-size:.6rem; opacity:.6; }
+    td { opacity:.5; }
+}
+/* Fragmento: los 20-30 min que quedan al cruzarse dos jornadas desfasadas. No es una
+   hora con nombre, así que su rótulo va en tono menor: pintarlo igual que "3ª hora"
+   hacía leer que el colegio tiene horas de 20 minutos. */
+.supl-week__frag .supl-week__hour small { font-size:.66rem; font-weight:700; color:#b3c0d0; }
 /* Columnas de otros días: atenuadas para que destaque el día de la ausencia */
 .supl-week td.is-dim { opacity:.42; }
 
 /* Modo select: las clases del día activo son toggles.
    La marca de seleccionado usa el azul institucional (#4267ac), no el navy casi
    negro de antes, que se leía como "deshabilitado" más que como "elegido". */
-.supl-week__class--pick { cursor:pointer; position:relative; transition:transform .15s ease, box-shadow .15s ease; }
+/* ⚠️ SIN `position` propia: `.supl-week__class` es `absolute; inset:0` para llenar
+   el <td>, y redeclarar `relative` aquí (misma especificidad, más abajo en el
+   archivo) la devolvía al flujo. Efecto: en modo select —y solo ahí— los bloques del
+   día activo se encogían a su contenido y no coincidían con los de los demás días.
+   El ::after del check se posiciona igual contra el `absolute` heredado. */
+.supl-week__class--pick { cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
 .supl-week__class--pick:hover { transform:translateY(-2px); box-shadow:0 8px 18px -10px rgba(66,103,172,.75); }
 .supl-week__class--pick:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(66,133,244,.55); }
 .supl-week__class--pick::after {
@@ -350,19 +421,28 @@
     background:rgba(255,255,255,.28); color:transparent;
     display:grid; place-items:center; transition:background .15s ease, color .15s ease;
 }
-.supl-week__class--pick.is-on { box-shadow:0 0 0 3px #4267ac, 0 8px 18px -10px rgba(66,103,172,.85); }
+/* 2px y no 3: con `border-spacing:5px` un anillo de 3px dejaba 2px de aire y el
+   bloque marcado se comía visualmente al vecino. */
+.supl-week__class--pick.is-on { box-shadow:0 0 0 2px #4267ac, 0 8px 18px -10px rgba(66,103,172,.85); }
 .supl-week__class--pick.is-on::after { background:#fff; color:#4267ac; }
 
 /* Modo preview: celda objetivo de la cobertura */
 .supl-week__target { position:relative; }
 /* El centrado va en un div interior: un `display:grid` sobre el <td> lo saca
    del modelo de tabla y desalinea la fila entera. */
-.supl-week__target.is-free { background:#e8f7ee; border:2px solid #34a853; border-radius:10px; }
+/* Los tres estados marcan con `box-shadow`, no con `border`: en `table-layout:fixed`
+   el borde se dibuja DENTRO del ancho de columna, así que la celda marcada le daba
+   4px menos a su hijo absoluto y salía más estrecha que las demás. */
+.supl-week__target.is-free { background:#e8f7ee; box-shadow:inset 0 0 0 2px #34a853; border-radius:10px; }
 .supl-week__target-in {
-    height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:2px;
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:2px;
     span { font-size:.66rem; font-weight:800; color:#15803d; text-transform:uppercase; letter-spacing:.03em; }
+    i    { font-size:.85rem; color:#e0a800; }
 }
-.supl-week__target.is-busy { box-shadow:0 0 0 2.5px #e51022; border-radius:10px; }
+.supl-week__target.is-busy { box-shadow:inset 0 0 0 2px #e51022; border-radius:10px; }
+/* La hora a cubrir cae en el receso del candidato: no lo bloquea (el sistema lo sigue
+   proponiendo), pero se dice. Ámbar, el mismo del receso, no el rojo de "tiene clase". */
+.supl-week__target.is-break { background:#fff7e6; box-shadow:inset 0 0 0 2px #e0a800; border-radius:10px; }
 .supl-week__target-flag {
     position:absolute; top:-7px; left:50%; transform:translateX(-50%);
     font-size:.58rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em;
@@ -370,6 +450,17 @@
 }
 .supl-week__target.is-free  .supl-week__target-flag { background:#34a853; color:#fff; }
 .supl-week__target.is-busy  .supl-week__target-flag { background:#e51022; color:#fff; }
+.supl-week__target.is-break .supl-week__target-flag { background:#e0a800; color:#1f2937; }
+
+/* Candidato elegible pero con salvedad (hoy: su receso). Ni verde ni bloqueado. */
+.supl-cand--aviso { border-color:#f3d79a; }
+.supl-preview__aviso {
+    display:flex; align-items:center; gap:9px;
+    margin:10px 0 0; padding:9px 13px; border-radius:11px;
+    background:#fff7e6; border:1px solid #f3d79a; color:#8a6100;
+    font-size:.8rem; font-weight:600;
+    i { color:#e0a800; }
+}
 
 /* Aviso de la rejilla en modo select: banda contrastante con Alex, no un <p> gris.
    Va con título + apoyo (antes era una sola frase corrida) y con margen inferior:
@@ -484,13 +575,49 @@
 }
 .supl-modal__title { font-size:17px; font-weight:800; color:#0B1F3D; margin-bottom:8px; }
 .supl-modal__text  { font-size:13.5px; color:#475569; line-height:1.6; margin-bottom:16px; }
-.supl-modal__dl    { margin-bottom:18px; }
-.supl-modal__acts  { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
 
-/* ── Cierre por prefectura de una cobertura vencida sin confirmar ── */
+/* Qué archivo se va a borrar. Sin esto la confirmación hablaba en abstracto de "el
+   justificante" y no había forma de saber si era el correcto. */
+.supl-modal__file {
+    display:flex; align-items:center; gap:12px;
+    padding:11px 14px; margin-bottom:16px;
+    text-align:left;
+    background:#f7f9fc; border:1px solid #e6edf5; border-radius:13px;
+}
+.supl-modal__file-ico  { display:grid; place-items:center; width:38px; height:38px; flex-shrink:0;
+    border-radius:10px; background:#fff; border:1px solid #e6edf5; color:#4267ac; font-size:16px; }
+.supl-modal__file-body { display:flex; flex-direction:column; gap:2px; min-width:0; }
+/* El nombre lo pone quien sube: puede ser larguísimo y reventaría el ancho del modal */
+.supl-modal__file-name { font-size:13px; font-weight:700; color:#0B1F3D;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.supl-modal__file-meta { font-size:11.5px; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.03em; }
+
+/* La descarga es la acción DOMINANTE: es lo que hay que hacer antes de borrar */
+.supl-modal__dl { display:flex; width:100%; margin-bottom:14px; }
+
+/* Suelta el botón rojo. Una acción sin vuelta atrás no debe estar a un clic distraído */
+.supl-modal__ack {
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    padding:10px 12px; margin-bottom:16px;
+    border:1.5px dashed #e2e8f0; border-radius:12px;
+    font-size:13px; font-weight:600; color:#475569;
+    cursor:pointer; transition:all .16s ease;
+
+    input { width:17px; height:17px; accent-color:#e51022; cursor:pointer; flex-shrink:0; }
+    &:has(input:checked) { border-style:solid; border-color:#f5c2c7; background:#fdf5f5; color:#b42318; }
+}
+
+.supl-modal__acts  { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+/* El estado deshabilitado tiene que leerse como tal, o parece que el modal está roto */
+.supl-modal__acts .admin-btn[disabled] { opacity:.45; cursor:not-allowed; pointer-events:none; box-shadow:none; }
+
+/* ── Cierre por prefectura de una cobertura vencida sin confirmar ──
+   Hijo directo de .supl-hora-card: ocupa las tres columnas y queda como una fila
+   propia bajo la tarjeta, no apretado en la columna del suplente. */
 .supl-resolver {
+    grid-column:1 / -1;
     display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-    width:100%; margin-top:9px; padding-top:9px;
+    margin-top:9px; padding-top:9px;
     border-top:1px dashed #e2e8f0;
 }
 .supl-resolver__q { font-size:12px; font-weight:700; color:#b45309; display:flex; align-items:center; gap:6px; }
@@ -503,6 +630,40 @@
             &:hover { background:#15803d; color:#fff; } }
     &--no { background:#fdeef0; border-color:#f6c9ce; color:#b42318;
             &:hover { background:#b42318; color:#fff; } }
+}
+
+/* ── ¿El ausente dejó trabajo para el grupo? ──
+   Misma estructura de fila propia que .supl-resolver (grid-column:1/-1), porque
+   responde a la misma clase de pregunta: un dato que prefectura cierra a posteriori.
+   Tres estados, y el neutro importa: "sin revisar" no es "no dejó", así que arranca
+   en gris y solo se colorea cuando alguien ha contestado. */
+.supl-trabajo {
+    grid-column:1 / -1;
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin-top:9px; padding-top:9px;
+    border-top:1px dashed #e2e8f0;
+
+    &__q {
+        display:flex; align-items:center; gap:6px;
+        font-size:12px; font-weight:700; color:#64748b;
+        margin-right:auto;
+    }
+    &.is-si &__q { color:#15803d; }
+    &.is-no &__q { color:#b42318; }
+
+    &__acts { display:flex; align-items:center; gap:6px; }
+
+    &__btn {
+        padding:4px 11px; border-radius:9px; border:1.5px solid #e2e8f0;
+        background:#fff; color:#64748b;
+        font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; cursor:pointer;
+        transition:all .15s ease;
+
+        &--si:hover, &--si.is-on { background:#15803d; border-color:#15803d; color:#fff; }
+        &--no:hover, &--no.is-on { background:#b42318; border-color:#b42318; color:#fff; }
+        &--reset { padding:4px 9px; font-size:11px;
+                   &:hover { background:#f1f5f9; color:#334155; } }
+    }
 }
 
 /* Cobertura futura: aún no se puede confirmar */
@@ -533,7 +694,7 @@
    la clase hasta dejarla en "I…". Con minmax(0,auto) la que cede es la de estado. */
 .supl-hora-card {
     display:grid; grid-template-columns:auto minmax(130px,1fr) minmax(0,auto); gap:8px 14px; align-items:center;
-    border:1.5px solid #eef2f7; border-radius:14px; padding:12px 15px;
+    border:1.5px solid #eef2f7; border-radius:14px; padding:13px 16px;
     transition:border-color .16s ease, background .16s ease, transform .16s ease;
 }
 .supl-hora-card.is-open { cursor:pointer; }
@@ -560,6 +721,19 @@
 
     .supl-hora-card__tile { background:#dcf3e4; strong { color:#15803d; } small { color:#4f9a69; } }
 }
+/* El suplente asignado no se presentó. Rojo y no ámbar: no es "falta por asignar"
+   sino una incidencia con responsable, que además cuenta en el tablero. */
+.supl-hora-card.is-incumplida {
+    border-color:#f3c2c6;
+    background:#fef7f7;
+
+    .supl-hora-card__tile { background:#fbdfe1; strong { color:#b3101f; } small { color:#c4525c; } }
+}
+.supl-hora-card__suplente--fallo {
+    color:#b3101f;
+    i  { color:#e51022; }
+    em { color:#c4525c; font-style:normal; font-weight:600; }
+}
 
 /* La selección ya no puede distinguirse por relleno —ese canal lo usa el estado—,
    así que se marca con anillo y desplazamiento. */
@@ -582,15 +756,27 @@
 /* El tile ya no se rellena de azul al seleccionar: ese color significa ahora
    "tiene suplente". Seleccionada se distingue por el anillo. */
 
-.supl-hora-card__info { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.supl-hora-card__info { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .supl-hora-card__clase { font-size:14px; font-weight:700; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.supl-hora-card__meta  { font-size:12px; color:#94a3b8; display:flex; gap:12px; flex-wrap:wrap; i { margin-right:4px; opacity:.7; } }
+/* Grupo y aula en columna con el icono en ancho fijo: en fila se envolvían a mitad
+   del panel y cada dato arrancaba en una sangría distinta. Así comparten eje. */
+.supl-hora-card__meta {
+    font-size:12px; color:#94a3b8;
+    display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-width:0;
 
-/* Estado alineado a la derecha, en su propia columna */
-.supl-hora-card__cover {
-    display:flex; align-items:center; justify-content:flex-end; gap:10px;
-    text-align:right; flex-wrap:wrap; min-width:0;
+    span { display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    i    { width:13px; text-align:center; flex-shrink:0; opacity:.7; }
 }
+
+/* Estado alineado a la derecha, en su propia columna. En columna y no en fila: la
+   píldora de estado y "Elegir suplente" son dos niveles de lectura distintos, y al
+   envolverse dejaban un borde derecho irregular según el ancho del panel. */
+.supl-hora-card__cover {
+    display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:6px;
+    text-align:right; min-width:0;
+}
+/* Nombre + su acción en la misma línea dentro de la columna de estado */
+.supl-hora-card__linea { display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0; }
 .supl-hora-card__suplente {
     font-size:13.5px; font-weight:600; color:#334155;
     min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -745,8 +931,21 @@
 .supl-cover-card__meta { font-size:12.5px; color:#64748b; }
 .supl-cover-card__notas { margin-top:6px; font-size:12px; color:#8a5a1f; background:#fffaf0; border:1px solid #ffe4bd; border-radius:9px; padding:6px 10px; line-height:1.5; i { color:#e0a800; margin-right:6px; } }
 
-/* ══════════ Dashboard (superadmin) ══════════ */
-.sd-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+/* ══════════ Dashboard (admin y dirección) ══════════ */
+/* Aviso de alcance por nivel. Va arriba del todo y a ancho completo porque
+   recalifica TODAS las cifras de la pantalla: un tablero filtrado que no lo dice se
+   lee como el dato del colegio entero. */
+.sd-alcance {
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:16px; padding:11px 16px;
+    background:#eaf2fb; border:1px solid #cfe0f5; border-radius:12px;
+    font-size:13px; color:#1f5a94;
+    i { font-size:15px; }
+}
+/* auto-fit y no repeat(4): el KPI de "dejaron trabajo" hace cinco, y con cuatro fijas
+   el quinto se iba solo a una segunda fila ocupando todo el ancho. */
+.sd-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-bottom:20px; }
+.sd-kpi__lbl small { color:#94a3b8; font-weight:600; }
 .sd-kpi { display:flex; align-items:center; gap:14px; background:#fff; border:1px solid #eef2f7; border-radius:16px; padding:18px 20px; }
 .sd-kpi__ico { width:46px; height:46px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
 .sd-kpi__val { font-size:26px; font-weight:800; color:#0B1F3D; line-height:1; }
@@ -804,7 +1003,7 @@
 @media (max-width:1000px){ .sd-kpis { grid-template-columns:repeat(2,1fr); } .sd-grid { grid-template-columns:1fr; } }
 
 /* Cuerpo del panel de "Mis coberturas" */
-.supl-cover-body { padding:12px 20px 20px; }
+.supl-cover-body { padding:16px 22px 22px; }
 
 /* Estado vacío centrado: antes el Alex quedaba pegado al borde izquierdo */
 .supl-cover-empty {
@@ -814,4 +1013,62 @@
     img    { width:132px; height:auto; margin-bottom:14px; }
     strong { font-size:17px; font-weight:800; color:#0B1F3D; }
     p      { max-width:420px; font-size:13.5px; color:#64748b; line-height:1.6; margin-top:4px; }
+}
+
+/* ══════════ "Mis suplencias" (la vista de quien da clase) ══════════
+   Tres cifras arriba porque la pregunta que trae aquí a un profesor es de balance
+   ("¿cuánto he cubierto?, ¿me falta confirmar algo?"), no de búsqueda. */
+body[data-page="blog-suplencias-mis-coberturas"] {
+    .msu-stats {
+        display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:22px;
+        @media (max-width:760px) { grid-template-columns:1fr; }
+    }
+
+    /* .admin-panel no trae margen y .admin-content no es flex con gap, así que los
+       tres paneles apilados de esta vista se tocaban. */
+    .admin-panel + .admin-panel { margin-top:22px; }
+    .msu-stat {
+        display:flex; flex-direction:column; gap:2px;
+        padding:16px 20px;
+        background:#fff; border:1px solid #eef2f7; border-left:4px solid #4267ac; border-radius:14px;
+
+        &__n { font-size:27px; font-weight:800; color:#0B1F3D; line-height:1.1; }
+        &__l { font-size:12.5px; font-weight:600; color:#64748b; }
+
+        /* Solo lo que reclama acción se colorea: si todo destaca, no destaca nada */
+        &--warn { border-left-color:#f5b400; background:#fffdf5;
+            .msu-stat__n { color:#a16207; }
+        }
+    }
+
+    /* Confirmar desde la fila del histórico, para las coberturas ya vencidas que
+       siguen sin confirmar y por tanto ya no caben en el bloque de arriba. */
+    .msu-inline-form { display:inline; }
+    .msu-mini-btn {
+        display:inline-flex; align-items:center; gap:5px;
+        margin-left:8px; padding:4px 10px;
+        border:1.5px solid #34a853; border-radius:999px;
+        background:#34a853; color:#fff;
+        font-family:'Outfit',sans-serif; font-size:11.5px; font-weight:700; line-height:1;
+        cursor:pointer; transition:background .15s ease;
+
+        &:hover { background:#2c8f46; }
+        i { font-size:10px; }
+    }
+}
+
+/* Coberturas incumplidas en el tablero. Rojo contenido: es un dato de seguimiento,
+   no una alarma permanente. */
+body[data-page="blog-suplencias-dashboard"] {
+    .sd-badge {
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: .7rem;
+        font-weight: 800;
+
+        &--alerta { background: rgba(229, 16, 34, .1); color: #b3101f; }
+    }
+    .sd-rank__val--alerta { color: #b3101f; font-weight: 800; }
 }

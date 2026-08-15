@@ -118,6 +118,12 @@
     min-height: 170px;
     align-content: center;
 }
+/* ⚠️ `display: grid` GANA al atributo `hidden` (que solo vale `display:none` de la
+   hoja del navegador). Sin esto, los paneles de meses y años seguían ocupando sus
+   170px cada uno mientras se veían los días: el popover salía 340px más alto de la
+   cuenta, con dos franjas en blanco debajo del calendario. El JS sí los oculta
+   (admin-datepicker.js: `panels.meses.hidden = modo !== 'meses'`). */
+.bilbao-date__panel[hidden] { display: none; }
 .bilbao-date__opt {
     padding: 9px 4px;
     border: 1.5px solid transparent;

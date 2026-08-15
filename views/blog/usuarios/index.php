@@ -27,10 +27,12 @@ function rolLabel(string $rol): string {
 // Reparto en tres tablas. Un usuario con varios tipos aparece en todas las que le
 // correspondan (p. ej. profesor + administrativo sale en dos), así que no son
 // grupos excluyentes: se filtra la misma lista tres veces.
-// Orden de presentación fijo (administrativo · profesor · prefecto), el mismo del
-// formulario. No basta con el orden del CSV: los registros guardados antes del
-// cambio conservan el orden anterior y solo se reescriben al volver a guardarlos.
-$ORDEN_TIPOS = ['administrativo', 'profesor', 'prefecto'];
+// Orden de presentación fijo (administrativo · profesor · prefecto · directivo), el
+// mismo de UsuarioBlog::normalizarTipoPersonal(). No basta con el orden del CSV: los
+// registros guardados antes del cambio conservan el anterior y solo se reescriben al
+// volver a guardarlos. `directivo` faltaba aquí, así que un directivo se quedaba sin
+// etiqueta de tipo y fuera de los tres grupos de la lista.
+$ORDEN_TIPOS = ['administrativo', 'profesor', 'prefecto', 'directivo'];
 $tiposDe = function ($u) use ($ORDEN_TIPOS) {
     $lista = array_filter(array_map('trim', explode(',', (string)($u->tipo_personal ?? ''))));
     return array_values(array_intersect($ORDEN_TIPOS, $lista));
@@ -55,11 +57,11 @@ $grupos = [
     ],
     [
         'clave'  => 'administrativos',
-        'titulo' => 'Administrativos y prefectura',
+        'titulo' => 'Administrativos, prefectura y dirección',
         'sub'    => 'Coordinan y registran; no cubren suplencias.',
         'icon'   => 'fa-user-tie',
         'lista'  => array_values(array_filter($usuarios ?? [],
-            fn($u) => (bool)array_intersect(['administrativo', 'prefecto'], $tiposDe($u)))),
+            fn($u) => (bool)array_intersect(['administrativo', 'prefecto', 'directivo'], $tiposDe($u)))),
     ],
 ];
 ?>
@@ -86,6 +88,10 @@ $grupos = [
         </header>
 
         <main class="admin-content">
+
+            <?php /* Dirección revisa pero no edita: el guard real es requireEscritura(). */
+            if (blog_modulos_solo_lectura()) { $soloLecturaQue = 'el directorio de colaboradores'; include __DIR__ . '/../_solo-lectura.php'; } ?>
+
 
             <?php /* Los toasts de created / edited / deleted se renderizan al final de la página */ ?>
 
@@ -162,7 +168,9 @@ $grupos = [
                                     rolLabel($u->rol),
                                     implode(' ', $tipos),
                                     str_replace(',', ' ', (string)($u->modulos ?? '')),
+                                    str_replace(',', ' ', (string)($u->niveles ?? '')),
                                 ])), 'UTF-8');
+                                $niveles = array_filter(array_map('trim', explode(',', (string)($u->niveles ?? ''))));
                             ?>
                             <tr data-pager-item data-usr-row data-buscar="<?= s($buscable) ?>"<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
                                 <td data-val="<?= s($u->nombre) ?>">
@@ -184,8 +192,13 @@ $grupos = [
                                 <td data-val="<?= s(implode(',', $tipos)) ?>">
                                     <?php if ($tipos): ?>
                                         <?php foreach ($tipos as $t): ?>
-                                        <span class="usr-tipo usr-tipo--<?= s($t) ?>"><?= s(ucfirst($t)) ?></span>
+                                        <span class="usr-tipo usr-tipo--<?= s($t) ?>"><?= s(\Model\UsuarioBlog::TIPO_LABEL[$t] ?? ucfirst($t)) ?></span>
                                         <?php endforeach; ?>
+                                        <?php /* Los niveles cuelgan del tipo en vez de ocupar columna propia:
+                                                  solo los tiene el profesorado y la tabla ya va con seis. */ ?>
+                                        <?php if ($niveles): ?>
+                                        <span class="usr-niveles" title="Niveles que imparte"><?= s(implode(' · ', $niveles)) ?></span>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span class="usr-nil">—</span>
                                     <?php endif; ?>
@@ -199,6 +212,12 @@ $grupos = [
                                         <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-act admin-act--edit" title="Editar usuario">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
+                                        <?php /* Solo el profesorado tiene horario que editar */ ?>
+                                        <?php if (in_array('profesor', $tipos, true)): ?>
+                                        <a href="/dashboard/usuarios/horario?id=<?= (int)$u->id ?>" class="admin-act admin-act--horario-edit" title="Editar horario">
+                                            <i class="fa-regular fa-calendar-plus"></i>
+                                        </a>
+                                        <?php endif; ?>
                                         <button
                                             type="button"
                                             class="admin-act admin-act--del"

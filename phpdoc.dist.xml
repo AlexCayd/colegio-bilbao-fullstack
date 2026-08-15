@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Configuración de phpDocumentor 3.
+
+  Genera la documentación de la API PHP a partir de los bloques PHPDoc del código.
+  El estándar de escritura está en docs/02-estandares-codigo.md.
+
+  Uso:
+      php phpDocumentor.phar
+      docker run --rm -v "$PWD:/data" phpdoc/phpdoc:3
+
+  phpDocumentor NO está en composer.json a propósito: es herramienta de desarrollo,
+  no dependencia de la aplicación. La salida (docs/api/) es un artefacto generado y
+  está fuera del control de versiones.
+-->
+<phpdocumentor
+    configVersion="3"
+    xmlns="https://www.phpdoc.org"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://www.phpdoc.org/xsd/phpdoc.xsd">
+
+    <title>Colegio Bilbao — API interna</title>
+
+    <paths>
+        <output>docs/api</output>
+        <cache>.phpdoc-cache</cache>
+    </paths>
+
+    <version number="1.0.0">
+        <api format="php">
+            <source dsn=".">
+                <path>controllers</path>
+                <path>models</path>
+                <path>classes</path>
+                <path>includes</path>
+                <path>Router.php</path>
+            </source>
+
+            <!-- Nada de esto es código propio documentable -->
+            <ignore hidden="true" symlinks="true">
+                <path>vendor/**/*</path>
+                <path>node_modules/**/*</path>
+                <path>public/**/*</path>
+                <path>views/**/*</path>
+                <path>src/**/*</path>
+                <path>database/**/*</path>
+                <path>docs/api/**/*</path>
+                <!-- Utilitarios que se eliminan antes de producción -->
+                <path>diagnostico.php</path>
+                <path>informacion.php</path>
+            </ignore>
+
+            <!-- El proyecto usa @package para agrupar por capa -->
+            <extensions>
+                <extension>php</extension>
+            </extensions>
+
+            <visibility>public</visibility>
+            <visibility>protected</visibility>
+            <visibility>private</visibility>
+
+            <default-package-name>ColegioBilbao</default-package-name>
+            <include-source>true</include-source>
+        </api>
+    </version>
+
+</phpdocumentor>

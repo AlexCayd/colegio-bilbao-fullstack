@@ -4,9 +4,11 @@
 @forward 'admin-datepicker';
 @forward 'admin-eventos';
 @forward 'admin-home';
+@forward 'admin-horario-editor';
 @forward 'admin-horarios';
 @forward 'admin-notificaciones';
 @forward 'admin-personal';
+@forward 'admin-readonly';
 @forward 'admin-suplencias';
 @forward 'admin-toast';
 @forward 'blog-articulos-crear';
@@ -23,6 +25,10 @@
 @forward 'blog-noticias-index';
 @forward 'blog-perfil';
 @forward 'blog-revisiones-index';
+@forward 'blog-soporte';
+@forward 'blog-swaps';
+@forward 'blog-suplencias-historial';
+@forward 'blog-suplencias-justificantes';
 @forward 'blog-revisiones-mis-revisiones';
 @forward 'blog-testimoniales-index';
 @forward 'blog-usuarios-editar';

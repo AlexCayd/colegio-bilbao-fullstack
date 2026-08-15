@@ -9,18 +9,53 @@
 
     /* Modal de "Aprobar y eliminar justificante". El borrado es irreversible y el
        archivo es un parte médico, así que se confirma y se ofrece la descarga
-       dentro del propio modal. */
+       dentro del propio modal.
+
+       El botón rojo nace `disabled` en el HTML y solo lo suelta la casilla: el
+       estado por defecto es seguro aunque este módulo no llegue a ejecutarse. */
     (function () {
         var modal = document.getElementById('justifModal');
         if (!modal) return;
-        var abrir = document.querySelector('[data-justif-abrir]');
-        if (abrir) abrir.addEventListener('click', function () { modal.hidden = false; });
+
+        var abrir  = document.querySelector('[data-justif-abrir]');
+        var ack    = modal.querySelector('[data-justif-ack]');
+        var ok     = modal.querySelector('[data-justif-ok]');
+        var dl     = modal.querySelector('[data-justif-dl]');
+        var card   = modal.querySelector('.supl-modal__card');
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function sincronizar() { if (ok && ack) ok.disabled = !ack.checked; }
+
+        function cerrar() {
+            modal.hidden = true;
+            // Se reinicia al cerrar: reabrirlo con la casilla ya marcada de la vez
+            // anterior anularía la confirmación que justifica su existencia.
+            if (ack) { ack.checked = false; sincronizar(); }
+        }
+
+        function mostrar() {
+            modal.hidden = false;
+            sincronizar();
+            if (card && window.gsap && !reduce) {
+                window.gsap.fromTo(card,
+                    { opacity: 0, y: 14, scale: .97 },
+                    { opacity: 1, y: 0, scale: 1, duration: .26, ease: 'power2.out', clearProps: 'transform' });
+            }
+            if (ack) ack.focus();
+        }
+
+        if (abrir) abrir.addEventListener('click', mostrar);
+        if (ack)   ack.addEventListener('change', sincronizar);
+        // Descargar es la vía normal de llegar al borrado: da por cumplido el aviso
+        if (dl && ack) dl.addEventListener('click', function () { ack.checked = true; sincronizar(); });
+
         modal.addEventListener('click', function (e) {
-            if (e.target === modal || e.target.closest('[data-justif-cancel]')) modal.hidden = true;
+            if (e.target === modal || e.target.closest('[data-justif-cancel]')) cerrar();
         });
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !modal.hidden) modal.hidden = true;
+            if (e.key === 'Escape' && !modal.hidden) cerrar();
         });
+        sincronizar();
     })();
 
     var fecha        = main.dataset.fecha;
@@ -55,14 +90,29 @@
 
     /* ── Una fila de candidato + su hueco de preview (acordeón) ── */
     function filaHtml(u, ok) {
+        /* Los avisos no bloquean: son salvedades para que prefectura decida con ellas a
+           la vista. Hoy solo queda "no imparte ese nivel" — el del receso propio se
+           retiró del modelo por saltar en casi todos los candidatos (con jornada por
+           nivel, el receso de uno es hora de clase de otro). Pueden concurrir. */
+        var avisos = u.avisos || [];
+        var ICONO  = { nivel: 'fa-layer-group' };
+        var ETIQ   = { nivel: 'Otro nivel' };
         var chips = '<span class="supl-cand__chip">' + u.horas_libres + ' h libres</span>' +
                     '<span class="supl-cand__chip">' + u.coberturas + ' cob.</span>' +
-                    (u.es_administrativo ? '<span class="supl-cand__chip supl-cand__chip--warn">Administrativo</span>' : '');
+                    avisos.map(function (a) {
+                        return '<span class="supl-cand__chip supl-cand__chip--warn" title="' + esc(a.texto) + '">' +
+                               '<i class="fa-solid ' + (ICONO[a.tipo] || 'fa-circle-exclamation') + '"></i> ' +
+                               esc(ETIQ[a.tipo] || 'Aviso') + '</span>';
+                    }).join('');
 
-        var fila = '<button type="button" class="supl-cand' + (ok ? ' supl-cand--ok' : ' supl-cand--off') + '"' +
+        var textoAvisos = avisos.map(function (a) { return a.texto; }).join(' · ');
+
+        var fila = '<button type="button" class="supl-cand' + (ok ? ' supl-cand--ok' : ' supl-cand--off') +
+                       (ok && avisos.length ? ' supl-cand--aviso' : '') + '"' +
                        ' data-cand="' + u.id + '" data-nombre="' + esc(u.nombre) + '"' +
                        ' data-avatar="' + esc(u.avatar || '') + '" data-ok="' + (ok ? '1' : '0') + '"' +
                        ' data-motivo="' + esc(u.motivo || '') + '"' +
+                       ' data-aviso="' + esc(textoAvisos) + '"' +
                        (ok ? '' : ' aria-disabled="true"') + '>' +
                    '<span class="supl-person__ava supl-cand__ava">' + avatarHtml(u) + '</span>' +
                    '<span class="supl-cand__body">' +
@@ -155,7 +205,8 @@
         box.hidden = false;
         box.innerHTML = '<p class="supl-week-empty"><i class="fa-solid fa-spinner fa-spin"></i> Cargando el horario de ' + esc(nombre) + '…</p>';
 
-        window.SuplWeek.fetch(id, fecha)
+        // La hora a cubrir viaja al endpoint para que sea corte del eje del candidato
+        window.SuplWeek.fetch(id, fecha, card.dataset.inicio, card.dataset.fin)
             .then(function (data) {
                 var cta = '';
                 if (!ok) {
@@ -165,7 +216,14 @@
                               '<span>No se puede asignar: <strong>' + esc(btn.dataset.motivo || 'no cumple las reglas de suplencia') + '</strong></span>' +
                           '</div>';
                 } else if (puedeAgendar) {
-                    cta = '<div class="supl-confirm">' +
+                    // Elegible pero con salvedad: se dice antes de confirmar, no se oculta.
+                    if (btn.dataset.aviso) {
+                        cta = '<div class="supl-preview__aviso">' +
+                                  '<i class="fa-solid fa-triangle-exclamation"></i> ' +
+                                  '<span>' + esc(btn.dataset.aviso) + '</span>' +
+                              '</div>';
+                    }
+                    cta += '<div class="supl-confirm">' +
                               '<span class="supl-person__ava supl-confirm__ava">' +
                                   (avatar ? '<img src="' + esc(avatar) + '" alt="">' : esc(nombre.charAt(0).toUpperCase())) +
                               '</span>' +
@@ -185,9 +243,13 @@
                     '</div>' +
                     '<div data-preview-week></div>' + cta;
 
+                // Se marca por rango de reloj, no por periodo_id: la hora a cubrir puede
+                // ser de otro nivel que el que imparte el candidato, y entonces el id no
+                // coincide aunque sea exactamente la misma hora del día.
                 window.SuplWeek.render(box.querySelector('[data-preview-week]'), data, {
                     mode: 'preview',
-                    target: card.dataset.periodo
+                    targetIni: card.dataset.inicio,
+                    targetFin: card.dataset.fin
                 });
 
                 var confirmar = box.querySelector('[data-confirmar]');

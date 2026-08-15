@@ -13,7 +13,7 @@
 if (!function_exists('blog_modulos_catalogo')) {
 
     /**
-     * ¿Coordina la operación académica? (admin o prefecto)
+     * ¿Coordina la operación académica? (admin, prefecto o directivo)
      *
      * Fuente canónica de la regla en la capa de vistas; espeja
      * BlogController::puedeCoordinar(). _sidebar.php la reexporta como
@@ -23,8 +23,79 @@ if (!function_exists('blog_modulos_catalogo')) {
         $u = $_SESSION['blog_usuario'] ?? null;
         if (!$u) return false;
         if (($u['rol'] ?? '') === 'administrador') return true;
-        $tipos = array_filter(array_map('trim', explode(',', (string)($u['tipo_personal'] ?? ''))));
-        return in_array('prefecto', $tipos, true);
+        return (bool)array_intersect(\Model\UsuarioBlog::TIPOS_COORDINAN, blog_modulos_tipos());
+    }
+
+    /**
+     * ¿Su acceso a la configuración es de solo lectura? (directivo que no es admin)
+     *
+     * Dirección ve el claustro y los horarios para poder coordinar, pero no los edita.
+     * Las vistas lo usan para ocultar los botones de acción; el guard de verdad está en
+     * BlogController::requireEscritura(), que es quien bloquea el POST.
+     */
+    function blog_modulos_solo_lectura(): bool {
+        $u = $_SESSION['blog_usuario'] ?? null;
+        if (!$u || ($u['rol'] ?? '') === 'administrador') return false;
+        return in_array('directivo', blog_modulos_tipos(), true);
+    }
+
+    /**
+     * ¿Dirige el colegio (admin o directivo)? Es el guard del Tablero de suplencias.
+     *
+     * No se reutiliza blog_modulos_solo_lectura(), que calcula casi lo mismo: se lee
+     * al revés («es de solo lectura, luego ve el tablero») y confundiría a quien lo
+     * mantenga. Espeja el `if` de BlogController::suplenciasDashboard().
+     */
+    function blog_modulos_es_directivo(): bool {
+        $u = $_SESSION['blog_usuario'] ?? null;
+        if (!$u) return false;
+        return ($u['rol'] ?? '') === 'administrador'
+            || in_array('directivo', blog_modulos_tipos(), true);
+    }
+
+    /**
+     * ¿Puede ver el archivo de un justificante? Solo dirección.
+     *
+     * Prefectura coordina la ausencia y ve que el justificante existe o falta, pero no
+     * abre el documento: es un dato de salud. Espeja
+     * BlogController::puedeVerJustificante().
+     */
+    function blog_modulos_ve_justificantes(): bool {
+        return blog_modulos_es_directivo();
+    }
+
+    /**
+     * Niveles a los que se acota lo que ve este usuario. **[] = sin filtro.**
+     *
+     * Espeja BlogController::nivelesAlcance(), incluidos sus tres cortes: admin, no
+     * directivo, y los cinco niveles marcados (= ninguno). El corte «no directivo» es
+     * el que impide leer los `niveles` de un profesor —que significan "imparte"— como
+     * si fueran un alcance de gestión.
+     */
+    function blog_modulos_niveles(): array {
+        $u = $_SESSION['blog_usuario'] ?? null;
+        if (!$u || ($u['rol'] ?? '') === 'administrador') return [];
+        if (!in_array('directivo', blog_modulos_tipos(), true)) return [];
+        $lista = array_filter(array_map('trim', explode(',', (string)($u['niveles'] ?? ''))));
+        $out   = array_values(array_intersect(\Model\Materia::NIVELES, $lista));
+        return count($out) === count(\Model\Materia::NIVELES) ? [] : $out;
+    }
+
+    /** Tipos de personal del usuario en sesión, ya troceados. */
+    function blog_modulos_tipos(): array {
+        $u = $_SESSION['blog_usuario'] ?? null;
+        if (!$u) return [];
+        return array_filter(array_map('trim', explode(',', (string)($u['tipo_personal'] ?? ''))));
+    }
+
+    /**
+     * ¿Da clase? Es lo que decide quién falta a una clase y quién puede cubrirla, y por
+     * tanto quién ve «Solicitar» y su histórico de coberturas. Va por `tipo_personal`
+     * y NO por rol: un admin de sistemas no imparte nada, y un prefecto —que es tipo
+     * excluyente— coordina las ausencias del claustro pero no tiene ausencias propias.
+     */
+    function blog_modulos_imparte(): bool {
+        return in_array('profesor', blog_modulos_tipos(), true);
     }
 
     /**
@@ -47,20 +118,30 @@ if (!function_exists('blog_modulos_catalogo')) {
             'profesores'      => ['nombre' => 'Profesores',      'desc' => 'Directorio del personal docente.',                    'icon' => 'fa-chalkboard-user', 'url' => '/dashboard/profesores'],
             'prefectura'      => ['nombre' => 'Prefectura',      'desc' => 'Directorio de prefectura y coordinación.',            'icon' => 'fa-user-shield',     'url' => '/dashboard/prefectura'],
             'administrativos' => ['nombre' => 'Administrativos', 'desc' => 'Directorio del personal administrativo.',             'icon' => 'fa-user-tie',        'url' => '/dashboard/administrativos'],
+            'directivos'      => ['nombre' => 'Directivos',      'desc' => 'Directorio del equipo directivo.',                    'icon' => 'fa-user-gear',       'url' => '/dashboard/directivos'],
 
+            // Quien no coordina no puede abrir la agenda del claustro: su tarjeta lleva
+            // al histórico propio, igual que la de Horarios lleva a "mi horario".
             'suplencias'      => $coordina
-                ? ['nombre' => 'Suplencias', 'desc' => 'Organiza y consulta las suplencias del personal.',      'icon' => 'fa-user-clock',  'url' => '/dashboard/suplencias']
-                : ['nombre' => 'Suplencias', 'desc' => 'Solicita tus ausencias y confirma tus coberturas.',     'icon' => 'fa-user-clock',  'url' => '/dashboard/suplencias'],
+                ? ['nombre' => 'Suplencias', 'desc' => 'Organiza y consulta las suplencias del personal.',  'icon' => 'fa-user-clock', 'url' => '/dashboard/suplencias']
+                : ['nombre' => 'Suplencias', 'desc' => 'Tus ausencias solicitadas y tus coberturas.',       'icon' => 'fa-user-clock', 'url' => '/dashboard/suplencias/mis-coberturas'],
 
             'horarios'        => $coordina
                 ? ['nombre' => 'Horarios',   'desc' => 'Horarios por profesor, aula y grupo de alumnos.',       'icon' => 'fa-table-cells', 'url' => '/dashboard/horarios']
                 : ['nombre' => 'Mi horario', 'desc' => 'Consulta tu horario semanal de clases.',                'icon' => 'fa-table-cells', 'url' => '/dashboard/horarios/mi-horario'],
+
+            // Intercambio puntual de clases entre profesores. Quien no imparte solo
+            // entra a validar, así que su tarjeta lo dice.
+            'swaps'           => $coordina && !blog_modulos_imparte()
+                ? ['nombre' => 'Intercambios', 'desc' => 'Valida los intercambios de clase del claustro.',       'icon' => 'fa-right-left', 'url' => '/dashboard/swaps']
+                : ['nombre' => 'Intercambios', 'desc' => 'Cambia una clase con otro profesor por excepción.',    'icon' => 'fa-right-left', 'url' => '/dashboard/swaps'],
 
             'eventos'         => ['nombre' => 'Eventos',         'desc' => 'Calendario institucional y avisos para familias.',    'icon' => 'fa-calendar-day',    'url' => '/dashboard/eventos'],
             'aulas'           => ['nombre' => 'Aulas',           'desc' => 'Catálogo de espacios donde se imparte clase.',        'icon' => 'fa-door-open',       'url' => '/dashboard/aulas'],
             'grupos'          => ['nombre' => 'Grupos',          'desc' => 'Catálogo de grupos por nivel académico.',             'icon' => 'fa-layer-group',     'url' => '/dashboard/grupos'],
 
             'redaccion'       => ['nombre' => 'Redacción',       'desc' => 'Blog, noticias y contenido editorial del colegio.',   'icon' => 'fa-pen-nib',         'url' => '/dashboard/redaccion'],
+            'soporte'         => ['nombre' => 'Soporte técnico', 'desc' => '¿Algo no funciona? Escríbenos y te ayudamos.',        'icon' => 'fa-life-ring',       'url' => '/dashboard/soporte'],
         ];
     }
 
@@ -70,9 +151,10 @@ if (!function_exists('blog_modulos_catalogo')) {
      */
     function blog_modulos_categorias(): array {
         return [
-            ['label' => 'Personal y accesos',  'icon' => 'fa-users',          'claves' => ['usuarios', 'profesores', 'prefectura', 'administrativos']],
-            ['label' => 'Operación académica', 'icon' => 'fa-graduation-cap', 'claves' => ['eventos', 'horarios', 'aulas', 'grupos', 'suplencias']],
+            ['label' => 'Personal y accesos',  'icon' => 'fa-users',          'claves' => ['usuarios', 'profesores', 'prefectura', 'administrativos', 'directivos']],
+            ['label' => 'Operación académica', 'icon' => 'fa-graduation-cap', 'claves' => ['eventos', 'horarios', 'aulas', 'grupos', 'suplencias', 'swaps']],
             ['label' => 'Contenido',           'icon' => 'fa-pen-nib',        'claves' => ['redaccion']],
+            ['label' => 'Ayuda',               'icon' => 'fa-life-ring',      'claves' => ['soporte']],
         ];
     }
 
@@ -98,6 +180,7 @@ if (!function_exists('blog_modulos_catalogo')) {
         $u        = $_SESSION['blog_usuario'] ?? null;
         $esAdmin  = ($u['rol'] ?? '') === 'administrador';
         $coordina = blog_modulos_coordina();
+        $imparte  = blog_modulos_imparte();
         // Revisor editorial: mismo criterio que _blog_puede_revisar() en _sidebar.php
         $revisa   = $esAdmin || ($u['rol_redaccion'] ?? '') === 'revisor';
 
@@ -108,12 +191,28 @@ if (!function_exists('blog_modulos_catalogo')) {
                 ['label' => 'Cumpleaños',         'icon' => 'fa-cake-candles', 'url' => '/dashboard/usuarios/cumpleanos'],
             ],
 
+            /* Dos públicos que no se solapan:
+                 · quien COORDINA (admin o prefecto) abre y agenda las ausencias del
+                   claustro desde la Agenda; no falta a clases propias ni cubre las de
+                   nadie, así que ni solicita ni tiene coberturas que confirmar.
+                 · quien IMPARTE solicita sus ausencias y confirma sus coberturas, pero
+                   la agenda del claustro no es suya: expone motivos y justificantes de
+                   terceros, y `suplencias()` la redirige.
+               Un admin que además da clase entra en los dos y ve las cuatro. */
             'suplencias' => [
-                // Un profesor raso solo ve sus propias suplencias: la etiqueta lo dice
-                ['label' => $coordina ? 'Agenda' : 'Mis suplencias', 'icon' => 'fa-user-clock',      'url' => '/dashboard/suplencias'],
-                ['label' => 'Solicitar',                             'icon' => 'fa-hand',            'url' => '/dashboard/suplencias/solicitar'],
-                ['label' => 'Mis coberturas',                        'icon' => 'fa-clipboard-check', 'url' => '/dashboard/suplencias/mis-coberturas'],
-                ['label' => 'Tablero',                               'icon' => 'fa-chart-line',      'url' => '/dashboard/suplencias/dashboard', 'ver' => $esAdmin],
+                ['label' => 'Agenda',        'icon' => 'fa-user-clock',      'url' => '/dashboard/suplencias',                'ver' => $coordina],
+                ['label' => 'Suplencias',    'icon' => 'fa-clipboard-check', 'url' => '/dashboard/suplencias/mis-coberturas', 'ver' => $imparte],
+                ['label' => 'Solicitar',     'icon' => 'fa-hand',            'url' => '/dashboard/suplencias/solicitar',      'ver' => $imparte],
+                // El histórico del claustro, resumido a fecha · quién faltó · quién cubrió.
+                // Lo ve todo el módulo: no lleva motivos ni justificantes, que es lo que
+                // mantiene la Agenda reservada a quien coordina.
+                ['label' => 'Histórico del plantel', 'icon' => 'fa-clock-rotate-left', 'url' => '/dashboard/suplencias/historial'],
+                // Los justificantes que superaron el plazo de descarga esperan aquí una
+                // decisión. Es trabajo de DIRECCIÓN: prefectura coordina la ausencia
+                // pero no abre el parte médico.
+                ['label' => 'Justificantes', 'icon' => 'fa-file-shield',     'url' => '/dashboard/suplencias/justificantes',  'ver' => blog_modulos_ve_justificantes()],
+                // El tablero es de quien dirige, acotado a su nivel si lo tiene.
+                ['label' => 'Tablero',       'icon' => 'fa-chart-line',      'url' => '/dashboard/suplencias/dashboard',      'ver' => blog_modulos_es_directivo()],
             ],
 
             'horarios' => [

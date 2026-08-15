@@ -6,7 +6,41 @@ use Classes\Email;
 use Model\Usuario;
 use MVC\Router;
 
+/**
+ * Autenticación del SITIO PÚBLICO — cuentas de familias y visitantes.
+ *
+ * ⚠️ No confundir con el acceso al panel. La intranet de colaboradores tiene su propio
+ * flujo en BlogController::login()/logout(), con la sesión en $_SESSION['blog_usuario'].
+ * Este controlador maneja $_SESSION['id'|'nombre'|'email'|'admin'], que es otra cosa.
+ *
+ * Rutas: /cuenta/login · /cuenta/logout · /registro · /olvide · /reestablecer ·
+ * /mensaje · /confirmar-cuenta.
+ *
+ * Es el ÚNICO punto de la aplicación que envía correo (classes/Email.php sobre SMTP), así
+ * que las variables EMAIL_* de includes/.env solo afectan aquí.
+ *
+ * ── CÓDIGO HEREDADO ──────────────────────────────────────────────────────────
+ * Viene casi intacto de la plantilla DevWebcamp sobre la que se construyó el proyecto y
+ * apenas se usa: el colegio no ofrece registro público hoy. Antes de darle uso hay que
+ * revisar, como mínimo:
+ *   · Textos visibles que aún dicen "DevWebcamp" (registro() y confirmar()).
+ *   · Llamadas a session_start() aunque includes/app.php ya abrió la sesión.
+ *   · Lecturas de $_GET['token'] sin comprobar que exista.
+ *   · header('Location: …') sin exit() a continuación: el script sigue ejecutándose.
+ *   · classes/Email.php tiene el remitente 'cuentas@devwebcamp.com' escrito a mano.
+ *
+ * @package Controllers
+ */
 class AuthController {
+    /**
+     * Inicio de sesión de una cuenta pública (GET pinta el formulario, POST lo procesa).
+     *
+     * Solo entra si la cuenta está confirmada por correo. En vez de redirigir tras un
+     * acceso correcto, cae al render de la misma vista con la sesión ya abierta.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function login(Router $router) {
 
         $alertas = [];
@@ -50,6 +84,16 @@ class AuthController {
         ]);
     }
 
+    /**
+     * Cierra la sesión pública vaciando $_SESSION por completo.
+     *
+     * ⚠️ Vacía la sesión ENTERA, así que también echa del panel a quien tuviera abierta
+     * la intranet en la misma sesión de navegador.
+     *
+     * Único método del controlador que no recibe el Router: no renderiza nada.
+     *
+     * @return void
+     */
     public static function logout() {
         if($_SERVER['REQUEST_METHOD'] === 'POST') {
             session_start();
@@ -59,6 +103,18 @@ class AuthController {
        
     }
 
+    /**
+     * Alta de una cuenta pública nueva.
+     *
+     * La cuenta nace SIN confirmar: se genera un token, se envía por correo y hasta que
+     * el destinatario abre el enlace de /confirmar-cuenta no puede iniciar sesión.
+     *
+     * ⚠️ El correo se envía ANTES de comprobar que el guardado funcionó, así que un
+     * fallo de escritura deja un mensaje enviado sin cuenta detrás.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function registro(Router $router) {
         $alertas = [];
         $usuario = new Usuario;
@@ -108,6 +164,22 @@ class AuthController {
         ]);
     }
 
+    /**
+     * Paso 1 de la recuperación de contraseña: pedir el correo y enviar las instrucciones.
+     *
+     * Genera un token nuevo, lo guarda y lo manda por correo dentro del enlace de
+     * /reestablecer.
+     *
+     * ⚠️ La respuesta distingue "el usuario no existe" de "se enviaron las instrucciones",
+     * lo que permite averiguar desde fuera qué correos están registrados. Un mensaje único
+     * para ambos casos lo evitaría.
+     *
+     * ⚠️ Esto NO sirve para el panel de colaboradores: allí las contraseñas las
+     * restablece un administrador desde Usuarios.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function olvide(Router $router) {
         $alertas = [];
         
@@ -153,6 +225,19 @@ class AuthController {
         ]);
     }
 
+    /**
+     * Paso 2 de la recuperación: fijar la contraseña nueva a partir del token del enlace.
+     *
+     * Al guardarla, el token se anula para que el enlace no se pueda reutilizar.
+     *
+     * ⚠️ El token no caduca: es válido hasta que se use o hasta que otro «olvidé mi
+     * contraseña» lo sustituya.
+     * ⚠️ Lee $_GET['token'] sin comprobar que exista, y el header() de salida no lleva
+     * exit(): con un token ausente el flujo continúa y $usuario queda nulo.
+     *
+     * @param  Router $router  Espera ?token=… en la URL.
+     * @return void
+     */
     public static function reestablecer(Router $router) {
 
         $token = s($_GET['token']);
@@ -205,6 +290,12 @@ class AuthController {
         ]);
     }
 
+    /**
+     * Pantalla de «revisa tu correo», adonde redirige el registro tras enviar el mensaje.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function mensaje(Router $router) {
 
         $router->render('auth/mensaje', [
@@ -212,6 +303,18 @@ class AuthController {
         ]);
     }
 
+    /**
+     * Destino del enlace de confirmación: activa la cuenta y consume el token.
+     *
+     * Es lo que desbloquea el inicio de sesión, porque login() rechaza toda cuenta con
+     * `confirmado = 0`.
+     *
+     * ⚠️ Mismo problema que reestablecer(): lee $_GET['token'] sin comprobar que exista y
+     * el header() no lleva exit().
+     *
+     * @param  Router $router  Espera ?token=… en la URL.
+     * @return void
+     */
     public static function confirmar(Router $router) {
         
         $token = s($_GET['token']);

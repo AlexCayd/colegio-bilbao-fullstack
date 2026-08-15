@@ -334,6 +334,14 @@
     text-decoration: none;
     margin-bottom: 2px;
 
+    /* ⚠️ Esta clase la comparten un <a> (módulo sin subopciones: los tres directorios
+       de personal) y un <button> (módulo con acordeón). Un <button> NO hereda el
+       line-height del documento —usa `normal`—, así que los enlaces directos salían
+       ~8px más altos y el sidebar se veía con botones de dos tamaños. Fijar
+       line-height y min-height iguala ambos pase lo que pase con la tipografía. */
+    line-height: 1.25;
+    min-height: 42px;
+
     i {
         font-size: 0.9rem;
         width: 18px;
@@ -388,6 +396,9 @@
     font-family: 'Outfit', sans-serif;
     text-align: left;
     cursor: pointer;
+    /* El margen inferior lo pone ya .admin-nav__mod; heredar además el de
+       .admin-nav__link dejaba 4px bajo los módulos y 2px bajo los enlaces directos. */
+    margin-bottom: 0;
 }
 
 .admin-nav__caret {
@@ -1002,7 +1013,13 @@ html.no-transition * {
     gap: 12px;
 }
 
+/* Flex y no texto corrido: el único separador entre el icono y el título era el
+   espacio literal del HTML, que en Outfit 800 casi desaparece y los pegaba. */
 .admin-panel__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
     font-size: 1rem;
     font-weight: 800;
     color: var(--col-herencia);
@@ -1306,6 +1323,18 @@ tbody tr.is-filtered { display: none; }
         &:hover { background: #e2571a; box-shadow: 0 10px 20px -10px rgba(252, 103, 34, 1); }
     }
 
+    /* EDITAR horario (módulo Usuarios, solo admin). Comparte familia cromática con
+       --horario porque van juntos en la misma fila, pero es otra acción —una lleva a
+       la vista de lectura y otra al editor—, así que no pueden compartir clase ni
+       glifo: mismo naranja en tono profundo + calendario con "+". */
+    &--horario-edit {
+        background: #b8420f;
+        color: #fff;
+        box-shadow: 0 6px 14px -8px rgba(184, 66, 15, .95);
+
+        &:hover { background: #96350c; box-shadow: 0 10px 20px -10px rgba(184, 66, 15, 1); }
+    }
+
     /* Acción neutra que convive con las anteriores */
     &--ghost {
         background: #F1F5F9;
@@ -1556,7 +1585,11 @@ tbody tr.is-filtered { display: none; }
     font-weight: 700;
     cursor: pointer;
     text-decoration: none;
-    border: none;
+    /* Transparente, NO `none`: un botón sólido y uno ghost puestos uno al lado del otro
+       se diferenciaban en 3px de alto (los 1.5px de borde que solo tenía el ghost). Se
+       veía en cada modal de confirmación —"Cancelar" contra "Aprobar y eliminar"— y en
+       la cabecera de la bandeja de notificaciones. */
+    border: 1.5px solid transparent;
     transition: all var(--transition-fast);
 
     &--primary {
@@ -1629,7 +1662,11 @@ tbody tr.is-filtered { display: none; }
 
     // Variante compacta para barras de herramientas y cabeceras de panel
     &--sm {
-        padding: 7px 14px;
+        /* Altura por `min-height` y no por padding: es lo que permite que un botón de
+           esta talla case con cualquier otro control pequeño del panel (.nt-btn) sin
+           depender de la métrica de la fuente. */
+        min-height: 36px;
+        padding: 0 15px;
         font-size: .8rem;
         gap: 6px;
     }
@@ -2696,7 +2733,9 @@ tbody tr.is-filtered { display: none; }
     color: var(--col-bilbao);
     font-size: .72rem;
     font-weight: 800;
-    margin-left: 8px;
+    /* El `gap` de .admin-panel__title ya lo separa; con el margen sumaba 18px y
+       quedaba descolgado del texto. */
+    margin-left: 0;
 }
 
 /* =====================================================
@@ -3116,89 +3155,9 @@ tbody tr.is-filtered { display: none; }
     font-style: italic;
 }
 
-// ── Página de notificaciones ───────────────────────────────────────────────
-.notif-list {
-    display: flex;
-    flex-direction: column;
-}
-
-.notif-row {
-    display: grid;
-    grid-template-columns: 38px 1fr auto;
-    gap: 14px;
-    align-items: center;
-    padding: 14px 20px;
-    border-bottom: 1px solid #f1f5f9;
-    transition: background .15s;
-
-    &:last-child { border-bottom: none; }
-    &:hover      { background: #fafbfc; }
-}
-
-.notif-row--unread {
-    background: #eff6ff;
-    border-left: 3px solid #4267ac;
-
-    &:hover { background: #dbeafe; }
-}
-
-.notif-row__icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .9rem;
-    flex-shrink: 0;
-}
-
-.notif-row__icon--aprobado {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.notif-row__icon--rechazado {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-.notif-row__body { min-width: 0; }
-
-.notif-row__msg {
-    font-size: .88rem;
-    font-weight: 600;
-    color: #0f172a;
-    line-height: 1.4;
-    margin-bottom: 3px;
-}
-
-.notif-row__meta {
-    font-size: .75rem;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.notif-mark-read {
-    background: none;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: .75rem;
-    font-weight: 600;
-    color: #64748b;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background .15s, color .15s;
-    font-family: 'Outfit', sans-serif;
-
-    &:hover {
-        background: #f1f5f9;
-        color: #0f172a;
-    }
-}
+/* El bloque .notif-* (la lista de notificaciones antigua) se eliminó: la bandeja
+   se reescribió con el sistema .nt-* de src/scss/admin/_admin-notificaciones.scss y
+   ninguna vista usaba ya estas clases. */
 
 // ── Alex notification modal ───────────────────────────────────────────────
 .alex-modal {
@@ -3296,16 +3255,253 @@ tbody tr.is-filtered { display: none; }
 }
 
 /* =========================================================
-   MÓDULOS · checkboxes de permisos (crear/editar usuario)
+   PERFIL Y PERMISOS (crear/editar usuario)
+
+   Dos bloques con nombres homónimos —el módulo «Profesores» (un directorio que se
+   consulta) y el tipo «Profesor» (lo que alguien ES)— compartían la misma tarjeta y
+   eran indistinguibles. Ahora cada pregunta tiene su propio lenguaje visual:
+
+     .admin-tipo-card  identidad → tarjeta alta, icono relleno del color del tipo
+     .admin-mod-chip   permiso   → chip bajo, casilla cuadrada a la vista
+
+   Los dos van precedidos de su .admin-form-step numerado.
 ========================================================= */
+
+/* ── Encabezado de paso ── */
+.admin-form-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    margin-bottom: 18px;
+
+    &--sep {
+        margin-top: 34px;
+        padding-top: 26px;
+        border-top: 1px dashed #e2e8f0;
+    }
+
+    &__n {
+        width: 30px; height: 30px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg, #2e4b8a, #4267ac);
+        box-shadow: 0 5px 14px -6px rgba(66, 103, 172, .7);
+    }
+
+    &__txt {
+        min-width: 0;
+        padding-top: 1px;
+
+        strong { display: block; font-size: 0.98rem; font-weight: 800; color: #0B1F3D; }
+        small  { display: block; margin-top: 3px; font-size: 0.82rem; color: var(--text-gray, #64748B); line-height: 1.55; }
+    }
+}
+
+/* Ayuda que va ANTES del campo (explica la regla antes de elegir), no después */
+.admin-form__hint--pre {
+    display: block;
+    margin: -6px 0 14px;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+/* Campo que depende de otro (niveles, que solo aplica a Profesor) */
+.admin-subcampo {
+    margin-top: 22px;
+    padding-left: 16px;
+    border-left: 3px solid #e8eef7;
+
+    &[hidden] { display: none; }
+}
+
+/* ── Tipo de personal: tarjetas de identidad ── */
+.admin-tipo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
+    gap: 12px;
+}
+.admin-tipo-card {
+    display: flex;
+    cursor: pointer;
+
+    input { position: absolute; opacity: 0; pointer-events: none; }
+
+    &__box {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        flex: 1;
+        padding: 18px 16px 16px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 16px;
+        background: #fff;
+        transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    &:hover &__box { border-color: var(--c, #c7d6ea); transform: translateY(-2px); }
+
+    &__icon {
+        width: 44px; height: 44px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        font-size: 17px;
+        margin-bottom: 12px;
+        /* El icono nace ya teñido del color del tipo: es lo que hace que la tarjeta
+           se lea como una identidad y no como una casilla más. */
+        color: #fff;
+        background: var(--c, #4267ac);
+        box-shadow: 0 8px 18px -9px color-mix(in srgb, var(--c, #4267ac) 85%, transparent);
+    }
+    &__name { font-size: 15px; font-weight: 800; color: #0B1F3D; margin-bottom: 4px; }
+    &__desc { font-size: 12px; color: #64748B; line-height: 1.5; }
+    &__tag {
+        margin-top: 10px;
+        font-size: 9.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--c, #4267ac);
+        background: color-mix(in srgb, var(--c, #4267ac) 12%, #fff);
+        border-radius: 999px;
+        padding: 3px 9px;
+    }
+
+    /* Marcada: el color del tipo toma el borde y el fondo */
+    input:checked + &__box {
+        border-color: var(--c, #4267ac);
+        background: color-mix(in srgb, var(--c, #4267ac) 7%, #fff);
+        box-shadow: 0 10px 26px -14px color-mix(in srgb, var(--c, #4267ac) 90%, transparent);
+    }
+    /* Marca de verificación en la esquina, para que "elegido" no dependa solo del color */
+    input:checked + &__box::after {
+        content: '\f00c';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        position: absolute;
+        top: 12px; right: 12px;
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 9px;
+        color: #fff;
+        background: var(--c, #4267ac);
+    }
+    input:focus-visible + &__box { outline: 2px solid var(--c, #4267ac); outline-offset: 2px; }
+
+    /* Bloqueada por exclusividad (prefecto/directivo no se combinan). Lo aplica
+       admin-usuario-permisos.js. */
+    &.is-disabled {
+        cursor: not-allowed;
+
+        .admin-tipo-card__box { opacity: .42; background: #F8FAFC; transform: none; }
+        &:hover .admin-tipo-card__box { border-color: #E2E8F0; transform: none; }
+    }
+}
+
+/* ── Módulos: chips de permiso ──
+   Deliberadamente bajos y con casilla cuadrada visible: a un chip no se le puede
+   confundir con una tarjeta de identidad ni de lejos. */
+.admin-mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+    gap: 8px;
+}
+.admin-mod-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1.5px solid #e8edf4;
+    border-radius: 10px;
+    background: #fbfcfe;
+    cursor: pointer;
+    transition: border-color .16s ease, background .16s ease;
+
+    input { position: absolute; opacity: 0; pointer-events: none; }
+
+    &:hover { border-color: #c7d6ea; background: #fff; }
+
+    &__box {
+        width: 18px; height: 18px;
+        flex-shrink: 0;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 5px;
+        background: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 9px;
+        color: #fff;
+        transition: background .16s ease, border-color .16s ease;
+
+        i { opacity: 0; transition: opacity .12s ease; }
+    }
+    &__icon {
+        width: 22px;
+        flex-shrink: 0;
+        text-align: center;
+        font-size: 13px;
+        color: #94A3B8;
+        transition: color .16s ease;
+    }
+    &__text { display: flex; flex-direction: column; min-width: 0; }
+    &__name { font-size: 13px; font-weight: 700; color: #1E293B; line-height: 1.3; }
+    /* Una línea con ellipsis: el texto completo va en el `title` del chip, así la
+       descripción no reintroduce la altura de tarjeta que queremos evitar. */
+    &__desc {
+        font-size: 11.5px;
+        color: #94A3B8;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    input:checked ~ &__icon { color: #4267ac; }
+    input:checked + &__box {
+        background: #4267ac;
+        border-color: #4267ac;
+
+        i { opacity: 1; }
+    }
+    &:has(input:checked) { border-color: #a8c2e6; background: #f5f9ff; }
+    input:focus-visible + &__box { outline: 2px solid #4267ac; outline-offset: 2px; }
+}
+
 .admin-modulos {
     border-top: 1px dashed #e2e8f0;
     padding-top: 20px;
 }
-.admin-modulos__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
+/* Aviso de «se marcaron los módulos recomendados». Va en verde y no en azul de aviso:
+   no es una advertencia, es la confirmación de una ayuda que acaba de ocurrir.
+   ⚠️ `display:flex` obliga a su propio `&[hidden]`: la regla de base/_normalize.scss
+   tiene la misma especificidad y va en una capa anterior, así que perdería. */
+.admin-sugerido {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 9px 14px;
+    border-radius: 10px;
+    background: #eefaf1;
+    border: 1px solid #c7e9d3;
+    font-size: 0.8rem;
+    color: #15803d;
+
+    &[hidden] { display: none; }
+
+    &::before {
+        content: '\f058';                     /* fa-circle-check */
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        font-size: 0.9rem;
+    }
 }
 /* Los 10 módulos se agrupan por las mismas 3 categorías del home y del sidebar:
    en una sola rejilla plana eran una lista indistinguible. */
@@ -3325,89 +3521,9 @@ tbody tr.is-filtered { display: none; }
 
     i { color: var(--col-herencia, #4285f4); }
 }
-.admin-modulo-check {
-    /* flex (no block) para que la caja estire a la altura de la fila del grid:
-       si no, cada tarjeta mide según su descripción y quedan desalineadas. */
-    display: flex;
-    cursor: pointer;
-
-    input { position: absolute; opacity: 0; pointer-events: none; }
-}
-.admin-modulo-check__box {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    padding: 14px 16px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 14px;
-    background: #fff;
-    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
-}
-.admin-modulo-check:hover .admin-modulo-check__box { border-color: #c7d6ea; }
-
-/* Casilla no disponible por una regla de exclusividad (p. ej. `prefecto` no se
-   combina con `profesor`). La aplica admin-usuario-permisos.js. */
-.admin-modulo-check.is-disabled {
-    cursor: not-allowed;
-
-    .admin-modulo-check__box { opacity: .42; background: #F8FAFC; }
-    &:hover .admin-modulo-check__box { border-color: #E2E8F0; }
-}
-.admin-modulo-check__icon {
-    width: 40px; height: 40px;
-    border-radius: 11px;
-    display: grid;
-    place-items: center;
-    font-size: 15px;
-    color: #4267ac;
-    background: #eef3fb;
-    flex-shrink: 0;
-    transition: background .18s ease, color .18s ease;
-}
-.admin-modulo-check__text  { display: flex; flex-direction: column; min-width: 0; }
-.admin-modulo-check__name  { font-size: 13.5px; font-weight: 700; color: #1E293B; }
-.admin-modulo-check__desc  { font-size: 11.5px; color: #94A3B8; line-height: 1.4; }
-.admin-modulo-check__tick {
-    margin-left: auto;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    border: 2px solid #e2e8f0;
-    display: grid;
-    place-items: center;
-    font-size: 10px;
-    color: #fff;
-    flex-shrink: 0;
-    transition: background .18s ease, border-color .18s ease, transform .18s ease;
-
-    i { opacity: 0; transition: opacity .15s ease; }
-}
-.admin-modulo-check input:checked + .admin-modulo-check__box {
-    border-color: #4267ac;
-    background: #f5f9ff;
-    box-shadow: 0 6px 18px -10px rgba(66, 103, 172, .5);
-}
-.admin-modulo-check input:checked + .admin-modulo-check__box .admin-modulo-check__icon {
-    background: linear-gradient(135deg, #2e4b8a, #4267ac);
-    color: #fff;
-}
-.admin-modulo-check input:checked + .admin-modulo-check__box .admin-modulo-check__tick {
-    background: #4267ac;
-    border-color: #4267ac;
-    transform: scale(1.05);
-
-    i { opacity: 1; }
-}
-.admin-modulo-check input:focus-visible + .admin-modulo-check__box {
-    outline: 2px solid #4267ac;
-    outline-offset: 2px;
-}
-
 /* =========================================================
    SWITCH ROW · interruptor con título y ayuda
    Componente compartido: "No puede suplir", "Mostrar en el calendario público", …
-   Misma familia visual que .admin-modulo-check.
 ========================================================= */
 .admin-switch-row {
     display: flex;
@@ -3472,6 +3588,58 @@ tbody tr.is-filtered { display: none; }
 /* Bloque "No puede suplir" del formulario de usuarios (solo si es Profesor) */
 .admin-suplir-toggle { margin-top: 14px; }
 .admin-suplir-toggle[hidden] { display: none; }
+
+/* Niveles que imparte un profesor. Van como pastillas y no como .admin-tipo-card: son
+   cinco etiquetas de una palabra, y un tarjetón con icono + descripción ocuparía media
+   pantalla para decir "Primaria". El color por nivel es el mismo del formulario de
+   grupos (views/blog/grupos/_form.php). */
+#niveles-group[hidden] { display: none; }
+.admin-niveles-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+.admin-nivel-check {
+    cursor: pointer;
+
+    input { position: absolute; opacity: 0; pointer-events: none; }
+}
+.admin-nivel-check__box {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 15px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748B;
+    transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+.admin-nivel-check__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c, #94a3b8);
+    opacity: .35;
+    transition: opacity .18s ease, transform .18s ease;
+}
+.admin-nivel-check:hover .admin-nivel-check__box { border-color: #c7d6ea; }
+.admin-nivel-check input:checked + .admin-nivel-check__box {
+    border-color: var(--c, #4267ac);
+    background: color-mix(in srgb, var(--c, #4267ac) 10%, #fff);
+    color: #1E293B;
+    font-weight: 700;
+}
+.admin-nivel-check input:checked + .admin-nivel-check__box .admin-nivel-check__dot {
+    opacity: 1;
+    transform: scale(1.15);
+}
+.admin-nivel-check input:focus-visible + .admin-nivel-check__box {
+    outline: 2px solid var(--c, #4267ac);
+    outline-offset: 2px;
+}
 
 /* =========================================================
    FILE · zona de subida de archivos (justificantes, adjuntos)
@@ -3556,6 +3724,10 @@ tbody tr.is-filtered { display: none; }
     font-size: 0.9rem;
     font-weight: 600;
     transition: background var(--transition-fast), color var(--transition-fast);
+    /* Mismas medidas que .admin-nav__link: "Inicio" es un item más de la lista y
+       tenía que medir lo mismo que los módulos de abajo. */
+    line-height: 1.25;
+    min-height: 42px;
 
     i:first-child { width: 18px; text-align: center; font-size: 0.9rem; flex-shrink: 0; }
 
@@ -3603,30 +3775,31 @@ tbody tr.is-filtered { display: none; }
 /* Campana de notificaciones — vive junto al avatar en todas las vistas del panel
    (views/blog/_topbar-avatar.php), no dentro de un módulo concreto.
 
-   Ámbar de la paleta en su estado base, con tinta oscura: el blanco sobre este
-   amarillo no pasa AA (mismo criterio que .admin-act--edit). Antes era un
-   círculo blanco neutro y solo se teñía con pendientes. */
+   Icono blanco sobre el AZUL institucional. Estuvo en ámbar con tinta oscura,
+   porque el blanco sobre ese amarillo no llega a AA (≈2,1:1); el azul resuelve el
+   contraste sin renunciar al icono claro, y de paso la campana deja de competir con
+   el ámbar de .admin-act--edit. El badge rojo sigue siendo la señal de pendientes. */
 .admin-topbar__bell {
     position: relative;
     width: var(--tb-btn);
     height: var(--tb-btn);
     border-radius: 50%;
     border: none;
-    background: var(--pal-ambar);
-    color: var(--pal-tinta);
+    background: var(--pal-indigo, #4267ac);
+    color: #fff;
     display: grid;
     place-items: center;
     text-decoration: none;
     font-size: 1rem;
-    box-shadow: 0 6px 16px -8px rgba(245, 180, 0, .9);
+    box-shadow: 0 6px 16px -8px rgba(66, 103, 172, .9);
     transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
 
     &:hover {
-        background: #ffc21f;
+        background: #4f79c4;
         transform: translateY(-2px);
-        box-shadow: 0 10px 22px -8px rgba(245, 180, 0, 1);
+        box-shadow: 0 10px 22px -8px rgba(66, 103, 172, 1);
     }
-    &:focus-visible { outline: 2px solid var(--pal-ambar); outline-offset: 3px; }
+    &:focus-visible { outline: 2px solid var(--pal-indigo, #4267ac); outline-offset: 3px; }
 
     // Con pendientes, la diferencia la marcan el badge rojo y el movimiento:
     // el color ya no está disponible como señal.

@@ -1,2 +1,41 @@
+# Dependencias
 node_modules/
 vendor
+
+# ⚠️ Secretos — NUNCA deben versionarse
+# includes/.env e includes/.env_deploy estuvieron trackeados: además de estas reglas
+# hay que sacarlos del índice y ROTAR las credenciales, porque siguen en el historial.
+# Procedimiento en docs/05-despliegue.md § Secretos versionados.
+includes/.env
+includes/.env_deploy
+includes/.env.*
+!includes/.env.example
+
+# Documentación generada por phpDocumentor (artefacto, se regenera)
+docs/api/
+.phpdoc-cache/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Horarios originales del colegio (PDFs con datos del claustro)
+horarios_grupos/
+
+# Subidas de usuarios: las genera la aplicación en tiempo de ejecución
+public/build/assets/blog/
+public/build/assets/noticias/
+public/build/assets/usuarios/
+# Carpeta heredada de los justificantes. Ya no se escribe en ella —el shim de
+# index.php la deniega con 404— pero puede quedar contenido antiguo en disco.
+public/build/assets/suplencias/
+
+# Justificantes: partes médicos, fuera de public/ para que no los sirva el shim.
+# La carpeta se conserva en git con su propio .gitignore; el contenido nunca.
+storage/justificantes/*
+!storage/justificantes/.gitkeep
+
+# Caché de fuentes de Dompdf (.ufm/.json). La genera sola al primer PDF a partir de
+# los TTF de src/fonts/, que esos sí se versionan.
+storage/fuentes-pdf/*
+!storage/fuentes-pdf/.gitkeep

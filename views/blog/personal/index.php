@@ -3,14 +3,17 @@
 /** @var \Model\UsuarioBlog[] $usuarios  @var string $tipo  @var string $slug  @var string $titulo */
 $avatarColors = ['#4D8ABB', '#374C69', '#38A169', '#E67E22', '#9B59B6', '#319795'];
 
-$iconos = ['profesores' => 'fa-chalkboard-user', 'prefectura' => 'fa-user-shield', 'administrativos' => 'fa-user-tie'];
+$iconos = ['profesores' => 'fa-chalkboard-user', 'prefectura' => 'fa-user-shield',
+           'administrativos' => 'fa-user-tie', 'directivos' => 'fa-user-gear'];
 $icono  = $iconos[$slug] ?? 'fa-users';
 
 $rolSesion = $_SESSION['blog_usuario']['rol'] ?? '';
 $puedeEditar = $rolSesion === 'administrador';
 
 function tipoChips(?string $tipos): string {
-    $labels = ['profesor' => 'Profesor', 'prefecto' => 'Prefecto', 'administrativo' => 'Administrativo'];
+    // Los rótulos salen de la constante del modelo: la copia local que había aquí se
+    // quedó sin `directivo` y ese tipo salía como un `ucfirst()` de casualidad.
+    $labels = \Model\UsuarioBlog::TIPO_LABEL;
     $out = [];
     foreach (array_filter(array_map('trim', explode(',', (string)$tipos))) as $t) {
         $out[] = '<span class="admin-badge">' . htmlspecialchars($labels[$t] ?? ucfirst($t)) . '</span>';
@@ -19,6 +22,18 @@ function tipoChips(?string $tipos): string {
 }
 function esDocente(?string $tipos): bool {
     return in_array('profesor', array_filter(array_map('trim', explode(',', (string)$tipos))), true);
+}
+/** Niveles que imparte, con el color de cada nivel. Vacío = se deducen de sus clases. */
+function nivelChips(?string $niveles): string {
+    $color = ['Maternal' => '#fc6722', 'Kinder' => '#f5b400', 'Primaria' => '#8ac926',
+              'Secundaria' => '#46bdc6', 'Bachillerato' => '#4267ac'];
+    $out = [];
+    foreach (array_filter(array_map('trim', explode(',', (string)$niveles))) as $n) {
+        $out[] = '<span class="per-nivel" style="--c:' . ($color[$n] ?? '#94a3b8') . ';">'
+               . htmlspecialchars($n) . '</span>';
+    }
+    return $out ? implode(' ', $out)
+                : '<span class="per-nivel per-nivel--auto" title="Sin declarar: se deducen de sus clases">Automático</span>';
 }
 
 // Solo los profesores cubren suplencias: en Prefectura y Administrativos la
@@ -112,6 +127,7 @@ foreach (($usuarios ?? []) as $u) {
                                 <th class="per-col-mail" data-sort="text">Email</th>
                                 <th class="per-col-tipo" data-sort="text">Tipo de personal</th>
                                 <?php if ($esDirectorioDocente): ?>
+                                <th class="per-col-niv" data-sort="text">Niveles</th>
                                 <th class="per-col-supl" data-sort="text">Puede suplir</th>
                                 <?php endif; ?>
                                 <th class="per-col-act">Acciones</th>
@@ -125,7 +141,7 @@ foreach (($usuarios ?? []) as $u) {
                                 $suple   = (int)($u->puede_suplir ?? 1) === 1;
                             ?>
                             <tr data-per-row data-pager-item<?= $i >= 12 ? ' class="is-hidden"' : '' ?>
-                                data-nombre="<?= s(mb_strtolower($u->nombre . ' ' . $u->email)) ?>">
+                                data-nombre="<?= s(mb_strtolower($u->nombre . ' ' . $u->email . ' ' . (string)$u->niveles)) ?>">
                                 <td data-val="<?= s($u->nombre) ?>">
                                     <div class="per-user">
                                         <div class="admin-topbar__avatar per-user__ava" style="background:<?= s($color) ?>;">
@@ -139,6 +155,7 @@ foreach (($usuarios ?? []) as $u) {
                                 <td class="per-mail"><?= s($u->email) ?></td>
                                 <td data-val="<?= s((string)$u->tipo_personal) ?>"><?= tipoChips($u->tipo_personal) ?></td>
                                 <?php if ($esDirectorioDocente): ?>
+                                <td data-val="<?= s((string)$u->niveles) ?>"><?= nivelChips($u->niveles) ?></td>
                                 <td data-val="<?= $suple ? 'Sí' : 'No' ?>">
                                     <?php if ($suple): ?>
                                         <span class="admin-badge admin-badge--published">Sí</span>
@@ -154,6 +171,11 @@ foreach (($usuarios ?? []) as $u) {
                                         <?php endif; ?>
                                         <?php if (esDocente($u->tipo_personal)): ?>
                                         <a href="/dashboard/horarios/profesor?id=<?= (int)$u->id ?>" class="admin-act admin-act--horario" title="Ver horario"><i class="fa-regular fa-calendar"></i></a>
+                                        <?php /* Editar es otra acción, no la misma: la de arriba abre el
+                                                 módulo Horarios (solo lectura), ésta el editor. */ ?>
+                                        <?php if ($puedeEditar): ?>
+                                        <a href="/dashboard/usuarios/horario?id=<?= (int)$u->id ?>" class="admin-act admin-act--horario-edit" title="Editar horario"><i class="fa-regular fa-calendar-plus"></i></a>
+                                        <?php endif; ?>
                                         <?php endif; ?>
                                         <?php if (!$puedeEditar && !esDocente($u->tipo_personal)): ?>
                                         <span class="per-nil">Solo lectura</span>

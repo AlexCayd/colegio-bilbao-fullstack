@@ -27,8 +27,9 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
     <div class="admin-main">
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <?php /* Para un profesor la lista solo trae las suyas: llamarla "Agenda"
-                         (de todo el claustro) sería engañoso. */ ?>
+                <?php /* Siempre "Agenda de suplencias": esta pantalla es de quien coordina.
+                         Un profesor la tenía filtrada a lo suyo y con el rótulo "Mis
+                         suplencias"; eso vive ahora en su propia vista. */ ?>
                 <span class="admin-topbar__title"><?= s($titulo) ?></span>
             </div>
             <?php /* Sin botones de acción: abrir y solicitar se hacen desde el calendario,
@@ -96,14 +97,13 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
                         <p class="supl-cal-side__conteo" data-cal-conteo></p>
 
                         <div class="supl-cal-side__acts">
-                            <?php if ($puedeAgendar): ?>
                             <a class="admin-btn admin-btn--primary" data-cal-crear href="/dashboard/suplencias/crear">
                                 <i class="fa-solid fa-plus"></i> Abrir suplencia
                             </a>
-                            <?php endif; ?>
-                            <a class="admin-btn admin-btn--ghost" data-cal-solicitar href="/dashboard/suplencias/solicitar">
-                                <i class="fa-solid fa-hand"></i> Solicitar
-                            </a>
+                            <?php /* "Solicitar" era para el profesor que veía aquí sus propias
+                                     ausencias. Esta pantalla ya es solo de quien coordina, y un
+                                     prefecto —tipo excluyente— no da clase: no tiene ausencias
+                                     que solicitar. Vive ahora en "Mis suplencias". */ ?>
                         </div>
 
                         <button type="button" class="supl-cal-side__reset" data-cal-reset hidden>

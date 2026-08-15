@@ -149,25 +149,27 @@ $fechaPartes = function ($creado) use ($hoy, $NT_MESES, $NT_MESES_LG, $NT_DIAS):
                         <span class="nt-row__tramo"><?= s($NT_TRAMOS[$tramo]) ?></span>
                         <?php endif; ?>
 
-                        <span class="nt-row__icon nt-row__icon--<?= s($notif->modulo ?? 'general') ?>">
+                        <?php /* El módulo lo dice el icono: color y forma propios por módulo.
+                                 El chip de texto que había debajo lo repetía en mayúsculas y era
+                                 el elemento más ruidoso de una fila que ya tenía ocho. */ ?>
+                        <span class="nt-row__icon nt-row__icon--<?= s($notif->modulo ?? 'general') ?>"
+                              title="<?= s($mod['label']) ?>" aria-label="<?= s($mod['label']) ?>">
                             <i class="fa-solid <?= $mod['icon'] ?>"></i>
                         </span>
 
                         <div class="nt-row__body">
                             <p class="nt-row__msg"><?= s($notif->mensaje) ?></p>
 
+                            <?php /* La fecha larga salía además escrita al lado de la tira, y el
+                                     propio mensaje suele llevarla: se queda en el aria-label. */ ?>
                             <?php if ($diaIdx): ?>
-                            <div class="nt-dias" role="img" aria-label="Día de la clase: <?= s(fecha_larga($notif->ref_fecha)) ?>">
+                            <div class="nt-dias" role="img" title="<?= s(fecha_larga($notif->ref_fecha)) ?>"
+                                 aria-label="Día de la clase: <?= s(fecha_larga($notif->ref_fecha)) ?>">
                                 <?php foreach ($DIAS_TIRA as $k => $d): ?>
                                 <span class="nt-dias__d<?= ($k + 1) === $diaIdx ? ' is-on' : '' ?>"><?= $d ?></span>
                                 <?php endforeach; ?>
-                                <span class="nt-dias__txt"><?= s(fecha_larga($notif->ref_fecha)) ?></span>
                             </div>
                             <?php endif; ?>
-
-                            <p class="nt-row__meta">
-                                <span class="nt-row__mod nt-row__mod--<?= s($notif->modulo ?? 'general') ?>"><?= s($mod['label']) ?></span>
-                            </p>
                         </div>
 
                         <?php /* La marca temporal en columna propia: el chip relativo es lo que
@@ -198,7 +200,7 @@ $fechaPartes = function ($creado) use ($hoy, $NT_MESES, $NT_MESES_LG, $NT_DIAS):
                                     data-enlace="<?= s((string)($notif->enlace ?? '')) ?>"
                                     data-referencia-id="<?= (int)($notif->referencia_id ?? 0) ?>"
                                     data-referencia-tipo="<?= s((string)($notif->referencia_tipo ?? '')) ?>">
-                                <i class="fa-solid fa-check"></i> Marcar como completada
+                                <i class="fa-solid fa-check"></i> Completada
                             </button>
                         </div>
                     </li>

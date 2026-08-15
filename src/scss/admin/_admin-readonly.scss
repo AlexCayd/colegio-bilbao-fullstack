@@ -1,0 +1,43 @@
+/* =========================================================
+   PANEL · AVISO DE SOLO LECTURA
+   Lo pinta views/blog/_solo-lectura.php en las pantallas de configuración
+   (usuarios, horarios, aulas, grupos) cuando quien mira es directivo.
+
+   Va SIN scope de página a propósito: sale en cuatro vistas con `data-page`
+   distinto, igual que el resto de componentes compartidos del panel.
+========================================================= */
+.admin-readonly {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 18px;
+    padding: 13px 17px;
+    border-radius: 14px;
+    /* Azul informativo, no ámbar: no es una advertencia ni algo que el usuario
+       deba corregir, es la descripción de su propio alcance. */
+    background: rgba(66, 133, 244, .07);
+    border: 1px solid rgba(66, 133, 244, .22);
+
+    &__ico {
+        flex-shrink: 0;
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        background: #4285f4;
+        color: #fff;
+        font-size: .85rem;
+        box-shadow: 0 6px 14px -8px #4285f4;
+    }
+
+    &__txt {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+
+        strong { font-size: .88rem; font-weight: 800; color: #0B1F3D; }
+        span   { font-size: .78rem; color: #5b708c; line-height: 1.4; }
+    }
+}

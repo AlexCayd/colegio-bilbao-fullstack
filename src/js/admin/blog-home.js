@@ -3,6 +3,28 @@
    Migrado desde el <script> embebido de views/blog/home.php */
 (function () {
     if (!document.body || document.body.dataset.page !== 'blog-home') return;
+
+    /* ── Bosque del hero ──
+       El mismo componente que el login. Devuelve null sin WebGL o con
+       prefers-reduced-motion; el degradado del contenedor queda entonces a la vista,
+       así que aquí no hay nada que deshacer. Three.js lo inyecta BlogController::home()
+       en $extra_head y puede llegar después que este bundle (va con defer), de ahí el
+       sondeo corto en vez de un init directo. */
+    (function () {
+        const canvas = document.getElementById('mhForest');
+        if (!canvas) return;
+        let intentos = 0;
+        (function esperar() {
+            if (window.THREE && window.BilbaoForest) {
+                // Paleta CLARA, la misma del landing: el panel es una interfaz de día y
+                // el bosque nocturno del login pesaba demasiado como fondo permanente.
+                window.BilbaoForest.init(canvas, { scroll: false, dark: false });
+                return;
+            }
+            if (++intentos < 100) setTimeout(esperar, 80);
+        })();
+    })();
+
     (function () {
         // ── Calendario ──
         const root = document.getElementById('mhCal');
@@ -47,6 +69,10 @@
                             dots.appendChild(i);
                         });
                         cell.appendChild(dots);
+                        // Al pulsar el día se abre el detalle. Antes las celdas eran
+                        // botones sin acción: se veían los puntos pero no se podía
+                        // saber qué había ese día sin ir a Eventos.
+                        cell.addEventListener('click', () => abrirDia(y, m, d, hits));
                     } else { cell.disabled = true; cell.classList.add('is-plain'); }
                     grid.appendChild(cell);
                 }
@@ -55,6 +81,84 @@
             root.querySelector('[data-cal-prev]').addEventListener('click', () => { view.setMonth(view.getMonth() - 1); render(); });
             root.querySelector('[data-cal-next]').addEventListener('click', () => { view.setMonth(view.getMonth() + 1); render(); });
             render();
+
+            // ── Modal de detalle del día ──
+            // `mostrarDia` se asigna solo si el modal existe; `abrirDia` (que es lo que
+            // llaman las celdas) queda como no-op si no está, para que un clic nunca
+            // reviente aunque la vista se renderice sin el modal.
+            let mostrarDia = null;
+            const modal = document.getElementById('mhDiaModal');
+            if (modal) {
+                const elTitulo = modal.querySelector('[data-dia-titulo]');
+                const elLista  = modal.querySelector('[data-dia-lista]');
+                let ultimoFoco = null;
+
+                const DIAS_L = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+                const TIPO_L = {
+                    cumple:'Cumpleaños', festivo:'Festivo', evento:'Evento',
+                    junta:'Junta', entrega:'Entrega', suspension:'Suspensión'
+                };
+
+                mostrarDia = function (y, m, d, hits) {
+                    ultimoFoco = document.activeElement;
+                    const f = new Date(y, m, d);
+                    elTitulo.textContent = DIAS_L[f.getDay()] + ', ' + d + ' de ' + MESES[m].toLowerCase() + ' de ' + y;
+
+                    elLista.innerHTML = '';
+                    hits.forEach(e => {
+                        const tipo = e.tipo || 'evento';
+                        const li = document.createElement('li');
+                        li.className = 'mh-dia__item mh-dia__item--' + tipo;
+
+                        const ico = document.createElement('span');
+                        ico.className = 'mh-dia__ico';
+                        ico.innerHTML = '<i class="fa-solid ' +
+                            (tipo === 'cumple' ? 'fa-cake-candles' : 'fa-calendar-day') + '"></i>';
+
+                        const txt = document.createElement('div');
+                        txt.className = 'mh-dia__txt';
+                        const nom = document.createElement('span');
+                        nom.className = 'mh-dia__nom';
+                        nom.textContent = e.nombre || '';
+                        const et = document.createElement('span');
+                        et.className = 'mh-dia__tipo';
+                        et.textContent = TIPO_L[tipo] || tipo;
+                        txt.appendChild(nom); txt.appendChild(et);
+                        if (e.desc) {
+                            const de = document.createElement('span');
+                            de.className = 'mh-dia__desc';
+                            de.textContent = e.desc;
+                            txt.appendChild(de);
+                        }
+                        li.appendChild(ico); li.appendChild(txt);
+                        elLista.appendChild(li);
+                    });
+
+                    modal.classList.add('is-open');
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.body.style.overflow = 'hidden';
+                    const cerrar = modal.querySelector('[data-dia-cerrar]');
+                    if (cerrar) cerrar.focus();
+                };
+
+                function cerrarDia() {
+                    modal.classList.remove('is-open');
+                    modal.setAttribute('aria-hidden', 'true');
+                    document.body.style.overflow = '';
+                    if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
+                }
+
+                modal.addEventListener('click', (ev) => {
+                    if (ev.target === modal || ev.target.closest('[data-dia-cerrar]')) cerrarDia();
+                });
+                document.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Escape' && modal.classList.contains('is-open')) cerrarDia();
+                });
+            }
+
+            function abrirDia(y, m, d, hits) {
+                if (mostrarDia) mostrarDia(y, m, d, hits);
+            }
         }
 
         /* ── Cuántos cumpleaños caben en la columna ──

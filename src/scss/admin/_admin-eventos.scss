@@ -38,8 +38,27 @@ body[data-page="blog-eventos-index"] {
         background: color-mix(in srgb, var(--c, #94a3b8) 13%, #fff);
         color: var(--c, #64748b);
     }
-    .ev-badge--publico { --c: #34a853; }
-    .ev-badge--interno { --c: #94a3b8; }
+    /* Audiencia del evento. El color dice hasta dónde llega: gris no sale del panel,
+       verde llega a las familias, azul al alumnado. */
+    .ev-badge--interno     { --c: #94a3b8; }
+    .ev-badge--familias    { --c: #34a853; }
+    .ev-badge--estudiantes { --c: #4285f4; }
+
+    /* Niveles a los que se dirige */
+    .ev-niv-tag {
+        display: inline-block;
+        margin: 1px 3px 1px 0;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: .68rem;
+        font-weight: 700;
+        white-space: nowrap;
+
+        &--todos { background: #fff; color: #94a3b8; font-weight: 600; font-style: italic; }
+    }
 
     /* Los botones son los compartidos .admin-act--edit/--del (_blog-admin.scss);
        aquí solo queda la disposición de la celda. */
@@ -85,8 +104,84 @@ body[data-page="blog-eventos-index"] {
     .ev-btn-danger { background: #dc2626; color: #fff; }
 }
 
-/* Formularios de evento: el switch de visibilidad va compacto y alineado */
+/* Formularios de evento */
 body[data-page="blog-eventos-crear"],
 body[data-page="blog-eventos-editar"] {
     .admin-switch-row { margin-top: 4px; }
+
+    /* ── Audiencia ──
+       Tres tarjetas-radio en vez de un interruptor: la decisión ya no es binaria y
+       cada opción necesita explicar dónde acaba publicándose el evento. */
+    .ev-aud {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 6px;
+
+        input { position: absolute; opacity: 0; width: 0; height: 0; }
+    }
+    .ev-aud__opt {
+        --c: #94a3b8;
+        cursor: pointer;
+
+        &--familias    { --c: #34a853; }
+        &--estudiantes { --c: #4285f4; }
+    }
+    .ev-aud__box {
+        display: flex; flex-direction: column; gap: 4px;
+        height: 100%;
+        padding: 14px 15px;
+        border-radius: 14px;
+        border: 1.5px solid #e2e8f0;
+        background: #fff;
+        transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+    .ev-aud__ico {
+        width: 32px; height: 32px; border-radius: 10px;
+        display: grid; place-items: center;
+        background: color-mix(in srgb, var(--c) 12%, #fff);
+        color: var(--c);
+        font-size: .85rem;
+    }
+    .ev-aud__nom  { font-weight: 800; font-size: .92rem; color: #0B1F3D; }
+    .ev-aud__desc { font-size: .74rem; color: #64748B; line-height: 1.35; }
+
+    .ev-aud__opt:hover .ev-aud__box { border-color: color-mix(in srgb, var(--c) 45%, #fff); }
+    .ev-aud input:focus-visible + .ev-aud__box { outline: 2px solid var(--c); outline-offset: 2px; }
+    .ev-aud input:checked + .ev-aud__box {
+        border-color: var(--c);
+        background: color-mix(in srgb, var(--c) 6%, #fff);
+        box-shadow: 0 10px 22px -16px var(--c);
+        transform: translateY(-1px);
+    }
+    .ev-aud input:checked + .ev-aud__box .ev-aud__ico { background: var(--c); color: #fff; }
+
+    /* ── Niveles ── chips de selección múltiple */
+    .ev-niv {
+        display: flex; flex-wrap: wrap; gap: 8px;
+        margin-top: 6px;
+
+        input { position: absolute; opacity: 0; width: 0; height: 0; }
+    }
+    .ev-niv__chip {
+        cursor: pointer;
+
+        span {
+            display: inline-block;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            color: #475569;
+            font-size: .8rem; font-weight: 700;
+            transition: all .15s ease;
+        }
+        &:hover span { border-color: #cbd5e1; }
+        input:checked + span {
+            background: var(--pal-azul, #4267ac);
+            border-color: var(--pal-azul, #4267ac);
+            color: #fff;
+        }
+        input:focus-visible + span { outline: 2px solid var(--pal-azul, #4267ac); outline-offset: 2px; }
+    }
 }

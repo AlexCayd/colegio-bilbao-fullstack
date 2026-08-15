@@ -1,0 +1,250 @@
+// ── Horario semanal en PDF ───────────────────────────────────────────────────
+//
+// Se compila a public/build/css/horario-pdf.css y el controlador lo inyecta en la
+// plantilla con file_get_contents(): Dompdf no resuelve URLs del sitio, así que una
+// hoja enlazada no le llegaría. El CSS sigue viviendo en src/ como todo lo demás.
+//
+// ⚠️ Sin guion bajo en el nombre del archivo, o dart-sass lo trata como partial y no
+// lo emite.
+//
+// ⚠️ Dompdf NO soporta flexbox, grid, custom properties ni position:absolute dentro de
+// tabla. Todo esto es CSS 2.1 a propósito. Los colores de materia van inline desde PHP
+// (colorMateria()), que es la misma fuente que la rejilla web.
+//
+// Las `@font-face` de Outfit NO están aquí: las arma BlogController::cssFuentePdf() y
+// las antepone, porque necesitan rutas absolutas del disco que un archivo compilado no
+// puede conocer.
+
+// Paleta institucional, la misma de _variables.scss. Aquí en literales porque Dompdf
+// no implementa custom properties.
+$azul:      #1f5a94;
+$azul-alt:  #2f7cb8;
+$tinta:     #12233d;
+$gris:      #6b7f99;
+$linea:     #d8e2ee;
+$fondo-sec: #f2f6fb;
+
+@page {
+    size: A4 landscape;
+    margin: 10mm;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;   // la misma del panel
+    font-size: 8pt;
+    color: $tinta;
+}
+
+// ── Encabezado ───────────────────────────────────────────────────────────────
+// Tabla y no flex: es el único layout de tres columnas que Dompdf reparte bien.
+.hp-head {
+    display: table;
+    width: 100%;
+    border-bottom: 1.6pt solid $azul;
+    padding-bottom: 3.5mm;
+    margin-bottom: 4mm;
+
+    &__logo {
+        display: table-cell;
+        width: 40mm;
+        vertical-align: middle;
+    }
+
+    // Respaldo cuando falta GD y Dompdf no puede incrustar el PNG.
+    &__marca {
+        display: table-cell;
+        width: 40mm;
+        vertical-align: middle;
+        font-size: 14pt;
+        font-weight: 800;
+        line-height: 1.05;
+        color: $azul;
+    }
+
+    &__txt {
+        display: table-cell;
+        vertical-align: middle;
+        padding-left: 7mm;
+    }
+
+    // Versalitas espaciadas: el mismo patrón tipográfico que el eyebrow del hero
+    // del panel y del landing.
+    &__eyebrow {
+        display: block;
+        font-size: 6.5pt;
+        font-weight: 600;
+        letter-spacing: 1.6pt;
+        text-transform: uppercase;
+        color: $gris;
+    }
+
+    &__name {
+        margin: 1.2mm 0 0;
+        font-size: 17pt;
+        font-weight: 800;
+        letter-spacing: -.2pt;
+        color: $azul;
+    }
+
+    &__niv {
+        display: block;
+        margin-top: 1mm;
+        font-size: 8pt;
+        font-weight: 600;
+        color: #45607f;
+    }
+
+    &__stat {
+        display: table-cell;
+        width: 32mm;
+        text-align: right;
+        vertical-align: middle;
+    }
+
+    &__stat-n {
+        display: block;
+        font-size: 19pt;
+        font-weight: 800;
+        letter-spacing: -.4pt;
+        color: $azul;
+    }
+
+    &__stat-l {
+        display: block;
+        margin-top: .6mm;
+        font-size: 7pt;
+        font-weight: 600;
+        color: $gris;
+    }
+}
+
+// ── Rejilla ──────────────────────────────────────────────────────────────────
+// `border-collapse: collapse` y no `separate`: Dompdf reparte mal el border-spacing
+// cuando hay rowspan y las columnas se descuadran.
+//
+// TODAS las filas miden lo mismo (el alto lo calcula la plantilla en PHP). En pantalla
+// van en proporción a su duración, pero en papel eso dejaba la fila con clase estirada
+// y la vacía aplastada, que se lee como un fallo de maquetación.
+.hp-grid {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+
+    th, td {
+        border: .5pt solid $linea;
+        padding: 0;
+        overflow: hidden;   // el contenido no estira la fila
+    }
+
+    thead th {
+        background: $azul;
+        color: #fff;
+        font-size: 8.5pt;
+        font-weight: 700;
+        padding: 2mm 0;
+        text-align: center;
+        border-color: $azul;
+    }
+
+    // Primera columna fija; las cinco de día se reparten lo que queda a partes
+    // iguales, igual que en la web.
+    &__corner { width: 24mm; }
+
+    &__hour {
+        width: 24mm;
+        background: $fondo-sec;
+        text-align: center;
+        padding: 0 1.5mm;
+
+        // Un tramo que ningún día usa: franja separadora, no una hora real.
+        &.is-hueco { background: #fafbfd; }
+    }
+
+    &__hour-l {
+        display: block;
+        font-size: 7.5pt;
+        font-weight: 700;
+        color: #2c4a70;
+        line-height: 1.15;
+    }
+
+    &__hour-t {
+        display: block;
+        font-size: 6.5pt;
+        font-weight: 600;
+        color: $gris;
+        line-height: 1.3;
+    }
+}
+
+// ── Celdas ───────────────────────────────────────────────────────────────────
+.hp-cell {
+    padding: 1.4mm 1.8mm;
+    vertical-align: middle;
+    // Por defecto texto BLANCO: siete de los diez colores de la paleta son oscuros.
+    color: #fff;
+
+    // `colorMateria()['oscuro']` marca los tres colores CLAROS de la paleta (ámbar,
+    // lima y cyan), sobre los que el blanco no llega a AA. Ahí va tinta oscura, la
+    // misma regla que en la rejilla web.
+    &--claro {
+        color: $tinta;
+
+        .hp-cell__sec, .hp-cell__h { color: rgba(18, 35, 61, .78); }
+    }
+
+    &__mat {
+        display: block;
+        font-size: 8.5pt;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    // A diferencia de la pantalla no se recorta con ellipsis, pero sí se limita a lo
+    // que cabe: la retícula regular manda sobre el detalle, y el dato completo está
+    // en el panel.
+    &__sec {
+        display: block;
+        font-size: 6.8pt;
+        font-weight: 400;
+        line-height: 1.3;
+        color: rgba(255, 255, 255, .88);
+    }
+
+    &__h {
+        display: block;
+        margin-top: .5mm;
+        font-size: 6.2pt;
+        font-weight: 600;
+        color: rgba(255, 255, 255, .8);
+    }
+}
+
+// Receso: ámbar suave con tinta legible. #8a5a1f sobre #fff7e6 supera AA; el
+// #a9762a anterior se quedaba corto en impresión.
+.hp-receso {
+    background: #fff7e6;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 7pt;
+    font-weight: 600;
+    color: #8a5a1f;
+}
+
+.hp-free { background: #fcfdfe; }
+
+.hp-vacio {
+    margin: 24mm 0;
+    text-align: center;
+    font-size: 10pt;
+    color: $gris;
+}
+
+.hp-foot {
+    margin-top: 3.5mm;
+    padding-top: 2mm;
+    border-top: .5pt solid #e6ecf4;
+    font-size: 6.5pt;
+    color: #8b9bb0;
+    text-align: right;
+}

@@ -226,6 +226,7 @@
                         $rolActual = $usuario->rol ?? 'usuario';
                         $rolRed    = $usuario->rol_redaccion ?? '';
                         $tiposSel  = array_filter(array_map('trim', explode(',', (string)($usuario->tipo_personal ?? ''))));
+                        $nivelesSel = array_filter(array_map('trim', explode(',', (string)($usuario->niveles ?? ''))));
                         $puedeSupl = (int)($usuario->puede_suplir ?? 1) === 1;
                         include __DIR__ . '/_permisos-fields.php';
                         ?>

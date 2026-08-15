@@ -43,7 +43,8 @@ $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
                             <th data-sort="date">Fecha</th>
                             <th data-sort="text">Evento</th>
                             <th data-sort="text">Tipo</th>
-                            <th data-sort="text">Visibilidad</th>
+                            <th data-sort="text">Audiencia</th>
+                            <th data-sort="text">Niveles</th>
                             <th class="ev-col-act">Acciones</th>
                         </tr></thead>
                         <tbody>
@@ -63,12 +64,20 @@ $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
                                     <?php if ($e->descripcion): ?><div class="admin-table__meta"><?= s($e->descripcion) ?></div><?php endif; ?>
                                 </td>
                                 <td data-val="<?= s($tipoLabel[$e->tipo] ?? $e->tipo) ?>"><span class="ev-badge" style="--c:<?= $col ?>;"><?= s($tipoLabel[$e->tipo] ?? $e->tipo) ?></span></td>
-                                <td data-val="<?= (int)$e->publico === 1 ? 'Familias' : 'Interno' ?>">
-                                    <?php if ((int)$e->publico === 1): ?>
-                                        <span class="ev-badge ev-badge--publico"><i class="fa-solid fa-eye"></i> Familias</span>
-                                    <?php else: ?>
-                                        <span class="ev-badge ev-badge--interno"><i class="fa-solid fa-eye-slash"></i> Interno</span>
-                                    <?php endif; ?>
+                                <?php $aud = $e->audiencia ?: 'interno'; ?>
+                                <td data-val="<?= s(\Model\Evento::AUDIENCIA_LABEL[$aud] ?? $aud) ?>">
+                                    <span class="ev-badge ev-badge--<?= $aud ?>" title="<?= s(\Model\Evento::AUDIENCIA_DESC[$aud] ?? '') ?>">
+                                        <i class="fa-solid <?= \Model\Evento::AUDIENCIA_ICONO[$aud] ?? 'fa-lock' ?>"></i>
+                                        <?= s(\Model\Evento::AUDIENCIA_LABEL[$aud] ?? $aud) ?>
+                                    </span>
+                                </td>
+                                <?php $nivs = $e->nivelesLista(); ?>
+                                <td data-val="<?= s($e->alcance()) ?>">
+                                    <?php if (!$nivs): ?>
+                                        <span class="ev-niv-tag ev-niv-tag--todos">Todo el colegio</span>
+                                    <?php else: foreach ($nivs as $n): ?>
+                                        <span class="ev-niv-tag"><?= s($n) ?></span>
+                                    <?php endforeach; endif; ?>
                                 </td>
                                 <td class="ev-col-act">
                                     <div class="ev-actions">

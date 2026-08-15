@@ -1,0 +1,37 @@
+/* =========================================================
+   PANEL · HISTÓRICO DE SUPLENCIAS DEL PLANTEL
+   /dashboard/suplencias/historial
+=========================================================
+   Tres columnas y nada más. La vista existe para responder "quién cubrió a quién",
+   así que lo único que se estiliza es distinguir de un vistazo los dos papeles: el
+   que faltó y el que cubrió. Todo lo demás lo ponen .admin-panel y .admin-table. */
+body[data-page="blog-suplencias-historial"] {
+
+    /* Los dos papeles por color, no por posición: leer una tabla de dos nombres
+       propios sin más pista que la columna obliga a volver a la cabecera en cada
+       fila. Ámbar = la ausencia, verde = la cobertura, los mismos que usan las
+       tarjetas de hora en /agendar. */
+    .hpl-persona {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+
+        i { width: 15px; text-align: center; flex-shrink: 0; opacity: .85; }
+    }
+    .hpl-persona--falto  { color: #8a5a05; i { color: #e0a800; } }
+    .hpl-persona--cubrio { color: #15803d; i { color: #34a853; } }
+
+    /* Mismo estado vacío que la cola de justificantes */
+    .hpl-vacio {
+        text-align: center;
+        padding: 46px 20px 52px;
+        background: #fff;
+        border: 1px solid #eef2f7;
+        border-radius: 18px;
+
+        &__alex { width: 108px; height: auto; margin-bottom: 14px; }
+        h3 { font-size: 1.05rem; font-weight: 800; color: #0B1F3D; margin: 0 0 5px; }
+        p  { font-size: .86rem; color: #64748B; margin: 0; max-width: 420px; margin-inline: auto; line-height: 1.55; }
+    }
+}

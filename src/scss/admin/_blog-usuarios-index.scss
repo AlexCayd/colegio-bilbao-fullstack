@@ -33,9 +33,22 @@ body[data-page="blog-usuarios-index"] {
         &--profesor       { background: rgba(66, 133, 244, .12); color: #1a4fa0; }
         &--prefecto       { background: rgba(170, 34, 150, .12);  color: #7c1a6d; }
         &--administrativo { background: rgba(245, 180, 0, .16);   color: #7a5c00; }
+        /* Dirección: verde institucional. Coordina como prefectura, pero su alcance
+           sobre la configuración es de solo lectura. */
+        &--directivo      { background: rgba(52, 168, 83, .14);   color: #1c6b34; }
     }
 
     .usr-nil { font-size: .8rem; color: #94A3B8; }
+
+    /* Niveles que imparte, colgando de los chips de tipo. Segunda línea y en tono
+       menor: es un matiz del "Profesor" que tiene encima, no otra categoría. */
+    .usr-niveles {
+        display: block;
+        margin-top: 3px;
+        font-size: .7rem;
+        font-weight: 600;
+        color: #94A3B8;
+    }
 
     /* ── Buscador (filtra las tres tablas a la vez) ── */
     .usr-toolbar {

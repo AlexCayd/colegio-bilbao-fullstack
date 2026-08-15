@@ -1,6 +1,6 @@
 <?php $paginaVista = 'blog-suplencias-crear'; ?>
 <?php
-/** @var \Model\Suplencia $suplencia  @var \Model\Periodo[] $periodos  @var array $grupos  @var array $aulas
+/** @var \Model\Suplencia $suplencia  @var array $grupos  @var array $aulas
  *  @var array $materias  @var array $alertas
  *  Esta vista es solo para quien puede agendar (prefectura/admin): el profesor entra por /solicitar,
  *  que fuerza origen 'anticipada'. Aquí sí se puede registrar una ausencia "sin aviso". */

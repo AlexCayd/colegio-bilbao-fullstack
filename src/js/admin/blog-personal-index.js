@@ -1,5 +1,5 @@
 /* blog-personal-index — filtro en cliente de los directorios de personal
-   (Profesores / Prefectura / Administrativos comparten esta vista). */
+   (Profesores / Prefectura / Administrativos / Directivos comparten esta vista). */
 (function () {
     if (!document.body || document.body.dataset.page !== 'blog-personal-index') return;
 

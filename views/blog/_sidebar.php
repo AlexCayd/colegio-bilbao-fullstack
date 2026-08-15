@@ -51,6 +51,7 @@ elseif (str_starts_with($_cp, '/dashboard/usuarios'))        $_modActivo = 'usua
 elseif (str_starts_with($_cp, '/dashboard/profesores'))      $_modActivo = 'profesores';
 elseif (str_starts_with($_cp, '/dashboard/prefectura'))      $_modActivo = 'prefectura';
 elseif (str_starts_with($_cp, '/dashboard/administrativos')) $_modActivo = 'administrativos';
+elseif (str_starts_with($_cp, '/dashboard/directivos'))      $_modActivo = 'directivos';
 elseif (str_starts_with($_cp, '/dashboard/notificaciones'))  $_modActivo = 'notificaciones';
 elseif ($_cp === '/dashboard')                               $_modActivo = 'home';
 // Redacción se declara por sus rutas, no por descarte. Con un `else` cayendo aquí,
@@ -76,6 +77,9 @@ $_catMods = blog_modulos_catalogo();
 $_misMods = $_esAdmin
     ? \Model\UsuarioBlog::MODULOS_ASIGNABLES
     : array_values(array_filter(array_map('trim', explode(',', (string)($_SESSION['blog_usuario']['modulos'] ?? '')))));
+// Soporte técnico no se asigna: lo tiene todo el mundo (ver
+// BlogController::MODULOS_TRANSVERSALES). Es la vía para pedir ayuda cuando algo falla.
+if (!in_array('soporte', $_misMods, true)) $_misMods[] = 'soporte';
 $_grupos  = blog_modulos_visibles($_misMods);
 
 // Contador de la campana. Se calcula aquí porque el sidebar se incluye ANTES que
@@ -101,6 +105,7 @@ $_modInfo = [
     'profesores'      => ['label' => 'Profesores',     'icon' => 'fa-chalkboard-user'],
     'prefectura'      => ['label' => 'Prefectura',     'icon' => 'fa-user-shield'],
     'administrativos' => ['label' => 'Administrativos','icon' => 'fa-user-tie'],
+    'directivos'      => ['label' => 'Directivos',     'icon' => 'fa-user-gear'],
     // Transversal: no es un módulo asignable, pero sí un destino con su propia miga.
     'notificaciones'  => ['label' => 'Notificaciones', 'icon' => 'fa-bell'],
 ];
@@ -113,16 +118,24 @@ $_segMap = [
     'profesor' => 'Por profesor', 'aula' => 'Por aula', 'grupo' => 'Por grupo',
     'mi-horario' => 'Mi horario', 'importar' => 'Importar CSV',
     'dashboard' => 'Tablero', 'solicitar' => 'Solicitar', 'validar' => 'Validar',
-    'agendar' => 'Agendar', 'mis-coberturas' => 'Mis coberturas',
+    'agendar' => 'Agendar', 'mis-coberturas' => 'Mis suplencias',
+    'historial' => 'Histórico del plantel', 'justificantes' => 'Justificantes',
+    'horario' => 'Horario',
     'profesores' => 'Profesores', 'prefectura' => 'Prefectura', 'administrativos' => 'Administrativos',
+    'directivos' => 'Directivos',
     'aulas' => 'Aulas', 'grupos' => 'Grupos',
     'crear' => 'Nuevo', 'editar' => 'Editar',
 ];
+// La raíz de Suplencias y la de Horarios dependen de quién mira (quien no coordina no
+// puede abrir la agenda del claustro ni los horarios ajenos), así que salen del catálogo
+// en vez de estar escritas a mano: si no, la miga del módulo enlazaba a un redirect.
 $_modUrl = [
-    'redaccion' => '/dashboard/redaccion', 'suplencias' => '/dashboard/suplencias',
-    'horarios' => '/dashboard/horarios', 'eventos' => '/dashboard/eventos', 'usuarios' => '/dashboard/usuarios',
+    'redaccion' => '/dashboard/redaccion',
+    'suplencias' => $_catMods['suplencias']['url'], 'horarios' => $_catMods['horarios']['url'],
+    'eventos' => '/dashboard/eventos', 'usuarios' => '/dashboard/usuarios',
     'aulas' => '/dashboard/aulas', 'grupos' => '/dashboard/grupos',
     'profesores' => '/dashboard/profesores', 'prefectura' => '/dashboard/prefectura', 'administrativos' => '/dashboard/administrativos',
+    'directivos' => '/dashboard/directivos',
     'notificaciones' => '/dashboard/notificaciones',
 ];
 $_path   = trim((string)preg_replace('#^/dashboard#', '', $_cp), '/');

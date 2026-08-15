@@ -1,7 +1,7 @@
 /* =========================================================
    PANEL · DIRECTORIOS DE PERSONAL
-   Profesores / Prefectura / Administrativos comparten
-   views/blog/personal/index.php
+   Profesores / Prefectura / Administrativos / Directivos
+   comparten views/blog/personal/index.php
 ========================================================= */
 body[data-page="blog-personal-index"] {
 
@@ -47,13 +47,39 @@ body[data-page="blog-personal-index"] {
           el espacio, el resto queda al mínimo necesario. ── */
     .per-table-wrap { overflow-x: auto; }
     .per-table {
+        // El directorio docente lleva una columna más (Niveles); el resto no la pinta,
+        // así que los porcentajes se reparten solos con table-layout auto.
         min-width: 780px;
 
-        .per-col-name { width: 32%; }
-        .per-col-mail { width: 30%; }
-        .per-col-tipo { width: 20%; }
+        .per-col-name { width: 28%; }
+        .per-col-mail { width: 24%; }
+        .per-col-tipo { width: 16%; }
+        .per-col-niv  { width: 16%; }
         .per-col-supl { width: 9%;  white-space: nowrap; }
         .per-col-act  { width: 9%;  text-align: right; white-space: nowrap; }
+    }
+
+    /* Niveles que imparte. Pastilla del color del nivel, igual que en el formulario. */
+    .per-nivel {
+        display: inline-block;
+        padding: 3px 9px;
+        margin: 1px 0;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--c, #94a3b8) 14%, #fff);
+        color: color-mix(in srgb, var(--c, #94a3b8) 72%, #1e293b);
+        border: 1px solid color-mix(in srgb, var(--c, #94a3b8) 35%, #fff);
+        font-size: .72rem;
+        font-weight: 700;
+        white-space: nowrap;
+
+        /* Sin declarar: se deducen de sus clases. No es un error, es el valor por defecto. */
+        &--auto {
+            background: transparent;
+            border-style: dashed;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+            font-weight: 600;
+        }
     }
 
     .per-user { display: flex; align-items: center; gap: .75rem; }

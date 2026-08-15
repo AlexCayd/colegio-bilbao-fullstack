@@ -41,6 +41,33 @@ prefectura (`/dashboard/suplencias/crear`, con opción "sin aviso").
 
 ---
 
+## Direcciones
+
+Seis cuentas `directivo`, todas con la contraseña de desarrollo **`EditorBilbao25`** y **los mismos
+módulos**. Lo que las distingue no son los permisos sino el **alcance de los datos**, que sale de
+`usuarios.niveles`: su tablero, su agenda de suplencias, sus intercambios, su cola de justificantes y
+los avisos que reciben se limitan a esos niveles.
+
+> **`niveles` vacío = todo el colegio.** Es la dirección general, y es deliberado. Ojo al crear una
+> dirección nueva: olvidar marcarle los niveles no la deja sin acceso, se lo da entero.
+
+| Id | Email | Alcance |
+|----|-------|---------|
+| 72 | `direccion@bilbao.edu.mx` | **todo el colegio** (sin niveles) |
+| 73 | `direccion.maternal@bilbao.edu.mx` | Maternal |
+| 74 | `direccion.kinder@bilbao.edu.mx` | Kinder |
+| 75 | `direccion.primaria@bilbao.edu.mx` | Primaria |
+| 76 | `direccion.secundaria@bilbao.edu.mx` | Secundaria |
+| 77 | `direccion.bachillerato@bilbao.edu.mx` | Bachillerato |
+
+Módulos de las seis: `suplencias,horarios,usuarios,profesores,prefectura,administrativos,directivos,aulas,grupos,eventos,swaps,soporte`.
+
+> Un `directivo` que no sea admin tiene la **configuración en solo lectura** (`soloLectura()`), pero
+> el tablero de suplencias y los justificantes **sí** son suyos: prefectura coordina las ausencias,
+> dirección revisa el parte médico y mide.
+
+---
+
 ## Claustro docente
 
 Los **43 profesores reales** (ids 20–62), con el patrón `nombre.apellido@bilbao.edu.mx`, comparten

@@ -72,7 +72,6 @@
             const elConteo = document.querySelector('[data-cal-conteo]');
             const btnReset = document.querySelector('[data-cal-reset]');
             const aCrear     = document.querySelector('[data-cal-crear]');
-            const aSolicitar = document.querySelector('[data-cal-solicitar]');
 
             const hoyStr = cal.dataset.hoy || '';
             const hoy    = new Date();
@@ -139,8 +138,7 @@
 
                 // Las acciones llegan con la fecha puesta: el destino ya no obliga a
                 // volver a elegirla en el datepicker.
-                if (aCrear)     aCrear.href     = '/dashboard/suplencias/crear?fecha=' + ymd;
-                if (aSolicitar) aSolicitar.href = '/dashboard/suplencias/solicitar?fecha=' + ymd;
+                if (aCrear) aCrear.href = '/dashboard/suplencias/crear?fecha=' + ymd;
 
                 if (vacio) vacio.hidden = true;
                 if (panel) panel.hidden = false;

@@ -1,0 +1,537 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   Editor del horario de un profesor — /dashboard/usuarios/horario
+
+   Rejilla de UN nivel: una fila por periodo, cinco columnas de día. A diferencia
+   de .hor-grid (módulo Horarios) aquí NO hay rowspan —cada casilla es un
+   (dia, periodo_id)—, así que tampoco hay aritmética de alturas: la fila mide lo
+   mismo siempre y el navegador no tiene nada que cuadrar.
+   ═════════════════════════════════════════════════════════════════════════ */
+body[data-page="blog-usuarios-horario"] {
+
+    /* ── Pestañas de nivel ──
+       Son los cinco niveles siempre, no solo los del profesor: si no, no habría
+       dónde crear su primera clase de un nivel nuevo. */
+    .hed-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .hed-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: var(--radius-pill, 999px);
+        background: #fff;
+        color: #64748b;
+        font-size: .84rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all .16s ease;
+
+        &:hover { border-color: #c9dcf2; color: #4267ac; }
+
+        &.is-active {
+            background: #4267ac;
+            border-color: #4267ac;
+            color: #fff;
+            .hed-tab__b { background: rgba(255,255,255,.24); color: #fff; }
+        }
+
+        /* Declarado en su ficha: punto de color, sin gritar */
+        &--declarado:not(.is-active) .hed-tab__n::before {
+            content: '';
+            display: inline-block;
+            width: 6px; height: 6px;
+            margin-right: 7px;
+            border-radius: 50%;
+            background: #34a853;
+            vertical-align: middle;
+        }
+
+        /* Da clase aquí pero no consta en su ficha. Mismo lenguaje visual que el
+           `hor-cell--ajeno` de la rejilla de lectura: ámbar + interrogación. */
+        &--ajeno:not(.is-active) { border-color: #f5d78e; background: #fffaf0; color: #a16207; }
+        &__q { font-size: .72rem; color: #e0a800; }
+
+        &__b {
+            min-width: 20px;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: #eef2f7;
+            color: #475569;
+            font-size: .7rem;
+            font-weight: 800;
+            text-align: center;
+        }
+    }
+
+    /* ── Cabecera del panel ── */
+    .hed-head {
+        flex-wrap: wrap;
+        &__help { flex-basis: 100%; margin: 6px 0 0; font-size: .8rem; color: #94a3b8; line-height: 1.5; }
+    }
+
+    /* Aire al pie: la barra de selección es sticky y taparía la última fila */
+    .hed-panel { margin-bottom: 18px; }
+
+    /* ── Rejilla ── */
+    .hed-grid-wrap { overflow-x: auto; padding: 8px 16px 4px; }
+
+    .hed-grid {
+        width: 100%;
+        min-width: 760px;
+        border-collapse: separate;
+        border-spacing: 6px;
+        table-layout: fixed;   /* si no, el ancho lo decide la materia más larga */
+
+        thead th {
+            width: 20%;
+            padding: 6px 0 10px;
+            font-size: .74rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #7189b8;
+        }
+        .hed-grid__corner { width: 104px; }
+
+        tbody tr { height: 66px; }
+        /* El receso es más bajo que una hora de clase, pero no tanto como antes (40px):
+           ahí se agendan las guardias, y una guardia se pinta como un bloque de dos
+           líneas (Guardia + lugar) que en 40px no cabía. */
+        tbody tr.hed-grid__receso-row { height: 56px; }
+
+        td { padding: 0; position: relative; border-radius: 12px; }
+    }
+
+    .hed-grid__hour {
+        width: 104px;
+        padding: 0 8px;
+        text-align: right;
+        vertical-align: middle;
+    }
+    .hed-grid__hour-label { display: block; font-size: .8rem; font-weight: 800; color: #0B1F3D; }
+    .hed-grid__hour-time  { display: block; font-size: .68rem; font-weight: 600; color: #94a3b8; font-variant-numeric: tabular-nums; }
+    .hed-grid__receso-row .hed-grid__hour-label { font-size: .74rem; color: #a16207; }
+
+    /* ── Casillas ──
+       El contenido se ancla al <td> con position:absolute porque en una tabla
+       `height` es un mínimo y un height:100% del hijo no resuelve bien. */
+    .hed-cell {
+        > .hed-libre, > .hed-block, > .hed-ajena {
+            position: absolute;
+            inset: 0;
+        }
+    }
+
+    /* Libre: pulsar abre el modal de clase */
+    .hed-libre {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        border: 1.5px dashed #dbe4ee;
+        border-radius: 12px;
+        background: repeating-linear-gradient(45deg, #f8fafc 0 6px, #f2f6fa 6px 12px);
+        color: #cbd5e1;
+        font-size: .8rem;
+        cursor: pointer;
+        transition: all .14s ease;
+
+        &:hover { border-color: #4267ac; color: #4267ac; background: #eef3fb; }
+        &:focus-visible { outline: 2px solid #4267ac; outline-offset: 2px; }
+    }
+
+    /* La casilla con el modal abierto encima. `--sel-c` lo pone el JS con el color
+       elegido: es la previsualización en vivo, lo único del formulario que no se
+       entiende hasta verlo puesto.
+
+       El `background` va con !important porque .hed-libre--receso lo declara después
+       (y con la misma especificidad), así que un receso abierto no cambiaba de fondo. */
+    .hed-cell.is-abierta .hed-libre {
+        border: 2px solid var(--sel-c, #4267ac);
+        border-style: solid;
+        background: color-mix(in srgb, var(--sel-c, #4267ac) 14%, #fff) !important;
+        color: var(--sel-c, #4267ac) !important;
+    }
+    /* La casilla que hizo fallar el guardado, al reabrir el modal */
+    .hed-cell.is-error .hed-libre {
+        border-color: #e51022;
+        background: #fdeef0 !important;
+        color: #b42318 !important;
+    }
+
+    /* Clase propia: pulsable para editar */
+    .hed-block {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        padding: 8px 11px;
+        border: none;
+        border-radius: 12px;
+        background: var(--c, #4285f4);
+        color: #fff;
+        text-align: left;
+        cursor: pointer;
+        font-family: inherit;
+        transition: filter .15s ease, transform .15s ease;
+
+        &:hover { filter: brightness(1.06); transform: translateY(-1px); }
+        &:focus-visible { outline: 2px solid #0B1F3D; outline-offset: 2px; }
+
+        /* Sobre los tonos claros de la paleta el texto blanco no llega a AA */
+        &--dark { color: var(--pal-tinta, #0B1F3D); }
+
+        &__mat {
+            font-size: .8rem; font-weight: 800; line-height: 1.2;
+            /* Sin esto una materia de nombre largo estira la celda y descuadra
+               las cinco columnas */
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        &__sec {
+            font-size: .68rem; font-weight: 600; opacity: .88;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        /* Dato preexistente que las reglas de hoy no dejarían crear (clase sobre un
+           receso, grupo de otro nivel). Se marca, pero se deja editar y borrar:
+           ocultarlo lo volvería inarreglable desde la UI. */
+        &__flag {
+            position: absolute; top: 5px; right: 6px;
+            display: grid; place-items: center;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #fff; color: #e51022;
+            font-size: .6rem;
+        }
+        /* Coteaching: cuántos docentes dan esta clase (titular incluido). Un contador y
+           no los nombres, porque la fila mide 66px y ya lleva dos líneas; los nombres
+           van en el `title` y en el modal. */
+        &__co {
+            position: absolute; bottom: 5px; right: 6px;
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .28);
+            font-size: .6rem; font-weight: 800;
+
+            i { font-size: .55rem; }
+        }
+        &--dark &__co { background: rgba(11, 31, 61, .16); }
+        &.is-invalida { box-shadow: inset 0 0 0 2px #e51022; }
+    }
+
+    /* Clase de OTRO nivel que pisa esta hora en el reloj. No es seleccionable: el
+       servidor la rechazaría igual (mismo Periodo::solapan que choques()), y
+       dejarla clicable prometería algo que no se puede cumplir. */
+    .hed-ajena {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1px;
+        padding: 6px 10px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        background: repeating-linear-gradient(135deg, #f1f5f9 0 5px, #e9eef4 5px 10px);
+        color: #64748b;
+        cursor: not-allowed;
+        overflow: hidden;
+
+        &__niv {
+            align-self: flex-start;
+            padding: 1px 7px;
+            border-radius: 5px;
+            background: #dbe4ee;
+            color: #475569;
+            font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+        }
+        &__mat  { font-size: .74rem; font-weight: 700; color: #475569;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        &__hora { font-size: .64rem; font-weight: 600; color: #94a3b8; font-variant-numeric: tabular-nums; }
+        &__ir   { font-size: .62rem; font-weight: 700; color: #4267ac; text-decoration: none; cursor: pointer;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                  &:hover { text-decoration: underline; } }
+        &__mas  { position: absolute; top: 4px; right: 6px; font-size: .62rem; font-weight: 800; color: #94a3b8; }
+    }
+
+    /* ── Leyenda ── */
+    .hed-legend {
+        display: flex; flex-wrap: wrap; gap: 16px;
+        padding: 12px 20px 18px;
+        font-size: .74rem; font-weight: 600; color: #94a3b8;
+
+        span { display: inline-flex; align-items: center; gap: 7px; }
+        &__sw {
+            width: 15px; height: 15px; border-radius: 5px; flex-shrink: 0;
+
+            &--libre { border: 1.5px dashed #dbe4ee; background: repeating-linear-gradient(45deg, #f8fafc 0 4px, #f2f6fa 4px 8px); }
+            &--clase { background: #4285f4; }
+            &--ocup  { border: 1.5px solid #e2e8f0; background: repeating-linear-gradient(135deg, #f1f5f9 0 4px, #e9eef4 4px 8px); }
+            &--rec   { background: #fff7e6; border: 1.5px solid #ffe4bd; }
+            &--guardia { background: repeating-linear-gradient(135deg, #f5b400 0 4px, #ffcd3d 4px 8px); }
+        }
+    }
+
+    /* ── Avisos del guardado ── */
+    .hed-alertas {
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        border: 1px solid;
+        border-radius: 14px;
+        font-size: .84rem;
+        line-height: 1.6;
+
+        &__t { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-weight: 800; }
+        ul   { margin: 0; padding-left: 20px; }
+        li   { margin-bottom: 3px; }
+        &__pie { margin: 9px 0 0; font-size: .76rem; opacity: .8; }
+
+        &--error { background: #fdeef0; border-color: #f5c2c7; color: #b42318; }
+        &--warn  { background: #fffaf0; border-color: #ffe4bd; color: #8a5a1f; }
+        &--info  { background: #eef3fb; border-color: #c9dcf2; color: #22417e;
+                   a { color: inherit; font-weight: 700; } }
+    }
+
+    /* ── Modal de bloque ── */
+    .hed-modal {
+        position: fixed; inset: 0; z-index: 120;
+        display: grid; place-items: center;
+        padding: 20px;
+        background: rgba(11,31,61,.55);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+
+        &[hidden] { display: none; }
+
+        /* Horizontal: en vertical el formulario de clase (grupo · materia · aula ·
+           profesores · color) se iba de pantalla y había que hacer scroll dentro de
+           la modal para llegar a Guardar. */
+        &__card {
+            width: min(780px, 100%);
+            max-height: 92vh;
+            overflow-y: auto;
+            padding: 22px 26px 20px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 30px 60px -20px rgba(11,31,61,.45);
+
+            /* Una guardia solo tiene lugar y color: a dos columnas quedaría una
+               mitad vacía, así que el modo estrecha la tarjeta en vez de estirar
+               tres campos. Lo marca setTipo() en el JS. */
+            &.is-guardia {
+                width: min(560px, 100%);
+                .hed-form { grid-template-columns: 1fr; }
+            }
+        }
+
+        &__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+        &__title { margin: 0; font-size: 17px; font-weight: 800; color: #0B1F3D; }
+        &__x {
+            display: grid; place-items: center;
+            width: 30px; height: 30px; flex-shrink: 0;
+            border: none; border-radius: 9px;
+            background: #f1f5f9; color: #64748b;
+            cursor: pointer; transition: all .15s ease;
+            &:hover { background: #e2e8f0; color: #0B1F3D; }
+        }
+
+        /* Qué casillas se van a escribir: "4 casillas" no dice cuáles */
+        &__scope { margin: 0 0 16px; }
+        &__chips { font-size: .76rem; font-weight: 600; color: #7189b8; line-height: 1.5; }
+
+        /* A ancho completo y con filete: cierra el formulario en vez de flotar tras
+           el último campo, y así los tres botones comparten línea base aunque
+           "Eliminar" no esté (en alta va oculto). */
+        &__acts {
+            grid-column: 1 / -1;
+            display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+            margin-top: 4px; padding-top: 16px;
+            border-top: 1px solid #eef2f7;
+
+            .admin-btn { min-height: 40px; }
+        }
+        &__spacer { flex: 1; }
+    }
+
+    .hed-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 18px;
+        align-items: start;
+    }
+    /* Los que no se parten en dos: la insignia de tipo encabeza, los lugares son una
+       tira de chips y el coteaching lleva buscador + chips. */
+    .hed-tipo-badge,
+    .hed-solo-guardia,
+    .hed-field--wide { grid-column: 1 / -1; }
+
+    @media (max-width: 720px) {
+        .hed-form { grid-template-columns: 1fr; }
+    }
+
+    .hed-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        /* ⚠️ Sin esto el `hidden` que pone setTipo() no hacía nada: `[hidden]
+           {display:none}` vive en base/_normalize y esta regla, de igual
+           especificidad y capa posterior, lo pisaba. Resultado: la modal de guardia
+           pedía grupo, materia, aula y acompañantes —campos que el servidor ignora
+           por completo cuando tipo='guardia'—, y la de clase ofrecía lugares. */
+        &[hidden] { display: none; }
+
+        &__label { font-size: .78rem; font-weight: 700; color: #475569; }
+        &__hint  { font-size: .72rem; color: #94a3b8; }
+    }
+
+    /* ── Selector de color ──
+       Mismo patrón que los de categorías, más un swatch "automático" que guarda
+       NULL y deja que el color lo derive el nombre de la materia. */
+    .hed-colors { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .hed-color {
+        width: 32px; height: 32px;
+        border: 2px solid transparent;
+        border-radius: 9px;
+        background: var(--c, #94a3b8);
+        cursor: pointer;
+        transition: transform .14s ease, box-shadow .14s ease;
+
+        &:hover { transform: scale(1.08); }
+        &.is-on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0B1F3D; }
+
+        &--auto {
+            display: grid; place-items: center;
+            background: repeating-linear-gradient(45deg, #eef2f7 0 4px, #dbe4ee 4px 8px);
+            color: #64748b;
+            font-size: .7rem;
+        }
+    }
+}
+
+/* ── Clase o guardia ──
+   Una guardia de receso es ocupación real del profesor —vive en la misma tabla que las
+   clases y bloquea sus suplencias— pero no tiene grupo ni materia, así que el
+   formulario cambia según cuál sea.
+
+   NO se elige: lo decide la casilla que se pulsó (una guardia va siempre sobre un
+   receso y una clase nunca, y guardarBloqueHorario() rechaza el cruce). Por eso esto es
+   una insignia informativa y no el segmented control que había antes, cuya única
+   función posible era provocar ese error del servidor. */
+body[data-page="blog-usuarios-horario"] {
+
+    .hed-tipo-badge {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        margin-bottom: 16px;
+        padding: 11px 14px;
+        border-radius: 12px;
+        background: #eef3fb;
+        border: 1px solid #dbe7f5;
+        color: #2e4b8a;
+        font-size: .88rem; font-weight: 800;
+
+        small { font-size: .74rem; font-weight: 600; color: #7189b8; }
+
+        &.is-guardia {
+            background: #fff7e6;
+            border-color: #ffe4bd;
+            color: #a16207;
+
+            small { color: #c08a1a; }
+        }
+    }
+
+    /* ── Coteaching ── */
+    .hed-titular {
+        display: flex; align-items: center; gap: 8px;
+        margin: 0 0 10px;
+        font-size: .84rem; color: #475569;
+
+        i { color: #4267ac; }
+        strong { color: #0B1F3D; font-weight: 800; }
+        &__rol {
+            padding: 1px 8px;
+            border-radius: 999px;
+            background: #eef3fb;
+            color: #4267ac;
+            font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+        }
+    }
+    .hed-acomp {
+        display: flex; flex-wrap: wrap; gap: 6px;
+        margin-top: 8px;
+
+        &:empty { display: none; }
+    }
+
+    /* Lugares de guardia: tabs y no un <select>. Son pocos, se eligen de un vistazo
+       y la última opción da de alta uno nuevo sin salir del modal. */
+    .hed-lugares {
+        display: flex; flex-wrap: wrap; gap: 7px;
+        margin-top: 6px;
+    }
+    .hed-lugar {
+        padding: 7px 13px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 999px;
+        background: #fff;
+        color: #475569;
+        font-family: 'Outfit', sans-serif;
+        font-size: .8rem; font-weight: 600;
+        cursor: pointer;
+        transition: all .15s;
+
+        &:hover { border-color: #c7d6ea; }
+        &.is-on {
+            background: var(--pal-azul, #4267ac);
+            border-color: var(--pal-azul, #4267ac);
+            color: #fff;
+        }
+        &--nuevo {
+            border-style: dashed;
+            color: #4267ac;
+            &:hover { background: #eef3fb; }
+        }
+    }
+    .hed-lugar-alta {
+        display: flex; gap: 7px; margin-top: 9px;
+
+        &__input {
+            flex: 1;
+            height: 34px; padding: 0 12px;
+            border: 1.5px solid #e2e8f0; border-radius: 9px;
+            font-family: 'Outfit', sans-serif; font-size: .82rem;
+
+            &:focus { outline: none; border-color: #4267ac; box-shadow: 0 0 0 3px rgba(66, 103, 172, .12); }
+        }
+    }
+
+    /* Receso: ya no es solo un icono, es una casilla en la que se agenda la guardia.
+       Lleva DOS iconos (la taza y el `+`), y el `grid` de .hed-libre los apilaba en
+       dos filas: en una casilla de 20-30 minutos eso no cabe y se lee como un error
+       de render. Van en línea, que además es como se lee "receso → añadir". */
+    .hed-libre--receso {
+        display: flex; align-items: center; justify-content: center; gap: 4px;
+        background: #fff7e6;
+        color: #d99a06;
+
+        .hed-libre__mas { font-size: .6rem; opacity: .75; }
+        &:hover { background: #ffeecc; color: #b45309; }
+    }
+
+    /* Bloque de guardia en la rejilla: mismo rayado que en el módulo Horarios, para
+       que se reconozca como lo mismo en las dos pantallas. */
+    .hed-block--guardia {
+        background:
+            repeating-linear-gradient(135deg,
+                rgba(255, 255, 255, .16) 0 6px,
+                transparent 6px 12px),
+            var(--c);
+    }
+}

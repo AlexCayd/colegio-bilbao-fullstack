@@ -84,6 +84,18 @@
                     datasets: [{ data: [org.anticipada || 0, org.sin_aviso || 0], backgroundColor: ['#4285f4', '#fc6722'], borderWidth: 0 }] },
             options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, pointStyle: 'circle' } } }, cutout: '62%' }
         });
+
+        // ¿Dejó el ausente trabajo para el grupo? Los TRES estados, con "sin revisar"
+        // en gris: es un hueco de captura de prefectura, no una respuesta, y pintarlo
+        // del color del "no" lo convertiría en una acusación.
+        var trb = data.trabajo || {};
+        newChart('chartTrabajo', {
+            type: 'doughnut',
+            data: { labels: ['Sí dejó', 'No dejó', 'Sin revisar'],
+                    datasets: [{ data: [trb.con || 0, trb.sin || 0, trb.pendientes || 0],
+                                 backgroundColor: ['#34a853', '#e51022', '#cbd5e1'], borderWidth: 0 }] },
+            options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, pointStyle: 'circle' } } }, cutout: '62%' }
+        });
     }
 
     // ── Calendario de resumen diario (interactivo) ──

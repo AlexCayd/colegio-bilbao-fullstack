@@ -1,6 +1,7 @@
 <?php $paginaVista = 'blog-horarios-index'; ?>
 <?php
-/** @var string $vista  @var array $entidades  @var int $entidadId  @var \Model\Periodo[] $periodos  @var array $matriz */
+/** @var string $vista  @var array $entidades  @var int $entidadId
+ *  @var array $tramos  @var array $rejilla  @var string[] $niveles */
 $vistaMeta = [
     'profesor' => ['label' => 'Profesor', 'icon' => 'fa-chalkboard-user', 'url' => '/dashboard/horarios/profesor'],
     'aula'     => ['label' => 'Aula',     'icon' => 'fa-door-open',       'url' => '/dashboard/horarios/aula'],
@@ -21,6 +22,10 @@ $vistaMeta = [
         </header>
 
         <main class="admin-content">
+
+            <?php /* Dirección revisa pero no edita: el guard real es requireEscritura(). */
+            if (blog_modulos_solo_lectura()) { $soloLecturaQue = 'los horarios'; include __DIR__ . '/../_solo-lectura.php'; } ?>
+
             <!-- Pestañas de vista -->
             <div class="hor-tabs">
                 <?php foreach ($vistaMeta as $k => $vm): ?>
@@ -59,6 +64,23 @@ $vistaMeta = [
                 <?php if (empty($entidades)): ?>
                 <div class="admin-empty-state" style="padding:40px;">
                     <p class="admin-empty-state__text">No hay <?= s($vistaMeta[$vista]['label']) ?>es registrados todavía.</p>
+                </div>
+                <?php elseif (empty($tramos)): ?>
+                <?php /* Sin clases y sin jornada que enmarcarlas: pintar la rejilla de los
+                          cinco niveles a la vez daba 16 filas fragmentadas y una columna de
+                          recesos apilados. Decir que no hay horario es más útil. */ ?>
+                <div class="admin-empty-state" style="padding:40px;">
+                    <p class="admin-empty-state__text">
+                        <?php if ($vista === 'profesor'): ?>
+                        Este profesor todavía no tiene horario cargado.
+                        <?php if (empty($niveles)): ?>
+                        Puedes declarar sus niveles en <a href="/dashboard/usuarios/editar?id=<?= (int)$entidadId ?>">su ficha</a>
+                        o cargar sus clases desde <a href="/dashboard/horarios/importar">Importar CSV</a>.
+                        <?php endif; ?>
+                        <?php else: ?>
+                        Todavía no hay clases asignadas a est<?= $vista === 'aula' ? 'a aula' : 'e grupo' ?>.
+                        <?php endif; ?>
+                    </p>
                 </div>
                 <?php else: ?>
                 <?php include __DIR__ . '/_grid.php'; ?>

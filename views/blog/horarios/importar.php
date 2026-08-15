@@ -91,16 +91,24 @@ $iconoFila  = ['ok' => 'fa-circle-check', 'aviso' => 'fa-triangle-exclamation', 
                         <p class="hoi-help">
                             Una fila por clase. La primera línea debe ser exactamente esta cabecera:
                         </p>
-                        <pre class="hoi-code">profesor_email,dia,periodo,materia,grupo,aula
-ana.torres@bilbao.edu.mx,lunes,1,Matemáticas,1A,A-101
-ana.torres@bilbao.edu.mx,lunes,2,Matemáticas,2B,A-101</pre>
+                        <pre class="hoi-code">profesor_email,dia,nivel,periodo,materia,grupo,aula
+ana.torres@bilbao.edu.mx,lunes,,1,Matemáticas,1A Primaria,A-101
+ana.torres@bilbao.edu.mx,lunes,,2,Matemáticas,2A Primaria,A-101</pre>
                         <ul class="hoi-rules">
                             <li><strong>profesor_email</strong> — debe existir ya como colaborador.</li>
                             <li><strong>dia</strong> — <code>lunes</code> … <code>viernes</code>, sin acentos.</li>
-                            <li><strong>periodo</strong> — la etiqueta de la jornada o su número. Los recesos no admiten clase.</li>
-                            <li><strong>materia</strong> — obligatoria; debe existir en el catálogo.</li>
+                            <li><strong>nivel</strong> — <em>déjalo vacío</em>: se deduce del grupo. Cada nivel tiene su
+                                propia jornada, así que la 1ª hora de Primaria no es la misma hora que la de Secundaria.
+                                Solo hay que escribirlo en una clase <strong>sin grupo</strong>.</li>
+                            <li><strong>periodo</strong> — la etiqueta de la jornada de ese nivel o su número. Los recesos no admiten clase.</li>
+                            <li><strong>materia</strong> — obligatoria; debe existir en el catálogo <em>de ese nivel</em>.</li>
                             <li><strong>grupo</strong> y <strong>aula</strong> — opcionales, pero si vienen deben existir.</li>
                         </ul>
+                        <p class="hoi-help">
+                            Se comprueba que ningún profesor, grupo o aula quede en dos sitios a la vez
+                            <strong>por hora del reloj</strong>, no por número de periodo: con jornadas distintas
+                            por nivel, dos periodos con distinto número pueden ser la misma hora.
+                        </p>
                         <p class="hoi-warn">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                             El archivo <strong>reemplaza el horario completo</strong> de cada profesor que aparezca en él.
@@ -153,6 +161,7 @@ ana.torres@bilbao.edu.mx,lunes,2,Matemáticas,2B,A-101</pre>
                                 <th>Estado</th>
                                 <th>Profesor</th>
                                 <th>Día</th>
+                                <th>Nivel</th>
                                 <th>Hora</th>
                                 <th>Materia</th>
                                 <th>Grupo</th>
@@ -174,6 +183,9 @@ ana.torres@bilbao.edu.mx,lunes,2,Matemáticas,2B,A-101</pre>
                                 </td>
                                 <td><?= s($f['email']) ?></td>
                                 <td><?= s(\Model\Horario::DIAS_LABEL[$f['dia']] ?? $f['dia']) ?></td>
+                                <?php /* Se muestra el nivel RESUELTO (venga de la columna o del grupo):
+                                          es lo que determina en qué jornada cae «3ª hora». */ ?>
+                                <td><?= ($f['nivel'] ?? '') !== '' ? s($f['nivel']) : '<span class="hoi-nil">—</span>' ?></td>
                                 <td><?= s($f['periodo']) ?></td>
                                 <td><?= s($f['materia']) ?></td>
                                 <td><?= $f['grupo'] !== '' ? s($f['grupo']) : '<span class="hoi-nil">—</span>' ?></td>

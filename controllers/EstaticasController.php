@@ -8,9 +8,44 @@ use Model\Noticia;
 use Model\Testimonial;
 use Model\Evento;
 
+/**
+ * Páginas públicas del sitio institucional.
+ *
+ * Agrupa todo lo que ve un visitante sin iniciar sesión: portada, Conócenos, Modelo
+ * Educativo, Niveles Académicos, Vida Escolar, Admisiones, Comunidad, Noticias, Contacto
+ * y las páginas legales. El blog público vive en BlogController, no aquí.
+ *
+ * La mayoría de los métodos son de una línea: renderizan una vista sin datos, porque el
+ * contenido está escrito en la propia plantilla. Los que sí consultan modelos son
+ * index(), noticias(), noticiaDetalle(), estudiantes(), familias() y
+ * feedbackTestimoniales(); el resto responde al patrón:
+ *
+ *     $router->render('estaticas/<seccion>/<pagina>', ['titulo' => '<Título>']);
+ *
+ * Para añadir una página estática hacen falta tres cosas: la ruta en index.php, un
+ * método aquí y la vista en views/estaticas/.
+ *
+ * ── SEO ──
+ * Las páginas nuevas pasan $seo_titulo y $seo_descripcion; las antiguas solo $titulo y
+ * heredan los valores por defecto del layout. No es un error, es migración pendiente.
+ *
+ * @package Controllers
+ */
 class EstaticasController {
 
     // ---- HOME ----
+    /**
+     * Portada del sitio.
+     *
+     * Antes de pintar nada publica el contenido programado cuya fecha ya llegó: no hay
+     * cron en el proyecto, así que el disparador es la propia visita.
+     *
+     * Carga Three.js (bosque del hero) y GSAP con ScrollTrigger vía $extra_head, porque
+     * el layout público no los incluye por defecto.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function index(Router $router) {
         Articulo::publicarProgramados();
         Noticia::publicarProgramadas();
@@ -39,108 +74,156 @@ class EstaticasController {
     }
 
     // ---- CONÓCENOS ----
+    /** Conócenos › Quiénes Somos. @param Router $router @return void */
     public static function quienessomos(Router $router) {
         $router->render('estaticas/conocenos/quienes-somos', ['titulo' => 'Quiénes Somos']);
     }
 
+    /** Conócenos › Equipo Educativo. @param Router $router @return void */
     public static function equipoeducativo(Router $router) {
         $router->render('estaticas/conocenos/equipo-educativo', ['titulo' => 'Equipo Educativo']);
     }
 
+    /** Conócenos › Instalaciones. @param Router $router @return void */
     public static function instalaciones(Router $router) {
         $router->render('estaticas/conocenos/instalaciones', ['titulo' => 'Instalaciones']);
     }
 
+    /** Conócenos › Certificaciones y Reconocimientos. @param Router $router @return void */
     public static function certificaciones(Router $router) {
         $router->render('estaticas/conocenos/certificaciones-y-reconocimientos', ['titulo' => 'Certificaciones y Reconocimientos']);
     }
 
     // ---- MODELO EDUCATIVO ----
+    /** Modelo Educativo › Modelo VIDA. @param Router $router @return void */
     public static function modelovida(Router $router) {
         $router->render('estaticas/modelo-educativo/modelo-vida', ['titulo' => 'Modelo Educativo VIDA']);
     }
 
+    /** Modelo Educativo › Filosofía y Metodología. @param Router $router @return void */
     public static function filosofiametodologia(Router $router) {
         $router->render('estaticas/modelo-educativo/filosofia-y-metodologia', ['titulo' => 'Filosofía y Metodología']);
     }
 
+    /** Modelo Educativo › Aprendizaje Integral. @param Router $router @return void */
     public static function aprendizajeintegral(Router $router) {
         $router->render('estaticas/modelo-educativo/aprendizaje-integral', ['titulo' => 'Aprendizaje Integral']);
     }
 
+    /** Modelo Educativo › Idiomas. @param Router $router @return void */
     public static function idiomas(Router $router) {
         $router->render('estaticas/modelo-educativo/idiomas', ['titulo' => 'Idiomas']);
     }
 
     // ---- NIVELES ACADÉMICOS ----
+    /**
+     * Índice de Niveles Académicos.
+     *
+     * Única página estática que declara SEO propio en vez de solo $titulo, y la que marca
+     * la pauta para las nuevas.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function niveles(Router $router) {
         $seo_titulo = 'Niveles Académicos | Colegio Bilbao';
         $seo_descripcion = 'Preescolar, Primaria, Secundaria y Preparatoria. Conoce la propuesta educativa del Colegio Bilbao para cada etapa.';
         $router->render('estaticas/niveles', compact('seo_titulo', 'seo_descripcion'));
     }
 
+    /** Niveles › Preescolar (Maternal y Kinder). @param Router $router @return void */
     public static function preescolar(Router $router) {
         $router->render('estaticas/niveles-academicos/preescolar', ['titulo' => 'Preescolar']);
     }
 
+    /** Niveles › Primaria. @param Router $router @return void */
     public static function primaria(Router $router) {
         $router->render('estaticas/niveles-academicos/primaria', ['titulo' => 'Primaria']);
     }
 
+    /** Niveles › Secundaria. @param Router $router @return void */
     public static function secundaria(Router $router) {
         $router->render('estaticas/niveles-academicos/secundaria', ['titulo' => 'Secundaria']);
     }
 
+    /** Niveles › Preparatoria (Bachillerato). @param Router $router @return void */
     public static function preparatoria(Router $router) {
         $router->render('estaticas/niveles-academicos/preparatoria', ['titulo' => 'Preparatoria']);
     }
 
     // ---- VIDA ESCOLAR ----
+    /** Vida Escolar › Afterschool y Extracurriculares. @param Router $router @return void */
     public static function afterschool(Router $router) {
         $router->render('estaticas/vida-escolar/afterschool-extracurriculares', ['titulo' => 'Afterschool y Extracurriculares']);
     }
 
+    /** Vida Escolar › Cuidado y Bienestar. @param Router $router @return void */
     public static function cuidadobienestar(Router $router) {
         $router->render('estaticas/vida-escolar/cuidado-y-bienestar', ['titulo' => 'Cuidado y Bienestar']);
     }
 
+    /** Vida Escolar › Eventos y Tradiciones. @param Router $router @return void */
     public static function eventostradicones(Router $router) {
         $router->render('estaticas/vida-escolar/eventos-y-tradiciones', ['titulo' => 'Eventos y Tradiciones']);
     }
 
+    /** Vida Escolar › Futuro Universitario y Becas. @param Router $router @return void */
     public static function futurouniversitario(Router $router) {
         $router->render('estaticas/vida-escolar/futuro-universitario-becas', ['titulo' => 'Futuro Universitario y Becas']);
     }
 
+    /** Vida Escolar › Programa Dual. @param Router $router @return void */
     public static function programadual(Router $router) {
         $router->render('estaticas/vida-escolar/programa-dual', ['titulo' => 'Programa Dual']);
     }
 
+    /** Vida Escolar › Servicios para Familias. @param Router $router @return void */
     public static function serviciofamilias(Router $router) {
         $router->render('estaticas/vida-escolar/servicios-para-familias', ['titulo' => 'Servicios para Familias']);
     }
 
     // ---- ADMISIONES ----
+    /**
+     * Portada de Admisiones (ruta /admisiones).
+     *
+     * ⚠️ El nombre genérico `inicio()` es histórico y no dice a qué sección pertenece.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function inicio(Router $router) {
         $router->render('estaticas/admisiones/inicio', ['titulo' => 'Admisiones']);
     }
 
+    /** Admisiones › Proceso de Admisión. @param Router $router @return void */
     public static function proceso(Router $router) {
         $router->render('estaticas/admisiones/proceso', ['titulo' => 'Proceso de Admisión']);
     }
 
+    /** Admisiones › Preguntas Frecuentes. @param Router $router @return void */
     public static function preguntasfrecuentes(Router $router) {
         $router->render('estaticas/admisiones/preguntas-frecuentes', ['titulo' => 'Preguntas Frecuentes']);
     }
 
+    /** Admisiones › Convenios. @param Router $router @return void */
     public static function convenios(Router $router) {
         $router->render('estaticas/admisiones/convenios', ['titulo' => 'Convenios']);
     }
 
+    /** Admisiones › Convocatoria de Becas. @param Router $router @return void */
     public static function convocatoriabecas(Router $router) {
         $router->render('estaticas/admisiones/convocatoria-becas', ['titulo' => 'Convocatoria de Becas']);
     }
 
+    /**
+     * Contacto de Admisiones.
+     *
+     * ⚠️ index.php la registra en DOS rutas: /admisiones/contacto y /contacto. La segunda
+     * hace que el «Contacto» del menú principal sirva la página de Admisiones.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function contacto(Router $router) {
         $router->render('estaticas/admisiones/contacto', ['titulo' => 'Contacto Admisiones']);
     }
@@ -151,26 +234,61 @@ class EstaticasController {
         return three_js_tag();
     }
 
+    /**
+     * Eventos de una audiencia, en el formato plano que consumen las vistas públicas.
+     * El nivel viaja para poder mostrarlo y filtrar en cliente.
+     *
+     * Aplana los objetos Evento a arrays porque el calendario de cliente los recibe como
+     * isla JSON: no tiene sentido exponerle el modelo entero.
+     *
+     * @param  string $audiencia 'familias' o 'estudiantes'. Los 'interno' nunca salen del panel.
+     * @return array<int, array{fecha:string, fecha_fin:?string, tipo:string, titulo:string,
+     *                          desc:string, niveles:array<int,string>, alcance:string}>
+     */
+    private static function eventosPublicos(string $audiencia): array {
+        $out = [];
+        foreach (Evento::porAudiencia($audiencia) as $ev) {
+            $out[] = [
+                'fecha'    => $ev->fecha,
+                'fecha_fin'=> $ev->fecha_fin,
+                'tipo'     => $ev->tipo,
+                'titulo'   => $ev->titulo,
+                'desc'     => $ev->descripcion ?? '',
+                'niveles'  => $ev->nivelesLista(),
+                'alcance'  => $ev->alcance(),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Comunidad › Estudiantes. Embeds oficiales de Instagram + calendario de su audiencia.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function estudiantes(Router $router) {
         $router->render('estaticas/comunidad/estudiantes', [
             'titulo'          => 'Estudiantes',
             'seo_titulo'      => 'Comunidad estudiantil',
             'seo_descripcion' => 'Proyectos, deportes, arte y la vida diaria de los estudiantes del Colegio Bilbao.',
             'extra_head'      => self::comunidadThree(),
+            'eventosCal'      => self::eventosPublicos('estudiantes'),
         ]);
     }
 
+    /**
+     * Comunidad › Familias. Avisos y calendario escolar interactivo.
+     *
+     * El calendario se alimenta de los eventos reales con audiencia 'familias', que se
+     * crean en el módulo Eventos del panel.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function familias(Router $router) {
-        // Eventos públicos reales para el calendario interactivo (reemplaza el array hardcodeado)
-        $eventos = [];
-        foreach (Evento::publicos() as $ev) {
-            $eventos[] = [
-                'fecha'  => $ev->fecha,
-                'tipo'   => $ev->tipo,
-                'titulo' => $ev->titulo,
-                'desc'   => $ev->descripcion ?? '',
-            ];
-        }
+        // Eventos reales para el calendario interactivo (reemplaza el array hardcodeado)
+        $eventos = self::eventosPublicos('familias');
         $router->render('estaticas/comunidad/familias', [
             'titulo'          => 'Familias',
             'seo_titulo'      => 'Familias Bilbao',
@@ -180,6 +298,14 @@ class EstaticasController {
         ]);
     }
 
+    /**
+     * Comunidad › Colaboradores: pantalla única a 100vh que enlaza a /login.
+     *
+     * Es la puerta de entrada pública a la intranet.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function colaboradores(Router $router) {
         $router->render('estaticas/comunidad/colaboradores', [
             'titulo'          => 'Colaboradores',
@@ -190,6 +316,16 @@ class EstaticasController {
     }
 
     // ---- VOCES BILBAO ----
+    /**
+     * Listado público de noticias.
+     *
+     * Elige la noticia de portada con esta prioridad: la marcada como `destacada` y, si no
+     * hay ninguna, la primera del listado — así la portada nunca queda vacía. El resto se
+     * ordena por fecha de publicación descendente.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function noticias(Router $router) {
         Noticia::publicarProgramadas();
 
@@ -223,6 +359,16 @@ class EstaticasController {
         ]);
     }
 
+    /**
+     * Ficha pública de una noticia, resuelta por slug.
+     *
+     * Es el único método del controlador que recibe un parámetro de la URI: lo alimenta
+     * la ruta con patrón `/noticias/{slug}` de index.php. Sin slug o sin coincidencia,
+     * redirige al listado en vez de mostrar un 404.
+     *
+     * @param  Router $router Espera $router->params['slug'].
+     * @return void
+     */
     public static function noticiaDetalle(Router $router) {
         $slug = $router->params['slug'] ?? '';
         if (!$slug) { header('Location: /noticias'); exit; }
@@ -239,44 +385,96 @@ class EstaticasController {
         ]);
     }
 
+    /**
+     * Voces Bilbao › Entrevistas.
+     *
+     * ⚠️ SIN RUTA. index.php no registra ninguna URI hacia este método desde que la
+     * sección /voces-bilbao/* se reorganizó en /noticias y /blog. Es código muerto:
+     * o se le devuelve la ruta, o se elimina junto con su vista.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function entrevistas(Router $router) {
         $router->render('estaticas/voces-bilbao/entrevistas', ['titulo' => 'Entrevistas']);
     }
 
+    /**
+     * Voces Bilbao › Artículos.
+     *
+     * ⚠️ SIN RUTA, igual que entrevistas(). El listado de artículos vivo es
+     * BlogController::blogPublico() en /blog.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function articulos(Router $router) {
         $router->render('estaticas/voces-bilbao/articulos', ['titulo' => 'Artículos']);
     }
 
+    /**
+     * Voces Bilbao › Testimonios.
+     *
+     * ⚠️ SIN RUTA, igual que entrevistas(). Los testimoniales aprobados se muestran hoy
+     * en la portada.
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function testimonios(Router $router) {
         $router->render('estaticas/voces-bilbao/testimonios', ['titulo' => 'Testimonios']);
     }
 
     // ---- CONTACTO ----
+    /** Contacto › Directorio de áreas y extensiones. @param Router $router @return void */
     public static function directorio(Router $router) {
         $router->render('estaticas/contacto/directorio', ['titulo' => 'Directorio']);
     }
 
+    /** Contacto › Cultura y Talento (bolsa de trabajo). @param Router $router @return void */
     public static function culturatalento(Router $router) {
         $router->render('estaticas/contacto/cultura-y-talento', ['titulo' => 'Cultura y Talento']);
     }
 
+    /** Contacto › Proveedores. @param Router $router @return void */
     public static function proveedores(Router $router) {
         $router->render('estaticas/contacto/proveedores', ['titulo' => 'Proveedores']);
     }
 
     // ---- LEGAL / UTILIDAD ----
+    /** Aviso de Privacidad. @param Router $router @return void */
     public static function avisoprivacidad(Router $router) {
         $router->render('estaticas/aviso-privacidad/aviso-privacidad', ['titulo' => 'Aviso de Privacidad']);
     }
 
+    /** Términos y Condiciones. @param Router $router @return void */
     public static function terminoscondiciones(Router $router) {
         $router->render('estaticas/terminos-y-condiciones/terminos-y-condiciones', ['titulo' => 'Términos y Condiciones']);
     }
 
+    /** Mapa del Sitio. @param Router $router @return void */
     public static function mapadelsitio(Router $router) {
         $router->render('estaticas/mapa-del-sitio/mapa-del-sitio', ['titulo' => 'Mapa del Sitio']);
     }
 
+    /**
+     * Formulario público para que una familia deje su testimonio (GET pinta, POST guarda).
+     *
+     * El testimonio nace con `aprobado = 0` y NO se publica hasta que un revisor lo apruebe
+     * desde Redacción › Testimoniales. La entrada se limpia con strip_tags() antes de
+     * validarla.
+     *
+     * Tras un envío correcto se vacía $datos para que el formulario no repinte lo enviado;
+     * si hay errores, $datos los conserva para no obligar a reescribirlo todo.
+     *
+     * ⚠️ Este método incorpora un bloque <style> en $extra_head, en contra de la regla del
+     * proyecto («nada de CSS embebido»). Es la última vista sin migrar a
+     * src/scss/publico/: al tocarla, mover esos estilos a su partial con el envoltorio
+     * body[data-page="..."].
+     *
+     * @param  Router $router
+     * @return void
+     */
     public static function feedbackTestimoniales(Router $router) {
         $enviado = false;
         $errores = [];

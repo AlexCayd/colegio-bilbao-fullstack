@@ -4,7 +4,8 @@ namespace Model;
 class UsuarioBlog extends ActiveRecord {
 
     protected static $tabla      = 'usuarios';
-    // fecha_nacimiento, rol_redaccion y tipo_personal se persisten aparte (soporte de NULL real).
+    // fecha_nacimiento, rol_redaccion, tipo_personal y niveles se persisten aparte
+    // (soporte de NULL real: el ORM base envuelve todo en comillas y escribiría '').
     protected static $columnasDB = ['id', 'nombre', 'email', 'password', 'rol', 'puede_suplir', 'modulos', 'avatar'];
 
     public $id;
@@ -15,6 +16,9 @@ class UsuarioBlog extends ActiveRecord {
     public $rol;
     public $rol_redaccion;   // 'revisor'|'editor'|null — solo con módulo redaccion
     public $tipo_personal;   // SET: 'profesor','prefecto','administrativo' (CSV, combinable)
+    // SET (CSV). En un 'profesor' = niveles que IMPARTE; en un 'directivo' = niveles
+    // que GESTIONA (vacío = todo el colegio). En el resto de puestos va NULL.
+    public $niveles;
     public $puede_suplir = 1;// 0 = no puede suplir a otros profesores
     public $modulos;         // CSV de módulos para rol 'usuario' (admin = todos)
     public $fecha_nacimiento;// DATE — para el calendario de cumpleaños
@@ -96,8 +100,9 @@ class UsuarioBlog extends ActiveRecord {
         // Rol de redacción (revisor/editor) obligatorio si tiene el módulo redaccion
         $this->validarRolRedaccion();
 
-        // Tipo de personal (SET combinable)
+        // Tipo de personal (SET combinable) y, si es docente, sus niveles
         $this->normalizarTipoPersonal();
+        $this->normalizarNiveles();
 
         // Fecha de nacimiento (opcional, pero si viene debe ser válida)
         $this->validarFechaNacimiento();
@@ -108,9 +113,43 @@ class UsuarioBlog extends ActiveRecord {
 
     /** Lista blanca de módulos asignables a un rol 'usuario'. */
     public const MODULOS_ASIGNABLES = [
-        'usuarios', 'profesores', 'prefectura', 'administrativos',
-        'eventos', 'horarios', 'aulas', 'grupos', 'suplencias',
-        'redaccion',
+        'usuarios', 'profesores', 'prefectura', 'administrativos', 'directivos',
+        'eventos', 'horarios', 'aulas', 'grupos', 'suplencias', 'swaps',
+        'redaccion', 'soporte',
+    ];
+
+    /**
+     * Módulos que se preseleccionan al marcar un tipo de personal.
+     *
+     * Es una **sugerencia**, no una regla: el formulario los marca para no partir de
+     * cero y el admin quita o añade lo que quiera. Salen de lo que el claustro real ya
+     * tiene asignado en el seed, así que dar de alta a alguien «como los demás» deja
+     * de ser un ejercicio de memoria.
+     *
+     * `soporte` no aparece en ninguna: es transversal (`MODULOS_TRANSVERSALES`) y lo
+     * tiene todo el mundo, así que marcarlo sería ruido.
+     */
+    public const MODULOS_SUGERIDOS = [
+        'profesor'       => ['suplencias', 'horarios', 'swaps'],
+        'administrativo' => ['eventos'],
+        'prefecto'       => ['suplencias', 'horarios', 'swaps', 'profesores'],
+        // Dirección gobierna: ve todo el panel, acotado por `niveles` a su nivel.
+        'directivo'      => ['suplencias', 'horarios', 'swaps', 'usuarios', 'profesores',
+                             'prefectura', 'administrativos', 'directivos', 'aulas',
+                             'grupos', 'eventos'],
+    ];
+
+    /** Tipos de personal que NO se combinan con ningún otro, en orden de prioridad. */
+    public const TIPOS_EXCLUYENTES = ['directivo', 'prefecto'];
+
+    /** Puestos de coordinación: ven datos de terceros (horarios, motivos, justificantes). */
+    public const TIPOS_COORDINAN = ['prefecto', 'directivo'];
+
+    public const TIPO_LABEL = [
+        'profesor'       => 'Profesor',
+        'prefecto'       => 'Prefecto',
+        'administrativo' => 'Administrativo',
+        'directivo'      => 'Directivo',
     ];
 
     /** Normaliza $modulos: el admin no guarda módulos; usuario guarda CSV limpio. */
@@ -160,7 +199,7 @@ class UsuarioBlog extends ActiveRecord {
         // este literal decide en qué orden se guarda el CSV y, por tanto, cómo
         // salen los chips en los listados. Va alineado con el orden del
         // formulario (views/blog/usuarios/_permisos-fields.php).
-        $permitidos = ['administrativo', 'profesor', 'prefecto'];
+        $permitidos = ['administrativo', 'profesor', 'prefecto', 'directivo'];
         $raw = $this->tipo_personal;
         if (\is_array($raw)) {
             $lista = $raw;
@@ -168,10 +207,113 @@ class UsuarioBlog extends ActiveRecord {
             $lista = array_filter(array_map('trim', explode(',', (string) $raw)));
         }
         $lista = array_values(array_intersect($permitidos, $lista));
-        if (in_array('prefecto', $lista, true)) $lista = ['prefecto'];
+        // `prefecto` y `directivo` son excluyentes: son puestos de coordinación, no se
+        // acumulan con la docencia ni entre sí. Si vienen ambos gana `directivo`, que
+        // es el de mayor alcance.
+        foreach (self::TIPOS_EXCLUYENTES as $t) {
+            if (in_array($t, $lista, true)) { $lista = [$t]; break; }
+        }
         $this->tipo_personal = $lista ? implode(',', $lista) : null;
         // puede_suplir normalizado a 0/1
         $this->puede_suplir = !empty($this->puede_suplir) ? 1 : 0;
+    }
+
+    /**
+     * Normaliza `niveles` (SET) contra Materia::NIVELES; vacío = null.
+     *
+     * ⚠️ La columna sirve a DOS puestos y significa una cosa distinta en cada uno:
+     *   profesor  → "IMPARTE estos niveles". Acota el eje de su rejilla y prioriza
+     *               a los candidatos en las suplencias.
+     *   directivo → "GESTIONA estos niveles". Acota sus tableros, su agenda y su
+     *               bandeja de justificantes. Vacío = todo el colegio.
+     *
+     * Los dos significados NO pueden coexistir en una fila: `directivo` es
+     * EXCLUYENTE y normalizarTipoPersonal() —que corre JUSTO ANTES, y ese orden es
+     * precondición de este método— ya ha colapsado el SET a ['directivo']. En
+     * prefectura y administrativos se sigue forzando a null, igual que
+     * `puede_suplir` se fuerza a 1, así que un POST manipulado tampoco se los cuela.
+     *
+     * El orden lo fija Materia::NIVELES (Maternal→Bachillerato), que es el vocabulario
+     * canónico: array_intersect conserva el orden del primer array.
+     */
+    private function normalizarNiveles(): void {
+        if (!$this->esDocente() && !$this->esDirectivo()) { $this->niveles = null; return; }
+
+        $raw = $this->niveles;
+        if (\is_array($raw)) {
+            $lista = $raw;
+        } else {
+            $lista = array_filter(array_map('trim', explode(',', (string) $raw)));
+        }
+        $lista = array_values(array_intersect(Materia::NIVELES, $lista));
+        // Los cinco marcados es lo mismo que ninguno: para quien lee el alcance son
+        // la misma cosa, y así la UI no pinta cinco chips redundantes. Mismo criterio
+        // que Evento::normalizarNiveles().
+        if (count($lista) === count(Materia::NIVELES)) $lista = [];
+        $this->niveles = $lista ? implode(',', $lista) : null;
+    }
+
+    /** ¿El tipo de personal incluye 'profesor'? (tipo_personal ya normalizado o crudo) */
+    private function esDocente(): bool {
+        return $this->tieneTipo('profesor');
+    }
+
+    /** ¿El tipo de personal incluye 'directivo'? */
+    private function esDirectivo(): bool {
+        return $this->tieneTipo('directivo');
+    }
+
+    private function tieneTipo(string $tipo): bool {
+        $raw = $this->tipo_personal;
+        $lista = \is_array($raw) ? $raw : array_filter(array_map('trim', explode(',', (string) $raw)));
+        return in_array($tipo, $lista, true);
+    }
+
+    /** Niveles declarados de un usuario, en orden canónico. [] si no ha declarado ninguno. */
+    public static function nivelesDe(int $id): array {
+        $id = (int) $id;
+        if ($id <= 0) return [];
+        $r = self::$db->query("SELECT niveles FROM " . static::$tabla . " WHERE id = {$id} LIMIT 1");
+        $row = $r ? $r->fetch_assoc() : null;
+        $lista = array_filter(array_map('trim', explode(',', (string) ($row['niveles'] ?? ''))));
+        return array_values(array_intersect(Materia::NIVELES, $lista));
+    }
+
+    /**
+     * Direcciones a las que compete un conjunto de niveles: las que tienen alguno de
+     * ellos declarado MÁS las que no declaran ninguno (dirección general, cuyo
+     * alcance es el colegio entero).
+     *
+     * Es el fan-out de avisos. `Notificacion::nueva()` escribe UNA fila por usuario y
+     * no sabe de grupos, así que el reparto se decide aquí y en UNA sola consulta.
+     *
+     * No reutiliza porTipo(): ese arrastra un LEFT JOIN a `articulos` con un
+     * COUNT(a.id) que existe para las tarjetas de los directorios y aquí solo cuesta
+     * un GROUP BY inútil. Devuelve ids y no objetos porque hidratar seis ActiveRecord
+     * para leerles el id es trabajo tirado.
+     *
+     * @param string[] $niveles [] o los cinco = todas las direcciones
+     * @return int[] ids en orden estable
+     */
+    public static function direccionesDeNiveles(array $niveles): array {
+        $cond = '';
+        $ok   = array_values(array_intersect(Materia::NIVELES, $niveles));
+        if ($ok && count($ok) < count(Materia::NIVELES)) {
+            $orNivel = implode(' OR ', array_map(
+                fn($n) => "FIND_IN_SET('" . self::$db->escape_string($n) . "', u.niveles)", $ok));
+            // ⚠️ Un SET tiene TRES estados: NULL, '' y con valor. FIND_IN_SET(x, '')
+            // devuelve 0 y '' IS NULL es false, así que sin el término `= ''` una
+            // dirección general guardada con el SET vacío se quedaría sin un solo aviso.
+            $cond = " AND (u.niveles IS NULL OR u.niveles = '' OR {$orNivel})";
+        }
+
+        $out = [];
+        $r = self::$db->query(
+            "SELECT u.id FROM " . static::$tabla . " u
+              WHERE FIND_IN_SET('directivo', u.tipo_personal){$cond}
+              ORDER BY u.id ASC");
+        if ($r) while ($row = $r->fetch_assoc()) $out[] = (int) $row['id'];
+        return $out;
     }
 
     /** Valida el formato de fecha_nacimiento (Y-m-d) si se proporcionó. */
@@ -238,6 +380,42 @@ class UsuarioBlog extends ActiveRecord {
         $query = "SELECT id, nombre, email, avatar
                   FROM " . static::$tabla . "
                   WHERE nombre LIKE '%{$safe}%' OR email LIKE '%{$safe}%'
+                  ORDER BY nombre ASC
+                  LIMIT {$limite}";
+        $r = self::$db->query($query);
+        $out = [];
+        if ($r) {
+            while ($row = $r->fetch_assoc()) {
+                $out[] = [
+                    'id'     => (int)$row['id'],
+                    'nombre' => $row['nombre'],
+                    'email'  => $row['email'],
+                    'avatar' => $row['avatar'] ?? '',
+                ];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Igual que buscar(), pero solo personal DOCENTE y sin uno mismo.
+     *
+     * `buscar()` devuelve cualquier usuario, incluido quien busca: sirve para el picker
+     * de Suplencias, donde el ausente puede ser cualquiera. Aquí no vale — un
+     * acompañante de coteaching y la contraparte de un intercambio tienen que dar clase,
+     * y ofrecerte a ti mismo solo produce un error del servidor.
+     */
+    public static function buscarProfesores(string $q, int $excluir = 0, int $limite = 8): array {
+        $q = trim($q);
+        if ($q === '') return [];
+        $safe   = self::$db->escape_string($q);
+        $limite = max(1, min(20, $limite));
+        $excl   = $excluir > 0 ? " AND id <> " . (int)$excluir : '';
+        $query = "SELECT id, nombre, email, avatar
+                  FROM " . static::$tabla . "
+                  WHERE FIND_IN_SET('profesor', tipo_personal)
+                    AND (nombre LIKE '%{$safe}%' OR email LIKE '%{$safe}%')
+                    {$excl}
                   ORDER BY nombre ASC
                   LIMIT {$limite}";
         $r = self::$db->query($query);
@@ -361,17 +539,18 @@ class UsuarioBlog extends ActiveRecord {
     }
 
     /**
-     * Persiste rol_redaccion y tipo_personal con soporte de NULL real (el ORM base no lo permite).
-     * Llamar tras guardar() con el id ya disponible.
+     * Persiste rol_redaccion, tipo_personal y niveles con soporte de NULL real
+     * (el ORM base no lo permite). Llamar tras guardar() con el id ya disponible.
      */
-    public static function guardarAtributos(int $id, ?string $rolRedaccion, ?string $tipoPersonal): void {
+    public static function guardarAtributos(int $id, ?string $rolRedaccion, ?string $tipoPersonal, ?string $niveles = null): void {
         $id = (int) $id;
         if ($id <= 0) return;
-        $rr = ($rolRedaccion !== null && $rolRedaccion !== '')
-            ? "'" . self::$db->escape_string($rolRedaccion) . "'" : 'NULL';
-        $tp = ($tipoPersonal !== null && $tipoPersonal !== '')
-            ? "'" . self::$db->escape_string($tipoPersonal) . "'" : 'NULL';
-        self::$db->query("UPDATE " . static::$tabla . " SET rol_redaccion = {$rr}, tipo_personal = {$tp} WHERE id = {$id} LIMIT 1");
+        $sql = fn(?string $v) => ($v !== null && $v !== '') ? "'" . self::$db->escape_string($v) . "'" : 'NULL';
+        self::$db->query("UPDATE " . static::$tabla . " SET"
+            . " rol_redaccion = " . $sql($rolRedaccion)
+            . ", tipo_personal = " . $sql($tipoPersonal)
+            . ", niveles = "       . $sql($niveles)
+            . " WHERE id = {$id} LIMIT 1");
     }
 
     /**
@@ -383,7 +562,7 @@ class UsuarioBlog extends ActiveRecord {
      */
     public static function candidatosSuplencia(): array {
         $r = self::$db->query("
-            SELECT id, nombre, avatar, tipo_personal, puede_suplir
+            SELECT id, nombre, avatar, tipo_personal, niveles, puede_suplir
             FROM usuarios
             WHERE puede_suplir = 1
               AND FIND_IN_SET('profesor', tipo_personal)

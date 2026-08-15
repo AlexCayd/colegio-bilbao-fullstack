@@ -69,7 +69,14 @@ foreach (($eventos ?? []) as $ev) {
     $cursor = clone $ini;
     $guard  = 0;
     while ($cursor <= $fin && $guard++ < 90) {
-        $calMarks[] = ['ymd' => $cursor->format('Y-m-d'), 'tipo' => $ev->tipo, 'nombre' => $ev->titulo];
+        // `desc` y `alcance` alimentan el modal de detalle del día; el calendario
+        // solo usa tipo y nombre.
+        $calMarks[] = [
+            'ymd'    => $cursor->format('Y-m-d'),
+            'tipo'   => $ev->tipo,
+            'nombre' => $ev->titulo,
+            'desc'   => trim(($ev->descripcion ?? '') . ($ev->niveles ? ' · ' . $ev->alcance() : '')),
+        ];
         $cursor->modify('+1 day');
     }
 }
@@ -122,100 +129,36 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
         <main class="admin-content">
 
             <?php
-            // ── Estado del día ──
-            // El hero dejó de ser un saludo decorativo: es el panel donde se ve de un
-            // vistazo qué pasa hoy y qué está pendiente. Las tarjetas a cero no se
-            // pintan, así que un día tranquilo el hero vuelve a ser solo el saludo.
-            $pend       = $pendientes ?? [];
-            $evHoy      = array_values(array_filter($proxEventos, fn($e) => $e['hoy']));
-            $cumpleHoyL = array_values($cumpleHoy);
+            // ── Hero ──
+            // Es la PORTADA del panel, no un tablero. Dentro del contenedor solo queda la
+            // marca y el saludo: el tile de fecha, el contador de módulos y la línea de
+            // cumpleaños se fueron porque competían con lo único que un hero tiene que
+            // decir. La fecha ya la da el calendario de abajo, el número de módulos lo
+            // dicen las tarjetas, y el cumpleaños del día bajó a su propia tira (abajo),
+            // que es el único dato de los tres que no estaba en ningún otro sitio.
+            $cumpleHoyL   = array_values($cumpleHoy);
             $verCumpleCta = in_array('usuarios', $disponibles, true);
-            $hayEstado  = $cumpleHoyL || $evHoy
-                          || ($pend['notificaciones'] ?? 0) || ($pend['coberturas'] ?? 0) || ($pend['sinSuplente'] ?? 0);
             ?>
 
-            <!-- HERO: saludo + estado del día -->
-            <div class="mh-hero<?= $hayEstado ? ' has-estado' : '' ?>">
+            <!-- HERO: bosque WebGL + marca y saludo en vidrio -->
+            <div class="mh-hero">
+                <?php /* Sin WebGL o con prefers-reduced-motion, BilbaoForest.init() devuelve
+                          null y no pinta nada: el degradado de respaldo del CSS queda a la
+                          vista, así que el hero nunca se ve roto. */ ?>
+                <canvas id="mhForest" class="mh-hero__canvas" aria-hidden="true"></canvas>
+                <div class="mh-hero__veil" aria-hidden="true"></div>
+
                 <div class="mh-hero__top">
-                <div class="mh-hero__left">
-                    <?php /* Con cumpleaños hoy el tile de fecha se pone naranja: se ve desde el primer vistazo */ ?>
-                    <div class="mh-datetile<?= !empty($cumpleHoy) ? ' mh-datetile--cumple' : '' ?>">
-                        <span class="mh-datetile__dow"><?= mb_substr($diasLg[(int)$now->format('w')], 0, 3) ?></span>
-                        <span class="mh-datetile__d"><?= $now->format('d') ?></span>
-                        <span class="mh-datetile__mo"><?= $mesesEs[(int)$now->format('n') - 1] ?></span>
-                    </div>
-                    <div>
-                        <p class="mh-hero__eyebrow"><i class="fa-solid fa-wand-magic-sparkles"></i> Intranet · Colegio Bilbao</p>
+                    <div class="mh-hero__texto">
+                        <p class="mh-hero__eyebrow">
+                            <span class="mh-hero__brand">Intranet</span>
+                            <span class="mh-hero__colegio">Bilbao</span>
+                        </p>
                         <h1 class="mh-hero__title"><?= htmlspecialchars($saludo) ?>, <?= htmlspecialchars($nombreCorto) ?></h1>
-                        <p class="mh-hero__sub"><?= $diasLg[(int)$now->format('w')] ?>, <?= (int)$now->format('d') ?> de <?= $mesesLg[(int)$now->format('n') - 1] ?> · Tienes <strong><?= count($disponibles) ?> módulo<?= count($disponibles) !== 1 ? 's' : '' ?></strong></p>
                     </div>
-                </div>
-                <img src="/build/assets/img/alex/<?= $heroAlex ?>.png" alt="Alex" class="mh-hero__alex">
+                    <img src="/build/assets/img/alex/<?= $heroAlex ?>.png" alt="Alex" class="mh-hero__alex">
                 </div><!-- /.mh-hero__top -->
 
-                <?php if ($hayEstado): ?>
-                <div class="mh-estado">
-
-                    <?php if ($cumpleHoyL): ?>
-                    <?php $cn = count($cumpleHoyL); ?>
-                    <a class="mh-est mh-est--cumple<?= $verCumpleCta ? '' : ' is-static' ?>"
-                       <?= $verCumpleCta ? 'href="/dashboard/usuarios/cumpleanos"' : '' ?>>
-                        <span class="mh-est__avas">
-                            <?php foreach (array_slice($cumpleHoyL, 0, 3) as $c): ?>
-                            <span class="mh-cumple__ava" title="<?= htmlspecialchars($c['nombre']) ?>">
-                                <?php if (!empty($c['avatar'])): ?><img src="<?= htmlspecialchars($c['avatar']) ?>" alt=""><?php else: ?><?= htmlspecialchars($c['inicial']) ?><?php endif; ?>
-                            </span>
-                            <?php endforeach; ?>
-                        </span>
-                        <span class="mh-est__txt">
-                            <span class="mh-est__label"><i class="fa-solid fa-cake-candles"></i> Cumpleaños</span>
-                            <span class="mh-est__dato"><?= htmlspecialchars($cumpleHoyL[0]['nombre']) ?><?= $cn > 1 ? ' y ' . ($cn - 1) . ' más' : '' ?></span>
-                        </span>
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if (!empty($pend['notificaciones'])): ?>
-                    <a class="mh-est mh-est--notif" href="/dashboard/notificaciones">
-                        <span class="mh-est__ico"><i class="fa-regular fa-bell"></i></span>
-                        <span class="mh-est__txt">
-                            <span class="mh-est__label">Sin leer</span>
-                            <span class="mh-est__dato"><?= (int)$pend['notificaciones'] ?> notificación<?= $pend['notificaciones'] == 1 ? '' : 'es' ?></span>
-                        </span>
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if (!empty($pend['coberturas'])): ?>
-                    <a class="mh-est mh-est--cobertura" href="/dashboard/suplencias/mis-coberturas">
-                        <span class="mh-est__ico"><i class="fa-solid fa-clipboard-check"></i></span>
-                        <span class="mh-est__txt">
-                            <span class="mh-est__label">Por confirmar</span>
-                            <span class="mh-est__dato"><?= (int)$pend['coberturas'] ?> cobertura<?= $pend['coberturas'] == 1 ? '' : 's' ?></span>
-                        </span>
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if (!empty($pend['sinSuplente'])): ?>
-                    <a class="mh-est mh-est--suplente" href="/dashboard/suplencias">
-                        <span class="mh-est__ico"><i class="fa-solid fa-user-clock"></i></span>
-                        <span class="mh-est__txt">
-                            <span class="mh-est__label">Sin suplente</span>
-                            <span class="mh-est__dato"><?= (int)$pend['sinSuplente'] ?> ausencia<?= $pend['sinSuplente'] == 1 ? '' : 's' ?></span>
-                        </span>
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if ($evHoy): ?>
-                    <a class="mh-est mh-est--evento" href="/dashboard/eventos">
-                        <span class="mh-est__ico"><i class="fa-solid fa-calendar-day"></i></span>
-                        <span class="mh-est__txt">
-                            <span class="mh-est__label">Hoy</span>
-                            <span class="mh-est__dato"><?= htmlspecialchars($evHoy[0]['titulo']) ?><?= count($evHoy) > 1 ? ' y ' . (count($evHoy) - 1) . ' más' : '' ?></span>
-                        </span>
-                    </a>
-                    <?php endif; ?>
-
-                </div>
-                <?php endif; ?>
             </div>
 
             <!-- MÓDULOS, agrupados por categoría -->
@@ -238,6 +181,18 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
                 </div>
             </section>
             <?php endforeach; endif; ?>
+
+            <?php if ($cumpleHoyL): $cn = count($cumpleHoyL); ?>
+            <?php /* Cumpleaños de hoy. Bajó del hero, pero no se elimina: es el único de
+                     los datos que había ahí arriba que no aparece en ningún otro sitio del
+                     panel. Va pegado al calendario porque es su mismo tema. */ ?>
+            <p class="mh-cumple-hoy">
+                <i class="fa-solid fa-cake-candles"></i>
+                Hoy cumple años <strong><?= htmlspecialchars($cumpleHoyL[0]['nombre']) ?></strong><?php
+                    if ($cn > 1) echo ' y ' . ($cn - 1) . ($cn === 2 ? ' persona más' : ' personas más'); ?><?php
+                    if ($verCumpleCta): ?> · <a href="/dashboard/usuarios/cumpleanos">Ver calendario</a><?php endif; ?>
+            </p>
+            <?php endif; ?>
 
             <?php if ($verCalendar): ?>
             <!-- CALENDARIO (cumpleaños + eventos) + LISTA DE CUMPLEAÑOS -->
@@ -365,3 +320,28 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
     <span class="at-bar" style="background:#f5b400;"></span>
 </div>
 <?php endif; ?>
+
+<?php /* ── Detalle del día ──
+          Pulsar un día del calendario abre esta ficha con lo que hay agendado.
+          Antes las celdas eran botones sin acción: se veían los puntos de color pero
+          no había forma de saber qué eran sin salir a Eventos. */ ?>
+<div class="mh-dia" id="mhDiaModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="mhDiaTitulo">
+    <div class="mh-dia__card" role="document">
+        <header class="mh-dia__head">
+            <div>
+                <p class="mh-dia__eyebrow"><i class="fa-solid fa-calendar-day"></i> Agenda del día</p>
+                <h2 class="mh-dia__titulo" id="mhDiaTitulo" data-dia-titulo></h2>
+            </div>
+            <button type="button" class="mh-dia__x" data-dia-cerrar aria-label="Cerrar">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </header>
+        <ul class="mh-dia__lista" data-dia-lista></ul>
+        <footer class="mh-dia__foot">
+            <?php if (in_array('eventos', $disponibles, true)): ?>
+            <a href="/dashboard/eventos" class="admin-btn admin-btn--ghost"><i class="fa-solid fa-calendar-days"></i> Ir a Eventos</a>
+            <?php endif; ?>
+            <button type="button" class="admin-btn admin-btn--primary" data-dia-cerrar>Entendido</button>
+        </footer>
+    </div>
+</div>

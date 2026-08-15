@@ -45,9 +45,125 @@
     option   { font-weight: 600; color: #1e293b; padding: 6px; }
 }
 
-/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo y "Mi horario" */
+/* ── Detalle de una casilla del horario ──────────────────────────────────────────
+   FUERA del scope `body[data-page=...]` de abajo, igual que `.hor-select`: el partial
+   `_grid.php` lo incluyen tres vistas y el modal tiene que existir en las tres.
+   Ocultación por `[hidden]`, la convención del panel (.cat-modal, .hed-modal). */
+.hcd-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(11, 31, 61, .55);
+    backdrop-filter: blur(3px);
+
+    /* ⚠️ Obligatorio: `[hidden] { display:none }` vive en base/_normalize.scss, misma
+       especificidad y capa ANTERIOR, así que el `display:grid` de aquí ganaría y el
+       modal nacería abierto. Todo componente con `display` propio necesita su
+       `&[hidden]`. */
+    &[hidden] { display: none; }
+
+    &__card {
+        --c: #4285f4;
+        position: relative;
+        width: min(460px, 100%);
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 24px 60px rgba(11, 31, 61, .28);
+
+        /* Barra del color de la materia: ata el modal a la casilla que lo abrió. */
+        &::before {
+            content: '';
+            position: absolute; left: 0; right: 0; top: 0;
+            height: 5px;
+            background: var(--c);
+        }
+    }
+
+    &__head {
+        position: relative;
+        padding: 22px 52px 16px 24px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    &__eyebrow {
+        display: block;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #94a3b8;
+    }
+
+    &__title {
+        margin: 5px 0 0;
+        font-size: 1.18rem;
+        font-weight: 800;
+        color: #0b1f3d;
+        line-height: 1.25;
+    }
+
+    &__x {
+        position: absolute;
+        top: 18px; right: 18px;
+        width: 32px; height: 32px;
+        display: grid; place-items: center;
+        border: none; border-radius: 10px;
+        background: #f1f5f9; color: #64748b;
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease;
+
+        &:hover { background: #e2e8f0; color: #0b1f3d; }
+    }
+
+    /* <dl> de dos columnas: el término a la izquierda con ancho fijo y el valor
+       ocupando el resto. Se lee como una ficha, que es lo que es. */
+    &__lista {
+        display: grid;
+        grid-template-columns: 96px 1fr;
+        gap: 9px 14px;
+        margin: 0;
+        padding: 18px 24px;
+        overflow-y: auto;
+        font-size: .87rem;
+
+        dt {
+            margin: 0;
+            font-weight: 700;
+            color: #94a3b8;
+            font-size: .78rem;
+            padding-top: 1px;
+        }
+        dd {
+            margin: 0;
+            color: #334155;
+            line-height: 1.45;
+            /* Un nombre de materia largo debe partirse, no ensanchar el modal. */
+            overflow-wrap: anywhere;
+        }
+        /* Sin ninguna fila el <dl> quedaría como una franja vacía. */
+        &:empty { display: none; }
+    }
+
+    &__foot {
+        display: flex;
+        justify-content: flex-end;
+        padding: 14px 24px 20px;
+        border-top: 1px solid #f1f5f9;
+    }
+}
+
+/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo, "Mi horario" y
+   la "semana completa" del editor, que incluye el mismo partial `_grid.php`. */
 body[data-page="blog-horarios-index"],
-body[data-page="blog-horarios-mi-horario"] {
+body[data-page="blog-horarios-mi-horario"],
+body[data-page="blog-usuarios-horario"] {
     .hor-tabs {
         display: flex;
         gap: 8px;
@@ -107,23 +223,55 @@ body[data-page="blog-horarios-mi-horario"] {
             &-label { display: block; font-weight: 700; font-size: .82rem; color: var(--col-herencia, #374c69); }
             &-time  { display: block; font-size: .72rem; color: #94a3b8; }
         }
-        td { border-radius: 12px; height: 62px; padding: 0; }
+        /* La altura de fila va en PROPORCIÓN a `alto` (los minutos del tramo, con tope).
+           Es lo que permite que una clase con rowspan cuadre: la suma de las filas que
+           abarca (más el border-spacing de en medio) la calcula el navegador, así que no
+           queda ninguna aritmética en el CSS que se pueda desincronizar.
+           50 min → 62px, exactamente el alto que tenía la rejilla de una sola jornada. */
+        tbody tr { height: calc(var(--min, 50) * 1.24px); }
+        /* Tramo que ningún día usa: franja separadora, no fila. Es lo que hace legible la
+           rejilla de un profesor que cruza dos jornadas desfasadas. */
+        &__gap {
+            .hor-grid__hour { padding-right: 12px; }
+            .hor-grid__hour-time { font-size: .64rem; opacity: .6; }
+            td { opacity: .5; }
+        }
+        /* Fragmento: los 20-30 min que quedan al cruzarse dos jornadas desfasadas. No es
+           una hora con nombre, así que su rótulo va en tono menor — si se pinta igual que
+           "3ª hora" parece que el colegio tiene una hora de 20 minutos. */
+        &__frag .hor-grid__hour-time {
+            font-size: .68rem; font-weight: 600; color: #b3c0d0;
+        }
+        /* El contenido se ancla al <td> en vez de usar height:100%: en una tabla la
+           altura del td es un mínimo, y con rowspan el porcentaje no resuelve bien. */
+        td { border-radius: 12px; padding: 0; position: relative; }
         &__free {
             background: repeating-linear-gradient(45deg, #f4f7fb, #f4f7fb 6px, #eef3f9 6px, #eef3f9 12px);
             /* El span llena la celda para quedar centrado igual que un bloque de clase */
             span {
-                display: flex; align-items: center; justify-content: center; height: 100%;
+                position: absolute; inset: 0;
+                display: flex; align-items: center; justify-content: center;
                 font-size: .74rem; color: #b3c0d0; font-weight: 600;
             }
         }
-        &__receso td, &__receso-cell {
-            background: #fff7e6;
-        }
-        &__receso-cell { color: #e0a800; border-radius: 12px; }
+        /* El receso ya no es una fila entera: con jornada por nivel, el mismo tramo puede
+           ser receso de Primaria y clase de Bachillerato. Es estado de celda. */
+        &__receso-cell { background: #fff7e6; color: #e0a800; border-radius: 12px; }
     }
-    /* Bloques de clase: fondo sólido del color de la materia y texto claro */
+    /* Bloques de clase: fondo sólido del color de la materia y texto claro.
+       Es un <button> —la casilla abre su ficha completa— así que hay que neutralizar
+       los estilos de botón; el resto de reglas no cambia.
+       ⚠️ `position:absolute; inset:0` es innegociable y ningún modificador puede
+       redeclarar el `position`: en `table-layout:fixed` la celda volvería al flujo y
+       se encogería a su contenido. */
     .hor-cell {
-        height: 100%;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        border: none;
+        font: inherit;
+        appearance: none;
+        cursor: pointer;
         border-radius: 12px;
         padding: 8px 11px;
         display: flex;
@@ -133,15 +281,123 @@ body[data-page="blog-horarios-mi-horario"] {
         background: var(--c);
         box-shadow: 0 6px 14px -8px rgba(11, 31, 61, .45);
         text-align: left;
+        overflow: hidden;
+        transition: box-shadow .15s ease, filter .15s ease;
 
-        &__mat { font-weight: 700; font-size: .84rem; color: #fff; line-height: 1.2; }
-        &__sec { font-size: .72rem; color: rgba(255, 255, 255, .82); }
+        &:hover { filter: brightness(1.06); box-shadow: 0 8px 18px -8px rgba(11, 31, 61, .55); }
+        &:focus-visible {
+            outline: none;
+            /* box-shadow y NO border: en `table-layout:fixed` el borde se dibuja dentro
+               del ancho de columna y le roba píxeles al hijo. */
+            box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--c);
+        }
+
+        /* Sin el recorte, una materia de nombre largo estiraba la fila y descuadraba las
+           cinco columnas — con rowspan eso se nota mucho más. */
+        &__mat {
+            font-weight: 700; font-size: .84rem; color: #fff; line-height: 1.2;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        &__sec {
+            font-size: .72rem; color: rgba(255, 255, 255, .82);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* Dos clases que se pisan en el reloj: dato sucio que la BD ya no puede impedir
+           entre niveles distintos. Se marca, no se esconde. */
+        &__conflicto {
+            position: absolute; top: 4px; right: 5px;
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 1px 5px; border-radius: 999px;
+            background: #e51022; color: #fff;
+            font-size: .62rem; font-weight: 800; line-height: 1.5;
+        }
+
+        /* Clase de un nivel que el profesor no tiene declarado. No es un choque de datos
+           sino un ajuste de ficha pendiente: ámbar y otro icono, para no confundirlo con
+           el rojo del conflicto real. */
+        &__ajeno {
+            position: absolute; top: 4px; right: 5px;
+            display: grid; place-items: center;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #fff7e6; color: #b45309;
+            font-size: .58rem;
+        }
 
         /* Tonos claros de la paleta (amarillo, lima, turquesa): tinta oscura */
         &--dark {
             .hor-cell__mat { color: #1f2937; }
             .hor-cell__sec { color: rgba(31, 41, 55, .72); }
         }
+
+        /* Anillo ámbar en la clase de un nivel no declarado */
+        &--ajeno { box-shadow: 0 0 0 2px #e0a800, 0 6px 14px -8px rgba(11, 31, 61, .45); }
+
+        /* Titular + acompañante. El icono basta: los nombres ya van en la línea
+           secundaria y en el title, y la celda no da para más texto. */
+        &__duo {
+            position: absolute; top: 4px; left: 5px;
+            display: grid; place-items: center;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: rgba(255, 255, 255, .28); color: #fff;
+            font-size: .55rem;
+        }
+
+        /* ── Materia dividida ──
+           El alumnado se reparte entre dos o más opciones simultáneas. La celda deja de
+           tener un color propio y se parte en tantas franjas como opciones, cada una con
+           el color de SU materia: si no, una de las dos quedaría invisible. */
+        &--split {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            gap: 2px;
+            flex-direction: column;
+        }
+        &__opt {
+            flex: 1 1 0;
+            min-height: 0;
+            display: flex; flex-direction: column; justify-content: center;
+            gap: 1px;
+            padding: 4px 10px;
+            border-radius: 10px;
+            background: var(--c);
+            overflow: hidden;
+            box-shadow: 0 4px 10px -7px rgba(11, 31, 61, .45);
+
+            .hor-cell__mat { font-size: .78rem; }
+            .hor-cell__sec { font-size: .66rem; }
+        }
+
+        /* Guardia de receso: no es una clase, es vigilancia. Se distingue con un patrón
+           diagonal para que no se lea como una materia más de la jornada. */
+        &--guardia {
+            background:
+                repeating-linear-gradient(135deg,
+                    rgba(255, 255, 255, .14) 0 6px,
+                    transparent 6px 12px),
+                var(--c);
+        }
+    }
+
+    .hor-ajeno-aviso {
+        display: flex; align-items: flex-start; gap: 10px;
+        margin: 0 4px 14px; padding: 11px 15px;
+        border: 1px solid #f3d79a; border-radius: 12px;
+        background: #fff7e6; color: #8a6100;
+        font-size: .82rem; line-height: 1.5;
+
+        > i { color: #e0a800; margin-top: 2px; }
+        strong { color: #6b4a00; }
+    }
+
+    /* Niveles que cruza el horario mostrado (solo aparece si son más de uno) */
+    .hor-head__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .hor-niveles {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 11px; border-radius: 999px;
+        background: #eef3f9; color: #4267ac;
+        font-size: .76rem; font-weight: 700;
     }
 }
 
@@ -164,7 +420,9 @@ body[data-page="blog-horarios-mi-horario"] {
 
         &__stat {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-width: 132px; padding: 12px 16px;
+            /* El rótulo lleva el número de clases, más largo que el "libres a la semana"
+               de antes: sin este ancho parte en tres líneas. */
+            min-width: 150px; padding: 12px 16px;
             background: #fff; border: 1px solid #dbe7f5; border-radius: 14px;
         }
         &__stat-n { font-size: 1.7rem; font-weight: 900; color: #4267ac; line-height: 1; }

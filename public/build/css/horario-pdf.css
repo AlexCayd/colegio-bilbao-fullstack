@@ -1,0 +1,186 @@
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+body {
+  font-family: "Outfit", sans-serif;
+  font-size: 8pt;
+  color: #12233d;
+}
+
+.hp-head {
+  display: table;
+  width: 100%;
+  border-bottom: 1.6pt solid #1f5a94;
+  padding-bottom: 3.5mm;
+  margin-bottom: 4mm;
+}
+.hp-head__logo {
+  display: table-cell;
+  width: 40mm;
+  vertical-align: middle;
+}
+.hp-head__marca {
+  display: table-cell;
+  width: 40mm;
+  vertical-align: middle;
+  font-size: 14pt;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #1f5a94;
+}
+.hp-head__txt {
+  display: table-cell;
+  vertical-align: middle;
+  padding-left: 7mm;
+}
+.hp-head__eyebrow {
+  display: block;
+  font-size: 6.5pt;
+  font-weight: 600;
+  letter-spacing: 1.6pt;
+  text-transform: uppercase;
+  color: #6b7f99;
+}
+.hp-head__name {
+  margin: 1.2mm 0 0;
+  font-size: 17pt;
+  font-weight: 800;
+  letter-spacing: -0.2pt;
+  color: #1f5a94;
+}
+.hp-head__niv {
+  display: block;
+  margin-top: 1mm;
+  font-size: 8pt;
+  font-weight: 600;
+  color: #45607f;
+}
+.hp-head__stat {
+  display: table-cell;
+  width: 32mm;
+  text-align: right;
+  vertical-align: middle;
+}
+.hp-head__stat-n {
+  display: block;
+  font-size: 19pt;
+  font-weight: 800;
+  letter-spacing: -0.4pt;
+  color: #1f5a94;
+}
+.hp-head__stat-l {
+  display: block;
+  margin-top: 0.6mm;
+  font-size: 7pt;
+  font-weight: 600;
+  color: #6b7f99;
+}
+
+.hp-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.hp-grid th, .hp-grid td {
+  border: 0.5pt solid #d8e2ee;
+  padding: 0;
+  overflow: hidden;
+}
+.hp-grid thead th {
+  background: #1f5a94;
+  color: #fff;
+  font-size: 8.5pt;
+  font-weight: 700;
+  padding: 2mm 0;
+  text-align: center;
+  border-color: #1f5a94;
+}
+.hp-grid__corner {
+  width: 24mm;
+}
+.hp-grid__hour {
+  width: 24mm;
+  background: #f2f6fb;
+  text-align: center;
+  padding: 0 1.5mm;
+}
+.hp-grid__hour.is-hueco {
+  background: #fafbfd;
+}
+.hp-grid__hour-l {
+  display: block;
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #2c4a70;
+  line-height: 1.15;
+}
+.hp-grid__hour-t {
+  display: block;
+  font-size: 6.5pt;
+  font-weight: 600;
+  color: #6b7f99;
+  line-height: 1.3;
+}
+
+.hp-cell {
+  padding: 1.4mm 1.8mm;
+  vertical-align: middle;
+  color: #fff;
+}
+.hp-cell--claro {
+  color: #12233d;
+}
+.hp-cell--claro .hp-cell__sec, .hp-cell--claro .hp-cell__h {
+  color: rgba(18, 35, 61, 0.78);
+}
+.hp-cell__mat {
+  display: block;
+  font-size: 8.5pt;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.hp-cell__sec {
+  display: block;
+  font-size: 6.8pt;
+  font-weight: 400;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.88);
+}
+.hp-cell__h {
+  display: block;
+  margin-top: 0.5mm;
+  font-size: 6.2pt;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.hp-receso {
+  background: #fff7e6;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 7pt;
+  font-weight: 600;
+  color: #8a5a1f;
+}
+
+.hp-free {
+  background: #fcfdfe;
+}
+
+.hp-vacio {
+  margin: 24mm 0;
+  text-align: center;
+  font-size: 10pt;
+  color: #6b7f99;
+}
+
+.hp-foot {
+  margin-top: 3.5mm;
+  padding-top: 2mm;
+  border-top: 0.5pt solid #e6ecf4;
+  font-size: 6.5pt;
+  color: #8b9bb0;
+  text-align: right;
+}
+/*# sourceMappingURL=horario-pdf.css.map */

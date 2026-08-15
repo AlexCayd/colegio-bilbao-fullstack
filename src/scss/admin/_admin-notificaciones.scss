@@ -48,8 +48,8 @@ body[data-page="blog-notificaciones-index"] {
         position: relative;   /* ancla del separador temporal (.nt-row__tramo) */
         display: flex;
         align-items: flex-start;
-        gap: 16px;
-        padding: 20px 22px;
+        gap: 14px;
+        padding: 14px 18px;
         border-bottom: 1px solid #f1f5f9;
         transition: background .16s ease, opacity .3s ease, transform .3s ease;
 
@@ -63,8 +63,8 @@ body[data-page="blog-notificaciones-index"] {
         @media (max-width: 900px) {
             flex-wrap: wrap;
 
-            .nt-row__cuando { order: 3; flex-direction: row; align-items: center; gap: 8px; text-align: left; padding-left: 52px; }
-            .nt-row__acts   { order: 4; width: 100%; justify-content: flex-start; padding-left: 52px; }
+            .nt-row__cuando { order: 3; flex-direction: row; align-items: center; gap: 8px; text-align: left; padding-left: 48px; }
+            .nt-row__acts   { order: 4; width: 100%; justify-content: flex-start; padding-left: 48px; }
         }
 
         /* Sin leer: riel de color a la izquierda + fondo tenue. El riel sube a 4px
@@ -92,12 +92,12 @@ body[data-page="blog-notificaciones-index"] {
        izquierdo, y así de un vistazo se sabe de dónde viene cada aviso. */
     .nt-row__icon {
         flex-shrink: 0;
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
         display: grid;
         place-items: center;
-        font-size: .9rem;
+        font-size: .82rem;
         color: var(--nt-mod, #4267ac);
         background: color-mix(in srgb, var(--nt-mod, #4267ac) 12%, #fff);
 
@@ -112,53 +112,32 @@ body[data-page="blog-notificaciones-index"] {
     .nt-row__body { flex: 1; min-width: 0; }
 
     .nt-row__msg {
-        margin: 0 0 8px;
-        font-size: .95rem;
-        line-height: 1.45;
+        margin: 0;
+        font-size: .92rem;
+        line-height: 1.4;
         color: #374C69;
     }
 
-    .nt-row__meta {
-        margin: 0;
-        font-size: .74rem;
-        color: #94A3B8;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
-    /* Chip de módulo con el color del módulo, no gris para todos */
-    .nt-row__mod {
-        background: color-mix(in srgb, var(--nt-mod, #4267ac) 13%, #fff);
-        color: var(--nt-mod, #4267ac);
-        font-weight: 800;
-        font-size: .66rem;
-        letter-spacing: .4px;
-        text-transform: uppercase;
-        padding: 3px 9px;
-        border-radius: 6px;
-
-        &--redaccion  { --nt-mod: #8e1c7d; }
-        &--suplencias { --nt-mod: #4267ac; }
-        &--horarios   { --nt-mod: #1f8189; }
-        &--eventos    { --nt-mod: #c2500f; }
-        &--usuarios   { --nt-mod: #5b8a19; }
-        &--general    { --nt-mod: #64748b; }
-    }
+    /* `.nt-row__meta` y su chip `.nt-row__mod` se retiraron: repetían en mayúsculas
+       el módulo que el icono ya codifica por color y forma, y eran el elemento más
+       ruidoso de una fila que llegó a tener ocho piezas compitiendo. */
 
     /* ── Marca temporal ──
        El chip relativo (Hoy / Ayer / Martes / 12 Jul) responde a "¿esto es de
        ahora?", que es la pregunta real; la hora queda de apoyo y la fecha
        completa vive en el title, sin gastar una línea. */
+    /* Centrada, no pegada arriba: la fila crece con la tira L·M·X·J·V y el chip de
+       módulo, y con `flex-start` la marca temporal y los botones quedaban clavados en el
+       borde superior mientras el mensaje ocupaba el centro. El icono sí sigue arriba
+       (`.nt-row` es flex-start), que es lo que ancla la fila a su primera línea. */
     .nt-row__cuando {
         flex-shrink: 0;
+        align-self: center;
         display: flex;
         flex-direction: column;
         align-items: flex-end;
         gap: 3px;
         text-align: right;
-        padding-top: 2px;
         cursor: default;
     }
 
@@ -187,6 +166,7 @@ body[data-page="blog-notificaciones-index"] {
        tan poco contraste que no se leía como algo pulsable. */
     .nt-row__acts {
         flex-shrink: 0;
+        align-self: center;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -194,30 +174,41 @@ body[data-page="blog-notificaciones-index"] {
         justify-content: flex-end;
     }
 
+    /* Mismos tokens que .admin-btn (pastilla, borde de 1.5px, altura fija): en esta
+       página conviven cuatro botones —dos en la cabecera del panel, dos por fila— y con
+       radios y grosores distintos se leían como controles de dos sistemas. La altura la
+       fija `min-height` y no el padding, para que un sólido y un outline midan lo mismo
+       pase lo que pase con la tipografía. */
     .nt-btn {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
-        padding: 7px 13px;
-        border-radius: 9px;
-        border: 1.5px solid transparent;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: var(--radius-pill, 999px);
+        border: 1px solid transparent;
         font-family: 'Outfit', sans-serif;
         font-size: .76rem;
         font-weight: 700;
+        line-height: 1;
         text-decoration: none;
         white-space: nowrap;
         cursor: pointer;
         transition: all .16s ease;
 
-        i { font-size: .68rem; }
+        i { font-size: .68rem; line-height: 1; }
 
-        /* Secundaria pero visible: outline de contraste alto */
+        /* Secundaria: enlace, no pastilla con borde. Dos botones enmarcados por fila
+           multiplicados por ocho filas eran la mitad del ruido de la página; así
+           queda UN elemento fuerte por fila (el verde, que es el que cierra). */
         &--ver {
-            background: #fff;
-            border-color: #4267ac;
+            background: transparent;
+            border-color: transparent;
             color: #4267ac;
+            padding: 0 6px;
 
-            &:hover { background: #4267ac; color: #fff; }
+            &:hover { color: #0B1F3D; text-decoration: underline; }
         }
 
         /* Primaria: es la que cierra el aviso */
@@ -249,38 +240,32 @@ body[data-page="blog-notificaciones-index"] {
 
     /* ── Tira L·M·X·J·V de una cobertura ──
        X para el miércoles (M ya es martes), como en cualquier horario escolar. */
+    /* Sin caja propia (fondo + borde + 12px de padding): dentro de una fila que ya
+       tiene tarjeta, riel de color y chips, la tira se leía como un componente
+       aparte. Suelta y pequeña dice lo mismo ocupando la mitad. */
     .nt-dias {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        margin: 0 0 10px;
-        padding: 6px 12px 6px 8px;
-        border-radius: 12px;
-        background: #f7fafd;
-        border: 1px solid #e9eef5;
+        margin: 6px 0 0;
         flex-wrap: wrap;
     }
     .nt-dias__d {
         display: grid;
         place-items: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 7px;
-        background: #fff;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        background: #f6f9fc;
         border: 1px solid #eef2f7;
         color: #b3c0d0;
-        font-size: .7rem;
+        font-size: .64rem;
         font-weight: 800;
 
-        &.is-on { background: #4285f4; border-color: #4285f4; color: #fff; box-shadow: 0 4px 10px -4px rgba(66,133,244,.9); }
+        &.is-on { background: #4285f4; border-color: #4285f4; color: #fff; box-shadow: 0 3px 8px -4px rgba(66,133,244,.9); }
     }
-    .nt-dias__txt {
-        margin-left: 8px;
-        font-size: .76rem;
-        font-weight: 700;
-        color: #4267ac;
-        text-transform: capitalize;
-    }
+    /* `.nt-dias__txt` repetía la fecha larga que el propio mensaje ya lleva; ahora
+       vive en el title/aria-label de la tira. */
 
     /* ── Vacío ── */
     .nt-empty {
