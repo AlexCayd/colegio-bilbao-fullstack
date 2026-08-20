@@ -249,6 +249,14 @@ $_crumbs[array_key_last($_crumbs)]['url'] = null;
                            class="admin-nav__sublink<?= !empty($_s['prefijo']) ? _nav_active_prefix($_s['url']) : _nav_active($_s['url']) ?>">
                             <i class="<?= str_starts_with($_s['icon'], 'fa-regular') ? '' : 'fa-solid ' ?><?= $_s['icon'] ?>"></i>
                             <span class="admin-nav__label"><?= htmlspecialchars($_s['label']) ?></span>
+                            <?php /* Contador de lo que espera acción. Sin él, dos colas del módulo
+                                     —justificantes y trabajo por revisar— solo se descubrían
+                                     entrando a mirar, y `contarColaJustificantes()` llevaba desde su
+                                     creación con un docblock que prometía este badge y ningún
+                                     llamador. Se pinta solo con valor: un 0 permanente es ruido. */ ?>
+                            <?php if (!empty($_s['badge'])): ?>
+                            <span class="admin-nav__badge"><?= (int)$_s['badge'] > 99 ? '99+' : (int)$_s['badge'] ?></span>
+                            <?php endif; ?>
                         </a>
                         <?php endforeach; ?>
                     </div>
@@ -259,17 +267,15 @@ $_crumbs[array_key_last($_crumbs)]['url'] = null;
         </div>
         <?php endforeach; ?>
 
-        <?php /* Transversales: no son módulos asignables, pero sí destinos del panel.
-                 "Ver sitio público" cierra la lista porque es la salida, no una sección. */ ?>
+        <?php /* "Ver sitio público" cierra la lista porque es la salida, no una sección.
+
+                 ⚠️ Notificaciones NO está aquí, y es deliberado: la bandeja ya tiene su
+                 acceso permanente en la CAMPANA del topbar, con el mismo badge de
+                 pendientes y en todas las pantallas del panel. Tenerla en los dos sitios
+                 duplicaba el contador y metía en la lista de módulos algo que no lo es.
+                 El módulo activo sigue detectándose (`$_modActivo === 'notificaciones'`)
+                 para que el breadcrumb diga «Inicio › Notificaciones». */ ?>
         <div class="admin-nav__section admin-nav__section--fin">
-            <a href="/dashboard/notificaciones" title="Notificaciones"
-               class="admin-nav__link<?= _nav_active('/dashboard/notificaciones') ?><?= $_modActivo === 'notificaciones' ? ' is-current' : '' ?>">
-                <i class="fa-regular fa-bell"></i>
-                <span class="admin-nav__label">Notificaciones</span>
-                <?php if (!empty($GLOBALS['_notifsPendientes'])): ?>
-                <span class="admin-nav__badge"><?= (int)$GLOBALS['_notifsPendientes'] > 99 ? '99+' : (int)$GLOBALS['_notifsPendientes'] ?></span>
-                <?php endif; ?>
-            </a>
             <a href="/" target="_blank" rel="noopener" title="Ver sitio público" class="admin-nav__link admin-nav__link--salida">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 <span class="admin-nav__label">Ver sitio público</span>

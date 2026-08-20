@@ -652,7 +652,14 @@ html.no-transition * {
 
 /* ── RESPONSIVE MOBILE ─────────────────────────────────── */
 @media (max-width: 1024px) {
-    .admin-sidebar {
+    /* ⚠️ `html.js` es obligatorio en esta regla, y no es una precaución teórica.
+       Sacar el sidebar de pantalla solo es seguro si existe la forma de traerlo de
+       vuelta — y ese botón lo INYECTA blog-_sidebar.js, no está en el HTML. Sin la
+       guarda, un bundle que no carga dejaba el panel móvil sin navegación ninguna.
+       Con ella, sin JS el sidebar se queda en el flujo por encima del contenido: se
+       ve peor, pero se puede usar. La marca la estampa el script síncrono del <head>
+       de views/layout-admin.php, antes del primer pintado. */
+    html.js .admin-sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 200;
@@ -675,6 +682,36 @@ html.no-transition * {
     .admin-topbar {
         padding: 0 16px;
     }
+}
+
+/* ── Topbar en pantallas estrechas ──────────────────────────
+   68px de alto y círculos de 40px con 16px de gap se comían el ancho: con el
+   breadcrumb movido al topbar por JS, el título quedaba en dos caracteres. */
+@media (max-width: 720px) {
+    .admin-topbar {
+        height: 56px;
+        padding: 0 12px;
+    }
+    .admin-topbar__actions { gap: 8px; }
+    .admin-topbar__avatar,
+    .admin-topbar__bell,
+    .admin-topbar__logout { width: 34px; height: 34px; }
+
+    /* La miga de pan es redundante en móvil —el cajón ES la navegación— y consume
+       justo el ancho que necesita el título. Se oculta y se REVIERTE la regla que
+       escondía el título cuando hay migas, o el topbar se queda sin ningún texto. */
+    .admin-crumbs { display: none; }
+    .admin-topbar__left.has-crumbs .admin-topbar__title { display: block; }
+    .admin-topbar__title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* Ya no hay `.admin-btn` dentro de `.admin-topbar__actions`: las acciones bajaron a
+       la vista (cabecera del panel o pie del formulario) y ahí solo quedan campana,
+       avatar y salir. La regla que los compactaba se retiró con ellos — además estaba
+       escrita en la escala de 10px y daba 19,2px reales. */
 }
 
 /* TOP BAR */
@@ -721,7 +758,12 @@ html.no-transition * {
     }
 }
 
-.admin-topbar__new-btn {
+/* Botón de acción principal de una vista: «Nuevo artículo», «Nueva aula»…
+   Vive en la cabecera del panel al que pertenece, NO en el topbar. Se llamaba
+   `.admin-topbar__new-btn` y el nombre BEM dejó de ser cierto en cuanto salió de ahí:
+   el topbar es la barra del panel entero (campana, avatar, salir) y colgarle la acción
+   de la página la alejaba justo de aquello sobre lo que actúa. */
+.admin-new-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -1011,6 +1053,32 @@ html.no-transition * {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+/* Barra de "ver esto fuera del panel" (el artículo publicado, la noticia en el sitio).
+   Va alineada a la derecha y sobre el contenido al que se refiere, no en el topbar:
+   allí quedaba a dos palmos de la entidad de la que habla. */
+.admin-view-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 14px;
+}
+
+/* Herramientas de la cabecera de un panel: buscador, filtros y el botón principal de
+   la vista. Existe para cuando conviven varios —el buscador ya iba suelto a la derecha
+   por el `space-between`, pero con dos hijos más el reparto dejaba de cuadrar.
+
+   ⚠️ Tiene `display` propio, así que necesita SU PROPIO `&[hidden]`:
+   `[hidden]{display:none}` vive en `base/_normalize.scss`, misma especificidad y capa
+   anterior, y sin esta línea el `flex` ganaría. */
+.admin-panel__tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+
+    &[hidden] { display: none; }
 }
 
 /* Flex y no texto corrido: el único separador entre el icono y el título era el
@@ -1335,12 +1403,42 @@ tbody tr.is-filtered { display: none; }
         &:hover { background: #96350c; box-shadow: 0 10px 20px -10px rgba(184, 66, 15, 1); }
     }
 
+    /* Abrir la ficha de un colaborador. Va PRIMERA en el grupo por ser la acción de
+       lectura —y la menos destructiva—, así que usa el azul institucional: en la
+       misma fila que el ámbar de editar y el rojo de eliminar, el azul se lee como
+       "consultar" sin competir con ellos. */
+    &--ficha {
+        background: var(--pal-indigo, #4267ac);
+        color: #fff;
+        box-shadow: 0 6px 14px -8px rgba(66, 103, 172, .95);
+
+        &:hover { background: #35558f; box-shadow: 0 10px 20px -10px rgba(66, 103, 172, 1); }
+    }
+
     /* Acción neutra que convive con las anteriores */
     &--ghost {
         background: #F1F5F9;
         color: #475569;
 
         &:hover { background: #E2E8F0; }
+    }
+}
+
+/* El nombre de fila enlaza a la ficha. Hereda el aspecto de `.admin-table__title`
+   (que es el mismo elemento) y solo añade el afordance de enlace: sin subrayado en
+   reposo para no ensuciar la tabla, con él al pasar por encima. */
+.admin-table__title.usr-link,
+.admin-table__title.per-user__link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover { color: var(--pal-indigo, #4267ac); text-decoration: underline; }
+    &:focus-visible {
+        outline: 2px solid var(--pal-indigo, #4267ac);
+        outline-offset: 2px;
+        border-radius: 4px;
     }
 }
 
@@ -1573,8 +1671,28 @@ tbody tr.is-filtered { display: none; }
     background: #FAFBFD;
 }
 
+/* Formularios largos: al bajar «Guardar» del topbar (que era sticky) se perdía el
+   tenerlo siempre a la vista. Este modificador lo devuelve, ya pegado a su formulario.
+
+   ⚠️ El `z-index` va DELIBERADAMENTE bajo: por debajo de los 200 del cajón del sidebar
+   y de los 210 que usan `.bilbao-date` y `.picker` cuando se vuelven hoja inferior a
+   ≤520px. Subirlo tapa el datepicker en móvil, que es donde más se usa. */
+.admin-form-footer--sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    box-shadow: 0 -6px 16px -12px rgba(11, 31, 61, .35);
+}
+
 .admin-btn {
+    /* ⚠️ Tiene `display` propio, así que necesita SU PROPIO `&[hidden]`.
+       `[hidden] { display: none }` vive en `base/_normalize.scss`: misma especificidad
+       (0,1,0) y capa ANTERIOR (`app.scss` importa `base` antes que `estaticas`), así que
+       sin esta línea el `inline-flex` gana y un `btn.hidden = true` no oculta nada — el
+       asistente de swaps mostraría a la vez «Siguiente» y «Enviar propuesta».
+       Es la misma trampa del modal de guardia y del de justificantes. */
     display: inline-flex;
+    &[hidden] { display: none; }
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -3407,17 +3525,25 @@ tbody tr.is-filtered { display: none; }
 
 /* ── Módulos: chips de permiso ──
    Deliberadamente bajos y con casilla cuadrada visible: a un chip no se le puede
-   confundir con una tarjeta de identidad ni de lejos. */
+   confundir con una tarjeta de identidad ni de lejos.
+
+   Solo el NOMBRE del módulo. La descripción se leía una vez y luego eran trece líneas
+   de texto entre el admin y las casillas que venía a marcar; sigue en el `title`.
+   ⚠️ `.admin-tipo-card` (el hermano visual, más arriba) SÍ conserva su `__desc` a
+   propósito: ahí la pregunta es "qué es esta persona" y sin la descripción «Profesor»
+   vs «Directivo» se vuelve ambiguo. */
 .admin-mod-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
-    gap: 8px;
+    /* ⚠️ No bajar de ~216px: la etiqueta más larga es «Directorio · Administrativos» a
+       13px/700, y por debajo salen con ellipsis TODOS los directorios a la vez. */
+    grid-template-columns: repeat(auto-fit, minmax(216px, 1fr));
+    gap: 7px;
 }
 .admin-mod-chip {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
+    gap: 9px;
+    padding: 7px 11px;
     border: 1.5px solid #e8edf4;
     border-radius: 10px;
     background: #fbfcfe;
@@ -3450,14 +3576,12 @@ tbody tr.is-filtered { display: none; }
         color: #94A3B8;
         transition: color .16s ease;
     }
-    &__text { display: flex; flex-direction: column; min-width: 0; }
-    &__name { font-size: 13px; font-weight: 700; color: #1E293B; line-height: 1.3; }
-    /* Una línea con ellipsis: el texto completo va en el `title` del chip, así la
-       descripción no reintroduce la altura de tarjeta que queremos evitar. */
-    &__desc {
-        font-size: 11.5px;
-        color: #94A3B8;
-        line-height: 1.35;
+    /* El ellipsis se hereda del `__desc` que desapareció: ahora es el nombre el que
+       puede no caber, y recortarlo es preferible a que empuje la columna. */
+    &__name {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 13px; font-weight: 700; color: #1E293B; line-height: 1.3;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;

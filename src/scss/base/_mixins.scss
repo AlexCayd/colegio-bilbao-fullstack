@@ -22,6 +22,31 @@
     }
 }
 
+/** ─────────────────────────────────────────────────────────────────────────
+    Escala `max-width` — la que usa el PANEL
+
+    Los cuatro mixins de arriba son `min-width` y no los usa nadie (0 llamadas en
+    todo el proyecto). El panel, en cambio, es `max-width` de arriba abajo, con 16
+    valores distintos escritos a mano. Esta escala se añade AL LADO en vez de
+    reescribir aquellos: cambiar su semántica rompería cualquier uso futuro, y
+    reescribir los ~25 breakpoints ya existentes de `_blog-admin.scss` (3857 líneas)
+    tendría riesgo de regresión sin comprar nada.
+
+    **Regla: mixin en lo nuevo, ad-hoc intacto en lo viejo.** Los valores sueltos
+    (1100, 1050, 1000, 760, 700, 640, 600, 560, 480) migran cuando se toque su
+    partial, no antes.
+
+    ⚠️ `hasta-lg` (1024px) NO es negociable: es exactamente donde el sidebar pasa a
+    drawer en `_blog-admin.scss`, y ese umbral está además en `layout-admin.php` y
+    en `blog-_sidebar.js`. Cambiarlo aquí sin cambiarlo allí descuadra el layout.
+    ───────────────────────────────────────────────────────────────────────── */
+@mixin hasta-xl  { @media (max-width: 1200px) { @content; } }
+@mixin hasta-lg  { @media (max-width: 1024px) { @content; } }
+@mixin hasta-md  { @media (max-width:  900px) { @content; } }
+@mixin hasta-sm  { @media (max-width:  720px) { @content; } }
+@mixin hasta-xs  { @media (max-width:  520px) { @content; } }
+@mixin hasta-xxs { @media (max-width:  400px) { @content; } }
+
 @mixin boton($bgColor, $colorTexto) {
     background-color: $bgColor;
     padding: 1.5rem 4rem;

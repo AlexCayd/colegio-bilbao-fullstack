@@ -19,12 +19,6 @@
                 <span class="admin-topbar__title">Nuevo usuario</span>
             </div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/usuarios" class="admin-btn admin-btn--ghost">
-                    <i class="fa-solid fa-xmark"></i> Cancelar
-                </a>
-                <button type="submit" form="form-usuario" class="admin-btn admin-btn--primary">
-                    <i class="fa-solid fa-floppy-disk"></i> Guardar usuario
-                </button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>

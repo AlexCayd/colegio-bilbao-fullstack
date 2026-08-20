@@ -25,9 +25,6 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                 <span class="admin-topbar__title"><i class="fa-solid fa-layer-group"></i> Grupos</span>
             </div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/grupos/crear" class="admin-topbar__new-btn">
-                    <i class="fa-solid fa-plus"></i> Nuevo grupo
-                </a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -71,7 +68,14 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                         Todos los grupos
                         <span class="admin-panel__count"><?= $total ?></span>
                     </h2>
-                    <a href="/dashboard/grupos/crear" class="admin-panel__action">+ Nuevo</a>
+<?php /* La acción principal vive en la cabecera del panel sobre el que actúa, no
+                             en el topbar: allí quedaba junto a la campana y el avatar, que son del
+                             panel entero y no de esta pantalla. Sustituye al enlace de texto
+                             «+ Nuevo» que ya había aquí — la acción existía, pero como un enlace
+                             azul que no se leía como el botón que es. */ ?>
+                    <a href="/dashboard/grupos/crear" class="admin-new-btn">
+                        <i class="fa-solid fa-plus"></i> Nuevo grupo
+                    </a>
                 </div>
 
                 <?php if (!$total): ?>

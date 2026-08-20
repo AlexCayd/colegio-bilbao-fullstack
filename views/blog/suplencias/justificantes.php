@@ -68,10 +68,18 @@ $DIAS_PURGA = \Model\Suplencia::DIAS_PURGA;
                     <tbody>
                     <?php foreach ($cola as $i => $sup):
                         $dias   = (int)$sup->dias_desde;
-                        $quedan = max(0, $DIAS_PURGA - $dias);
+                        // Lo calcula el modelo: la vista lo duplicaba a mano.
+                        $quedan = $sup->diasParaPurga();
                         $meta   = $info[(int)$sup->id] ?? null;
-                        // Urgente = le quedan 3 días o menos antes del borrado automático.
-                        $urgente = $quedan <= 3;
+                        /* Semáforo hasta el borrado automático. La cola solo contiene ausencias
+                           de hace 7 días o más, así que `quedan` va de 0 a 23 sobre los 30 de
+                           DIAS_PURGA. El corte del naranja son los 7 de DIAS_DESCARGA: le queda
+                           tanto plazo como el que ya esperó para entrar aquí.
+                           Por encima de 14 se queda en gris a propósito — si todo estuviera
+                           teñido, el color dejaría de señalar nada. */
+                        $nivelPlazo = $quedan <= 3  ? 'rojo'
+                                    : ($quedan <= 7  ? 'naranja'
+                                    : ($quedan <= 14 ? 'ambar' : ''));
                     ?>
                         <tr data-pager-item<?= $i >= 12 ? ' class="is-hidden"' : '' ?>>
                             <td data-val="<?= $s($sup->fecha) ?>">
@@ -99,8 +107,11 @@ $DIAS_PURGA = \Model\Suplencia::DIAS_PURGA;
                                     </span>
                                 <?php endif; ?>
                             </td>
+                            <?php /* ⚠️ `data-val` sigue siendo `$quedan` y sigue en el <td>: el
+                                     `data-sort="num"` de la cabecera lee el data-val de la celda,
+                                     no el texto del <span>. Moverlo rompería el orden en silencio. */ ?>
                             <td data-val="<?= $quedan ?>">
-                                <span class="jus-plazo<?= $urgente ? ' jus-plazo--urgente' : '' ?>">
+                                <span class="jus-plazo<?= $nivelPlazo ? ' jus-plazo--' . $nivelPlazo : '' ?>">
                                     <?= $quedan === 0 ? 'Se borra hoy' : 'Quedan ' . $quedan . ' d' ?>
                                 </span>
                             </td>

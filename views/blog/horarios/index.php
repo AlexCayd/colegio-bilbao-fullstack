@@ -39,6 +39,17 @@ $vistaMeta = [
                 <div class="admin-panel__header hor-head">
                     <h2 class="admin-panel__title"><i class="fa-solid <?= $vistaMeta[$vista]['icon'] ?>"></i> Ver por <?= $vistaMeta[$vista]['label'] ?></h2>
                     <?php if (!empty($entidades)): ?>
+                    <div class="hor-head__meta">
+                    <?php if (!empty($tramos)): ?>
+                    <?php /* La semana que se está viendo, en papel. Sirve a las tres vistas
+                             —profesor, aula y grupo— con la misma plantilla que «Mi horario»:
+                             de su sujeto solo necesita el nombre. Sale del PDF de vacío si no
+                             hay clases, así que solo aparece cuando hay algo que imprimir. */ ?>
+                    <a href="/dashboard/horarios/pdf?vista=<?= s($vista) ?>&amp;id=<?= (int)$entidadId ?>"
+                       class="admin-btn admin-btn--ghost admin-btn--sm">
+                        <i class="fa-solid fa-file-pdf"></i> PDF
+                    </a>
+                    <?php endif; ?>
                     <div class="hor-select-wrap">
                         <i class="fa-solid <?= $vistaMeta[$vista]['icon'] ?>"></i>
                         <select class="hor-select" data-hor-select data-url="<?= $vistaMeta[$vista]['url'] ?>" aria-label="Elegir <?= s($vistaMeta[$vista]['label']) ?>">
@@ -57,6 +68,7 @@ $vistaMeta = [
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </select>
+                    </div>
                     </div>
                     <?php endif; ?>
                 </div>

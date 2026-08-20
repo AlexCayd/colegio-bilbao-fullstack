@@ -57,6 +57,10 @@ body[data-page="blog-usuarios-index"] {
         gap: 16px;
         flex-wrap: wrap;
         margin-bottom: 18px;
+
+        /* Al extremo, separado del buscador y del resumen: es la única acción de la
+           barra y así no se confunde con un filtro más. */
+        &__new { margin-left: auto; }
     }
     .usr-search {
         position: relative;

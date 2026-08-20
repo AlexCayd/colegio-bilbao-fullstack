@@ -1,14 +1,14 @@
 <?php
 /**
- * Una tarjeta de intercambio.
+ * Una tarjeta de swap.
  *
- * El intercambio se lee como una permuta: a la izquierda lo que cede el
+ * El swap se lee como una permuta: a la izquierda lo que cede el
  * solicitante, a la derecha lo que da a cambio. Las acciones dependen de quién
  * mira, así que llegan resueltas en $puedeResponder / $puedeValidar / $puedeCancelar.
  *
  * @var \Model\Swap $sw
  * @var bool $puedeResponder  el que mira es el destinatario y sigue pendiente
- * @var bool $puedeValidar    coordina y el intercambio está aceptado
+ * @var bool $puedeValidar    coordina y el swap está aceptado
  * @var bool $puedeCancelar   es el solicitante y sigue pendiente
  */
 $s   = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -65,7 +65,7 @@ $hora = fn($i, $f) => substr((string)$i, 0, 5) . '–' . substr((string)$f, 0, 5
               la validación. Decirlo aquí evita que alguien deje de ir a su clase. */ ?>
     <p class="swp-card__pendiente">
         <i class="fa-solid fa-hourglass-half"></i>
-        Ambos profesores están de acuerdo, pero el intercambio <strong>aún no es efectivo</strong>:
+        Ambos profesores están de acuerdo, pero el swap <strong>aún no es efectivo</strong>:
         falta la validación de prefectura o dirección.
     </p>
     <?php endif; ?>

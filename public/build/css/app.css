@@ -303,8 +303,31 @@ template {
 }
 
 /** Media Queries **/
+/** ─────────────────────────────────────────────────────────────────────────
+    Escala `max-width` — la que usa el PANEL
+
+    Los cuatro mixins de arriba son `min-width` y no los usa nadie (0 llamadas en
+    todo el proyecto). El panel, en cambio, es `max-width` de arriba abajo, con 16
+    valores distintos escritos a mano. Esta escala se añade AL LADO en vez de
+    reescribir aquellos: cambiar su semántica rompería cualquier uso futuro, y
+    reescribir los ~25 breakpoints ya existentes de `_blog-admin.scss` (3857 líneas)
+    tendría riesgo de regresión sin comprar nada.
+
+    **Regla: mixin en lo nuevo, ad-hoc intacto en lo viejo.** Los valores sueltos
+    (1100, 1050, 1000, 760, 700, 640, 600, 560, 480) migran cuando se toque su
+    partial, no antes.
+
+    ⚠️ `hasta-lg` (1024px) NO es negociable: es exactamente donde el sidebar pasa a
+    drawer en `_blog-admin.scss`, y ese umbral está además en `layout-admin.php` y
+    en `blog-_sidebar.js`. Cambiarlo aquí sin cambiarlo allí descuadra el layout.
+    ───────────────────────────────────────────────────────────────────────── */
+/* ⚠️ Aquí NO va `font-size: 62.5%`. Estuvo declarado y era letra muerta:
+   `estaticas/_base.scss` declara `html { font-size: 16px }`, misma especificidad, y
+   `app.scss` importa `estaticas` DESPUÉS que `base`, así que ganaba el 16px.
+   La declaración fantasma costó dos partials del panel escritos en la escala de 10px que
+   salían 1,6× más grandes de lo previsto. **1rem = 16px**, y la raíz se toca en
+   `estaticas/_base.scss` — que además afecta al sitio público. */
 html {
-  font-size: 62.5%;
   box-sizing: border-box;
 }
 
@@ -392,6 +415,16 @@ h3 {
   /* Botones circulares del topbar del panel (campana · avatar · salir).
      Un solo token: los tres deben medir lo mismo. */
   --tb-btn: 40px;
+  /* Alto de fila de las rejillas de horario. TODAS las filas miden lo mismo, sin
+     excepción: la altura proporcional a la duración del tramo hacía que un profesor
+     de dos niveles viera casillas de tres alturas distintas y se leyera como un fallo
+     de maquetación. 62px es lo que medía el tramo de 50 min, el dominante, así que
+     las vistas por grupo y por aula quedan pixel-idénticas.
+     `.hed-grid` (editor) usa el mismo token; `.supl-week` es rejilla de apoyo DENTRO
+     de un formulario, no la vista principal, y por eso va más baja a propósito:
+     uniformidad dentro de cada rejilla, jerarquía entre ellas. */
+  --hor-fila: 62px;
+  --hor-fila-compacta: 46px;
   /* ---------- ESPACIADO ---------- */
   --sp-sm: 24px;
   --sp-md: 48px;
@@ -12069,12 +12102,19 @@ html.no-transition * {
 }
 /* ── RESPONSIVE MOBILE ─────────────────────────────────── */
 @media (max-width: 1024px) {
-  .admin-sidebar {
+  /* ⚠️ `html.js` es obligatorio en esta regla, y no es una precaución teórica.
+     Sacar el sidebar de pantalla solo es seguro si existe la forma de traerlo de
+     vuelta — y ese botón lo INYECTA blog-_sidebar.js, no está en el HTML. Sin la
+     guarda, un bundle que no carga dejaba el panel móvil sin navegación ninguna.
+     Con ella, sin JS el sidebar se queda en el flujo por encima del contenido: se
+     ve peor, pero se puede usar. La marca la estampa el script síncrono del <head>
+     de views/layout-admin.php, antes del primer pintado. */
+  html.js .admin-sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 200;
   }
-  .admin-sidebar.is-open {
+  html.js .admin-sidebar.is-open {
     transform: translateX(0);
   }
   .admin-main {
@@ -12092,6 +12132,43 @@ html.no-transition * {
   .admin-topbar {
     padding: 0 16px;
   }
+}
+/* ── Topbar en pantallas estrechas ──────────────────────────
+   68px de alto y círculos de 40px con 16px de gap se comían el ancho: con el
+   breadcrumb movido al topbar por JS, el título quedaba en dos caracteres. */
+@media (max-width: 720px) {
+  .admin-topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+  .admin-topbar__actions {
+    gap: 8px;
+  }
+  .admin-topbar__avatar,
+  .admin-topbar__bell,
+  .admin-topbar__logout {
+    width: 34px;
+    height: 34px;
+  }
+  /* La miga de pan es redundante en móvil —el cajón ES la navegación— y consume
+     justo el ancho que necesita el título. Se oculta y se REVIERTE la regla que
+     escondía el título cuando hay migas, o el topbar se queda sin ningún texto. */
+  .admin-crumbs {
+    display: none;
+  }
+  .admin-topbar__left.has-crumbs .admin-topbar__title {
+    display: block;
+  }
+  .admin-topbar__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Ya no hay `.admin-btn` dentro de `.admin-topbar__actions`: las acciones bajaron a
+     la vista (cabecera del panel o pie del formulario) y ahí solo quedan campana,
+     avatar y salir. La regla que los compactaba se retiró con ellos — además estaba
+     escrita en la escala de 10px y daba 19,2px reales. */
 }
 /* TOP BAR */
 .admin-topbar {
@@ -12136,7 +12213,12 @@ html.no-transition * {
   align-items: center;
 }
 
-.admin-topbar__new-btn {
+/* Botón de acción principal de una vista: «Nuevo artículo», «Nueva aula»…
+   Vive en la cabecera del panel al que pertenece, NO en el topbar. Se llamaba
+   `.admin-topbar__new-btn` y el nombre BEM dejó de ser cierto en cuanto salió de ahí:
+   el topbar es la barra del panel entero (campana, avatar, salir) y colgarle la acción
+   de la página la alejaba justo de aquello sobre lo que actúa. */
+.admin-new-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -12149,7 +12231,7 @@ html.no-transition * {
   text-decoration: none;
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
-.admin-topbar__new-btn:hover {
+.admin-new-btn:hover {
   background: var(--col-herencia);
   transform: translateY(-1px);
 }
@@ -12447,6 +12529,33 @@ html.no-transition * {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* Barra de "ver esto fuera del panel" (el artículo publicado, la noticia en el sitio).
+   Va alineada a la derecha y sobre el contenido al que se refiere, no en el topbar:
+   allí quedaba a dos palmos de la entidad de la que habla. */
+.admin-view-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+/* Herramientas de la cabecera de un panel: buscador, filtros y el botón principal de
+   la vista. Existe para cuando conviven varios —el buscador ya iba suelto a la derecha
+   por el `space-between`, pero con dos hijos más el reparto dejaba de cuadrar.
+
+   ⚠️ Tiene `display` propio, así que necesita SU PROPIO `&[hidden]`:
+   `[hidden]{display:none}` vive en `base/_normalize.scss`, misma especificidad y capa
+   anterior, y sin esta línea el `flex` ganaría. */
+.admin-panel__tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.admin-panel__tools[hidden] {
+  display: none;
 }
 
 /* Flex y no texto corrido: el único separador entre el icono y el título era el
@@ -12805,6 +12914,21 @@ tbody tr.is-filtered {
   box-shadow: 0 10px 20px -10px rgb(184, 66, 15);
 }
 .admin-act {
+  /* Abrir la ficha de un colaborador. Va PRIMERA en el grupo por ser la acción de
+     lectura —y la menos destructiva—, así que usa el azul institucional: en la
+     misma fila que el ámbar de editar y el rojo de eliminar, el azul se lee como
+     "consultar" sin competir con ellos. */
+}
+.admin-act--ficha {
+  background: var(--pal-indigo, #4267ac);
+  color: #fff;
+  box-shadow: 0 6px 14px -8px rgba(66, 103, 172, 0.95);
+}
+.admin-act--ficha:hover {
+  background: #35558f;
+  box-shadow: 0 10px 20px -10px rgb(66, 103, 172);
+}
+.admin-act {
   /* Acción neutra que convive con las anteriores */
 }
 .admin-act--ghost {
@@ -12813,6 +12937,28 @@ tbody tr.is-filtered {
 }
 .admin-act--ghost:hover {
   background: #E2E8F0;
+}
+
+/* El nombre de fila enlaza a la ficha. Hereda el aspecto de `.admin-table__title`
+   (que es el mismo elemento) y solo añade el afordance de enlace: sin subrayado en
+   reposo para no ensuciar la tabla, con él al pasar por encima. */
+.admin-table__title.usr-link,
+.admin-table__title.per-user__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.admin-table__title.usr-link:hover,
+.admin-table__title.per-user__link:hover {
+  color: var(--pal-indigo, #4267ac);
+  text-decoration: underline;
+}
+.admin-table__title.usr-link:focus-visible,
+.admin-table__title.per-user__link:focus-visible {
+  outline: 2px solid var(--pal-indigo, #4267ac);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* QUICK ACTIONS PANEL */
@@ -13041,8 +13187,32 @@ tbody tr.is-filtered {
   background: #FAFBFD;
 }
 
+/* Formularios largos: al bajar «Guardar» del topbar (que era sticky) se perdía el
+   tenerlo siempre a la vista. Este modificador lo devuelve, ya pegado a su formulario.
+
+   ⚠️ El `z-index` va DELIBERADAMENTE bajo: por debajo de los 200 del cajón del sidebar
+   y de los 210 que usan `.bilbao-date` y `.picker` cuando se vuelven hoja inferior a
+   ≤520px. Subirlo tapa el datepicker en móvil, que es donde más se usa. */
+.admin-form-footer--sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  box-shadow: 0 -6px 16px -12px rgba(11, 31, 61, 0.35);
+}
+
 .admin-btn {
+  /* ⚠️ Tiene `display` propio, así que necesita SU PROPIO `&[hidden]`.
+     `[hidden] { display: none }` vive en `base/_normalize.scss`: misma especificidad
+     (0,1,0) y capa ANTERIOR (`app.scss` importa `base` antes que `estaticas`), así que
+     sin esta línea el `inline-flex` gana y un `btn.hidden = true` no oculta nada — el
+     asistente de swaps mostraría a la vez «Siguiente» y «Enviar propuesta».
+     Es la misma trampa del modal de guardia y del de justificantes. */
   display: inline-flex;
+}
+.admin-btn[hidden] {
+  display: none;
+}
+.admin-btn {
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -14920,18 +15090,26 @@ input:focus-visible + .admin-tipo-card__box {
 
 /* ── Módulos: chips de permiso ──
    Deliberadamente bajos y con casilla cuadrada visible: a un chip no se le puede
-   confundir con una tarjeta de identidad ni de lejos. */
+   confundir con una tarjeta de identidad ni de lejos.
+
+   Solo el NOMBRE del módulo. La descripción se leía una vez y luego eran trece líneas
+   de texto entre el admin y las casillas que venía a marcar; sigue en el `title`.
+   ⚠️ `.admin-tipo-card` (el hermano visual, más arriba) SÍ conserva su `__desc` a
+   propósito: ahí la pregunta es "qué es esta persona" y sin la descripción «Profesor»
+   vs «Directivo» se vuelve ambiguo. */
 .admin-mod-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
-  gap: 8px;
+  /* ⚠️ No bajar de ~216px: la etiqueta más larga es «Directorio · Administrativos» a
+     13px/700, y por debajo salen con ellipsis TODOS los directorios a la vez. */
+  grid-template-columns: repeat(auto-fit, minmax(216px, 1fr));
+  gap: 7px;
 }
 
 .admin-mod-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 9px;
+  padding: 7px 11px;
   border: 1.5px solid #e8edf4;
   border-radius: 10px;
   background: #fbfcfe;
@@ -14972,25 +15150,17 @@ input:focus-visible + .admin-tipo-card__box {
   color: #94A3B8;
   transition: color 0.16s ease;
 }
-.admin-mod-chip__text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.admin-mod-chip {
+  /* El ellipsis se hereda del `__desc` que desapareció: ahora es el nombre el que
+     puede no caber, y recortarlo es preferible a que empuje la columna. */
 }
 .admin-mod-chip__name {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 13px;
   font-weight: 700;
   color: #1E293B;
   line-height: 1.3;
-}
-.admin-mod-chip {
-  /* Una línea con ellipsis: el texto completo va en el `title` del chip, así la
-     descripción no reintroduce la altura de tarjeta que queremos evitar. */
-}
-.admin-mod-chip__desc {
-  font-size: 11.5px;
-  color: #94A3B8;
-  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -18392,6 +18562,37 @@ input:focus-visible + .admin-mod-chip__box {
 .bilbao-cal__leg[data-type=cumple] i {
   background: var(--cal-cumple);
 }
+.bilbao-cal {
+  /* ── Móvil ──
+     El componente ya es fluido (siete columnas en `1fr` y celdas con `aspect-ratio`),
+     pero el padding de 22px, el radio de 24 y la nav de 40px son fijos: en 360px se
+     comían casi 60px de ancho útil y las celdas bajaban de 34px.
+     Va aquí, a nivel de componente, y no en un partial del panel: `.bilbao-cal` la
+     comparten Comunidad › Familias y cuatro pantallas del panel (cumpleaños, eventos,
+     resumen diario, agenda de suplencias). Arreglarlo en un solo sitio las cubre
+     todas y evita que las dos superficies se desincronicen. */
+}
+@media (max-width: 520px) {
+  .bilbao-cal {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .bilbao-cal__nav {
+    width: 36px;
+    height: 36px;
+  }
+  .bilbao-cal__grid, .bilbao-cal__weekdays {
+    gap: 4px;
+  }
+  .bilbao-cal__cell {
+    border-radius: 10px;
+    font-size: 0.85rem;
+  }
+  .bilbao-cal__weekdays span {
+    font-size: 0.62rem;
+    letter-spacing: 0.2px;
+  }
+}
 
 @keyframes fam-bob {
   0%, 100% {
@@ -18445,7 +18646,15 @@ input:focus-visible + .admin-mod-chip__box {
   background: radial-gradient(120% 120% at 50% 0%, #14468c 0%, #0a1c3c 55%, #060f24 100%);
   overflow: hidden;
 }
-.colab .comunidad-bg {
+.colab {
+  /* Bosque WebGL, el mismo componente del login. Ocupa el stage y NO el viewport:
+     aquí el canvas es `absolute` dentro del contenedor, así que forest.js lo mide con
+     clientWidth/clientHeight (ver el comentario de `medir()` en forest.js).
+     El degradado de `.colab__stage` queda debajo y es el respaldo real cuando no hay
+     WebGL o el usuario pidió menos animación — entonces `init()` devuelve null y el
+     canvas se queda transparente. */
+}
+.colab__canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -18453,9 +18662,20 @@ input:focus-visible + .admin-mod-chip__box {
   z-index: 0;
   pointer-events: none;
 }
+.colab {
+  /* Oscurece los bordes para que el título no compita con los árboles del centro.
+     Mismo papel que `.admin-login__veil`. */
+}
+.colab__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(90% 70% at 50% 45%, rgba(6, 15, 36, 0) 0%, rgba(6, 15, 36, 0.55) 70%, rgba(6, 15, 36, 0.8) 100%);
+}
 .colab__inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   text-align: center;
   color: #fff;
   display: flex;
@@ -19438,9 +19658,12 @@ body[data-page=blog-grupos-form] .cat-aviso {
   box-shadow: 0 0 0 3px rgba(66, 103, 172, 0.12);
 }
 
+/* ⚠️ SIN `text-transform: capitalize`. El JS ya compone el texto bien —
+   "Jueves, 20 de agosto de 2026", con el mes en minúscula a propósito— y el
+   capitalize lo rompía palabra a palabra: "Jueves, 20 De Agosto De 2026". El
+   placeholder ("Elige una fecha") también viene ya escrito como debe. */
 .bilbao-date__field span {
   flex: 1;
-  text-transform: capitalize;
 }
 
 .bilbao-date__caret {
@@ -19488,6 +19711,45 @@ body[data-page=blog-grupos-form] .cat-aviso {
     transform: translateY(0);
   }
 }
+/* ── Móvil: hoja inferior ──
+   Un popover de 268px anclado al campo es inmanejable con el pulgar y, si el campo
+   está en la mitad baja de la pantalla, el calendario queda medio fuera —el flip solo
+   corrige el eje horizontal—. A ancho completo y pegado abajo se alcanza con una mano
+   y siempre cabe.
+   ⚠️ Es `position: fixed`, así que ya no lo recorta ningún ancestro: la maniobra de
+   `has-datepicker-open` deja de hacer falta aquí (no estorba, simplemente no aplica).
+   Y anula el `.is-flipped` que pone el JS, que en este modo no significa nada. */
+@media (max-width: 520px) {
+  .bilbao-date__pop,
+  .bilbao-date.is-flipped .bilbao-date__pop {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-width: none;
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+    z-index: 210; /* por encima del cajón del sidebar (200) */
+    animation: bilbao-date-up 0.18s ease;
+  }
+  /* Objetivo táctil: los días eran cuadros de ~30px. */
+  .bilbao-date__day {
+    min-height: 40px;
+  }
+}
+@keyframes bilbao-date-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 /* `.admin-panel { overflow: clip }` recorta el popover por geometría, y el
    z-index no puede con eso: el calendario de "Fecha de nacimiento" quedaba
    cortado por el borde inferior del panel. Se levanta el recorte solo mientras
@@ -19518,7 +19780,6 @@ body[data-page=blog-grupos-form] .cat-aviso {
   font-size: 0.92rem;
   font-weight: 800;
   color: #0B1F3D;
-  text-transform: capitalize;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -20024,7 +20285,7 @@ body[data-page=blog-eventos-editar] .ev-niv__chip input:focus-visible + span {
      largo, el breakpoint móvil), pero por debajo de eso el hero reserva alto para
      que se vea el bosque. Sin él lo medían el texto y el Alex de 118px, y el
      canvas quedaba en una franja donde no se distinguía nada. */
-  min-height: 270px;
+  min-height: 320px;
   padding: 26px 30px;
   margin-bottom: 26px;
   /* El degradado replica la niebla clara del bosque (PALETAS.light.fog en
@@ -20069,7 +20330,10 @@ body[data-page=blog-eventos-editar] .ev-niv__chip input:focus-visible + span {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 26px 30px;
+  /* Aire generoso a propósito: es una tarjeta de vidrio sobre un bosque animado, y
+     con poco padding el texto se lee pegado al borde y compite con los árboles que
+     asoman por detrás. */
+  padding: 38px 44px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.85);
@@ -20090,19 +20354,27 @@ body[data-page=blog-eventos-editar] .ev-niv__chip input:focus-visible + span {
 
    El degradado es el AZUL institucional (--col-bilbao → --col-espiritu), el mismo de
    `.lnd-hero__hi` en el landing: el naranja es un color de la paleta de categorías,
-   el azul es la marca. Lo que sigue distinguiendo las dos palabras es el peso y el
-   tracking, no el color.
+   el azul es la marca.
+
+   ⚠️ Las dos palabras se estilan IGUAL. Antes «Intranet» iba a 15px, peso 800, en
+   versalitas y con `letter-spacing:.24em`, y «Bilbao» a 24px y peso 900: aunque
+   compartían tinta, el contraste de tamaño y tracking las leía como un eyebrow gris
+   con un logotipo al lado, no como un título. Ahora son un único lockup —mismo
+   tamaño, mismo peso, mismo tracking— y lo que queda es el degradado recorriéndolas
+   enteras. Cambiar una de las dos declaraciones vuelve a partir la marca.
 
    ⚠️ `background-clip:text` no convive con `text-shadow` (el halo se pintaría por
    detrás del recorte y se vería la caja): el contraste sobre los árboles lo da el
    vidrio de `.mh-hero__texto`, no un halo. */
 .mh-hero__eyebrow {
+  /* `gap` de espacio de palabra, no de separación entre piezas: son dos palabras de
+     un mismo título. */
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: 0.28em;
   flex-wrap: wrap;
-  margin-bottom: 12px;
-  line-height: 1;
+  margin-bottom: 10px;
+  line-height: 1.05;
   background: linear-gradient(110deg, #1f5a94, #2f7cb8);
   -webkit-background-clip: text;
   background-clip: text;
@@ -20110,17 +20382,14 @@ body[data-page=blog-eventos-editar] .ev-niv__chip input:focus-visible + span {
   color: transparent;
 }
 
-.mh-hero__brand {
-  font-size: 15px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.24em;
-}
-
+.mh-hero__brand,
 .mh-hero__colegio {
-  font-size: 24px;
+  /* El tamaño que tenía «Bilbao» (24px). No sube más: el saludo de debajo llega a
+     29px y el lockup no debe competir con él — la marca acompaña, el saludo manda. */
+  font-size: clamp(1.9rem, 2.1vw, 2.4rem);
   font-weight: 900;
   letter-spacing: -0.02em;
+  text-transform: none;
 }
 
 /* El halo `text-shadow` es del color del fondo, igual que en el landing: mantiene
@@ -20135,14 +20404,17 @@ body[data-page=blog-eventos-editar] .ev-niv__chip input:focus-visible + span {
   text-shadow: 0 2px 22px rgba(244, 249, 255, 0.9);
 }
 
+/* Alex es la mascota del colegio y aquí es la mitad del saludo, no un adorno de
+   esquina: a 118px quedaba como un icono. `min-height` del hero sube en consecuencia,
+   o el contenedor lo recorta al no tener alto suficiente. */
 .mh-hero__alex {
-  width: 118px;
+  width: clamp(130px, 14vw, 190px);
   height: auto;
   align-self: center;
   position: relative;
   z-index: 2;
   flex-shrink: 0;
-  filter: drop-shadow(0 14px 26px rgba(11, 31, 61, 0.3));
+  filter: drop-shadow(0 16px 30px rgba(11, 31, 61, 0.32));
   animation: mh-float 3.4s ease-in-out infinite;
 }
 
@@ -20162,14 +20434,31 @@ body[data-page=blog-eventos-editar] .ev-niv__chip input:focus-visible + span {
 @media (max-width: 720px) {
   .mh-hero {
     padding: 22px;
-    min-height: 210px;
+    min-height: 0;
   }
+  /* En vertical Alex iría DEBAJO del saludo, empujando las tarjetas de módulo fuera
+     de la primera pantalla. En fila con el texto conserva el saludo arriba del todo
+     y la mascota sigue presente — antes simplemente se ocultaba. */
   .mh-hero__top {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
   }
   .mh-hero__texto {
-    padding: 20px 22px;
+    padding: 22px 24px;
+    flex: 1 1 auto;
+  }
+  .mh-hero__alex {
+    width: clamp(78px, 22vw, 118px);
+  }
+}
+@media (max-width: 400px) {
+  /* Por debajo de esto el saludo se queda en dos caracteres por línea. */
+  .mh-hero {
+    padding: 16px;
+  }
+  .mh-hero__texto {
+    padding: 18px 18px;
   }
   .mh-hero__alex {
     display: none;
@@ -21013,16 +21302,18 @@ body[data-page=blog-usuarios-horario] .hed-grid thead th {
 body[data-page=blog-usuarios-horario] .hed-grid .hed-grid__corner {
   width: 104px;
 }
-body[data-page=blog-usuarios-horario] .hed-grid tbody tr {
-  height: 66px;
-}
 body[data-page=blog-usuarios-horario] .hed-grid {
-  /* El receso es más bajo que una hora de clase, pero no tanto como antes (40px):
-     ahí se agendan las guardias, y una guardia se pinta como un bloque de dos
-     líneas (Guardia + lugar) que en 40px no cabía. */
+  /* El mismo token que `.hor-grid`, y por eso baja de 66px a 62: las dos rejillas
+     de tamaño completo miden ahora exactamente lo mismo, que es lo que hace que se
+     sientan una sola cosa. Debajo de esta se pinta la semana consolidada con
+     `_grid.php`, así que la diferencia se veía en la misma pantalla.
+
+     El receso ya no es la excepción: ahí se agendan las guardias, que se pintan
+     como un bloque de dos líneas (Guardia + lugar), así que 62px le sobra —tenía
+     56— y a cambio la rejilla queda uniforme. */
 }
-body[data-page=blog-usuarios-horario] .hed-grid tbody tr.hed-grid__receso-row {
-  height: 56px;
+body[data-page=blog-usuarios-horario] .hed-grid tbody tr {
+  height: var(--hor-fila, 62px);
 }
 body[data-page=blog-usuarios-horario] .hed-grid td {
   padding: 0;
@@ -21869,11 +22160,15 @@ body[data-page=blog-usuarios-horario] .hed-block--guardia {
   border-top: 1px solid #f1f5f9;
 }
 
-/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo, "Mi horario" y
-   la "semana completa" del editor, que incluye el mismo partial `_grid.php`. */
+/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo, "Mi horario",
+   la "semana completa" del editor y la ficha de usuario: las cuatro incluyen el mismo
+   partial `_grid.php`.
+   ⚠️ Toda vista nueva que incluya `_grid.php` tiene que entrar en esta lista, o la
+   rejilla se renderiza sin un solo estilo (tabla desnuda). */
 body[data-page=blog-horarios-index] .hor-tabs,
 body[data-page=blog-horarios-mi-horario] .hor-tabs,
-body[data-page=blog-usuarios-horario] .hor-tabs {
+body[data-page=blog-usuarios-horario] .hor-tabs,
+body[data-page=blog-usuarios-detalle] .hor-tabs {
   display: flex;
   gap: 8px;
   margin-bottom: 18px;
@@ -21881,7 +22176,8 @@ body[data-page=blog-usuarios-horario] .hor-tabs {
 }
 body[data-page=blog-horarios-index] .hor-tab,
 body[data-page=blog-horarios-mi-horario] .hor-tab,
-body[data-page=blog-usuarios-horario] .hor-tab {
+body[data-page=blog-usuarios-horario] .hor-tab,
+body[data-page=blog-usuarios-detalle] .hor-tab {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -21897,13 +22193,15 @@ body[data-page=blog-usuarios-horario] .hor-tab {
 }
 body[data-page=blog-horarios-index] .hor-tab:hover,
 body[data-page=blog-horarios-mi-horario] .hor-tab:hover,
-body[data-page=blog-usuarios-horario] .hor-tab:hover {
+body[data-page=blog-usuarios-horario] .hor-tab:hover,
+body[data-page=blog-usuarios-detalle] .hor-tab:hover {
   border-color: #bcd4ea;
   color: var(--col-bilbao, #4d8abb);
 }
 body[data-page=blog-horarios-index] .hor-tab.is-active,
 body[data-page=blog-horarios-mi-horario] .hor-tab.is-active,
-body[data-page=blog-usuarios-horario] .hor-tab.is-active {
+body[data-page=blog-usuarios-horario] .hor-tab.is-active,
+body[data-page=blog-usuarios-detalle] .hor-tab.is-active {
   background: linear-gradient(135deg, #4d8abb, #4267ac);
   border-color: transparent;
   color: #fff;
@@ -21911,7 +22209,8 @@ body[data-page=blog-usuarios-horario] .hor-tab.is-active {
 }
 body[data-page=blog-horarios-index] .hor-head,
 body[data-page=blog-horarios-mi-horario] .hor-head,
-body[data-page=blog-usuarios-horario] .hor-head {
+body[data-page=blog-usuarios-horario] .hor-head,
+body[data-page=blog-usuarios-detalle] .hor-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -21920,13 +22219,15 @@ body[data-page=blog-usuarios-horario] .hor-head {
 }
 body[data-page=blog-horarios-index] .hor-grid-wrap,
 body[data-page=blog-horarios-mi-horario] .hor-grid-wrap,
-body[data-page=blog-usuarios-horario] .hor-grid-wrap {
+body[data-page=blog-usuarios-horario] .hor-grid-wrap,
+body[data-page=blog-usuarios-detalle] .hor-grid-wrap {
   overflow-x: auto;
   padding: 8px 4px 4px;
 }
 body[data-page=blog-horarios-index] .hor-grid,
 body[data-page=blog-horarios-mi-horario] .hor-grid,
-body[data-page=blog-usuarios-horario] .hor-grid {
+body[data-page=blog-usuarios-horario] .hor-grid,
+body[data-page=blog-usuarios-detalle] .hor-grid {
   width: 100%;
   /* table-layout:fixed → los cinco días miden lo mismo pase lo que pase
      con la longitud de los nombres de materia. */
@@ -21939,13 +22240,16 @@ body[data-page=blog-horarios-index] .hor-grid th, body[data-page=blog-horarios-i
 body[data-page=blog-horarios-mi-horario] .hor-grid th,
 body[data-page=blog-horarios-mi-horario] .hor-grid td,
 body[data-page=blog-usuarios-horario] .hor-grid th,
-body[data-page=blog-usuarios-horario] .hor-grid td {
+body[data-page=blog-usuarios-horario] .hor-grid td,
+body[data-page=blog-usuarios-detalle] .hor-grid th,
+body[data-page=blog-usuarios-detalle] .hor-grid td {
   text-align: center;
   vertical-align: middle;
 }
 body[data-page=blog-horarios-index] .hor-grid thead th,
 body[data-page=blog-horarios-mi-horario] .hor-grid thead th,
-body[data-page=blog-usuarios-horario] .hor-grid thead th {
+body[data-page=blog-usuarios-horario] .hor-grid thead th,
+body[data-page=blog-usuarios-detalle] .hor-grid thead th {
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--col-herencia, #374c69);
@@ -21956,20 +22260,23 @@ body[data-page=blog-usuarios-horario] .hor-grid thead th {
 }
 body[data-page=blog-horarios-index] .hor-grid__corner,
 body[data-page=blog-horarios-mi-horario] .hor-grid__corner,
-body[data-page=blog-usuarios-horario] .hor-grid__corner {
+body[data-page=blog-usuarios-horario] .hor-grid__corner,
+body[data-page=blog-usuarios-detalle] .hor-grid__corner {
   background: transparent;
   width: 88px;
 }
 body[data-page=blog-horarios-index] .hor-grid__hour,
 body[data-page=blog-horarios-mi-horario] .hor-grid__hour,
-body[data-page=blog-usuarios-horario] .hor-grid__hour {
+body[data-page=blog-usuarios-horario] .hor-grid__hour,
+body[data-page=blog-usuarios-detalle] .hor-grid__hour {
   text-align: right;
   padding-right: 12px;
   white-space: nowrap;
 }
 body[data-page=blog-horarios-index] .hor-grid__hour-label,
 body[data-page=blog-horarios-mi-horario] .hor-grid__hour-label,
-body[data-page=blog-usuarios-horario] .hor-grid__hour-label {
+body[data-page=blog-usuarios-horario] .hor-grid__hour-label,
+body[data-page=blog-usuarios-detalle] .hor-grid__hour-label {
   display: block;
   font-weight: 700;
   font-size: 0.82rem;
@@ -21977,83 +22284,113 @@ body[data-page=blog-usuarios-horario] .hor-grid__hour-label {
 }
 body[data-page=blog-horarios-index] .hor-grid__hour-time,
 body[data-page=blog-horarios-mi-horario] .hor-grid__hour-time,
-body[data-page=blog-usuarios-horario] .hor-grid__hour-time {
+body[data-page=blog-usuarios-horario] .hor-grid__hour-time,
+body[data-page=blog-usuarios-detalle] .hor-grid__hour-time {
   display: block;
   font-size: 0.72rem;
   color: #94a3b8;
 }
 body[data-page=blog-horarios-index] .hor-grid,
 body[data-page=blog-horarios-mi-horario] .hor-grid,
-body[data-page=blog-usuarios-horario] .hor-grid {
-  /* La altura de fila va en PROPORCIÓN a `alto` (los minutos del tramo, con tope).
-     Es lo que permite que una clase con rowspan cuadre: la suma de las filas que
-     abarca (más el border-spacing de en medio) la calcula el navegador, así que no
-     queda ninguna aritmética en el CSS que se pueda desincronizar.
-     50 min → 62px, exactamente el alto que tenía la rejilla de una sola jornada. */
+body[data-page=blog-usuarios-horario] .hor-grid,
+body[data-page=blog-usuarios-detalle] .hor-grid {
+  /* TODAS las filas miden lo mismo. Antes la altura iba en proporción a `alto`
+     (los minutos del tramo), y como el eje comprimido produce tramos de 50, 30 y
+     20 minutos, la rejilla salía con casillas de alturas distintas: se leía como
+     un fallo de maquetación, no como información.
+
+     El argumento de que se puede renunciar a la proporcionalidad ya estaba escrito
+     en el propio producto: `views/blog/horarios/pdf.php` reparte el alto útil de la
+     página entre todos los tramos por igual desde siempre y nunca ha leído `alto`.
+     La versión impresa del mismo horario renunció a esto hace tiempo y nadie la ha
+     echado de menos.
+
+     62px es exactamente lo que medía el tramo de 50 min, que es el dominante: todo
+     profesor de un solo nivel —y TODAS las vistas por grupo y por aula— quedan
+     pixel-idénticas. Además deja 31px de holgura sobre el contenido mínimo de
+     `.hor-cell` (30.58px) y conserva el techo contra el que está calibrado
+     `--split-3` más abajo.
+
+     ⚠️ Los `rowspan` NO se ven afectados: `Periodo::spanTramos()` cuenta por
+     contención de reloj y no lee `alto`. La suma de N filas más los N-1
+     `border-spacing` la sigue haciendo el navegador, y con filas iguales la
+     aritmética es incluso más simple. */
 }
 body[data-page=blog-horarios-index] .hor-grid tbody tr,
 body[data-page=blog-horarios-mi-horario] .hor-grid tbody tr,
-body[data-page=blog-usuarios-horario] .hor-grid tbody tr {
-  height: calc(var(--min, 50) * 1.24px);
+body[data-page=blog-usuarios-horario] .hor-grid tbody tr,
+body[data-page=blog-usuarios-detalle] .hor-grid tbody tr {
+  height: var(--hor-fila, 62px);
 }
 body[data-page=blog-horarios-index] .hor-grid,
 body[data-page=blog-horarios-mi-horario] .hor-grid,
-body[data-page=blog-usuarios-horario] .hor-grid {
-  /* Tramo que ningún día usa: franja separadora, no fila. Es lo que hace legible la
-     rejilla de un profesor que cruza dos jornadas desfasadas. */
+body[data-page=blog-usuarios-horario] .hor-grid,
+body[data-page=blog-usuarios-detalle] .hor-grid {
+  /* Tramo que ningún día usa. Conserva su tratamiento cosmético —atenuado y con la
+     hora en tono menor— porque «ningún día usa este tramo» es información; lo que
+     ya no hace es medir distinto que las demás. */
 }
 body[data-page=blog-horarios-index] .hor-grid__gap .hor-grid__hour,
 body[data-page=blog-horarios-mi-horario] .hor-grid__gap .hor-grid__hour,
-body[data-page=blog-usuarios-horario] .hor-grid__gap .hor-grid__hour {
+body[data-page=blog-usuarios-horario] .hor-grid__gap .hor-grid__hour,
+body[data-page=blog-usuarios-detalle] .hor-grid__gap .hor-grid__hour {
   padding-right: 12px;
 }
 body[data-page=blog-horarios-index] .hor-grid__gap .hor-grid__hour-time,
 body[data-page=blog-horarios-mi-horario] .hor-grid__gap .hor-grid__hour-time,
-body[data-page=blog-usuarios-horario] .hor-grid__gap .hor-grid__hour-time {
+body[data-page=blog-usuarios-horario] .hor-grid__gap .hor-grid__hour-time,
+body[data-page=blog-usuarios-detalle] .hor-grid__gap .hor-grid__hour-time {
   font-size: 0.64rem;
   opacity: 0.6;
 }
 body[data-page=blog-horarios-index] .hor-grid__gap td,
 body[data-page=blog-horarios-mi-horario] .hor-grid__gap td,
-body[data-page=blog-usuarios-horario] .hor-grid__gap td {
+body[data-page=blog-usuarios-horario] .hor-grid__gap td,
+body[data-page=blog-usuarios-detalle] .hor-grid__gap td {
   opacity: 0.5;
 }
 body[data-page=blog-horarios-index] .hor-grid,
 body[data-page=blog-horarios-mi-horario] .hor-grid,
-body[data-page=blog-usuarios-horario] .hor-grid {
+body[data-page=blog-usuarios-horario] .hor-grid,
+body[data-page=blog-usuarios-detalle] .hor-grid {
   /* Fragmento: los 20-30 min que quedan al cruzarse dos jornadas desfasadas. No es
      una hora con nombre, así que su rótulo va en tono menor — si se pinta igual que
      "3ª hora" parece que el colegio tiene una hora de 20 minutos. */
 }
 body[data-page=blog-horarios-index] .hor-grid__frag .hor-grid__hour-time,
 body[data-page=blog-horarios-mi-horario] .hor-grid__frag .hor-grid__hour-time,
-body[data-page=blog-usuarios-horario] .hor-grid__frag .hor-grid__hour-time {
+body[data-page=blog-usuarios-horario] .hor-grid__frag .hor-grid__hour-time,
+body[data-page=blog-usuarios-detalle] .hor-grid__frag .hor-grid__hour-time {
   font-size: 0.68rem;
   font-weight: 600;
   color: #b3c0d0;
 }
 body[data-page=blog-horarios-index] .hor-grid,
 body[data-page=blog-horarios-mi-horario] .hor-grid,
-body[data-page=blog-usuarios-horario] .hor-grid {
+body[data-page=blog-usuarios-horario] .hor-grid,
+body[data-page=blog-usuarios-detalle] .hor-grid {
   /* El contenido se ancla al <td> en vez de usar height:100%: en una tabla la
      altura del td es un mínimo, y con rowspan el porcentaje no resuelve bien. */
 }
 body[data-page=blog-horarios-index] .hor-grid td,
 body[data-page=blog-horarios-mi-horario] .hor-grid td,
-body[data-page=blog-usuarios-horario] .hor-grid td {
+body[data-page=blog-usuarios-horario] .hor-grid td,
+body[data-page=blog-usuarios-detalle] .hor-grid td {
   border-radius: 12px;
   padding: 0;
   position: relative;
 }
 body[data-page=blog-horarios-index] .hor-grid__free,
 body[data-page=blog-horarios-mi-horario] .hor-grid__free,
-body[data-page=blog-usuarios-horario] .hor-grid__free {
+body[data-page=blog-usuarios-horario] .hor-grid__free,
+body[data-page=blog-usuarios-detalle] .hor-grid__free {
   background: repeating-linear-gradient(45deg, #f4f7fb, #f4f7fb 6px, #eef3f9 6px, #eef3f9 12px);
   /* El span llena la celda para quedar centrado igual que un bloque de clase */
 }
 body[data-page=blog-horarios-index] .hor-grid__free span,
 body[data-page=blog-horarios-mi-horario] .hor-grid__free span,
-body[data-page=blog-usuarios-horario] .hor-grid__free span {
+body[data-page=blog-usuarios-horario] .hor-grid__free span,
+body[data-page=blog-usuarios-detalle] .hor-grid__free span {
   position: absolute;
   inset: 0;
   display: flex;
@@ -22065,20 +22402,113 @@ body[data-page=blog-usuarios-horario] .hor-grid__free span {
 }
 body[data-page=blog-horarios-index] .hor-grid,
 body[data-page=blog-horarios-mi-horario] .hor-grid,
-body[data-page=blog-usuarios-horario] .hor-grid {
+body[data-page=blog-usuarios-horario] .hor-grid,
+body[data-page=blog-usuarios-detalle] .hor-grid {
   /* El receso ya no es una fila entera: con jornada por nivel, el mismo tramo puede
      ser receso de Primaria y clase de Bachillerato. Es estado de celda. */
 }
 body[data-page=blog-horarios-index] .hor-grid__receso-cell,
 body[data-page=blog-horarios-mi-horario] .hor-grid__receso-cell,
-body[data-page=blog-usuarios-horario] .hor-grid__receso-cell {
+body[data-page=blog-usuarios-horario] .hor-grid__receso-cell,
+body[data-page=blog-usuarios-detalle] .hor-grid__receso-cell {
   background: #fff7e6;
   color: #e0a800;
   border-radius: 12px;
 }
+body[data-page=blog-horarios-index] .hor-grid,
+body[data-page=blog-horarios-mi-horario] .hor-grid,
+body[data-page=blog-usuarios-horario] .hor-grid,
+body[data-page=blog-usuarios-detalle] .hor-grid {
+  /* ── Móvil ──
+     La rejilla se queda con scroll horizontal, al revés que `.supl-week`, y es
+     deliberado: aquí no hay nada que tocar —es solo lectura— y el dato completo
+     de cada casilla lo abre `admin-horario-celda.js` en su modal, que en táctil
+     es además la única vía (el `title` no existe). Filtrar columnas con CSS
+     tampoco es opción: ocultar 4 de los 5 días rompe la geometría de los
+     `rowspan` bajo `table-layout:fixed`.
+     Lo que sí se hace es estrechar, para que quepan más días por pantallazo. */
+}
+@media (max-width: 720px) {
+  body[data-page=blog-horarios-index] .hor-grid,
+  body[data-page=blog-horarios-mi-horario] .hor-grid,
+  body[data-page=blog-usuarios-horario] .hor-grid,
+  body[data-page=blog-usuarios-detalle] .hor-grid {
+    min-width: 560px;
+    border-spacing: 4px;
+  }
+  body[data-page=blog-horarios-index] .hor-grid__corner,
+  body[data-page=blog-horarios-mi-horario] .hor-grid__corner,
+  body[data-page=blog-usuarios-horario] .hor-grid__corner,
+  body[data-page=blog-usuarios-detalle] .hor-grid__corner {
+    width: 52px;
+  }
+  body[data-page=blog-horarios-index] .hor-grid__hour,
+  body[data-page=blog-horarios-mi-horario] .hor-grid__hour,
+  body[data-page=blog-usuarios-horario] .hor-grid__hour,
+  body[data-page=blog-usuarios-detalle] .hor-grid__hour {
+    padding-right: 6px;
+    /* Solo la hora: "3ª hora" no cabe en 52px y se partía en dos líneas. */
+  }
+  body[data-page=blog-horarios-index] .hor-grid__hour-label,
+  body[data-page=blog-horarios-mi-horario] .hor-grid__hour-label,
+  body[data-page=blog-usuarios-horario] .hor-grid__hour-label,
+  body[data-page=blog-usuarios-detalle] .hor-grid__hour-label {
+    display: none;
+  }
+  body[data-page=blog-horarios-index] .hor-grid__hour-time,
+  body[data-page=blog-horarios-mi-horario] .hor-grid__hour-time,
+  body[data-page=blog-usuarios-horario] .hor-grid__hour-time,
+  body[data-page=blog-usuarios-detalle] .hor-grid__hour-time {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
+  }
+  body[data-page=blog-horarios-index] .hor-grid thead th,
+  body[data-page=blog-horarios-mi-horario] .hor-grid thead th,
+  body[data-page=blog-usuarios-horario] .hor-grid thead th,
+  body[data-page=blog-usuarios-detalle] .hor-grid thead th {
+    font-size: 0.74rem;
+    padding: 6px 2px;
+  }
+}
 body[data-page=blog-horarios-index],
 body[data-page=blog-horarios-mi-horario],
-body[data-page=blog-usuarios-horario] {
+body[data-page=blog-usuarios-horario],
+body[data-page=blog-usuarios-detalle] {
+  /* Afordance de scroll: sin él la rejilla parece cortada en vez de deslizable. */
+}
+@media (max-width: 720px) {
+  body[data-page=blog-horarios-index] .hor-grid-wrap,
+  body[data-page=blog-horarios-mi-horario] .hor-grid-wrap,
+  body[data-page=blog-usuarios-horario] .hor-grid-wrap,
+  body[data-page=blog-usuarios-detalle] .hor-grid-wrap {
+    padding: 6px 0 4px;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(to right, #fff 30%, rgba(255, 255, 255, 0)) left/28px 100% no-repeat, linear-gradient(to left, #fff 30%, rgba(255, 255, 255, 0)) right/28px 100% no-repeat;
+  }
+  body[data-page=blog-horarios-index] .hor-cell,
+  body[data-page=blog-horarios-mi-horario] .hor-cell,
+  body[data-page=blog-usuarios-horario] .hor-cell,
+  body[data-page=blog-usuarios-detalle] .hor-cell {
+    padding: 5px 8px;
+  }
+  body[data-page=blog-horarios-index] .hor-cell__mat,
+  body[data-page=blog-horarios-mi-horario] .hor-cell__mat,
+  body[data-page=blog-usuarios-horario] .hor-cell__mat,
+  body[data-page=blog-usuarios-detalle] .hor-cell__mat {
+    font-size: 0.8rem;
+  }
+  body[data-page=blog-horarios-index] .hor-cell__sec,
+  body[data-page=blog-horarios-mi-horario] .hor-cell__sec,
+  body[data-page=blog-usuarios-horario] .hor-cell__sec,
+  body[data-page=blog-usuarios-detalle] .hor-cell__sec {
+    font-size: 0.7rem;
+  }
+}
+body[data-page=blog-horarios-index],
+body[data-page=blog-horarios-mi-horario],
+body[data-page=blog-usuarios-horario],
+body[data-page=blog-usuarios-detalle] {
   /* Bloques de clase: fondo sólido del color de la materia y texto claro.
      Es un <button> —la casilla abre su ficha completa— así que hay que neutralizar
      los estilos de botón; el resto de reglas no cambia.
@@ -22088,7 +22518,8 @@ body[data-page=blog-usuarios-horario] {
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -22099,11 +22530,21 @@ body[data-page=blog-usuarios-horario] .hor-cell {
           appearance: none;
   cursor: pointer;
   border-radius: 12px;
-  padding: 8px 11px;
+  /* Padding, gap y line-height están ajustados al mínimo legible a propósito: cada
+     píxel que se ahorra aquí es un píxel menos de suelo necesario en `tbody tr`.
+     Contenido mínimo resultante: 12 (padding) + 9.66 (mat) + 1 (gap) + 7.92 (sec)
+     = 30.58px. Subirlos obliga a subir también el `max()` de arriba. */
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 2px;
+  /* `safe` cae a `start` SOLO cuando desborda. Sin él, un flex column centrado que
+     no cabe reparte el excedente por los dos extremos y se come la mitad del nombre
+     de la materia; con él, el recorte se lleva únicamente la línea secundaria — que
+     es el dato prescindible y que además está entero en el modal de la casilla.
+     Si el navegador no entiende `safe`, descarta la declaración y queda el `center`
+     de siempre. */
+  justify-content: safe center;
+  gap: 1px;
   background: var(--c);
   box-shadow: 0 6px 14px -8px rgba(11, 31, 61, 0.45);
   text-align: left;
@@ -22112,13 +22553,15 @@ body[data-page=blog-usuarios-horario] .hor-cell {
 }
 body[data-page=blog-horarios-index] .hor-cell:hover,
 body[data-page=blog-horarios-mi-horario] .hor-cell:hover,
-body[data-page=blog-usuarios-horario] .hor-cell:hover {
+body[data-page=blog-usuarios-horario] .hor-cell:hover,
+body[data-page=blog-usuarios-detalle] .hor-cell:hover {
   filter: brightness(1.06);
   box-shadow: 0 8px 18px -8px rgba(11, 31, 61, 0.55);
 }
 body[data-page=blog-horarios-index] .hor-cell:focus-visible,
 body[data-page=blog-horarios-mi-horario] .hor-cell:focus-visible,
-body[data-page=blog-usuarios-horario] .hor-cell:focus-visible {
+body[data-page=blog-usuarios-horario] .hor-cell:focus-visible,
+body[data-page=blog-usuarios-detalle] .hor-cell:focus-visible {
   outline: none;
   /* box-shadow y NO border: en `table-layout:fixed` el borde se dibuja dentro
      del ancho de columna y le roba píxeles al hijo. */
@@ -22126,39 +22569,52 @@ body[data-page=blog-usuarios-horario] .hor-cell:focus-visible {
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* Sin el recorte, una materia de nombre largo estiraba la fila y descuadraba las
      cinco columnas — con rowspan eso se nota mucho más. */
 }
 body[data-page=blog-horarios-index] .hor-cell__mat,
 body[data-page=blog-horarios-mi-horario] .hor-cell__mat,
-body[data-page=blog-usuarios-horario] .hor-cell__mat {
+body[data-page=blog-usuarios-horario] .hor-cell__mat,
+body[data-page=blog-usuarios-detalle] .hor-cell__mat {
   font-weight: 700;
   font-size: 0.84rem;
   color: #fff;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-body[data-page=blog-horarios-index] .hor-cell__sec,
-body[data-page=blog-horarios-mi-horario] .hor-cell__sec,
-body[data-page=blog-usuarios-horario] .hor-cell__sec {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
+  /* line-height explícito: sin él hereda el 1.15 de `html` en _normalize.scss, que
+     es más de lo que hace falta en una línea de 7.2px. */
+}
+body[data-page=blog-horarios-index] .hor-cell__sec,
+body[data-page=blog-horarios-mi-horario] .hor-cell__sec,
+body[data-page=blog-usuarios-horario] .hor-cell__sec,
+body[data-page=blog-usuarios-detalle] .hor-cell__sec {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-page=blog-horarios-index] .hor-cell,
+body[data-page=blog-horarios-mi-horario] .hor-cell,
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* Dos clases que se pisan en el reloj: dato sucio que la BD ya no puede impedir
      entre niveles distintos. Se marca, no se esconde. */
 }
 body[data-page=blog-horarios-index] .hor-cell__conflicto,
 body[data-page=blog-horarios-mi-horario] .hor-cell__conflicto,
-body[data-page=blog-usuarios-horario] .hor-cell__conflicto {
+body[data-page=blog-usuarios-horario] .hor-cell__conflicto,
+body[data-page=blog-usuarios-detalle] .hor-cell__conflicto {
   position: absolute;
   top: 4px;
   right: 5px;
@@ -22175,14 +22631,16 @@ body[data-page=blog-usuarios-horario] .hor-cell__conflicto {
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* Clase de un nivel que el profesor no tiene declarado. No es un choque de datos
      sino un ajuste de ficha pendiente: ámbar y otro icono, para no confundirlo con
      el rojo del conflicto real. */
 }
 body[data-page=blog-horarios-index] .hor-cell__ajeno,
 body[data-page=blog-horarios-mi-horario] .hor-cell__ajeno,
-body[data-page=blog-usuarios-horario] .hor-cell__ajeno {
+body[data-page=blog-usuarios-horario] .hor-cell__ajeno,
+body[data-page=blog-usuarios-detalle] .hor-cell__ajeno {
   position: absolute;
   top: 4px;
   right: 5px;
@@ -22197,38 +22655,45 @@ body[data-page=blog-usuarios-horario] .hor-cell__ajeno {
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* Tonos claros de la paleta (amarillo, lima, turquesa): tinta oscura */
 }
 body[data-page=blog-horarios-index] .hor-cell--dark .hor-cell__mat,
 body[data-page=blog-horarios-mi-horario] .hor-cell--dark .hor-cell__mat,
-body[data-page=blog-usuarios-horario] .hor-cell--dark .hor-cell__mat {
+body[data-page=blog-usuarios-horario] .hor-cell--dark .hor-cell__mat,
+body[data-page=blog-usuarios-detalle] .hor-cell--dark .hor-cell__mat {
   color: #1f2937;
 }
 body[data-page=blog-horarios-index] .hor-cell--dark .hor-cell__sec,
 body[data-page=blog-horarios-mi-horario] .hor-cell--dark .hor-cell__sec,
-body[data-page=blog-usuarios-horario] .hor-cell--dark .hor-cell__sec {
+body[data-page=blog-usuarios-horario] .hor-cell--dark .hor-cell__sec,
+body[data-page=blog-usuarios-detalle] .hor-cell--dark .hor-cell__sec {
   color: rgba(31, 41, 55, 0.72);
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* Anillo ámbar en la clase de un nivel no declarado */
 }
 body[data-page=blog-horarios-index] .hor-cell--ajeno,
 body[data-page=blog-horarios-mi-horario] .hor-cell--ajeno,
-body[data-page=blog-usuarios-horario] .hor-cell--ajeno {
+body[data-page=blog-usuarios-horario] .hor-cell--ajeno,
+body[data-page=blog-usuarios-detalle] .hor-cell--ajeno {
   box-shadow: 0 0 0 2px #e0a800, 0 6px 14px -8px rgba(11, 31, 61, 0.45);
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* Titular + acompañante. El icono basta: los nombres ya van en la línea
      secundaria y en el title, y la celda no da para más texto. */
 }
 body[data-page=blog-horarios-index] .hor-cell__duo,
 body[data-page=blog-horarios-mi-horario] .hor-cell__duo,
-body[data-page=blog-usuarios-horario] .hor-cell__duo {
+body[data-page=blog-usuarios-horario] .hor-cell__duo,
+body[data-page=blog-usuarios-detalle] .hor-cell__duo {
   position: absolute;
   top: 4px;
   left: 5px;
@@ -22243,7 +22708,8 @@ body[data-page=blog-usuarios-horario] .hor-cell__duo {
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* ── Materia dividida ──
      El alumnado se reparte entre dos o más opciones simultáneas. La celda deja de
      tener un color propio y se parte en tantas franjas como opciones, cada una con
@@ -22251,7 +22717,8 @@ body[data-page=blog-usuarios-horario] .hor-cell {
 }
 body[data-page=blog-horarios-index] .hor-cell--split,
 body[data-page=blog-horarios-mi-horario] .hor-cell--split,
-body[data-page=blog-usuarios-horario] .hor-cell--split {
+body[data-page=blog-usuarios-horario] .hor-cell--split,
+body[data-page=blog-usuarios-detalle] .hor-cell--split {
   background: transparent;
   box-shadow: none;
   padding: 0;
@@ -22260,14 +22727,15 @@ body[data-page=blog-usuarios-horario] .hor-cell--split {
 }
 body[data-page=blog-horarios-index] .hor-cell__opt,
 body[data-page=blog-horarios-mi-horario] .hor-cell__opt,
-body[data-page=blog-usuarios-horario] .hor-cell__opt {
+body[data-page=blog-usuarios-horario] .hor-cell__opt,
+body[data-page=blog-usuarios-detalle] .hor-cell__opt {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 1px;
-  padding: 4px 10px;
+  justify-content: safe center;
+  gap: 0;
+  padding: 2px 8px;
   border-radius: 10px;
   background: var(--c);
   overflow: hidden;
@@ -22275,28 +22743,54 @@ body[data-page=blog-usuarios-horario] .hor-cell__opt {
 }
 body[data-page=blog-horarios-index] .hor-cell__opt .hor-cell__mat,
 body[data-page=blog-horarios-mi-horario] .hor-cell__opt .hor-cell__mat,
-body[data-page=blog-usuarios-horario] .hor-cell__opt .hor-cell__mat {
+body[data-page=blog-usuarios-horario] .hor-cell__opt .hor-cell__mat,
+body[data-page=blog-usuarios-detalle] .hor-cell__opt .hor-cell__mat {
   font-size: 0.78rem;
 }
 body[data-page=blog-horarios-index] .hor-cell__opt .hor-cell__sec,
 body[data-page=blog-horarios-mi-horario] .hor-cell__opt .hor-cell__sec,
-body[data-page=blog-usuarios-horario] .hor-cell__opt .hor-cell__sec {
+body[data-page=blog-usuarios-horario] .hor-cell__opt .hor-cell__sec,
+body[data-page=blog-usuarios-detalle] .hor-cell__opt .hor-cell__sec {
   font-size: 0.66rem;
 }
 body[data-page=blog-horarios-index] .hor-cell,
 body[data-page=blog-horarios-mi-horario] .hor-cell,
-body[data-page=blog-usuarios-horario] .hor-cell {
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
+  /* ⚠️ Con TRES o más opciones no hay altura que alcance, y no es cuestión de
+     afinar: tres franjas con materia + subtítulo cuestan ~64px y la fila mide 62.
+     Ni bajar `--hor-fila` ni recortar el padding lo arreglan — la fila no puede
+     crecer porque `.hor-cell` es absoluta.
+
+     Se suelta la línea secundaria, que es lo prescindible: el dato completo de
+     cada opción (grupos, aula, docentes) ya viaja en la isla JSON `data-hor-cell`
+     y lo pinta el modal al tocar la casilla, además de estar en el `title`. Lo que
+     se pierde en pantalla es una línea de 7px que hoy sale recortada de todos
+     modos. Con solo materia bajan a ~42px y entran holgadas. */
+}
+body[data-page=blog-horarios-index] .hor-cell--split-3 .hor-cell__sec,
+body[data-page=blog-horarios-mi-horario] .hor-cell--split-3 .hor-cell__sec,
+body[data-page=blog-usuarios-horario] .hor-cell--split-3 .hor-cell__sec,
+body[data-page=blog-usuarios-detalle] .hor-cell--split-3 .hor-cell__sec {
+  display: none;
+}
+body[data-page=blog-horarios-index] .hor-cell,
+body[data-page=blog-horarios-mi-horario] .hor-cell,
+body[data-page=blog-usuarios-horario] .hor-cell,
+body[data-page=blog-usuarios-detalle] .hor-cell {
   /* Guardia de receso: no es una clase, es vigilancia. Se distingue con un patrón
      diagonal para que no se lea como una materia más de la jornada. */
 }
 body[data-page=blog-horarios-index] .hor-cell--guardia,
 body[data-page=blog-horarios-mi-horario] .hor-cell--guardia,
-body[data-page=blog-usuarios-horario] .hor-cell--guardia {
+body[data-page=blog-usuarios-horario] .hor-cell--guardia,
+body[data-page=blog-usuarios-detalle] .hor-cell--guardia {
   background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0 6px, transparent 6px 12px), var(--c);
 }
 body[data-page=blog-horarios-index] .hor-ajeno-aviso,
 body[data-page=blog-horarios-mi-horario] .hor-ajeno-aviso,
-body[data-page=blog-usuarios-horario] .hor-ajeno-aviso {
+body[data-page=blog-usuarios-horario] .hor-ajeno-aviso,
+body[data-page=blog-usuarios-detalle] .hor-ajeno-aviso {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -22311,23 +22805,27 @@ body[data-page=blog-usuarios-horario] .hor-ajeno-aviso {
 }
 body[data-page=blog-horarios-index] .hor-ajeno-aviso > i,
 body[data-page=blog-horarios-mi-horario] .hor-ajeno-aviso > i,
-body[data-page=blog-usuarios-horario] .hor-ajeno-aviso > i {
+body[data-page=blog-usuarios-horario] .hor-ajeno-aviso > i,
+body[data-page=blog-usuarios-detalle] .hor-ajeno-aviso > i {
   color: #e0a800;
   margin-top: 2px;
 }
 body[data-page=blog-horarios-index] .hor-ajeno-aviso strong,
 body[data-page=blog-horarios-mi-horario] .hor-ajeno-aviso strong,
-body[data-page=blog-usuarios-horario] .hor-ajeno-aviso strong {
+body[data-page=blog-usuarios-horario] .hor-ajeno-aviso strong,
+body[data-page=blog-usuarios-detalle] .hor-ajeno-aviso strong {
   color: #6b4a00;
 }
 body[data-page=blog-horarios-index],
 body[data-page=blog-horarios-mi-horario],
-body[data-page=blog-usuarios-horario] {
+body[data-page=blog-usuarios-horario],
+body[data-page=blog-usuarios-detalle] {
   /* Niveles que cruza el horario mostrado (solo aparece si son más de uno) */
 }
 body[data-page=blog-horarios-index] .hor-head__meta,
 body[data-page=blog-horarios-mi-horario] .hor-head__meta,
-body[data-page=blog-usuarios-horario] .hor-head__meta {
+body[data-page=blog-usuarios-horario] .hor-head__meta,
+body[data-page=blog-usuarios-detalle] .hor-head__meta {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -22335,7 +22833,8 @@ body[data-page=blog-usuarios-horario] .hor-head__meta {
 }
 body[data-page=blog-horarios-index] .hor-niveles,
 body[data-page=blog-horarios-mi-horario] .hor-niveles,
-body[data-page=blog-usuarios-horario] .hor-niveles {
+body[data-page=blog-usuarios-horario] .hor-niveles,
+body[data-page=blog-usuarios-detalle] .hor-niveles {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -24151,6 +24650,35 @@ body[data-page=blog-personal-index] .per-empty {
   text-align: center;
 }
 
+/* Móvil: los resultados heredan el ancho del campo y, si el picker está abajo del
+   formulario, la lista de 260px queda medio fuera de pantalla sin forma de subirla.
+   A ancho completo y pegada al borde inferior se ve entera y se alcanza con el pulgar.
+   ⚠️ `fixed` la saca de cualquier ancestro con `overflow`, que es el mismo problema
+   que resolvió el datepicker con `has-datepicker-open`. */
+@media (max-width: 520px) {
+  .picker__results {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 52vh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+    z-index: 210; /* por encima del cajón del sidebar (200) */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .picker__item {
+    padding: 12px;
+  } /* objetivo táctil */
+  .picker__ava {
+    width: 32px;
+    height: 32px;
+  }
+  .picker__name {
+    font-size: 14px;
+  }
+}
 /* El wrapper crece con el hint, así que el tache se ancla al alto del input
    (inset-block + place-items) en lugar de a un 50 % que quedaba descentrado. */
 .picker .admin-form__input-wrapper {
@@ -24684,12 +25212,21 @@ body[data-page=blog-personal-index] .per-empty {
   vertical-align: middle;
 }
 .supl-week {
-  /* Las filas son tramos de reloj, no periodos, y su altura va en proporción a los
-     minutos. Así el alto de una celda con rowspan (más el border-spacing de en medio)
-     lo suma el navegador y no queda ninguna cuenta en el CSS. 50 min → 46px. */
+  /* TODAS las filas miden lo mismo, huecos incluidos — mismo criterio que `.hor-grid`
+     (ver el comentario largo de `_admin-horarios.scss`): la altura proporcional a la
+     duración del tramo daba casillas de tres alturas distintas en cuanto el eje se
+     comprimía, y se leía como un fallo de maquetación.
+
+     Va más baja que `.hor-grid` a propósito y no por descuido: esta rejilla es de
+     APOYO dentro de un formulario (previsualizar una suplencia, marcar la clase que se
+     cede en un swap), no la vista principal del horario. Uniformidad DENTRO de cada
+     rejilla, jerarquía ENTRE ellas. Si algún día se prefiere paridad literal, es
+     cambiar un token en `:root`.
+     46px es lo que medía aquí el tramo de 50 min, así que el caso dominante no se
+     mueve, y deja holgura sobre el contenido de ~29px de la celda. */
 }
 .supl-week tbody tr {
-  height: calc(var(--min, 50) * 0.92px);
+  height: var(--hor-fila-compacta, 46px);
 }
 .supl-week {
   /* El contenido se ancla al <td>: en una tabla `height` es un mínimo, y con rowspan
@@ -24699,6 +25236,14 @@ body[data-page=blog-personal-index] .per-empty {
   padding: 0;
   border-radius: 10px;
   position: relative;
+}
+
+/* La acción de alta abre la pantalla. Esta vista no tiene un panel al que colgarla
+   —son dos listados distintos y el alta no pertenece a ninguno—, así que va arriba. */
+.supl-barra {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
 .supl-week__corner {
@@ -24756,10 +25301,12 @@ body[data-page=blog-personal-index] .per-empty {
   position: absolute;
   inset: 0;
   border-radius: 10px;
-  padding: 6px 9px;
+  padding: 5px 9px;
+  /* `safe center`: al desbordar cae a `start` y el recorte se lleva la línea
+     secundaria en vez de media materia. Ver `.hor-cell` en _admin-horarios.scss. */
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center;
   gap: 1px;
   background: #4267ac;
   text-align: left;
@@ -24779,6 +25326,7 @@ body[data-page=blog-personal-index] .per-empty {
 .supl-week__class-sec {
   font-size: 0.66rem;
   color: rgba(255, 255, 255, 0.8);
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -25151,6 +25699,9 @@ body[data-page=blog-personal-index] .per-empty {
   flex-wrap: wrap;
 }
 
+/* Cuatro estados, no dos. `estadoJustificante()` distingue sin_archivo · vigente ·
+   en_cola · resuelto, y la tarjeta solo tenía color para los dos extremos: un parte ya
+   revisado se pintaba en ROJO como si faltara, justo después de haberlo aprobado. */
 .supl-justif.is-pending {
   background: #fdeef0;
   border: 1px solid #f6c9ce;
@@ -25161,6 +25712,173 @@ body[data-page=blog-personal-index] .per-empty {
   background: #e8f7ee;
   border: 1px solid #bfe6cd;
   color: #15803d;
+}
+
+/* En cola: ámbar, porque RECLAMA una decisión de dirección. En verde se leía como
+   "todo en orden" mientras el propio texto decía que había pasado el plazo. */
+.supl-justif.is-wait {
+  background: #fff7e6;
+  border: 1px solid #f6e2b4;
+  color: #96690a;
+}
+
+/* Resuelto: neutro. El trámite terminó bien, así que no reclama nada — pero tampoco
+   se calla, o el histórico no distinguiría "nunca hubo" de "lo hubo y se resolvió". */
+.supl-justif.is-done {
+  background: #f1f5f9;
+  border: 1px solid #dde5ee;
+  color: #475569;
+}
+
+/* El registro dice que hay archivo y el disco dice que no. Ámbar y no rojo: no es una
+   falta del profesor, es un archivo que ya no está. */
+.supl-justif.is-broken {
+  background: #fff7e6;
+  border: 1px solid #f6e2b4;
+  color: #96690a;
+}
+
+/* ── Vista por DÍA de la rejilla semanal (≤640px) ──
+   La pinta `admin-supl-week.js` en lugar de la tabla cuando la pantalla es estrecha.
+   Sin scope de página, igual que `.supl-week`: la usan solicitar, crear, agendar y el
+   alta de intercambios.
+   Comparte `.supl-week__class` con la tabla (mismos colores, misma marca `.is-on`),
+   así que aquí solo va la caja: lo que cambia es el layout, no el bloque. */
+.supl-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.supl-day__head {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+.supl-day__row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.supl-day__row.is-target {
+  position: relative;
+}
+.supl-day__hour {
+  flex: 0 0 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: right;
+}
+.supl-day__hour strong {
+  font-size: 13px;
+  font-weight: 800;
+  color: #475569;
+}
+.supl-day__hour small {
+  font-size: 11px;
+  color: #a3aec0;
+}
+.supl-day {
+  /* Altura fija y NO proporcional a los minutos: en vertical no hay que cuadrar
+     ningún rowspan con las columnas de al lado, y una clase de 30' con la mitad de
+     alto solo consigue que su texto no quepa. */
+}
+.supl-day__cell {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  text-align: left;
+  font-family: "Outfit", sans-serif;
+}
+.supl-day__cell--receso {
+  background: #fff7e6;
+  color: #e0a800;
+  font-size: 12.5px;
+  font-weight: 700;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+}
+.supl-day__cell--libre {
+  background: repeating-linear-gradient(45deg, #f4f7fb, #f4f7fb 6px, #eef3f9 6px, #eef3f9 12px);
+  color: #b3c0d0;
+  font-size: 12.5px;
+  font-weight: 700;
+  flex-direction: row;
+  align-items: center;
+}
+.supl-day {
+  /* Objetivo táctil holgado: se marcan varias seguidas y con el pulgar. */
+}
+.supl-day button.supl-day__cell {
+  cursor: pointer;
+  min-height: 56px;
+}
+.supl-day {
+  /* La hora que se quiere cubrir, en modo preview. Anillo y no relleno: el relleno ya
+     significa el color de la materia. */
+}
+.supl-day__row.is-target .supl-day__cell {
+  box-shadow: 0 0 0 3px #4285f4;
+}
+.supl-day__row.is-target.is-free .supl-day__cell {
+  box-shadow: 0 0 0 3px #34a853;
+}
+.supl-day__row.is-target.is-break .supl-day__cell {
+  box-shadow: 0 0 0 3px #f5b400;
+}
+
+/* Chip de estado del justificante en los LISTADOS (agenda, mis ausencias). Dice si la
+   ausencia está soportada sin abrirla, y nunca nombra el archivo ni enlaza a él: eso
+   sigue siendo competencia de dirección. */
+.supl-jchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.supl-jchip--ok {
+  background: #e8f7ee;
+  color: #15803d;
+}
+.supl-jchip--wait {
+  background: #fff7e6;
+  color: #96690a;
+}
+.supl-jchip--done {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.supl-jchip--miss {
+  background: #fdeef0;
+  color: #b42318;
+}
+.supl-jchip {
+  /* En "Mis ausencias" el chip es la ACCIÓN: el profesor entra ahí a subir el
+     archivo, así que tiene que verse pulsable. */
+}
+.supl-jchip--link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.supl-jchip--link:hover {
+  filter: brightness(0.94);
+  transform: translateY(-1px);
 }
 
 .supl-justif__msg {
@@ -25488,6 +26206,15 @@ body[data-page=blog-personal-index] .per-empty {
 .supl-trabajo__btn--reset:hover {
   background: #f1f5f9;
   color: #334155;
+}
+.supl-trabajo {
+  /* Quien no es prefectura ve el estado, no los botones. Decir de quién se espera
+     el dato evita que un hueco se lea como un fallo de la pantalla. */
+}
+.supl-trabajo__espera {
+  font-size: 11px;
+  font-style: italic;
+  color: #a3aec0;
 }
 
 /* Cobertura futura: aún no se puede confirmar */
@@ -26273,6 +27000,81 @@ body[data-page=blog-personal-index] .per-empty {
 .supl-cover-card__notas i {
   color: #e0a800;
   margin-right: 6px;
+}
+
+/* ── Mis coberturas en móvil ──
+   "Mis ausencias" es una `.admin-table` de cinco columnas y ninguna sobra (la quinta
+   es el enlace para subir el justificante). Se apila igual que el histórico.
+
+   ⚠️ Las dos líneas de `.is-hidden` / `.is-filtered` son OBLIGATORIAS: esa regla vive
+   en `estaticas/_blog-admin.scss`, que `app.scss` importa ANTES que `admin/`, así que
+   `tbody tr{display:block}` la gana por cascada y mata la paginación sin avisar. */
+@media (max-width: 720px) {
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table-scroll {
+    overflow-x: visible;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table {
+    min-width: 0;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table tbody tr {
+    display: block;
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid #e6edf5;
+    border-radius: 14px;
+    background: #fff;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table tbody tr.is-hidden,
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table tbody tr.is-filtered {
+    display: none;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    border: none;
+    font-size: 1.3rem;
+    text-align: right;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-align: left;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table tbody td:not([data-label]) {
+    justify-content: flex-end;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table {
+    /* La barra de cobertura se queda sin sitio junto a su etiqueta. */
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .admin-table .supl-cover {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] {
+    /* Las tarjetas de cobertura ya son flex: solo hay que dejarlas respirar. */
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .supl-cover-card {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  body[data-page=blog-suplencias-mis-coberturas] .supl-cover-card__info {
+    flex: 1 1 100%;
+  }
 }
 
 /* ══════════ Dashboard (admin y dirección) ══════════ */
@@ -31951,7 +32753,7 @@ body[data-page=blog-soporte] .sop-qa__a strong {
 }
 
 /* =========================================================
-   PANEL · INTERCAMBIOS DE CLASE (/dashboard/swaps)
+   PANEL · SWAPS DE CLASE (/dashboard/swaps)
 ========================================================= */
 body[data-page=blog-swaps-index] .swp-aviso {
   display: flex;
@@ -31982,6 +32784,16 @@ body[data-page=blog-swaps-index] .swp-aviso strong {
 body[data-page=blog-swaps-index] .swp-aviso span {
   font-size: 0.8rem;
   color: #5b708c;
+}
+body[data-page=blog-swaps-index] {
+  /* La acción de la vista, arriba del todo. Esta pantalla no tiene `.admin-panel`
+     —son tarjetas sueltas bajo etiquetas de sección— así que no hay cabecera de panel
+     donde colgarla. */
+}
+body[data-page=blog-swaps-index] .swp-barra {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
 }
 body[data-page=blog-swaps-index] .swp-lista {
   display: grid;
@@ -32218,23 +33030,227 @@ body[data-page=blog-swaps-index] .swp-vacio--compacto p {
   }
 }
 
-/* ── Formulario de propuesta ── */
-body[data-page=blog-swaps-crear] .swp-form-wrap {
-  max-width: 940px;
+/* =========================================================
+   ASISTENTE DE ALTA DE SWAP (/dashboard/swaps/crear)
+
+   Una pregunta por pantalla, a ancho completo. Antes las cuatro se apilaban en una
+   columna de 940px y eso rompía dos cosas a la vez: el último paso caía fuera del
+   viewport —había que hacer scroll para descubrir que existía— y la REJILLA SEMANAL,
+   que es cinco días por la jornada entera, se pintaba en poco más de media pantalla.
+
+   Dos columnas: acompañamiento a la izquierda (Alex + índice de pasos, sticky) y el
+   paso activo a la derecha. El progreso es permanente y explícito, porque en un
+   formulario troceado no ver cuánto queda es peor que verlo todo de golpe.
+========================================================= */
+body[data-page=blog-swaps-crear] .swp-wiz {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  /* Sin `max-width`: el ancho entero es justamente el objetivo del rediseño.
+     El `minmax(0, 1fr)` es obligatorio — con un `1fr` a secas la columna no
+     puede encogerse por debajo del ancho de su contenido y `.supl-week`
+     (min-width 620px) la desbordaría en portátiles. */
 }
 body[data-page=blog-swaps-crear] {
-  /* Aviso de que quien coordina no pide permiso a nadie.
-     ⚠️ NO reutiliza `.swp-aviso`: aquella vive dentro del scope de
-     `blog-swaps-index` y aquí no aplicaría — el bloque salía sin un solo estilo,
-     con el <strong> y el <span> corridos como un titular gigante. */
+  /* ── Columna de acompañamiento ─────────────────────────────────────────── */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__aside {
+  position: sticky;
+  top: 88px; /* 68px de topbar sticky + aire */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+body[data-page=blog-swaps-crear] {
+  /* Alex no es decoración: dice en cada paso lo que el título no puede decir sin
+     alargarse. Misma función que en el home y en «Trabajo por revisar». */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__alex {
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 18px;
+  padding: 16px 18px 18px;
+  box-shadow: 0 1px 3px rgba(11, 31, 61, 0.05);
+  text-align: center;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__alex-img {
+  /* Alto fijo: las cinco posturas no miden lo mismo y sin esto la tarjeta
+     daba un salto al cambiar de paso. */
+  height: 116px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__alex-img img {
+  max-height: 116px;
+  width: auto;
+  /* ⚠️ `img` es `display:block` por el reset global, así que necesita su
+     propio `&[hidden]`: `[hidden]{display:none}` vive en
+     `base/_normalize.scss`, capa anterior y misma especificidad, y sin
+     esta línea se verían las cinco posturas apiladas a la vez. */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__alex-img img[hidden] {
+  display: none;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__dice {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #5b708c;
+  text-align: left;
+  /* Burbuja de diálogo: el pico la ata a Alex, si no se lee como un pie de foto. */
+  position: relative;
+  padding: 11px 13px;
+  background: #f5f9ff;
+  border: 1px solid #dbe7f5;
+  border-radius: 13px;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__dice::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 26px;
+  width: 12px;
+  height: 12px;
+  background: #f5f9ff;
+  border-left: 1px solid #dbe7f5;
+  border-top: 1px solid #dbe7f5;
+  transform: rotate(45deg);
+}
+body[data-page=blog-swaps-crear] {
+  /* Índice del recorrido: dónde estoy, qué llevo hecho y qué elegí en cada paso. */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__pasos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 18px;
+  overflow: hidden;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 15px;
+  border-top: 1px solid #f1f5f9;
+  color: #94a3b8;
+  transition: background 0.15s ease;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso:first-child {
+  border-top: none;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso-n {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #eef2f7;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso-txt {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso-corto {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso {
+  /* Lo elegido en ese paso. Vacío mientras no haya respuesta: un guion o un
+     «pendiente» ocuparía sitio para no decir nada. */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso-val {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso-val:empty {
+  display: none;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso.is-actual {
+  background: #f5f9ff;
+  color: #0B1F3D;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso.is-actual .swp-wiz__paso-n {
+  background: linear-gradient(135deg, #4267ac, #2e4b8a);
+  color: #fff;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso {
+  /* Resuelto Y ya visitado. Marcar en verde un paso al que todavía no se ha
+     llegado sería mentir sobre el avance real. */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso.is-hecho {
+  color: #475569;
+  cursor: pointer;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso.is-hecho .swp-wiz__paso-n {
+  background: #34a853;
+  color: #fff;
+  font-size: 0;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso.is-hecho .swp-wiz__paso-n::after {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 0.66rem;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__paso.is-hecho:hover {
+  background: #f8fafc;
+}
+body[data-page=blog-swaps-crear] {
+  /* ── Columna del paso activo ───────────────────────────────────────────── */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__main {
+  min-width: 0;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__bar {
+  margin-bottom: 14px;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__bar-txt {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__bar-txt strong {
+  color: #0B1F3D;
+  font-weight: 800;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__bar-riel {
+  height: 5px;
+  border-radius: 999px;
+  background: #e8eef6;
+  overflow: hidden;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4267ac, #2e4b8a);
+  border-radius: 999px;
+  transition: width 0.3s ease;
 }
 body[data-page=blog-swaps-crear] .swp-nota-rol {
   display: flex;
   align-items: flex-start;
   gap: 13px;
-  max-width: 940px;
-  margin: 0 0 22px;
-  padding: 14px 18px;
+  margin: 0 0 14px;
+  padding: 11px 15px;
   border-radius: 14px;
   background: rgba(170, 34, 150, 0.06);
   border: 1px solid rgba(170, 34, 150, 0.22);
@@ -32259,68 +33275,126 @@ body[data-page=blog-swaps-crear] .swp-nota-rol__txt strong {
   color: #0B1F3D;
 }
 body[data-page=blog-swaps-crear] {
-  /* ── Los pasos, como recorrido y no como secciones sueltas ──
-     El paso 3 depende de los dos anteriores, así que se pintan encadenados: número
-     en una columna fija y una guía vertical que los cose. Antes eran
-     `.admin-form-section` apiladas, sin jerarquía ni relación visible entre ellas. */
+  /* El paso. ⚠️ Tiene `display` propio → SU PROPIO `&[hidden]`, o el `flex` gana a
+     `[hidden]{display:none}` de `base/_normalize.scss` (misma especificidad, capa
+     anterior) y se verían los cinco pasos a la vez. */
 }
-body[data-page=blog-swaps-crear] .swp-step {
-  display: grid;
-  grid-template-columns: 46px 1fr;
-  gap: 0 16px;
-  position: relative;
-}
-body[data-page=blog-swaps-crear] .swp-step__aside {
-  position: relative;
+body[data-page=blog-swaps-crear] .swp-panel {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(11, 31, 61, 0.05);
+  overflow: clip;
 }
-body[data-page=blog-swaps-crear] .swp-step {
-  /* La guía baja desde el número hasta el siguiente paso. En el último no se
-     pinta: colgaría en el vacío. */
+body[data-page=blog-swaps-crear] .swp-panel[hidden] {
+  display: none;
 }
-body[data-page=blog-swaps-crear] .swp-step:not(:last-of-type) body[data-page=blog-swaps-crear] .swp-step__aside::after {
-  content: "";
-  position: absolute;
-  top: 40px;
-  bottom: -6px;
-  left: 50%;
-  width: 2px;
-  margin-left: -1px;
-  background: linear-gradient(#dbe4f0, #eef2f7);
+body[data-page=blog-swaps-crear] .swp-panel__head {
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #f1f5f9;
 }
-body[data-page=blog-swaps-crear] .swp-step__n {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #4267ac, #2e4b8a);
-  color: #fff;
-  font-size: 0.88rem;
-  font-weight: 800;
-  box-shadow: 0 6px 14px -8px rgba(46, 75, 138, 0.9);
-  flex-shrink: 0;
-}
-body[data-page=blog-swaps-crear] .swp-step__body {
-  min-width: 0; /* la rejilla puede desbordar si no */
-  padding: 0 0 26px;
-}
-body[data-page=blog-swaps-crear] .swp-step__title {
-  margin: 5px 0 2px;
-  font-size: 1.02rem;
+body[data-page=blog-swaps-crear] .swp-panel__title {
+  margin: 0 0 3px;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #0B1F3D;
   line-height: 1.3;
 }
-body[data-page=blog-swaps-crear] .swp-step__sub {
-  margin: 0 0 15px;
+body[data-page=blog-swaps-crear] .swp-panel__sub {
+  margin: 0;
   font-size: 0.82rem;
   color: #64748B;
 }
-body[data-page=blog-swaps-crear] .swp-step__sub strong {
-  color: #475569;
-  font-weight: 700;
+body[data-page=blog-swaps-crear] .swp-panel__body {
+  padding: 18px 24px 22px;
+}
+body[data-page=blog-swaps-crear] {
+  /* Los campos de texto NO se estiran a lo ancho de la pantalla: una caja de nombre
+     de 1400px es más difícil de leer que una de 460, no más fácil. La rejilla y las
+     opciones sí ocupan todo, porque ahí el ancho es información. */
+}
+body[data-page=blog-swaps-crear] .swp-campo {
+  max-width: 460px;
+}
+body[data-page=blog-swaps-crear] .swp-campo--fecha {
+  max-width: 340px;
+  margin-bottom: 16px;
+}
+body[data-page=blog-swaps-crear] .swp-campo--motivo {
+  max-width: 640px;
+  margin-top: 18px;
+}
+body[data-page=blog-swaps-crear] {
+  /* ── Navegación ────────────────────────────────────────────────────────── */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__nav-btns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+body[data-page=blog-swaps-crear] {
+  /* Qué falta para avanzar, ANTES de pulsar. El botón nunca sale deshabilitado: uno
+     muerto sin explicación es indistinguible de uno roto. */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 14px;
+  border-radius: 11px;
+  background: #fffaf0;
+  border: 1px solid #ffe4bd;
+  color: #8a5a1f;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__hint::before {
+  content: "\f06a";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  color: #e0a800;
+  font-size: 0.78rem;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__hint[hidden] {
+  display: none;
+}
+body[data-page=blog-swaps-crear] .swp-wiz__hint {
+  /* Al intentar avanzar sin resolver el paso, el aviso llama la atención en vez
+     de aparecer callado donde ya estaba. */
+}
+body[data-page=blog-swaps-crear] .swp-wiz__hint.is-avisando {
+  animation: swpAviso 0.32s ease;
+}
+body[data-page=blog-swaps-crear] {
+  /* Rejilla del paso de la clase. El componente (.supl-week) trae su propio aspecto;
+     aquí solo se le da sitio —todo el ancho, que era el objetivo— y el pie que
+     confirma en palabras qué clase se cede: el relleno de color dice "elegida", pero
+     no cuál. */
+}
+body[data-page=blog-swaps-crear] .swp-week {
+  margin-top: 4px;
+}
+body[data-page=blog-swaps-crear] .swp-week__pie {
+  margin: 12px 0 0;
+  padding: 9px 14px;
+  border-radius: 11px;
+  background: #f5f9ff;
+  border: 1px solid #dbe7f5;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2e4b8a;
 }
 body[data-page=blog-swaps-crear] {
   /* Sin horario que ofrecer. Mismo lenguaje que `.swp-opciones__vacio` pero con
@@ -32343,66 +33417,17 @@ body[data-page=blog-swaps-crear] .swp-vacio i {
   color: #e0a800;
 }
 body[data-page=blog-swaps-crear] {
-  /* El motivo no es un paso: es opcional y no condiciona nada, así que sale de la
-     cadena numerada y se alinea con el cuerpo de los pasos. */
-}
-body[data-page=blog-swaps-crear] .swp-motivo {
-  margin-left: 62px; /* 46px de columna + 16px de gap */
-  max-width: 620px;
-  padding-top: 4px;
-}
-body[data-page=blog-swaps-crear] .swp-acciones {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  max-width: 940px;
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid #eef2f7;
-}
-@media (max-width: 760px) {
-  body[data-page=blog-swaps-crear] .swp-step {
-    grid-template-columns: 34px 1fr;
-    gap: 0 12px;
-  }
-  body[data-page=blog-swaps-crear] .swp-step__n {
-    width: 28px;
-    height: 28px;
-    font-size: 0.8rem;
-  }
-  body[data-page=blog-swaps-crear] .swp-step:not(:last-of-type) .swp-step__aside::after {
-    top: 34px;
-  }
-  body[data-page=blog-swaps-crear] .swp-motivo {
-    margin-left: 0;
-  }
-  body[data-page=blog-swaps-crear] .swp-acciones {
-    flex-direction: column-reverse;
-  }
-}
-body[data-page=blog-swaps-crear] {
-  /* Rejilla del paso 1. El componente (.supl-week) trae su propio aspecto; aquí solo
-     se le da sitio y el pie que confirma en palabras qué clase se está cediendo —el
-     relleno de color dice "elegida", pero no cuál. */
-}
-body[data-page=blog-swaps-crear] .swp-week {
-  margin-top: 4px;
-}
-body[data-page=blog-swaps-crear] .swp-week__pie {
-  margin: 10px 0 0;
-  padding: 9px 14px;
-  border-radius: 11px;
-  background: #f5f9ff;
-  border: 1px solid #dbe7f5;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #2e4b8a;
+  /* Las clases del compañero, en columnas: con el ancho entero disponible caben tres
+     o cuatro días a la vez en vez de una lista de scroll interminable. */
 }
 body[data-page=blog-swaps-crear] .swp-opciones {
   display: grid;
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px 20px;
+  align-items: start;
 }
 body[data-page=blog-swaps-crear] .swp-opciones__vacio {
+  grid-column: 1/-1;
   padding: 24px;
   border-radius: 13px;
   background: #f8fafc;
@@ -32478,7 +33503,188 @@ body[data-page=blog-swaps-crear] .swp-op input:focus-visible + .swp-op__box {
   outline: 2px solid var(--c);
   outline-offset: 2px;
 }
+body[data-page=blog-swaps-crear] {
+  /* El trato entero en una línea, en el paso de confirmar. Los dos lados vivían
+     repartidos entre el pie de la rejilla y un radio marcado tres pantallazos más
+     abajo, así que nadie llegaba a ver el cambio completo.
+     ⚠️ NO reutiliza `.swp-permuta`: aquella está encerrada en el scope de
+     `blog-swaps-index` y aquí saldría sin un solo estilo. */
+}
+body[data-page=blog-swaps-crear] .swp-resumen {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: #f5f9ff;
+  border: 1px solid #dbe7f5;
+}
+body[data-page=blog-swaps-crear] .swp-resumen__lado {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+body[data-page=blog-swaps-crear] .swp-resumen__rol {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+body[data-page=blog-swaps-crear] .swp-resumen__clase {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-page=blog-swaps-crear] .swp-resumen__meta {
+  font-size: 0.76rem;
+  color: #64748B;
+}
+body[data-page=blog-swaps-crear] .swp-resumen__lado.is-set body[data-page=blog-swaps-crear] .swp-resumen__clase {
+  color: #0B1F3D;
+}
+body[data-page=blog-swaps-crear] .swp-resumen__flecha {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid #dbe7f5;
+  color: #4267ac;
+  font-size: 0.84rem;
+}
+body[data-page=blog-swaps-crear] .swp-resumen__falta {
+  grid-column: 1/-1;
+  margin: 0;
+  font-size: 0.78rem;
+  color: #8494a8;
+}
+body[data-page=blog-swaps-crear] .swp-resumen {
+  /* Incompleto: se ve la forma del cambio pero atenuada, para que quede claro
+     que todavía no dice nada. */
+}
+body[data-page=blog-swaps-crear] .swp-resumen--pendiente {
+  background: #f8fafc;
+  border-color: #e6edf5;
+}
+body[data-page=blog-swaps-crear] {
+  /* ── Responsive ────────────────────────────────────────────────────────── */
+}
+@media (max-width: 1024px) {
+  body[data-page=blog-swaps-crear] {
+    /* El acompañamiento pasa arriba y en horizontal. Alex se queda: es la mitad
+       del sentido del recorrido, no un adorno de escritorio. */
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__aside {
+    position: static;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 14px;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__alex {
+    flex: 0 1 380px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__alex-img {
+    height: 76px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__alex-img img {
+    max-height: 76px;
+  }
+  body[data-page=blog-swaps-crear] {
+    /* Sin pico: en horizontal apuntaría al techo. */
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__dice::before {
+    display: none;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__pasos {
+    flex: 1 1 0;
+  }
+}
+@media (max-width: 900px) {
+  body[data-page=blog-swaps-crear] {
+    /* Por debajo de 900px el índice completo se come la primera pantalla. Se queda
+       la barra de progreso, que dice lo mismo en una línea, y Alex. */
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__pasos {
+    display: none;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__alex {
+    flex: 1 1 auto;
+  }
+}
+@media (max-width: 720px) {
+  body[data-page=blog-swaps-crear] .swp-wiz__aside {
+    flex-direction: column;
+  }
+  body[data-page=blog-swaps-crear] .swp-panel__head {
+    padding: 14px 16px 12px;
+  }
+  body[data-page=blog-swaps-crear] .swp-panel__body {
+    padding: 14px 16px 18px;
+  }
+  body[data-page=blog-swaps-crear] .swp-campo, body[data-page=blog-swaps-crear] .swp-campo--fecha, body[data-page=blog-swaps-crear] .swp-campo--motivo {
+    max-width: none;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__nav-btns {
+    margin-left: 0;
+    /* Objetivo táctil de 44px y reparto a partes iguales: en 360px los tres
+       botones a la derecha se solapaban. */
+  }
+  body[data-page=blog-swaps-crear] .swp-wiz__nav-btns .admin-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 44px;
+  }
+  body[data-page=blog-swaps-crear] {
+    /* Los dos lados se apilan y la flecha gira: en 360px el reparto en tres
+       columnas dejaba cada materia en dos caracteres. */
+  }
+  body[data-page=blog-swaps-crear] .swp-resumen {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  body[data-page=blog-swaps-crear] .swp-resumen__flecha {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+}
 
+/* Fuera del scope: los @keyframes no se anidan bajo `body[data-page]`. */
+@keyframes swpAviso {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
 /* =========================================================
    PANEL · HISTÓRICO DE SUPLENCIAS DEL PLANTEL
    /dashboard/suplencias/historial
@@ -32486,6 +33692,77 @@ body[data-page=blog-swaps-crear] .swp-op input:focus-visible + .swp-op__box {
    Tres columnas y nada más. La vista existe para responder "quién cubrió a quién",
    así que lo único que se estiliza es distinguir de un vistazo los dos papeles: el
    que faltó y el que cubrió. Todo lo demás lo ponen .admin-panel y .admin-table. */
+body[data-page=blog-suplencias-historial] {
+  /* ── Móvil: la tabla se apila en tarjetas ──
+     Es una de las pantallas que un profesor abre en el pasillo, y sus cuatro columnas
+     son cortas: el caso canónico del apilado. El scroll horizontal de
+     `.admin-table-scroll` se desactiva aquí.
+
+     ⚠️ La regla `tbody tr.is-hidden { display:none }` vive en
+     `estaticas/_blog-admin.scss`, y `app.scss` importa `estaticas` ANTES que `admin`:
+     misma especificidad, capa posterior. Sin repetirla aquí, `tbody tr{display:block}`
+     gana por cascada y **la paginación deja de ocultar nada, en silencio**. Es el
+     mismo fallo que CLAUDE.md documenta para `[hidden]`.
+     Todo bloque de apilado necesita estas dos líneas. */
+}
+@media (max-width: 720px) {
+  body[data-page=blog-suplencias-historial] .admin-table-scroll {
+    overflow-x: visible;
+  }
+  body[data-page=blog-suplencias-historial] .admin-table {
+    min-width: 0;
+    /* `clip-path` y no `display:none`: el encabezado sigue existiendo para un
+       lector de pantalla, que es quien más lo necesita. Se pierde el afordance
+       de ordenar, y se asume: el servidor ya devuelve por fecha descendente,
+       que es el único orden que se quiere en el móvil. */
+  }
+  body[data-page=blog-suplencias-historial] .admin-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  body[data-page=blog-suplencias-historial] .admin-table tbody tr {
+    display: block;
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid #e6edf5;
+    border-radius: 14px;
+    background: #fff;
+  }
+  body[data-page=blog-suplencias-historial] .admin-table tbody tr.is-hidden,
+  body[data-page=blog-suplencias-historial] .admin-table tbody tr.is-filtered {
+    display: none;
+  }
+  body[data-page=blog-suplencias-historial] .admin-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    border: none;
+    /* 8.8px del `font-size:.88rem` heredado es ilegible en un móvil; se sube
+       aquí y no en el root, que afecta también al sitio público. */
+    font-size: 1.3rem;
+    text-align: right;
+  }
+  body[data-page=blog-suplencias-historial] .admin-table tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-align: left;
+  }
+  body[data-page=blog-suplencias-historial] .admin-table tbody td {
+    /* Una celda sin etiqueta (la de acciones) ocupa la fila entera. */
+  }
+  body[data-page=blog-suplencias-historial] .admin-table tbody td:not([data-label]) {
+    justify-content: flex-end;
+  }
+}
 body[data-page=blog-suplencias-historial] {
   /* Los dos papeles por color, no por posición: leer una tabla de dos nombres
      propios sin más pista que la columna obliga a volver a la cabecera en cada
@@ -32629,8 +33906,14 @@ body[data-page=blog-suplencias-justificantes] .jus-file--roto i {
   color: #d97706;
 }
 body[data-page=blog-suplencias-justificantes] {
-  /* Cuánto queda para el borrado automático. El rojo aparece solo en los últimos
-     días: si todo estuviera en rojo, el rojo no diría nada. */
+  /* Cuánto queda para el borrado automático, en semáforo de cuatro tramos sobre los
+     30 días de DIAS_PURGA (la cola empieza a los 7, así que `quedan` ∈ [0,23]):
+     0-3 rojo · 4-7 naranja · 8-14 ámbar · 15+ gris.
+     El gris de arriba NO es un olvido: si todo estuviera teñido, el color dejaría de
+     señalar nada y el rojo perdería su sentido.
+
+     Siempre tinte suave + tinta oscura, nunca fondo sólido de la paleta: el blanco
+     sobre el ámbar #f5b400 no llega a AA. */
 }
 body[data-page=blog-suplencias-justificantes] .jus-plazo {
   display: inline-block;
@@ -32642,9 +33925,17 @@ body[data-page=blog-suplencias-justificantes] .jus-plazo {
   font-weight: 700;
   white-space: nowrap;
 }
-body[data-page=blog-suplencias-justificantes] .jus-plazo--urgente {
+body[data-page=blog-suplencias-justificantes] .jus-plazo--rojo {
   background: rgba(229, 16, 34, 0.1);
   color: #b3101f;
+}
+body[data-page=blog-suplencias-justificantes] .jus-plazo--naranja {
+  background: rgba(252, 103, 34, 0.13);
+  color: #a8410f;
+}
+body[data-page=blog-suplencias-justificantes] .jus-plazo--ambar {
+  background: rgba(245, 180, 0, 0.2);
+  color: var(--pal-tinta, #0B1F3D);
 }
 body[data-page=blog-suplencias-justificantes] .jus-acciones {
   display: flex;
@@ -32673,6 +33964,341 @@ body[data-page=blog-suplencias-justificantes] .jus-vacio p {
   font-size: 0.86rem;
   color: #64748B;
   margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Cola de "¿dejó trabajo para el grupo?" — /dashboard/suplencias/trabajo-pendiente
+
+   Es una pantalla de repaso: prefectura entra, marca varias seguidas y sale. Por eso
+   las acciones son botones grandes en la propia fila y no abren nada intermedio.
+
+   ⚠️ ESCALA: 1rem = 16px, no 10px. La raíz la fija `estaticas/_base.scss`
+   (`html{font-size:16px}`). `base/_globales.scss` llegó a declarar `62.5%`, pero era
+   letra muerta —`app.scss` importa `estaticas` DESPUÉS— y ya se retiró. Este archivo
+   estuvo escrito en la escala de 10px y salía 1,6× más grande de lo previsto: la vista
+   entera se veía inflada. Todo valor nuevo va contra 16px — el rango del panel es
+   0.7rem–1.05rem.
+   ───────────────────────────────────────────────────────────────────────────── */
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(11, 31, 61, 0.05);
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__alex {
+  width: 54px;
+  height: auto;
+  flex-shrink: 0;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__body {
+  min-width: 0;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro {
+  /* El titular dice QUÉ se está revisando; la cifra baja al chip de al lado.
+     Antes el H2 era "43 clases sin revisar": el número ocupaba el sitio del
+     sentido y había que leer el párrafo entero para saber de qué iba la pantalla. */
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 0 0 5px;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__t {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--pal-tinta, #0B1F3D);
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__c {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #eef4fb;
+  color: #3f6da5;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro {
+  /* El matiz NULL vs 0 sigue siendo la razón de que el dato signifique algo, pero
+     gastaba cinco líneas del bloque principal. Baja a letra menor sin perderse. */
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__fine {
+  margin: 5px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-vacio {
+  padding: 40px 20px;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-vacio i {
+  font-size: 1.6rem;
+  opacity: 0.4;
+  display: block;
+  margin-bottom: 10px;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-dia {
+  margin-bottom: 12px;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-dia__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-dia__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] {
+  /* Lo que lleva más de una semana sin revisar: se avisa porque es justo lo que peor
+     se recuerda, y marcarlo de memoria es peor que dejarlo sin marcar. */
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-viejo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fdeef0;
+  color: #b42318;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 6px;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 9px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row:first-child {
+  border-top: none;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row:hover {
+  background: #fafcff;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__when {
+  flex-shrink: 0;
+  width: 52px;
+  text-align: right;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__when strong {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #374c69;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__when small {
+  display: block;
+  font-size: 0.7rem;
+  color: #a3aec0;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__what {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__mat {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--pal-tinta, #0B1F3D);
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.76rem;
+  color: #64748b;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__sub em {
+  color: #b42318;
+  font-style: normal;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__acts {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__acts form {
+  display: inline;
+  margin: 0;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] {
+  /* Las indicaciones que el ausente escribió al avisar (`suplencias.notas`). Es
+     justo el dato con el que se decide si dejó trabajo, y hasta ahora obligaba a
+     abrir la suplencia una por una.
+     Se recorta a dos líneas con el texto entero en el `title`: si hace falta
+     completo, `.tpe-btn--ver` ya abre la suplencia. */
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-nota {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 5px 9px;
+  background: #fffaf0;
+  border: 1px solid #ffe4bd;
+  border-radius: 9px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: #475569;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-nota i {
+  color: #e0a800;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 0.72rem;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-nota span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-nota {
+  /* "No escribió nada" NO es lo mismo que "no se cargó el dato", y esa duda es
+     justo la que impide marcar con confianza. Por eso el caso negativo también
+     se dice, en gris y sin caja. */
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-nota--sin {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #a3aec0;
+  font-style: italic;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn {
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 6px 13px;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn:hover {
+  transform: translateY(-1px);
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn {
+  /* Sí y No pesan lo mismo: la respuesta correcta depende del caso y sesgar el
+     botón hacia una de las dos contamina el dato que alimenta el tablero. */
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn--si {
+  background: #e8f7ee;
+  color: #15803d;
+  border-color: #cdeedb;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn--si:hover {
+  background: #15803d;
+  color: #fff;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn--no {
+  background: #fdeef0;
+  color: #b42318;
+  border-color: #f7d4d9;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn--no:hover {
+  background: #b42318;
+  color: #fff;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn--ver {
+  background: #f1f5f9;
+  color: #64748b;
+  width: 32px;
+  padding: 6px 0;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn--ver:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+body[data-page=blog-suplencias-trabajo-pendiente] {
+  /* ── Móvil: es el dispositivo real de prefectura ──────────────────────── */
+}
+@media (max-width: 720px) {
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro {
+    padding: 12px 14px;
+    gap: 11px;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__alex {
+    width: 46px;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__t {
+    font-size: 0.95rem;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-intro__p {
+    font-size: 0.78rem;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] {
+    /* La fila se parte en dos: datos arriba, botones abajo a ancho completo. En
+       360px los tres botones a la derecha dejaban la materia en dos caracteres. */
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row {
+    flex-wrap: wrap;
+    padding: 12px 15px;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__when {
+    width: auto;
+    text-align: left;
+    order: 1;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__when strong, body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__when small {
+    display: inline;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__what {
+    order: 2;
+    flex: 1 1 100%;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-row__acts {
+    order: 3;
+    width: 100%;
+    gap: 10px;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] {
+    /* Objetivo táctil de 44px: se marcan varias seguidas y con el pulgar. NO baja
+       con el resto de la escala — es tamaño de dedo, no de letra. */
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    font-size: 0.82rem;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-btn--ver {
+    flex: 0 0 44px;
+    width: 44px;
+  }
+  body[data-page=blog-suplencias-trabajo-pendiente] .tpe-dia__head {
+    padding-bottom: 4px;
+  }
 }
 
 /* =========================================================
@@ -33079,6 +34705,446 @@ body[data-page=blog-testimoniales-index] .cmodal__actions {
   justify-content: center;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Ficha interna de un colaborador — /dashboard/usuarios/detalle?id=N
+
+   Secciones apiladas y un subnav de anclas, no pestañas: qué secciones existen
+   depende del tipo de personal, y unas pestañas cuyo número cambia según a quién
+   mires obligan a aprender la excepción.
+
+   ⚠️ La rejilla del horario (`.hor-grid` / `.hor-cell`) NO se estiliza aquí: vive
+   en `_admin-horarios.scss`, dentro de una lista de `body[data-page=...]` a la que
+   esta vista está añadida. Si se saca de ahí, la semana sale como tabla desnuda.
+
+   ⚠️ ESCALA: 1rem = 16px, no 10px. La raíz la fija `estaticas/_base.scss`
+   (`html{font-size:16px}`). `base/_globales.scss` llegó a declarar `62.5%`, pero era
+   letra muerta —`app.scss` importa `estaticas` DESPUÉS— y ya se retiró. Este archivo
+   estuvo escrito en la escala de 10px y salía 1,6× más grande: el nombre iba a 30px y
+   las cifras a 35. Todo valor nuevo va contra 16px — el rango del panel es
+   0.7rem–1.05rem.
+   ───────────────────────────────────────────────────────────────────────────── */
+body[data-page=blog-usuarios-detalle] {
+  /* ── Cabecera de identidad ────────────────────────────────────────────── */
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(11, 31, 61, 0.05);
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__ava {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.15rem;
+  overflow: hidden;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__ava img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__body {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__name {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--pal-tinta, #0B1F3D);
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__mail {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__mail a {
+  color: #64748b;
+  text-decoration: none;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__mail a:hover {
+  color: #4267ac;
+  text-decoration: underline;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__mail i {
+  margin-right: 5px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero {
+  /* La acción sobre esta persona, junto a esta persona. Bajó del topbar, donde
+     quedaba en la barra del panel entero, al lado de la campana y el avatar. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero {
+  /* Los metadatos van a la derecha y en columna: son cifras de apoyo, no el
+     encabezado. En móvil pasan a fila para no comerse el alto. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__meta {
+  display: flex;
+  gap: 20px;
+  margin: 0;
+  padding-left: 20px;
+  border-left: 1px solid #eef2f7;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__meta dt {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-hero__meta dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #374c69;
+}
+body[data-page=blog-usuarios-detalle] .ufi-rol {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+body[data-page=blog-usuarios-detalle] .ufi-rol--admin {
+  background: #e8edf9;
+  color: #4267ac;
+}
+body[data-page=blog-usuarios-detalle] .ufi-nil {
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* Aviso de alcance: un listado filtrado que no dice que lo está se lee como el
+     dato completo del colegio. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-alcance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fff7e6;
+  color: #96690a;
+  font-size: 0.78rem;
+  border: 1px solid #f6e2b4;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* ── Subnav de anclas ─────────────────────────────────────────────────── */
+}
+body[data-page=blog-usuarios-detalle] .ufi-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+body[data-page=blog-usuarios-detalle] .ufi-nav a:hover {
+  background: #4267ac;
+  border-color: #4267ac;
+  color: #fff;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* ── Perfil ───────────────────────────────────────────────────────────── */
+}
+body[data-page=blog-usuarios-detalle] .ufi-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px 20px;
+  padding: 15px 20px 18px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-field {
+  min-width: 0;
+}
+body[data-page=blog-usuarios-detalle] .ufi-field--wide {
+  grid-column: 1/-1;
+}
+body[data-page=blog-usuarios-detalle] .ufi-field__t {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+body[data-page=blog-usuarios-detalle] .ufi-field__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+body[data-page=blog-usuarios-detalle] .ufi-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-mod {
+  display: inline-block;
+  padding: 4px 11px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+body[data-page=blog-usuarios-detalle] .ufi-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+body[data-page=blog-usuarios-detalle] .ufi-flag--ok {
+  background: #e8f7ee;
+  color: #15803d;
+}
+body[data-page=blog-usuarios-detalle] .ufi-flag--off {
+  background: #fdeef0;
+  color: #b42318;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* ── Cifras de suplencias ─────────────────────────────────────────────── */
+}
+body[data-page=blog-usuarios-detalle] .ufi-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 15px 20px 4px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat {
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat__n {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #374c69;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat__l {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat--ok {
+  background: #e8f7ee;
+  border-color: #cdeedb;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat--ok .ufi-stat__n {
+  color: #15803d;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat--warn {
+  background: #fff7e6;
+  border-color: #f6e2b4;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat--warn .ufi-stat__n {
+  color: #96690a;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat--bad {
+  background: #fdeef0;
+  border-color: #f7d4d9;
+}
+body[data-page=blog-usuarios-detalle] .ufi-stat--bad .ufi-stat__n {
+  color: #b42318;
+}
+body[data-page=blog-usuarios-detalle] .ufi-sub {
+  margin: 18px 20px 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #374c69;
+}
+body[data-page=blog-usuarios-detalle] .ufi-vacio {
+  margin: 0 20px 18px;
+  padding: 15px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  text-align: center;
+}
+body[data-page=blog-usuarios-detalle] .ufi-vacio--big {
+  margin: 0;
+  padding: 34px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 18px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-vacio--big i {
+  font-size: 1.6rem;
+  opacity: 0.5;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* Estado de una hora / de un intercambio. Los nombres de modificador son los
+     `estado_hora` de suplencia_horas y los `ESTADO_COLOR` de Swap, así que la vista
+     los emite tal cual sin traducir. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-eh {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #eef2f7;
+  color: #475569;
+}
+body[data-page=blog-usuarios-detalle] .ufi-eh--validada, body[data-page=blog-usuarios-detalle] .ufi-eh--ok {
+  background: #e8f7ee;
+  color: #15803d;
+}
+body[data-page=blog-usuarios-detalle] .ufi-eh--agendada, body[data-page=blog-usuarios-detalle] .ufi-eh--warn {
+  background: #fff7e6;
+  color: #96690a;
+}
+body[data-page=blog-usuarios-detalle] .ufi-eh--no_cubierta, body[data-page=blog-usuarios-detalle] .ufi-eh--bad {
+  background: #fdeef0;
+  color: #b42318;
+}
+body[data-page=blog-usuarios-detalle] .ufi-eh--info {
+  background: #e8edf9;
+  color: #4267ac;
+}
+body[data-page=blog-usuarios-detalle] .ufi-eh--nil {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* Carga semanal, junto a los niveles en la cabecera del horario */
+}
+body[data-page=blog-usuarios-detalle] .ufi-carga {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+body[data-page=blog-usuarios-detalle] .ufi-carga strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #374c69;
+}
+body[data-page=blog-usuarios-detalle] .ufi-carga small {
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* La tabla de la ficha es de consulta rápida y va a la misma escala que la del
+     listado de usuarios (.85rem). Decía querer ser "más compacta" y con 1.3rem en la
+     escala real de 16px conseguía justo lo contrario: 20,8px contra los 13,6 de allí. */
+}
+body[data-page=blog-usuarios-detalle] .admin-table td {
+  font-size: 0.85rem;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* ── Móvil ────────────────────────────────────────────────────────────── */
+}
+@media (max-width: 720px) {
+  body[data-page=blog-usuarios-detalle] .ufi-hero {
+    padding: 14px;
+    gap: 12px;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-hero__meta {
+    padding-left: 0;
+    border-left: none;
+    padding-top: 14px;
+    border-top: 1px solid #eef2f7;
+    width: 100%;
+    gap: 20px;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-hero__name {
+    font-size: 1.1rem;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-cols {
+    padding: 13px 15px 16px;
+    gap: 13px;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-stats {
+    padding: 13px 15px 4px;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-sub {
+    margin: 16px 15px 8px;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-vacio {
+    margin: 0 15px 15px;
+  }
+  body[data-page=blog-usuarios-detalle] {
+    /* El subnav en una sola línea deslizable: apilado en vertical ocuparía media
+       pantalla justo antes del contenido al que lleva. */
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-nav::-webkit-scrollbar {
+    display: none;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-nav a {
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 520px) {
+  body[data-page=blog-usuarios-detalle] .ufi-hero__ava {
+    width: 46px;
+    height: 46px;
+    font-size: 1.05rem;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* =========================================================
    blog-usuarios-editar
    Migrado desde el \3c style> embebido de views/blog/usuarios/editar.php
@@ -33327,6 +35393,11 @@ body[data-page=blog-usuarios-index] .usr-toolbar {
   gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 18px;
+  /* Al extremo, separado del buscador y del resumen: es la única acción de la
+     barra y así no se confunde con un filtro más. */
+}
+body[data-page=blog-usuarios-index] .usr-toolbar__new {
+  margin-left: auto;
 }
 body[data-page=blog-usuarios-index] .usr-search {
   position: relative;

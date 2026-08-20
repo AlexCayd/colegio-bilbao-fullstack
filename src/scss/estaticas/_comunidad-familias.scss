@@ -472,6 +472,25 @@
         &[data-type="suspension"] i { background: var(--cal-suspension); }
         &[data-type="cumple"]     i { background: var(--cal-cumple); }
     }
+
+    /* ── Móvil ──
+       El componente ya es fluido (siete columnas en `1fr` y celdas con `aspect-ratio`),
+       pero el padding de 22px, el radio de 24 y la nav de 40px son fijos: en 360px se
+       comían casi 60px de ancho útil y las celdas bajaban de 34px.
+       Va aquí, a nivel de componente, y no en un partial del panel: `.bilbao-cal` la
+       comparten Comunidad › Familias y cuatro pantallas del panel (cumpleaños, eventos,
+       resumen diario, agenda de suplencias). Arreglarlo en un solo sitio las cubre
+       todas y evita que las dos superficies se desincronicen. */
+    @media (max-width: 520px) {
+        padding: 12px;
+        border-radius: 16px;
+
+        &__nav { width: 36px; height: 36px; }
+        &__grid,
+        &__weekdays { gap: 4px; }
+        &__cell { border-radius: 10px; font-size: 0.85rem; }
+        &__weekdays span { font-size: 0.62rem; letter-spacing: .2px; }
+    }
 }
 
 @keyframes fam-bob {

@@ -137,7 +137,7 @@ $EXCLUYENTES = \Model\UsuarioBlog::TIPOS_EXCLUYENTES;
                           de nivel. Hay que decirlo o se creará sin alcance sin querer. */ ?>
                 <span class="admin-form__hint" style="margin-top:10px;display:block;"
                       data-niveles-hint="directivo"<?= in_array('directivo', $tiposSel, true) ? '' : ' hidden' ?>>
-                    Acota lo que verá: su tablero, su agenda de suplencias, los intercambios
+                    Acota lo que verá: su tablero, su agenda de suplencias, los swaps
                     y la cola de justificantes se limitan a estos niveles.
                     <strong>Déjalo vacío solo si debe ver todo el colegio.</strong>
                 </span>
@@ -206,14 +206,15 @@ $EXCLUYENTES = \Model\UsuarioBlog::TIPOS_EXCLUYENTES;
                         $rotulo = in_array($key, $DIRECTORIOS, true)
                             ? 'Directorio · ' . $m['nombre']
                             : $m['nombre']; ?>
-                    <label class="admin-mod-chip" data-modulo="<?= $key ?>" title="<?= s($m['desc']) ?>">
+                    <?php /* Solo el nombre. La descripción se leía una vez, al aprender el
+                             panel, y luego eran trece líneas de texto entre el admin y las
+                             casillas que venía a marcar. Sigue disponible en el `title`, junto
+                             al rótulo, para cuando el nombre se recorte por ellipsis. */ ?>
+                    <label class="admin-mod-chip" data-modulo="<?= $key ?>" title="<?= s($rotulo . ' — ' . $m['desc']) ?>">
                         <input type="checkbox" name="modulos[]" value="<?= $key ?>" <?= in_array($key, $modsSel, true) ? 'checked' : '' ?>>
                         <span class="admin-mod-chip__box"><i class="fa-solid fa-check"></i></span>
                         <span class="admin-mod-chip__icon"><i class="fa-solid <?= $m['icon'] ?>"></i></span>
-                        <span class="admin-mod-chip__text">
-                            <span class="admin-mod-chip__name"><?= s($rotulo) ?></span>
-                            <span class="admin-mod-chip__desc"><?= $m['desc'] ?></span>
-                        </span>
+                        <span class="admin-mod-chip__name"><?= s($rotulo) ?></span>
                     </label>
                     <?php endforeach; ?>
                 </div>

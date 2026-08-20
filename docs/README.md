@@ -1,7 +1,7 @@
 # Documentación — Colegio Bilbao
 
 Sitio web institucional del Colegio Bilbao e intranet de colaboradores.
-PHP 8 con MVC propio · MySQL · SCSS/Gulp · IIS.
+PHP 8 con MVC propio · MySQL · SCSS/Gulp · Apache (Hostinger).
 
 ---
 

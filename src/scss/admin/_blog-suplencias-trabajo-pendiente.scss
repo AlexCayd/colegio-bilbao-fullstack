@@ -1,0 +1,185 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Cola de "¿dejó trabajo para el grupo?" — /dashboard/suplencias/trabajo-pendiente
+
+   Es una pantalla de repaso: prefectura entra, marca varias seguidas y sale. Por eso
+   las acciones son botones grandes en la propia fila y no abren nada intermedio.
+
+   ⚠️ ESCALA: 1rem = 16px, no 10px. La raíz la fija `estaticas/_base.scss`
+   (`html{font-size:16px}`). `base/_globales.scss` llegó a declarar `62.5%`, pero era
+   letra muerta —`app.scss` importa `estaticas` DESPUÉS— y ya se retiró. Este archivo
+   estuvo escrito en la escala de 10px y salía 1,6× más grande de lo previsto: la vista
+   entera se veía inflada. Todo valor nuevo va contra 16px — el rango del panel es
+   0.7rem–1.05rem.
+   ───────────────────────────────────────────────────────────────────────────── */
+@use '../base/mixins' as *;
+
+body[data-page="blog-suplencias-trabajo-pendiente"] {
+
+    .tpe-intro {
+        display: flex; align-items: center; gap: 13px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        background: #fff;
+        border: 1px solid #e6edf5;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(11, 31, 61, .05);
+
+        &__alex { width: 54px; height: auto; flex-shrink: 0; }
+        &__body { min-width: 0; }
+        /* El titular dice QUÉ se está revisando; la cifra baja al chip de al lado.
+           Antes el H2 era "43 clases sin revisar": el número ocupaba el sitio del
+           sentido y había que leer el párrafo entero para saber de qué iba la pantalla. */
+        &__head {
+            display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+            margin: 0 0 5px;
+        }
+        &__t {
+            margin: 0;
+            font-size: 1.02rem; font-weight: 800; color: var(--pal-tinta, #0B1F3D);
+        }
+        &__c {
+            display: inline-flex; align-items: center;
+            padding: 2px 9px; border-radius: 999px;
+            background: #eef4fb; color: #3f6da5;
+            font-size: .72rem; font-weight: 700; white-space: nowrap;
+        }
+        &__p { margin: 0; font-size: .82rem; line-height: 1.5; color: #64748b; }
+        /* El matiz NULL vs 0 sigue siendo la razón de que el dato signifique algo, pero
+           gastaba cinco líneas del bloque principal. Baja a letra menor sin perderse. */
+        &__fine {
+            margin: 5px 0 0;
+            font-size: .72rem; line-height: 1.45; color: #94a3b8;
+        }
+    }
+
+    .tpe-vacio {
+        padding: 40px 20px;
+        i { font-size: 1.6rem; opacity: .4; display: block; margin-bottom: 10px; }
+    }
+
+    .tpe-dia {
+        margin-bottom: 12px;
+
+        &__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        &__meta {
+            display: inline-flex; align-items: center; gap: 9px;
+            font-size: .78rem; color: #94a3b8; font-weight: 600;
+        }
+    }
+    /* Lo que lleva más de una semana sin revisar: se avisa porque es justo lo que peor
+       se recuerda, y marcarlo de memoria es peor que dejarlo sin marcar. */
+    .tpe-viejo {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 9px; border-radius: 999px;
+        background: #fdeef0; color: #b42318;
+        font-size: .7rem; font-weight: 700;
+    }
+
+    .tpe-list { list-style: none; margin: 0; padding: 4px 0 6px; }
+
+    .tpe-row {
+        display: flex; align-items: center; gap: 13px;
+        padding: 9px 20px;
+        border-top: 1px solid #f1f5f9;
+
+        &:first-child { border-top: none; }
+        &:hover { background: #fafcff; }
+
+        &__when {
+            flex-shrink: 0;
+            width: 52px;
+            text-align: right;
+            strong { display: block; font-size: .86rem; font-weight: 800; color: #374c69; }
+            small  { display: block; font-size: .7rem; color: #a3aec0; }
+        }
+        &__what { flex: 1 1 auto; min-width: 0; }
+        &__mat  { display: block; font-size: .86rem; font-weight: 700; color: var(--pal-tinta, #0B1F3D); }
+        &__sub  {
+            display: block; margin-top: 2px;
+            font-size: .76rem; color: #64748b;
+            em { color: #b42318; font-style: normal; }
+        }
+        &__acts {
+            flex-shrink: 0;
+            display: flex; align-items: center; gap: 8px;
+            form { display: inline; margin: 0; }
+        }
+    }
+
+    /* Las indicaciones que el ausente escribió al avisar (`suplencias.notas`). Es
+       justo el dato con el que se decide si dejó trabajo, y hasta ahora obligaba a
+       abrir la suplencia una por una.
+       Se recorta a dos líneas con el texto entero en el `title`: si hace falta
+       completo, `.tpe-btn--ver` ya abre la suplencia. */
+    .tpe-nota {
+        display: flex; gap: 6px; margin: 4px 0 0;
+        padding: 5px 9px;
+        background: #fffaf0; border: 1px solid #ffe4bd; border-radius: 9px;
+        font-size: .76rem; line-height: 1.35; color: #475569;
+
+        i { color: #e0a800; flex-shrink: 0; margin-top: 2px; font-size: .72rem; }
+        span {
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* "No escribió nada" NO es lo mismo que "no se cargó el dato", y esa duda es
+           justo la que impide marcar con confianza. Por eso el caso negativo también
+           se dice, en gris y sin caja. */
+        &--sin {
+            background: transparent; border: none; padding: 0;
+            color: #a3aec0; font-style: italic;
+        }
+    }
+
+    .tpe-btn {
+        border: 1px solid transparent;
+        border-radius: 9px;
+        padding: 6px 13px;
+        font-family: 'Outfit', sans-serif;
+        font-size: .78rem; font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex; align-items: center; justify-content: center;
+        transition: background .15s ease, color .15s ease, transform .15s ease;
+
+        &:hover { transform: translateY(-1px); }
+
+        /* Sí y No pesan lo mismo: la respuesta correcta depende del caso y sesgar el
+           botón hacia una de las dos contamina el dato que alimenta el tablero. */
+        &--si { background: #e8f7ee; color: #15803d; border-color: #cdeedb;
+                &:hover { background: #15803d; color: #fff; } }
+        &--no { background: #fdeef0; color: #b42318; border-color: #f7d4d9;
+                &:hover { background: #b42318; color: #fff; } }
+        &--ver { background: #f1f5f9; color: #64748b; width: 32px; padding: 6px 0;
+                 &:hover { background: #e2e8f0; color: #475569; } }
+    }
+
+    /* ── Móvil: es el dispositivo real de prefectura ──────────────────────── */
+    @include hasta-sm {
+        .tpe-intro {
+            padding: 12px 14px; gap: 11px;
+            &__alex { width: 46px; }
+            &__t { font-size: .95rem; }
+            &__p { font-size: .78rem; }
+        }
+        /* La fila se parte en dos: datos arriba, botones abajo a ancho completo. En
+           360px los tres botones a la derecha dejaban la materia en dos caracteres. */
+        .tpe-row {
+            flex-wrap: wrap;
+            padding: 12px 15px;
+            &__when { width: auto; text-align: left; order: 1;
+                      strong, small { display: inline; } }
+            &__what { order: 2; flex: 1 1 100%; }
+            &__acts { order: 3; width: 100%; gap: 10px; }
+        }
+        /* Objetivo táctil de 44px: se marcan varias seguidas y con el pulgar. NO baja
+           con el resto de la escala — es tamaño de dedo, no de letra. */
+        .tpe-btn {
+            flex: 1 1 0;
+            min-height: 44px;
+            font-size: .82rem;
+            &--ver { flex: 0 0 44px; width: 44px; }
+        }
+        .tpe-dia__head { padding-bottom: 4px; }
+    }
+}

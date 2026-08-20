@@ -18,9 +18,6 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                 <span class="admin-topbar__title"><i class="fa-solid fa-door-open"></i> Aulas</span>
             </div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/aulas/crear" class="admin-topbar__new-btn">
-                    <i class="fa-solid fa-plus"></i> Nueva aula
-                </a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -45,7 +42,14 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                         Todas las aulas
                         <span class="admin-panel__count"><?= $total ?></span>
                     </h2>
-                    <a href="/dashboard/aulas/crear" class="admin-panel__action">+ Nueva</a>
+<?php /* La acción principal vive en la cabecera del panel sobre el que actúa, no
+                             en el topbar: allí quedaba junto a la campana y el avatar, que son del
+                             panel entero y no de esta pantalla. Sustituye al enlace de texto
+                             «+ Nuevo» que ya había aquí — la acción existía, pero como un enlace
+                             azul que no se leía como el botón que es. */ ?>
+                    <a href="/dashboard/aulas/crear" class="admin-new-btn">
+                        <i class="fa-solid fa-plus"></i> Nueva aula
+                    </a>
                 </div>
 
                 <?php if (!$total): ?>

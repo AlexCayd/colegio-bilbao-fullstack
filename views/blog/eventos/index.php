@@ -12,7 +12,6 @@ $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
         <header class="admin-topbar">
             <div class="admin-topbar__left"><span class="admin-topbar__title">Eventos</span></div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/eventos/crear" class="admin-topbar__new-btn"><i class="fa-solid fa-plus"></i> Nuevo evento</a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -27,7 +26,14 @@ $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
             <div class="admin-panel">
                 <div class="admin-panel__header">
                     <h2 class="admin-panel__title">Calendario institucional <span class="admin-panel__count"><?= count($eventos ?? []) ?></span></h2>
-                    <a href="/dashboard/eventos/crear" class="admin-panel__action">+ Nuevo</a>
+<?php /* La acción principal vive en la cabecera del panel sobre el que actúa, no
+                             en el topbar: allí quedaba junto a la campana y el avatar, que son del
+                             panel entero y no de esta pantalla. Sustituye al enlace de texto
+                             «+ Nuevo» que ya había aquí — la acción existía, pero como un enlace
+                             azul que no se leía como el botón que es. */ ?>
+                    <a href="/dashboard/eventos/crear" class="admin-new-btn">
+                        <i class="fa-solid fa-plus"></i> Nuevo evento
+                    </a>
                 </div>
 
                 <?php if (empty($eventos)): ?>

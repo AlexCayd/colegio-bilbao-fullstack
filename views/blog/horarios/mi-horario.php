@@ -21,13 +21,6 @@ $puedeSuplir  = (int)($profesor->puede_suplir ?? 1) === 1;
                 <span class="admin-topbar__title">Mi horario</span>
             </div>
             <div class="admin-topbar__actions">
-                <?php if (!empty($tramos)): ?>
-                <?php /* Descarga directa: el PDF lo arma el servidor con Dompdf, no el
-                          navegador, así que sale igual en cualquier equipo. */ ?>
-                <a href="/dashboard/horarios/mi-horario.pdf" class="admin-btn admin-btn--ghost">
-                    <i class="fa-solid fa-file-arrow-down"></i> Descargar PDF
-                </a>
-                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -67,6 +60,15 @@ $puedeSuplir  = (int)($profesor->puede_suplir ?? 1) === 1;
                         <span class="hor-niveles" title="Su horario cruza estas jornadas">
                             <i class="fa-solid fa-layer-group"></i> <?= s(implode(' · ', $niveles)) ?>
                         </span>
+                        <?php endif; ?>
+                        <?php if (!empty($tramos)): ?>
+                        <?php /* Descarga directa: el PDF lo arma el servidor con Dompdf, no el
+                                 navegador, así que sale igual en cualquier equipo. Va junto a la
+                                 rejilla que descarga y no en el topbar, donde quedaba a dos
+                                 palmos del contenido al que se refiere. */ ?>
+                        <a href="/dashboard/horarios/mi-horario.pdf" class="admin-btn admin-btn--ghost admin-btn--sm">
+                            <i class="fa-solid fa-file-pdf"></i> PDF
+                        </a>
                         <?php endif; ?>
                         <span class="mih-badge<?= $puedeSuplir ? '' : ' mih-badge--off' ?>">
                             <i class="fa-solid <?= $puedeSuplir ? 'fa-circle-check' : 'fa-ban' ?>"></i>

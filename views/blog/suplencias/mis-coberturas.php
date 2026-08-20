@@ -41,14 +41,19 @@ $totalCubiertas = count(array_filter($coberturas, fn($h) => $h->estado_hora === 
         <header class="admin-topbar">
             <div class="admin-topbar__left"><span class="admin-topbar__title">Mis suplencias</span></div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/suplencias/solicitar" class="admin-btn admin-btn--primary admin-btn--sm">
-                    <i class="fa-solid fa-hand"></i> Solicitar ausencia
-                </a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
 
         <main class="admin-content">
+            <?php /* El alta abre la pantalla y no el topbar. No cuelga de ninguno de los dos
+                     paneles —no responde a una cobertura ni a una ausencia ya existente, crea
+                     una nueva—, así que va arriba, que es donde se mira al entrar. */ ?>
+            <div class="supl-barra">
+                <a href="/dashboard/suplencias/solicitar" class="admin-new-btn">
+                    <i class="fa-solid fa-hand"></i> Solicitar ausencia
+                </a>
+            </div>
             <?php if (isset($_GET['validado'])): ?>
             <div class="admin-alerta admin-alerta--exito" style="margin-bottom:16px;"><i class="fa-solid fa-circle-check"></i> ¡Gracias! Confirmaste la cobertura.</div>
             <?php endif; ?>
@@ -211,6 +216,7 @@ $totalCubiertas = count(array_filter($coberturas, fn($h) => $h->estado_hora === 
                                 <th data-sort="text">Motivo</th>
                                 <th data-sort="num">Horas cubiertas</th>
                                 <th data-sort="text">Estado</th>
+                                <th data-sort="text">Justificante</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -219,17 +225,39 @@ $totalCubiertas = count(array_filter($coberturas, fn($h) => $h->estado_hora === 
                                 $tot = (int)$sup->total_horas;
                                 $val = (int)$sup->horas_validadas;
                                 $pct = $tot ? round($val / $tot * 100) : 0;
+                                $ej  = $sup->estadoJustificante();
                             ?>
                             <tr data-pager-item<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
-                                <td data-val="<?= s($sup->fecha) ?>"><?= s(fecha_larga($sup->fecha)) ?></td>
-                                <td><?= s($sup->motivo ?: '—') ?></td>
-                                <td data-val="<?= $pct ?>">
+                                <td data-label="Fecha" data-val="<?= s($sup->fecha) ?>"><?= s(fecha_larga($sup->fecha)) ?></td>
+                                <td data-label="Motivo"><?= s($sup->motivo ?: '—') ?></td>
+                                <td data-label="Horas cubiertas" data-val="<?= $pct ?>">
                                     <span class="supl-cover">
                                         <span class="supl-cover__bar"><span style="width:<?= $pct ?>%"></span></span>
                                         <span class="supl-cover__txt"><?= $val ?>/<?= $tot ?> confirmadas</span>
                                     </span>
                                 </td>
-                                <td data-val="<?= s($bl) ?>"><span class="supl-badge <?= $bc ?>"><?= s($bl) ?></span></td>
+                                <td data-label="Estado" data-val="<?= s($bl) ?>"><span class="supl-badge <?= $bc ?>"><?= s($bl) ?></span></td>
+                                <?php /* ⚠️ Un profesor con la ausencia en `por_justificar` veía el
+                                         badge rojo y NO tenía desde aquí ninguna vía para subir el
+                                         archivo: las filas no eran clicables y su única pantalla de
+                                         suplencias es esta. El enlace va a /agendar, que es donde
+                                         vive el formulario de subida (y donde el guard ya le
+                                         reconoce como el ausente). */ ?>
+                                <td data-label="Justificante" data-val="<?= s($ej) ?>">
+                                    <?php if ($ej === 'sin_archivo' && $sup->origen === 'sin_aviso'): ?>
+                                        <a href="/dashboard/suplencias/agendar?id=<?= (int)$sup->id ?>" class="supl-jchip supl-jchip--miss supl-jchip--link">
+                                            <i class="fa-solid fa-upload"></i> Subir justificante
+                                        </a>
+                                    <?php elseif ($ej === 'vigente' || $ej === 'en_cola'): ?>
+                                        <a href="/dashboard/suplencias/agendar?id=<?= (int)$sup->id ?>" class="supl-jchip supl-jchip--ok supl-jchip--link">
+                                            <i class="fa-solid fa-file-circle-check"></i> Entregado
+                                        </a>
+                                    <?php elseif ($ej === 'resuelto'): ?>
+                                        <span class="supl-jchip supl-jchip--done"><i class="fa-solid fa-check"></i> Revisado</span>
+                                    <?php else: ?>
+                                        <span class="supl-cell-muted">—</span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>

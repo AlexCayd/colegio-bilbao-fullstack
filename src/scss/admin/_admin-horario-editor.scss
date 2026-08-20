@@ -99,11 +99,15 @@ body[data-page="blog-usuarios-horario"] {
         }
         .hed-grid__corner { width: 104px; }
 
-        tbody tr { height: 66px; }
-        /* El receso es más bajo que una hora de clase, pero no tanto como antes (40px):
-           ahí se agendan las guardias, y una guardia se pinta como un bloque de dos
-           líneas (Guardia + lugar) que en 40px no cabía. */
-        tbody tr.hed-grid__receso-row { height: 56px; }
+        /* El mismo token que `.hor-grid`, y por eso baja de 66px a 62: las dos rejillas
+           de tamaño completo miden ahora exactamente lo mismo, que es lo que hace que se
+           sientan una sola cosa. Debajo de esta se pinta la semana consolidada con
+           `_grid.php`, así que la diferencia se veía en la misma pantalla.
+
+           El receso ya no es la excepción: ahí se agendan las guardias, que se pintan
+           como un bloque de dos líneas (Guardia + lugar), así que 62px le sobra —tenía
+           56— y a cambio la rejilla queda uniforme. */
+        tbody tr { height: var(--hor-fila, 62px); }
 
         td { padding: 0; position: relative; border-radius: 12px; }
     }

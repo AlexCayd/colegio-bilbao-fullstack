@@ -48,6 +48,17 @@
        Un solo token: los tres deben medir lo mismo. */
     --tb-btn: 40px;
 
+    /* Alto de fila de las rejillas de horario. TODAS las filas miden lo mismo, sin
+       excepción: la altura proporcional a la duración del tramo hacía que un profesor
+       de dos niveles viera casillas de tres alturas distintas y se leyera como un fallo
+       de maquetación. 62px es lo que medía el tramo de 50 min, el dominante, así que
+       las vistas por grupo y por aula quedan pixel-idénticas.
+       `.hed-grid` (editor) usa el mismo token; `.supl-week` es rejilla de apoyo DENTRO
+       de un formulario, no la vista principal, y por eso va más baja a propósito:
+       uniformidad dentro de cada rejilla, jerarquía entre ellas. */
+    --hor-fila: 62px;
+    --hor-fila-compacta: 46px;
+
     /* ---------- ESPACIADO ---------- */
     --sp-sm: 24px;
     --sp-md: 48px;

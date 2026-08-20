@@ -1,0 +1,13 @@
+COLEGIO BILBAO
+Permiso administrativo
+
+  Solicitante ...... (nombre del docente)
+  Motivo ........... Tramite personal impostergable
+  Duracion ......... Jornada completa
+  Autoriza ......... Direccion academica
+
+El docente dejo material de trabajo para los grupos afectados
+y notifico a prefectura con antelacion.
+
+--------------------------------------------------------------
+ARCHIVO DE PRUEBA. Documento ficticio del seed de desarrollo.

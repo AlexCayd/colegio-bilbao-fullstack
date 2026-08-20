@@ -1,8 +1,13 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+/* ⚠️ Aquí NO va `font-size: 62.5%`. Estuvo declarado y era letra muerta:
+   `estaticas/_base.scss` declara `html { font-size: 16px }`, misma especificidad, y
+   `app.scss` importa `estaticas` DESPUÉS que `base`, así que ganaba el 16px.
+   La declaración fantasma costó dos partials del panel escritos en la escala de 10px que
+   salían 1,6× más grandes de lo previsto. **1rem = 16px**, y la raíz se toca en
+   `estaticas/_base.scss` — que además afecta al sitio público. */
 html {
-    font-size: 62.5%;
     box-sizing: border-box;
 }
 html.i18n-pending body {

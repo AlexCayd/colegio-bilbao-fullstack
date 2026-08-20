@@ -1,0 +1,14 @@
+CLINICA SANTA ELENA
+Comprobante de asistencia a consulta
+
+  Paciente ......... (nombre del docente)
+  Fecha ............ dia de la ausencia
+  Hora ............. 09:30
+  Servicio ......... Medicina general
+  Medico ........... Dra. R. Iniesta  Ced. Prof. 7712345
+
+Se hace constar que el paciente acudio a consulta en la fecha
+y hora senaladas.
+
+--------------------------------------------------------------
+ARCHIVO DE PRUEBA. Documento ficticio del seed de desarrollo.

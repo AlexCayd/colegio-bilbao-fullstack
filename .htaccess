@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Colegio Bilbao — reparto de peticiones en Apache (Hostinger)
+#
+# Sustituye a web.config (IIS). Ojo: no es una traducción literal de aquel
+# archivo, porque IIS bloqueaba las carpetas de código por configuración del
+# servidor y Apache no. Sin las reglas de denegación de abajo, un
+# `GET /includes/.env` o `/database/credenciales.md` se sirve como TEXTO PLANO:
+# el catch-all `!-f` no los captura, precisamente por ser archivos reales.
+#
+# La lista de carpetas vetadas es la misma de dev-server.php:22 — si se toca
+# una, tocar la otra.
+# ─────────────────────────────────────────────────────────────────────────────
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# ── 1. Dotfiles (.env, .git, .htaccess…) ────────────────────────────────────
+RewriteRule (^|/)\. - [R=404,L]
+
+# ── 2. Código, dependencias y datos: nunca se sirven ────────────────────────
+# `storage/` va aquí porque contiene partes médicos: vive fuera de public/ a
+# propósito y su ÚNICA puerta es /dashboard/suplencias/justificante, que sí
+# comprueba permisos.
+RewriteRule ^(includes|vendor|database|models|controllers|views|classes|src|node_modules|storage|docs|horarios_grupos)(/|$) - [R=404,L]
+
+# ── 3. Justificantes heredados ──────────────────────────────────────────────
+# ⚠️ ANTES de la regla de /build/. Estos archivos vivieron en
+# public/build/assets/suplencias/ y son partes médicos: servirlos por la vía
+# estática los deja al alcance de cualquiera que tenga la URL, sin sesión.
+# El shim de index.php ya devolvía 404 aquí; al atajar /build/ en Apache el
+# shim deja de correr para esas URLs, así que el portazo se repite aquí.
+RewriteRule ^build/assets/suplencias/ - [R=404,L]
+
+# ── 4. Assets compilados ────────────────────────────────────────────────────
+# /build/* vive físicamente en public/build/. En IIS lo resolvía el shim PHP de
+# index.php; en Apache lo sirve el propio servidor (más rápido, y con soporte
+# nativo de Range para el vídeo). El shim se conserva como respaldo.
+RewriteRule ^build/(.*)$ public/build/$1 [L]
+
+# ── 5. /blog y sub-rutas siempre a PHP (ignora el directorio físico blog/) ───
+RewriteRule ^blog(/.*)?$ index.php [L]
+
+# ── 6. Catch-all: lo que no sea archivo ni directorio real → front controller ─
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [L]
+</IfModule>
+
+# ── Utilitarios de diagnóstico ──────────────────────────────────────────────
+# Exponen rutas del sistema de archivos y phpinfo(). Deben borrarse antes de
+# producción (ver docs/05-despliegue.md); mientras sigan en el repo, esto evita
+# que se sirvan por accidente.
+<FilesMatch "^(diagnostico|informacion|dev-server)\.php$">
+    Require all denied
+</FilesMatch>

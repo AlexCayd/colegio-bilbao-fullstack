@@ -89,11 +89,12 @@ $NIVEL_CORTO = ['Maternal' => 'Mat', 'Kinder' => 'Kín', 'Primaria' => 'Prim',
         </thead>
         <tbody>
         <?php foreach ($tramos as $i => $t): ?>
-            <?php /* La altura va en proporción a `alto`, no a los minutos: en el eje
-                      comprimido un tramo puede durar dos horas, y sin tope la fila se iría
-                      a 174px. Un tramo que ningún día usa baja a una franja. Con eso el
-                      rowspan lo sigue cuadrando el navegador (border-spacing incluido) y
-                      no queda aritmética en el CSS. */ ?>
+            <?php /* Todas las filas miden lo mismo (`--hor-fila` en el SCSS): la altura ya
+                      no depende de la duración del tramo. Por eso la fila NO emite ningún
+                      `--min` — un atributo que ningún estilo lee es una mentira que la
+                      próxima persona intentará usar. El dato `alto` sigue existiendo en
+                      PHP porque viaja en el JSON del endpoint de suplencias, pero ninguna
+                      rejilla lo consume ya. El rowspan lo sigue cuadrando el navegador. */ ?>
             <?php
             /* Tres formas de rotular una fila, según lo que el tramo signifique:
                  · hora con nombre  → "3ª hora" + su rango (y el nivel si el eje es mixto)
@@ -105,7 +106,7 @@ $NIVEL_CORTO = ['Maternal' => 'Mat', 'Kinder' => 'Kín', 'Primaria' => 'Prim',
             $rotulo  = $t['etiqueta'] !== '' ? s($t['etiqueta']) : '';
             $nivTr   = $mixto && !empty($t['nivel']) ? ($NIVEL_CORTO[$t['nivel']] ?? $t['nivel']) : '';
             ?>
-            <tr style="--min:<?= (int)($t['alto'] ?? $t['minutos']) ?>" class="<?= $esHueco ? 'hor-grid__gap' : ($rotulo === '' ? 'hor-grid__frag' : '') ?>">
+            <tr class="<?= $esHueco ? 'hor-grid__gap' : ($rotulo === '' ? 'hor-grid__frag' : '') ?>">
                 <th class="hor-grid__hour">
                     <?php if ($rotulo !== ''): ?>
                     <span class="hor-grid__hour-label"><?= $rotulo ?></span>
@@ -179,7 +180,10 @@ $NIVEL_CORTO = ['Maternal' => 'Mat', 'Kinder' => 'Kín', 'Primaria' => 'Prim',
                         <td<?= $span > 1 ? ' rowspan="' . $span . '"' : '' ?>>
                             <?php /* <button> y no <div>: es interactivo, así que tiene que
                                      poder recibir foco y activarse con teclado. */ ?>
-                            <button type="button" class="hor-cell<?= $col['oscuro'] ? ' hor-cell--dark' : '' ?><?= !empty($c['ajeno']) ? ' hor-cell--ajeno' : '' ?><?= $ops ? ' hor-cell--split' : '' ?><?= $b->esGuardia() ? ' hor-cell--guardia' : '' ?>" style="--c:<?= s($col['hex']) ?>;"
+                            <button type="button" class="hor-cell<?= $col['oscuro'] ? ' hor-cell--dark' : '' ?><?= !empty($c['ajeno']) ? ' hor-cell--ajeno' : '' ?><?= $ops ? ' hor-cell--split' : '' ?><?php /* $ops son las opciones ADEMÁS de la del bloque
+                                     base, así que tres franjas son count($ops) == 2. A partir
+                                     de ahí ninguna fila da altura para materia + subtítulo y
+                                     el modificador suelta la línea secundaria. */ ?><?= count($ops) >= 2 ? ' hor-cell--split-3' : '' ?><?= $b->esGuardia() ? ' hor-cell--guardia' : '' ?>" style="--c:<?= s($col['hex']) ?>;"
                                  data-hor-cell="<?= s(json_encode($ficha, JSON_UNESCAPED_UNICODE)) ?>"
                                  title="<?= s($titulo) ?>">
                                 <?php if ($ops): ?>

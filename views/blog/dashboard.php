@@ -117,9 +117,6 @@ if ($nBor > 0) {
                 <span class="admin-topbar__title">Panel de administración</span>
             </div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/articulos/crear" class="admin-topbar__new-btn">
-                    <i class="fa-solid fa-plus"></i> Nuevo artículo
-                </a>
                 <?php include __DIR__ . '/_topbar-avatar.php'; ?>
             </div>
         </header>

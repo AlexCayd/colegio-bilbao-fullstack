@@ -17,9 +17,6 @@ $iconoFila  = ['ok' => 'fa-circle-check', 'aviso' => 'fa-triangle-exclamation', 
                 </span>
             </div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/horarios/importar?plantilla=1" class="admin-btn admin-btn--ghost">
-                    <i class="fa-solid fa-download"></i> Plantilla CSV
-                </a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -58,6 +55,14 @@ $iconoFila  = ['ok' => 'fa-circle-check', 'aviso' => 'fa-triangle-exclamation', 
                 <div class="admin-panel">
                     <div class="admin-panel__header">
                         <h2 class="admin-panel__title"><i class="fa-solid fa-file-csv"></i> Sube el archivo</h2>
+                        <?php /* La plantilla, junto al campo que la pide. En el topbar quedaba a
+                                 dos palmos del `<input type=file>` al que sirve, y es lo primero
+                                 que hace falta cuando no se sabe qué columnas lleva el CSV. */ ?>
+                        <div class="admin-panel__tools">
+                            <a href="/dashboard/horarios/importar?plantilla=1" class="admin-btn admin-btn--ghost admin-btn--sm">
+                                <i class="fa-solid fa-download"></i> Plantilla CSV
+                            </a>
+                        </div>
                     </div>
                     <div class="admin-form-section">
                         <form method="POST" action="/dashboard/horarios/importar" enctype="multipart/form-data">

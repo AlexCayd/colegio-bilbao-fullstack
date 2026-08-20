@@ -17,11 +17,6 @@
                 <span class="admin-topbar__title">Editar noticia</span>
             </div>
             <div class="admin-topbar__actions">
-                <?php if (!empty($noticia->slug) && $noticia->estado === 'publicado'): ?>
-                <a href="/noticias/<?= s($noticia->slug) ?>" target="_blank" class="admin-btn admin-btn--ghost" style="font-size:.8rem;">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver publicada
-                </a>
-                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -37,6 +32,16 @@
                     <?php endforeach; ?>
                 </ul>
                 <button type="button" class="admin-alerta__close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($noticia->slug) && $noticia->estado === 'publicado'): ?>
+            <?php /* De la NOTICIA, no del panel: baja del topbar a la propia pantalla, sobre
+                     el formulario que la edita. */ ?>
+            <div class="admin-view-bar">
+                <a href="/noticias/<?= s($noticia->slug) ?>" target="_blank" class="admin-btn admin-btn--ghost admin-btn--sm">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver publicada
+                </a>
             </div>
             <?php endif; ?>
 

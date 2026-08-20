@@ -53,8 +53,14 @@ body[data-page="blog-suplencias-justificantes"] {
         &--roto { color: #b45309; i { color: #d97706; } }
     }
 
-    /* Cuánto queda para el borrado automático. El rojo aparece solo en los últimos
-       días: si todo estuviera en rojo, el rojo no diría nada. */
+    /* Cuánto queda para el borrado automático, en semáforo de cuatro tramos sobre los
+       30 días de DIAS_PURGA (la cola empieza a los 7, así que `quedan` ∈ [0,23]):
+       0-3 rojo · 4-7 naranja · 8-14 ámbar · 15+ gris.
+       El gris de arriba NO es un olvido: si todo estuviera teñido, el color dejaría de
+       señalar nada y el rojo perdería su sentido.
+
+       Siempre tinte suave + tinta oscura, nunca fondo sólido de la paleta: el blanco
+       sobre el ámbar #f5b400 no llega a AA. */
     .jus-plazo {
         display: inline-block;
         padding: 3px 10px;
@@ -63,10 +69,9 @@ body[data-page="blog-suplencias-justificantes"] {
         color: #475569;
         font-size: .72rem; font-weight: 700; white-space: nowrap;
 
-        &--urgente {
-            background: rgba(229, 16, 34, .1);
-            color: #b3101f;
-        }
+        &--rojo    { background: rgba(229, 16, 34, .10);  color: #b3101f; }
+        &--naranja { background: rgba(252, 103, 34, .13); color: #a8410f; }
+        &--ambar   { background: rgba(245, 180, 0, .20);  color: var(--pal-tinta, #0B1F3D); }
     }
 
     .jus-acciones { display: flex; gap: 7px; flex-wrap: wrap; }

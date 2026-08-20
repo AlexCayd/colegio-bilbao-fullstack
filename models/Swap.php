@@ -2,7 +2,10 @@
 namespace Model;
 
 /**
- * Intercambio PUNTUAL de clases entre dos profesores.
+ * Swap: intercambio PUNTUAL de clases entre dos profesores.
+ *
+ * En la UI se llama «swap»; el nombre interno de la clase, la tabla y las rutas ya
+ * lo eran, así que el rótulo y el código dicen por fin lo mismo.
  *
  * No es una suplencia: nadie falta y nadie cubre a nadie. Es un trato — «da tú mi
  * clase del martes y yo doy la tuya del jueves» — que no altera el horario
@@ -68,8 +71,8 @@ class Swap extends ActiveRecord {
 
     /**
      * Ventana de búsqueda: desde el día que se falta, cuántos días hacia delante se
-     * pueden ofrecer clases del otro profesor. Un intercambio a tres semanas vista
-     * deja de ser un intercambio y se convierte en un cambio de horario.
+     * pueden ofrecer clases del otro profesor. Un swap a tres semanas vista
+     * deja de ser un swap y se convierte en un cambio de horario.
      */
     public const DIAS_VENTANA = 7;
 
@@ -91,10 +94,10 @@ class Swap extends ActiveRecord {
     public function validar(): array {
         static::$alertas = [];
 
-        if (!$this->solicitante_id)  static::setAlerta('error', 'Falta quién solicita el intercambio');
-        if (!$this->destinatario_id) static::setAlerta('error', 'Elige con qué profesor quieres intercambiar');
+        if (!$this->solicitante_id)  static::setAlerta('error', 'Falta quién solicita el swap');
+        if (!$this->destinatario_id) static::setAlerta('error', 'Elige con qué profesor quieres cambiar la clase');
         if ((int)$this->solicitante_id === (int)$this->destinatario_id) {
-            static::setAlerta('error', 'No puedes intercambiar una clase contigo mismo');
+            static::setAlerta('error', 'No puedes cambiar una clase contigo mismo');
         }
         if (!$this->horario_origen_id)  static::setAlerta('error', 'Elige la clase que no puedes dar');
         if (!$this->horario_destino_id) static::setAlerta('error', 'Elige la clase que darás a cambio');
@@ -116,7 +119,7 @@ class Swap extends ActiveRecord {
             if ($dif < 0) {
                 static::setAlerta('error', 'La clase que tomas a cambio no puede ser anterior al día que faltas');
             } elseif ($dif > self::DIAS_VENTANA) {
-                static::setAlerta('error', 'El intercambio debe caer dentro de los '
+                static::setAlerta('error', 'El swap debe caer dentro de los '
                     . self::DIAS_VENTANA . ' días siguientes al día que faltas');
             }
         }
@@ -190,7 +193,7 @@ class Swap extends ActiveRecord {
     }
 
     /**
-     * Intercambios en los que participa un profesor (como solicitante o destinatario).
+     * Swaps en los que participa un profesor (como solicitante o destinatario).
      * Los pendientes de su respuesta salen primero: son los que reclaman acción.
      */
     public static function deProfesor(int $uid): array {
@@ -205,8 +208,8 @@ class Swap extends ActiveRecord {
     /**
      * Todos, para quien coordina. `$soloPorValidar` deja solo los ya aceptados.
      *
-     * `$excluirUid` saca de la lista los intercambios de quien mira: un admin o un
-     * prefecto que además imparte los tiene ya en "Mis intercambios", y salían dos
+     * `$excluirUid` saca de la lista los swaps de quien mira: un admin o un
+     * prefecto que además imparte los tiene ya en "Mis swaps", y salían dos
      * veces en la misma pantalla.
      */
     public static function todos(bool $soloPorValidar = false, int $excluirUid = 0, array $niveles = []): array {
@@ -227,7 +230,7 @@ class Swap extends ActiveRecord {
 
     /**
      * Condición de nivel para las direcciones. Criterio **OR**, nunca AND: un
-     * intercambio cruza dos clases y puede cruzar dos niveles, así que a la dirección
+     * swap cruza dos clases y puede cruzar dos niveles, así que a la dirección
      * de Primaria le compete si cualquiera de los dos lados es de Primaria.
      *
      * selectBase() ya une `po`/`pd`, así que no añade ni un JOIN — pero por eso mismo
@@ -256,7 +259,7 @@ class Swap extends ActiveRecord {
             self::selectBase() . " WHERE sw.estado = 'aceptado' AND {$n}"));
     }
 
-    /** Niveles que toca un intercambio (uno o dos). Alimenta el aviso a dirección. */
+    /** Niveles que toca un swap (uno o dos). Alimenta el aviso a dirección. */
     public function niveles(): array {
         return array_values(array_intersect(
             Materia::NIVELES,
@@ -271,7 +274,7 @@ class Swap extends ActiveRecord {
         return $r ? (int)$r->fetch_assoc()['n'] : 0;
     }
 
-    /** ¿Este intercambio ya cerró? Los cerrados no admiten más cambios de estado. */
+    /** ¿Este swap ya cerró? Los cerrados no admiten más cambios de estado. */
     public function cerrado(): bool {
         return \in_array($this->estado, ['rechazado', 'validado', 'denegado', 'cancelado'], true);
     }

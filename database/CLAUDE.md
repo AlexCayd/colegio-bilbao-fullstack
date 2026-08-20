@@ -393,6 +393,56 @@ UPDATE suplencias
 > cualquier archivo que quede ahí deja de ser descargable aunque no se mueva. La única
 > puerta es `/dashboard/suplencias/justificante?id=N`, que comprueba permisos
 > (dirección, o el propio ausente).
+>
+> ⚠️ En Apache ese portazo hay que **repetirlo en el `.htaccess`**, y por encima de la
+> regla que atajа `/build/` hacia `public/build/`: al atajarla, el shim de `index.php`
+> deja de correr para esas URLs y con él su 404.
+
+**Justificantes y trabajo dejado en el seed (agosto 2026).** Dos huecos de datos que hacían
+imposible probar sus flujos, ambos ya corregidos en `development.sql`:
+
+- Las 25 filas con `justificante` apuntaban todas al literal
+  `/build/assets/suplencias/ejemplo-justificante.pdf`, **que no existe en disco**:
+  `rutaJustificante()` devolvía `null`, `infoJustificante()` también, y la cola entera salía
+  como «Archivo no encontrado» con el botón de descarga dando 404. Ahora el ciclo lo cubren
+  **siete** suplencias (ids 93-99) que apuntan a los `storage/justificantes/ejemplo-*.txt`
+  —documentos ficticios en texto plano, versionados como excepción en `.gitignore`— en el
+  **formato nuevo**: nombre suelto, no ruta pública. Tres `vigente`, tres `en_cola` y una
+  `resuelto` (id 96: `justificante` a `NULL` + la firma `_resuelto_en`/`_por`/`_resolucion`),
+  que era el estado que ninguna vista sabía pintar y que no había forma de ver sin provocarlo
+  a mano.
+
+  > ⚠️ **DOS REGLAS que no se pueden saltar al sembrar un justificante**, las dos aprendidas
+  > por las malas:
+  >
+  > 1. **Solo fechas RELATIVAS.** `purgarJustificantes()` corre en **cada** carga de
+  >    `/dashboard` y hace `unlink()` de todo lo que pase de `DIAS_PURGA` (30 días). Las
+  >    suplencias de fecha fija del seed son de febrero a junio, o sea purgables desde el
+  >    primer login: darles un justificante modela algo que no puede existir **y borra el
+  >    archivo del repositorio**. Por eso ahí la columna va en `NULL`.
+  > 2. **Un archivo por suplencia, nunca compartido.** `aprobarJustificante()` y
+  >    `resolverJustificante()` borran el fichero. Si dos filas apuntan al mismo, aprobar una
+  >    deja a la otra en `is-broken` y el archivo perdido del repo.
+  >
+  > Comprobación (las dos deben dar **0**):
+  > ```sql
+  > SELECT COUNT(*) FROM suplencias
+  >  WHERE justificante IS NOT NULL AND fecha < CURDATE() - INTERVAL 30 DAY;
+  > SELECT COUNT(*) FROM (SELECT justificante FROM suplencias
+  >   WHERE justificante IS NOT NULL GROUP BY justificante HAVING COUNT(*) > 1) x;
+  > ```
+- `suplencia_horas` no incluía `dejo_trabajo` en su `INSERT`, así que las 172 horas quedaban a
+  `NULL`: el tablero arrancaba con 0 %, el panel de «ausencias sin trabajo» vacío y la cola de
+  prefectura con todo pendiente. Ahora la columna va en el `INSERT` con un reparto
+  **determinista** (~55 % `1`, ~20 % `0`, ~25 % `NULL`) — nada de aleatorio: el seed tiene que
+  dar el mismo resultado en cada carga.
+
+> Los prefectos del seed pasaron a llevar también el módulo **`profesores`**, que es lo que
+> `UsuarioBlog::MODULOS_SUGERIDOS['prefecto']` ya declaraba y el seed no reflejaba. Sin él no
+> pueden abrir el directorio ni la ficha de un colaborador.
+> ⚠️ `deploy.sql` **no tiene ninguna fila de prefectura** (57 usuarios: 48 profesores, 1
+> profesor+administrativo, 6 directivos). No es efecto de este cambio, pero conviene saberlo
+> antes de dar por hecho que el flujo de prefectura existe en producción.
 
 Ejemplo, el cambio de `notificaciones` a avisos transversales (julio 2026):
 

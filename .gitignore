@@ -34,6 +34,11 @@ public/build/assets/suplencias/
 # La carpeta se conserva en git con su propio .gitignore; el contenido nunca.
 storage/justificantes/*
 !storage/justificantes/.gitkeep
+# Excepción: los del SEED. Son documentos ficticios en texto plano a los que apunta
+# development.sql; sin ellos en disco, `rutaJustificante()` devuelve null y toda la
+# cola sale como "Archivo no encontrado" — el flujo de revisión no se puede probar.
+# Nunca añadir aquí un archivo real: esta carpeta es la única que no vigila el shim.
+!storage/justificantes/ejemplo-*.txt
 
 # Caché de fuentes de Dompdf (.ufm/.json). La genera sola al primer PDF a partir de
 # los TTF de src/fonts/, que esos sí se versionan.

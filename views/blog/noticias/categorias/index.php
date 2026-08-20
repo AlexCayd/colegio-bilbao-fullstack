@@ -16,9 +16,6 @@
                 <span class="admin-topbar__title">Categorías de noticias</span>
             </div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/noticias/categorias/crear" class="admin-topbar__new-btn">
-                    <i class="fa-solid fa-plus"></i> Nueva categoría
-                </a>
                 <?php include __DIR__ . '/../../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -30,7 +27,14 @@
                         Todas las categorías
                         <span class="admin-panel__count"><?= count($categorias ?? []) ?></span>
                     </h2>
-                    <a href="/dashboard/noticias/categorias/crear" class="admin-panel__action">+ Nueva</a>
+<?php /* La acción principal vive en la cabecera del panel sobre el que actúa, no
+                             en el topbar: allí quedaba junto a la campana y el avatar, que son del
+                             panel entero y no de esta pantalla. Sustituye al enlace de texto
+                             «+ Nuevo» que ya había aquí — la acción existía, pero como un enlace
+                             azul que no se leía como el botón que es. */ ?>
+                    <a href="/dashboard/noticias/categorias/crear" class="admin-new-btn">
+                        <i class="fa-solid fa-plus"></i> Nueva categoría
+                    </a>
                 </div>
 
                 <?php if (empty($categorias)): ?>

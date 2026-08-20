@@ -25,7 +25,13 @@
         overflow: hidden;
     }
 
-    .comunidad-bg {
+    /* Bosque WebGL, el mismo componente del login. Ocupa el stage y NO el viewport:
+       aquí el canvas es `absolute` dentro del contenedor, así que forest.js lo mide con
+       clientWidth/clientHeight (ver el comentario de `medir()` en forest.js).
+       El degradado de `.colab__stage` queda debajo y es el respaldo real cuando no hay
+       WebGL o el usuario pidió menos animación — entonces `init()` devuelve null y el
+       canvas se queda transparente. */
+    &__canvas {
         position: absolute;
         inset: 0;
         width: 100%;
@@ -34,9 +40,20 @@
         pointer-events: none;
     }
 
+    /* Oscurece los bordes para que el título no compita con los árboles del centro.
+       Mismo papel que `.admin-login__veil`. */
+    &__veil {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background:
+            radial-gradient(90% 70% at 50% 45%, rgba(6, 15, 36, 0) 0%, rgba(6, 15, 36, .55) 70%, rgba(6, 15, 36, .8) 100%);
+    }
+
     &__inner {
         position: relative;
-        z-index: 1;
+        z-index: 2;
         text-align: center;
         color: #fff;
         display: flex;

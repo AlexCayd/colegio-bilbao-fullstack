@@ -65,6 +65,21 @@ if (!function_exists('blog_modulos_catalogo')) {
     }
 
     /**
+     * ¿Puede registrar si el ausente dejó trabajo para el grupo? Solo prefectura.
+     *
+     * Es la simétrica de la anterior: el justificante es de dirección, el trabajo es de
+     * prefectura. Uno es un documento que hay que valorar, el otro un hecho de campo que
+     * hay que constatar en el aula el día de la ausencia. Espeja
+     * BlogController::puedeMarcarTrabajo().
+     */
+    function blog_modulos_marca_trabajo(): bool {
+        $u = $_SESSION['blog_usuario'] ?? null;
+        if (!$u) return false;
+        return ($u['rol'] ?? '') === 'administrador'
+            || in_array('prefecto', blog_modulos_tipos(), true);
+    }
+
+    /**
      * Niveles a los que se acota lo que ve este usuario. **[] = sin filtro.**
      *
      * Espeja BlogController::nivelesAlcance(), incluidos sus tres cortes: admin, no
@@ -130,11 +145,11 @@ if (!function_exists('blog_modulos_catalogo')) {
                 ? ['nombre' => 'Horarios',   'desc' => 'Horarios por profesor, aula y grupo de alumnos.',       'icon' => 'fa-table-cells', 'url' => '/dashboard/horarios']
                 : ['nombre' => 'Mi horario', 'desc' => 'Consulta tu horario semanal de clases.',                'icon' => 'fa-table-cells', 'url' => '/dashboard/horarios/mi-horario'],
 
-            // Intercambio puntual de clases entre profesores. Quien no imparte solo
+            // Swap: intercambio puntual de clases entre profesores. Quien no imparte solo
             // entra a validar, así que su tarjeta lo dice.
             'swaps'           => $coordina && !blog_modulos_imparte()
-                ? ['nombre' => 'Intercambios', 'desc' => 'Valida los intercambios de clase del claustro.',       'icon' => 'fa-right-left', 'url' => '/dashboard/swaps']
-                : ['nombre' => 'Intercambios', 'desc' => 'Cambia una clase con otro profesor por excepción.',    'icon' => 'fa-right-left', 'url' => '/dashboard/swaps'],
+                ? ['nombre' => 'Swaps', 'desc' => 'Valida los swaps de clase del claustro.',              'icon' => 'fa-right-left', 'url' => '/dashboard/swaps']
+                : ['nombre' => 'Swaps', 'desc' => 'Cambia una clase con otro profesor por excepción.',   'icon' => 'fa-right-left', 'url' => '/dashboard/swaps'],
 
             'eventos'         => ['nombre' => 'Eventos',         'desc' => 'Calendario institucional y avisos para familias.',    'icon' => 'fa-calendar-day',    'url' => '/dashboard/eventos'],
             'aulas'           => ['nombre' => 'Aulas',           'desc' => 'Catálogo de espacios donde se imparte clase.',        'icon' => 'fa-door-open',       'url' => '/dashboard/aulas'],
@@ -210,7 +225,17 @@ if (!function_exists('blog_modulos_catalogo')) {
                 // Los justificantes que superaron el plazo de descarga esperan aquí una
                 // decisión. Es trabajo de DIRECCIÓN: prefectura coordina la ausencia
                 // pero no abre el parte médico.
-                ['label' => 'Justificantes', 'icon' => 'fa-file-shield',     'url' => '/dashboard/suplencias/justificantes',  'ver' => blog_modulos_ve_justificantes()],
+                // La otra mitad del cierre del ciclo, y de PREFECTURA: constatar si el
+                // ausente dejó material para el grupo. Antes el dato solo se podía
+                // rellenar entrando suplencia por suplencia desde la agenda.
+                // Los `badge` solo se consultan si la opción se va a ver: son dos COUNT y
+                // no hay razón para pagarlos por un usuario que no puede abrir la cola.
+                ['label' => 'Trabajo por revisar', 'icon' => 'fa-clipboard-list', 'url' => '/dashboard/suplencias/trabajo-pendiente', 'ver' => blog_modulos_marca_trabajo(),
+                 'badge' => blog_modulos_marca_trabajo()
+                            ? \Model\SuplenciaHora::contarPendientesTrabajo(blog_modulos_niveles()) : 0],
+                ['label' => 'Justificantes', 'icon' => 'fa-file-shield',     'url' => '/dashboard/suplencias/justificantes',  'ver' => blog_modulos_ve_justificantes(),
+                 'badge' => blog_modulos_ve_justificantes()
+                            ? \Model\Suplencia::contarColaJustificantes(blog_modulos_niveles()) : 0],
                 // El tablero es de quien dirige, acotado a su nivel si lo tiene.
                 ['label' => 'Tablero',       'icon' => 'fa-chart-line',      'url' => '/dashboard/suplencias/dashboard',      'ver' => blog_modulos_es_directivo()],
             ],

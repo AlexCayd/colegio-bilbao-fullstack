@@ -108,33 +108,96 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                      se reclama cuando la ausencia fue sin aviso (que es cuando es obligatorio). */ ?>
             <?php
             $exigeJustif = $suplencia->origen === 'sin_aviso';
-            $hayJustif   = !empty($suplencia->justificante);
+            // ⚠️ El estado sale de `estadoJustificante()`, que distingue CUATRO casos:
+            // sin_archivo · vigente · en_cola · resuelto. Antes esta vista lo reducía a
+            // `!empty($justificante)`, y como aprobar un parte pone la columna a NULL, al
+            // profesor al que se le acababa de aprobar el justificante la tarjeta le
+            // decía en rojo «Falta el justificante» — y le reofrecía el formulario de
+            // subida. En una ausencia anticipada la tarjeta desaparecía sin dejar rastro
+            // de que hubo documento. El modelo ya modelaba los cuatro estados y ninguna
+            // vista los usaba.
+            $estadoJ   = $suplencia->estadoJustificante();
+            $hayJustif = $estadoJ === 'vigente' || $estadoJ === 'en_cola';
+            $resuelto  = $estadoJ === 'resuelto';
             // ⚠️ El archivo es competencia de DIRECCIÓN. Prefectura ve el estado —lo
             // necesita para saber si la ausencia está soportada— y nada más: ni
             // descarga, ni nombre de archivo, ni modal de aprobación. Lo resuelve el
             // controlador en `$veJustif`; aquí solo se pinta.
             $veJustif = $veJustif ?? false;
+            // Registrar "¿dejó trabajo?" es más estrecho que agendar: solo prefectura y admin.
+            $marcaTrabajo = $marcaTrabajo ?? false;
             // Subir el suyo sí puede el propio ausente, aunque no lo pueda releer.
             $esAusente = (int)$suplencia->profesor_ausente_id === (int)($_SESSION['blog_usuario']['id'] ?? 0);
+            // El ausente puede descargar el suyo: `descargarJustificante()` lo autoriza
+            // explícitamente, pero la vista solo lo ofrecía a dirección. Guard y UI decían
+            // cosas distintas.
+            $puedeBajar = $hayJustif && ($veJustif || $esAusente);
+            // ⚠️ Con permiso pero sin archivo en disco, `infoJustificante()` devuelve null.
+            // Ofrecer "Descargar" ahí es prometer un 404, y el modal confirmaría el borrado
+            // de algo que no puede nombrar. `justificantes.php` ya lo trataba bien.
+            $archivoRoto = $hayJustif && $veJustif && empty($justifInfo);
+            // `en_cola` va en ámbar y no en verde: el mensaje dice que espera decisión de
+            // dirección, y pintarlo del mismo color que "todo en orden" contradice al texto.
+            $claseJ = match (true) {
+                $resuelto              => 'is-done',
+                $archivoRoto           => 'is-broken',
+                $estadoJ === 'en_cola' => 'is-wait',
+                $hayJustif             => 'is-ok',
+                default                => 'is-pending',
+            };
             ?>
-            <?php if ($hayJustif || $exigeJustif): ?>
-            <div class="supl-justif <?= $hayJustif ? 'is-ok' : 'is-pending' ?>">
+            <?php if ($hayJustif || $exigeJustif || $resuelto): ?>
+            <div class="supl-justif <?= $claseJ ?>">
                 <div class="supl-justif__msg">
-                    <i class="fa-solid <?= $hayJustif ? 'fa-file-circle-check' : 'fa-file-circle-exclamation' ?>"></i>
+                    <i class="fa-solid <?= match (true) {
+                        $resuelto    => 'fa-file-circle-check',
+                        $archivoRoto => 'fa-file-circle-question',
+                        $hayJustif   => 'fa-file-circle-check',
+                        default      => 'fa-file-circle-exclamation',
+                    } ?>"></i>
                     <div>
-                        <strong><?= $hayJustif ? 'Justificante recibido' : 'Falta el justificante' ?></strong>
-                        <?php if ($hayJustif && $veJustif): ?>
+                        <strong><?= match (true) {
+                            $resuelto              => 'Justificante revisado',
+                            $archivoRoto           => 'El archivo ya no está',
+                            $estadoJ === 'en_cola' => 'Justificante por revisar',
+                            $hayJustif             => 'Justificante recibido',
+                            default                => 'Falta el justificante',
+                        } ?></strong>
+                        <?php if ($resuelto): ?>
+                            <?php /* El histórico tiene que distinguir «nunca hubo justificante» de
+                                     «lo hubo y se resolvió así», y por eso la resolución va firmada. */ ?>
+                            <span>
+                                Dirección lo
+                                <?= $suplencia->justificante_resolucion === 'eliminado' ? 'descartó'
+                                    : ($suplencia->justificante_resolucion === 'purgado' ? 'dejó purgar por antigüedad' : 'revisó y aprobó') ?><?php
+                                if ($suplencia->resolutor_nombre): ?> · <?= s($suplencia->resolutor_nombre) ?><?php endif;
+                                if ($suplencia->justificante_resuelto_en): ?>
+                                    el <?= date('d/m/Y', strtotime($suplencia->justificante_resuelto_en)) ?><?php
+                                endif; ?>.
+                                El archivo ya no se conserva en el servidor.
+                            </span>
+                        <?php elseif ($archivoRoto): ?>
+                            <span>El registro tiene justificante, pero el archivo no está en el
+                                  servidor. Puede haberse purgado por antigüedad.</span>
+                        <?php elseif ($estadoJ === 'en_cola'): ?>
+                            <?php /* Pasado el plazo de descarga la tarjeta deja de ser informativa y
+                                     pasa a reclamar una decisión: es lo que mueve la cola. */ ?>
+                            <span>Superó los <?= \Model\Suplencia::DIAS_DESCARGA ?> días de plazo y
+                                  espera decisión de dirección<?php $d = $suplencia->diasParaPurga(); if ($d > 0): ?>
+                                  · se purga solo en <?= $d ?> <?= $d === 1 ? 'día' : 'días' ?><?php endif; ?>.</span>
+                        <?php elseif ($veJustif || $esAusente): ?>
                             <span>La ausencia queda documentada. Descárgalo si necesitas conservarlo:
                                   al aprobarlo se elimina del servidor.</span>
-                        <?php elseif ($hayJustif): ?>
-                            <span>La ausencia queda documentada. Su revisión corresponde a dirección.</span>
                         <?php else: ?>
+                            <span>La ausencia queda documentada. Su revisión corresponde a dirección.</span>
+                        <?php endif; ?>
+                        <?php if (!$hayJustif && !$resuelto): ?>
                             <span>La suplencia no puede completarse hasta que <?= s($suplencia->ausente_nombre ?: 'el profesor ausente') ?> suba su comprobante.</span>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <?php if ($hayJustif && $veJustif): ?>
+                <?php if ($puedeBajar && !$archivoRoto): ?>
                 <div class="supl-justif__acts">
                     <?php /* El archivo vive fuera de public/: esta ruta es la única que lo
                              sirve, y comprueba permisos antes de leerlo del disco. */ ?>
@@ -143,24 +206,27 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                     </a>
                     <?php /* Borrado deliberado y con confirmación: un parte médico no
                              conviene conservarlo más de lo necesario, pero tampoco que
-                             desaparezca sin que nadie lo haya visto. */ ?>
+                             desaparezca sin que nadie lo haya visto. Solo dirección. */ ?>
+                    <?php if ($veJustif): ?>
                     <button type="button" class="admin-btn admin-btn--primary" data-justif-abrir>
                         <i class="fa-solid fa-check-double"></i> Aprobar y eliminar
                     </button>
+                    <?php endif; ?>
                 </div>
-                <?php elseif ($hayJustif): ?>
-                <?php /* Prefectura: sin acciones. El estado ya está dicho arriba. */ ?>
+                <?php elseif ($hayJustif || $resuelto): ?>
+                <?php /* Sin acciones: prefectura ya tiene el estado, y un justificante
+                         resuelto o roto no admite nada más. */ ?>
                 <?php elseif (!$esAusente && !$veJustif): ?>
                 <?php /* Prefectura tampoco lo sube por otro: subirlo es tenerlo en la mano. */ ?>
                 <?php else: ?>
                 <form method="POST" action="/dashboard/suplencias/justificar" enctype="multipart/form-data" class="supl-justif__form">
                     <input type="hidden" name="id" value="<?= (int)$suplencia->id ?>">
                     <label class="admin-file" data-file data-file-max="<?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?>">
-                        <input type="file" name="justificante" accept="application/pdf,image/jpeg,image/png,image/webp" required>
+                        <input type="file" name="justificante" accept="application/pdf,image/jpeg,image/png,image/webp,text/plain" required>
                         <span class="admin-file__ico"><i class="fa-solid fa-paperclip"></i></span>
                         <span class="admin-file__text">
                             <span class="admin-file__title" data-file-title>Elige el justificante</span>
-                            <span class="admin-file__hint" data-file-hint>PDF o imagen · máx. <?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?> MB</span>
+                            <span class="admin-file__hint" data-file-hint>PDF, imagen o texto · máx. <?= \Model\Suplencia::MAX_JUSTIFICANTE_MB ?> MB</span>
                         </span>
                     </label>
                     <button type="submit" class="admin-btn admin-btn--primary"><i class="fa-solid fa-upload"></i> Subir</button>
@@ -168,7 +234,7 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                 <?php endif; ?>
             </div>
 
-            <?php if ($hayJustif && $veJustif): ?>
+            <?php if ($hayJustif && $veJustif && !$archivoRoto): ?>
             <?php /* El modal dice QUÉ se borra y en qué orden hacer las cosas:
                      descargar primero (acción dominante), borrar después y solo tras
                      marcar la casilla. Antes pedía una acción irreversible sin nombrar
@@ -353,6 +419,12 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                                             No dejó trabajo para el grupo<?= $h->trabajo_por_nombre ? ' · lo marcó ' . s($h->trabajo_por_nombre) : '' ?>
                                         <?php endif; ?>
                                     </span>
+                                    <?php /* Los BOTONES son solo de prefectura (y admin): el dato es de
+                                             campo —quien pisa el aula ese día comprueba si había
+                                             material— y alimenta el ranking de "ausencias sin trabajo",
+                                             así que afirmarlo desde el despacho es imputarle algo a un
+                                             profesor. Dirección lo sigue leyendo, sin poder escribirlo. */ ?>
+                                    <?php if ($marcaTrabajo): ?>
                                     <div class="supl-trabajo__acts">
                                         <?php foreach ([['1', 'Sí', 'si'], ['0', 'No', 'no']] as [$val, $txt, $cls]): ?>
                                         <form method="POST" action="/dashboard/suplencias/trabajo" style="display:inline;">
@@ -375,6 +447,11 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                                         </form>
                                         <?php endif; ?>
                                     </div>
+                                    <?php elseif ($h->dejo_trabajo === null): ?>
+                                    <?php /* Sin permiso y sin revisar: se dice de quién se espera, para
+                                             que no se lea como un dato que falta por un fallo. */ ?>
+                                    <span class="supl-trabajo__espera">Lo registra prefectura</span>
+                                    <?php endif; ?>
                                 </div>
                                 <?php endif; ?>
                             </div>

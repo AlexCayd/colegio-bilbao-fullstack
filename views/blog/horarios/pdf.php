@@ -9,7 +9,11 @@
  * comparte —que es lo que evita que las dos versiones diverjan— son los datos:
  * el mismo Horario::rejilla(), los mismos `span` y el mismo colorMateria().
  *
- * @var \Model\UsuarioBlog $profesor
+ * @var object   $profesor        el sujeto del horario. Basta con que tenga `nombre`,
+ *                                así que sirve igual un UsuarioBlog, un Aula o un Grupo:
+ *                                es lo que permite que las tres vistas del módulo
+ *                                Horarios reusen esta plantilla sin ninguna rama.
+ * @var string   $subtitulo       opcional; de qué horario se trata («Horario del grupo»)
  * @var array    $tramos          eje de tiempo
  * @var array    $rejilla         [dia] => celdas colocadas
  * @var array    $ocupadoPorDia   minutos de clase por día
@@ -58,7 +62,7 @@ $altoFilaMm = count($tramos) ? max(7, round($altoUtilMm / count($tramos), 2)) : 
     <span class="hp-head__marca">Colegio<br>Bilbao</span>
     <?php endif; ?>
     <div class="hp-head__txt">
-        <span class="hp-head__eyebrow">Horario semanal · Ciclo <?= $anioA ?>–<?= $anioA + 1 ?></span>
+        <span class="hp-head__eyebrow"><?= $e($subtitulo ?? 'Horario semanal') ?> · Ciclo <?= $anioA ?>–<?= $anioA + 1 ?></span>
         <h1 class="hp-head__name"><?= $e($profesor->nombre) ?></h1>
         <?php if ($niveles): ?>
         <span class="hp-head__niv"><?= $e(implode(' · ', $niveles)) ?></span>

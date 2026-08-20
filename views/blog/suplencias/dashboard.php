@@ -31,7 +31,6 @@ $nivelActivo = $nivelActivo ?? [];
         <header class="admin-topbar">
             <div class="admin-topbar__left"><span class="admin-topbar__title">Tablero de suplencias</span></div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/suplencias" class="admin-btn admin-btn--ghost"><i class="fa-solid fa-list"></i> Agenda</a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>

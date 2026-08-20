@@ -58,6 +58,33 @@
         return aIni < bFin && bIni < aFin;
     }
 
+    /* Repintado al cruzar el breakpoint (rotar el móvil, redimensionar en escritorio).
+       Se guarda el último render por contenedor y se engancha UN solo listener por
+       contenedor, o cada recarga encadenada del formulario añadiría otro. */
+    var MQ = window.matchMedia ? window.matchMedia('(max-width: 640px)') : null;
+    var ultimoRender = new WeakMap();
+
+    function vigilarBreakpoint(cont) {
+        if (!MQ || cont.__suplWeekMQ) return;
+        cont.__suplWeekMQ = true;
+        var alCambiar = function () {
+            var ult = ultimoRender.get(cont);
+            if (!ult) return;
+            /* Repintar destruye el DOM y con él la selección, así que se lee ANTES de
+               la marcada AHORA —no la de `opts.selected`, que es la inicial— y se pasa
+               como `selected`. Sin esto, girar el móvil a medio formulario borraba las
+               horas ya elegidas. */
+            var vivas = [];
+            cont.querySelectorAll('[data-pick].is-on').forEach(function (b) {
+                vivas.push(b.dataset.pick);
+            });
+            var opts2 = Object.assign({}, ult.opts, { selected: vivas });
+            render(cont, ult.data, opts2);
+        };
+        if (MQ.addEventListener) MQ.addEventListener('change', alCambiar);
+        else if (MQ.addListener) MQ.addListener(alCambiar);   // Safari < 14
+    }
+
     function render(cont, data, opts) {
         opts = opts || {};
         var mode    = opts.mode || 'preview';
@@ -93,6 +120,22 @@
         // y el de Primaria, en filas seguidas): el nivel es lo que los distingue.
         var mixto = (data.niveles || []).length > 1;
 
+        /* ── ¿Semana o día? ─────────────────────────────────────────────────────
+           En un móvil de 360px la rejilla de cinco días obliga a scroll horizontal
+           permanente. Y en modo `select` cuatro de esas cinco columnas ni siquiera
+           son accionables: `pick` solo se activa en el día de la ausencia, el resto
+           sale con `is-dim` y sin listeners. O sea que el ancho que fuerza el scroll
+           es decorado.
+
+           La vista por día pinta SOLO `rejilla[dia]`, en vertical. No es una segunda
+           fuente de datos: consume el mismo JSON, los mismos tramos y los mismos
+           `span` que calcula Horario::rejilla() en el servidor, y emite los mismos
+           `[data-pick]` con las mismas clases — así `emitir()`, `single` y `onChange`
+           de más abajo no se enteran de cuál de las dos se pintó. */
+        var esMovil = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+        var html = esMovil ? construirDia() : construirSemana();
+
+        function construirSemana() {
         var html = '<div class="supl-week-wrap"><table class="supl-week"><thead><tr><th class="supl-week__corner"></th>';
         DIAS.forEach(function (d) {
             html += '<th class="supl-week__dayhead' + (d === dia ? ' is-active-day' : '') + '">' + DIAS_LG[d] + '</th>';
@@ -100,11 +143,11 @@
         html += '</tr></thead><tbody>';
 
         tramos.forEach(function (t, i) {
-            /* Altura proporcional a `alto` (los minutos con tope), no a los minutos
-               crudos: en el eje comprimido un tramo puede durar dos horas. Un tramo que
-               ningún día usa baja a una franja. El rowspan lo sigue cuadrando el
-               navegador. */
-            var alto = t.alto || t.minutos || 50;
+            /* Todas las filas miden lo mismo (`--hor-fila-compacta` en el SCSS), así que
+               la fila NO emite ningún `--min`: un atributo que ningún estilo lee es una
+               mentira que la próxima persona intentará usar. `t.alto` sigue llegando en
+               el JSON —es contrato del endpoint— pero ya no lo consume nadie. El rowspan
+               lo sigue cuadrando el navegador. */
 
             /* Tres formas de rotular la fila. Un fragmento (los 20' que quedan al
                cruzarse dos jornadas) NO tiene nombre propio: solo su hora de inicio.
@@ -114,7 +157,7 @@
             var nivTr  = mixto && t.nivel ? (NIVEL_CORTO[t.nivel] || t.nivel) : '';
             var clase  = t.hueco ? ' class="supl-week__gap"' : (rotulo ? '' : ' class="supl-week__frag"');
 
-            html += '<tr style="--min:' + alto + '"' + clase + '><th class="supl-week__hour">'
+            html += '<tr' + clase + '><th class="supl-week__hour">'
                   + (rotulo
                         ? '<span>' + esc(rotulo) + '</span><small>' + esc(t.inicio) + (nivTr ? ' · ' + esc(nivTr) : '') + '</small>'
                         : '<small>' + esc(t.inicio) + '</small>')
@@ -180,6 +223,71 @@
             html += '</tr>';
         });
         html += '</tbody></table></div>';
+        return html;
+        }
+
+        /* ── Vista por día (≤640px) ────────────────────────────────────────────
+           Lista vertical de las celdas del día activo: la hora a la izquierda y el
+           bloque a ancho completo. Sin `rowspan` que cuadrar —una sola columna— así
+           que el `span` solo se usa para rotular la duración real de la clase. */
+        function construirDia() {
+            var celdas = (rejilla[dia] || []).slice().sort(function (a, b) {
+                return a.tramo - b.tramo;
+            });
+            if (!celdas.length) {
+                return '<p class="supl-week-empty">No hay jornada ese día.</p>';
+            }
+
+            var out = '<div class="supl-day"><p class="supl-day__head">'
+                    + esc(opts.fechaLabel || DIAS_LARGO[dia]) + '</p>';
+
+            celdas.forEach(function (c) {
+                var esTarget = (mode === 'preview' && tIni && solapan(tIni, tFin, c.inicio, c.fin));
+                var hora = '<span class="supl-day__hour"><strong>' + esc(c.inicio)
+                         + '</strong><small>' + esc(c.fin) + '</small></span>';
+
+                if (c.tipo === 'receso') {
+                    out += '<div class="supl-day__row' + (esTarget ? ' is-target is-break' : '') + '">' + hora
+                         + '<div class="supl-day__cell supl-day__cell--receso">'
+                         + '<i class="fa-solid fa-mug-hot"></i> Receso'
+                         + (c.nivel ? ' · ' + esc(c.nivel) : '')
+                         + (esTarget ? ' <b>· es su receso</b>' : '')
+                         + '</div></div>';
+                    return;
+                }
+
+                if (c.tipo === 'clase') {
+                    var col      = (c.color && c.color.hex) || '#94a3b8';
+                    var oscuro   = !!(c.color && c.color.oscuro);
+                    var tinta    = oscuro ? '#1f2937' : '#fff';
+                    var tintaSec = oscuro ? 'rgba(31,41,55,.72)' : 'rgba(255,255,255,.8)';
+                    var sec      = subtitulo(c);
+                    /* Aquí `pick` no comprueba el día: la lista YA es la del día activo. */
+                    var pick     = (mode === 'select');
+
+                    out += '<div class="supl-day__row' + (esTarget ? ' is-target is-busy' : '') + '">' + hora
+                         + '<' + (pick ? 'button type="button"' : 'div')
+                         + ' class="supl-day__cell supl-week__class'
+                         + (c.ajeno ? ' is-ajeno' : '')
+                         + (pick ? ' supl-week__class--pick' + (sel[c.periodo_id] ? ' is-on' : '') : '') + '"'
+                         + ' style="background:' + col + ';"'
+                         + (pick ? ' data-pick="' + c.periodo_id + '"' : '')
+                         + '>'
+                         + '<span class="supl-week__class-mat" style="color:' + tinta + ';">' + esc(c.materia || 'Clase') + '</span>'
+                         + '<span class="supl-week__class-sec" style="color:' + tintaSec + ';">'
+                         + esc(sec) + (esTarget ? ' · tiene clase' : '') + '</span>'
+                         + '</' + (pick ? 'button' : 'div') + '></div>';
+                    return;
+                }
+
+                out += '<div class="supl-day__row' + (esTarget ? ' is-target is-free' : '') + '">' + hora
+                     + '<div class="supl-day__cell supl-day__cell--libre">'
+                     + (esTarget ? '<b>Cubriría aquí</b>' : 'Libre')
+                     + '</div></div>';
+            });
+
+            return out + '</div>';
+        }
 
         /* Leyenda del modo select. `opts.legend` la saca de la rejilla y la pinta
            donde diga el llamador — en crear/solicitar, bajo el tip de Alex de la
@@ -211,6 +319,12 @@
 
         cont.innerHTML = destinoLeyenda ? html : html + legendHtml;
         if (destinoLeyenda) destinoLeyenda.innerHTML = legendHtml;
+
+        /* Se recuerda lo pintado para poder repetirlo al cruzar el breakpoint. Va aquí
+           y no al entrar, para no memorizar los `return` tempranos (fin de semana, sin
+           jornada), que no tienen nada que repintar. */
+        ultimoRender.set(cont, { data: data, opts: opts });
+        vigilarBreakpoint(cont);
 
         if (mode !== 'select') return;
 

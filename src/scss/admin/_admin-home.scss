@@ -19,7 +19,7 @@
        largo, el breakpoint móvil), pero por debajo de eso el hero reserva alto para
        que se vea el bosque. Sin él lo medían el texto y el Alex de 118px, y el
        canvas quedaba en una franja donde no se distinguía nada. */
-    min-height:270px;
+    min-height:320px;
     padding:26px 30px; margin-bottom:26px;
     /* El degradado replica la niebla clara del bosque (PALETAS.light.fog en
        forest.js): sin WebGL el hero conserva el mismo aire, no se cae a gris. */
@@ -47,7 +47,10 @@
 .mh-hero__texto {
     min-width:0;
     display:flex; flex-direction:column; justify-content:center;
-    padding:26px 30px;
+    /* Aire generoso a propósito: es una tarjeta de vidrio sobre un bosque animado, y
+       con poco padding el texto se lee pegado al borde y compite con los árboles que
+       asoman por detrás. */
+    padding:38px 44px;
     border-radius:20px;
     background:rgba(255,255,255,.55);
     border:1px solid rgba(255,255,255,.85);
@@ -67,25 +70,36 @@
 
    El degradado es el AZUL institucional (--col-bilbao → --col-espiritu), el mismo de
    `.lnd-hero__hi` en el landing: el naranja es un color de la paleta de categorías,
-   el azul es la marca. Lo que sigue distinguiendo las dos palabras es el peso y el
-   tracking, no el color.
+   el azul es la marca.
+
+   ⚠️ Las dos palabras se estilan IGUAL. Antes «Intranet» iba a 15px, peso 800, en
+   versalitas y con `letter-spacing:.24em`, y «Bilbao» a 24px y peso 900: aunque
+   compartían tinta, el contraste de tamaño y tracking las leía como un eyebrow gris
+   con un logotipo al lado, no como un título. Ahora son un único lockup —mismo
+   tamaño, mismo peso, mismo tracking— y lo que queda es el degradado recorriéndolas
+   enteras. Cambiar una de las dos declaraciones vuelve a partir la marca.
 
    ⚠️ `background-clip:text` no convive con `text-shadow` (el halo se pintaría por
    detrás del recorte y se vería la caja): el contraste sobre los árboles lo da el
    vidrio de `.mh-hero__texto`, no un halo. */
 .mh-hero__eyebrow {
-    display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;
-    margin-bottom:12px;
-    line-height:1;
+    /* `gap` de espacio de palabra, no de separación entre piezas: son dos palabras de
+       un mismo título. */
+    display:flex; align-items:baseline; gap:.28em; flex-wrap:wrap;
+    margin-bottom:10px;
+    line-height:1.05;
     background:linear-gradient(110deg, #1f5a94, #2f7cb8);
     -webkit-background-clip:text; background-clip:text;
     -webkit-text-fill-color:transparent; color:transparent;
 }
-.mh-hero__brand {
-    font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.24em;
-}
+.mh-hero__brand,
 .mh-hero__colegio {
-    font-size:24px; font-weight:900; letter-spacing:-.02em;
+    /* El tamaño que tenía «Bilbao» (24px). No sube más: el saludo de debajo llega a
+       29px y el lockup no debe competir con él — la marca acompaña, el saludo manda. */
+    font-size:clamp(1.9rem, 2.1vw, 2.4rem);
+    font-weight:900;
+    letter-spacing:-.02em;
+    text-transform:none;
 }
 
 /* El halo `text-shadow` es del color del fondo, igual que en el landing: mantiene
@@ -100,16 +114,28 @@
     text-shadow:0 2px 22px rgba(244,249,255,.9);
 }
 
-.mh-hero__alex    { width:118px; height:auto; align-self:center; position:relative; z-index:2; flex-shrink:0; filter:drop-shadow(0 14px 26px rgba(11,31,61,.3)); animation:mh-float 3.4s ease-in-out infinite; }
+/* Alex es la mascota del colegio y aquí es la mitad del saludo, no un adorno de
+   esquina: a 118px quedaba como un icono. `min-height` del hero sube en consecuencia,
+   o el contenedor lo recorta al no tener alto suficiente. */
+.mh-hero__alex    { width:clamp(130px, 14vw, 190px); height:auto; align-self:center; position:relative; z-index:2; flex-shrink:0; filter:drop-shadow(0 16px 30px rgba(11,31,61,.32)); animation:mh-float 3.4s ease-in-out infinite; }
 @keyframes mh-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
 
 @media (prefers-reduced-motion: reduce) {
     .mh-hero__alex { animation:none; }
 }
 @media (max-width:720px) {
-    .mh-hero { padding:22px; min-height:210px; }
-    .mh-hero__top   { flex-direction:column; align-items:flex-start; }
-    .mh-hero__texto { padding:20px 22px; }
+    .mh-hero { padding:22px; min-height:0; }
+    /* En vertical Alex iría DEBAJO del saludo, empujando las tarjetas de módulo fuera
+       de la primera pantalla. En fila con el texto conserva el saludo arriba del todo
+       y la mascota sigue presente — antes simplemente se ocultaba. */
+    .mh-hero__top   { flex-direction:row; align-items:center; gap:12px; }
+    .mh-hero__texto { padding:22px 24px; flex:1 1 auto; }
+    .mh-hero__alex  { width:clamp(78px, 22vw, 118px); }
+}
+@media (max-width:400px) {
+    /* Por debajo de esto el saludo se queda en dos caracteres por línea. */
+    .mh-hero        { padding:16px; }
+    .mh-hero__texto { padding:18px 18px; }
     .mh-hero__alex  { display:none; }
 }
 

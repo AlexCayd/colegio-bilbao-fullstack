@@ -1,0 +1,16 @@
+INSTITUTO MEXICANO DEL SEGURO SOCIAL
+Certificado de incapacidad temporal para el trabajo
+
+  Folio ............ 4471-2026-A
+  Trabajador ....... (nombre del docente)
+  Ramo ............. Enfermedad general
+  Inicio ........... 2 dias naturales
+  Expide ........... UMF No. 21, Ciudad de Mexico
+
+Se extiende la presente para los fines administrativos que
+convengan al interesado.
+
+--------------------------------------------------------------
+ARCHIVO DE PRUEBA. Documento ficticio del seed de desarrollo
+(database/development/development.sql). No corresponde a ninguna
+persona real ni tiene validez alguna.

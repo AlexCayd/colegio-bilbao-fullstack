@@ -71,13 +71,31 @@
             var tmouse    = { x: 0, y: 0 };
             var pausado   = false;
 
-            var w = window.innerWidth, h = window.innerHeight;
+            // ⚠️ Se mide el CANVAS, no la ventana.
+            //
+            // Esto usaba `window.innerWidth/innerHeight`, lo cual da igual en la landing
+            // y en el login —ahí el canvas es `position:fixed; inset:0`, así que mide
+            // exactamente el viewport— pero rompe en cuanto vive dentro de un contenedor:
+            // el hero del panel (~320px de alto) se rasterizaba a pantalla completa y la
+            // escena salía estirada, con un buffer varias veces mayor del necesario.
+            // Como en `fixed; inset:0` clientWidth/clientHeight valen lo mismo que el
+            // viewport, el cambio NO altera landing ni login.
+            function medir() {
+                return {
+                    w: canvas.clientWidth  || window.innerWidth,
+                    h: canvas.clientHeight || window.innerHeight
+                };
+            }
+            var d = medir(), w = d.w, h = d.h;
             var scene    = new THREE.Scene();
             var camera   = new THREE.PerspectiveCamera(60, w / h, 0.1, 200);
             camera.position.set(0, 1, 12);
             var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
-            renderer.setSize(w, h);
+            // `false` = no escribir width/height inline en el <canvas>: el tamaño CSS lo
+            // decide la hoja de estilos (100%/inset:0) y pisarlo con píxeles crearía un
+            // bucle con el ResizeObserver de abajo.
+            renderer.setSize(w, h, false);
 
             var dark = typeof opts.dark === 'boolean'
                 ? opts.dark
@@ -140,10 +158,20 @@
                 tmouse.x = (e.clientX / window.innerWidth  - 0.5);
                 tmouse.y = (e.clientY / window.innerHeight - 0.5);
             });
-            window.addEventListener('resize', function () {
-                var W = window.innerWidth, H = window.innerHeight;
-                camera.aspect = W / H; camera.updateProjectionMatrix(); renderer.setSize(W, H);
-            });
+            function ajustar() {
+                var m = medir();
+                if (!m.w || !m.h) return;          // canvas oculto: no dividir entre cero
+                camera.aspect = m.w / m.h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(m.w, m.h, false);
+            }
+            window.addEventListener('resize', ajustar);
+            // El `resize` de window no se dispara cuando lo que cambia es el CONTENEDOR
+            // (el hero se estrecha al plegar el sidebar, por ejemplo). Con `fixed` el
+            // observer se limita a repetir lo que ya hace el listener de arriba.
+            if (typeof ResizeObserver !== 'undefined') {
+                new ResizeObserver(ajustar).observe(canvas);
+            }
             if (conScroll) {
                 window.addEventListener('scroll', function () {
                     var max = document.body.scrollHeight - window.innerHeight;

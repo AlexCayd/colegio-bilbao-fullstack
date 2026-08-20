@@ -1,7 +1,7 @@
 <?php $paginaVista = 'blog-swaps-index'; ?>
 <?php
 /**
- * Intercambios de clase.
+ * Swaps de clase.
  *
  * Dos públicos, como en Suplencias: quien imparte ve los suyos y responde; quien
  * coordina ve los del claustro y valida. Un admin que además da clase ve las dos
@@ -14,7 +14,7 @@
 $s = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 
 /* Los cuatro POST del módulo redirigen aquí con su query param, pero esta vista no los
-   leía: se proponía un intercambio, volvías al listado y nada decía que hubiera pasado
+   leía: se proponía un swap, volvías al listado y nada decía que hubiera pasado
    algo. El toast se retira solo a los 5,6 s (admin-toast.js). */
 $toast = null;
 if (isset($_GET['creado'])) {
@@ -22,7 +22,7 @@ if (isset($_GET['creado'])) {
 } elseif (isset($_GET['respondido'])) {
     $toast = ['title' => 'Respuesta registrada', 'msg' => 'Si lo aceptaste, falta el visto bueno de prefectura.', 'icon' => 'fa-reply', 'color' => '#34a853'];
 } elseif (isset($_GET['validado'])) {
-    $toast = ['title' => 'Intercambio resuelto', 'msg' => 'Se avisó a las dos partes.', 'icon' => 'fa-gavel', 'color' => '#34a853'];
+    $toast = ['title' => 'Swap resuelto', 'msg' => 'Se avisó a las dos partes.', 'icon' => 'fa-gavel', 'color' => '#34a853'];
 } elseif (isset($_GET['cancelado'])) {
     $toast = ['title' => 'Propuesta retirada', 'msg' => 'Ya no aparece como pendiente para tu compañero.', 'icon' => 'fa-xmark', 'color' => '#94a3b8'];
 } elseif (isset($_GET['faltamotivo'])) {
@@ -42,44 +42,50 @@ $alcance = $alcance ?? [];
 
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <span class="admin-topbar__title">Intercambios de clase</span>
+                <span class="admin-topbar__title">Swaps de clase</span>
             </div>
             <div class="admin-topbar__actions">
-                <?php if ($imparte || $coordina): ?>
-                <?php /* Quien coordina también abre intercambios, pero el suyo no es una
-                          propuesta: designa a los dos profesores y nace ya validado. */ ?>
-                <a href="/dashboard/swaps/crear" class="admin-btn admin-btn--primary">
-                    <i class="fa-solid fa-plus"></i> <?= $imparte ? 'Proponer intercambio' : 'Registrar intercambio' ?>
-                </a>
-                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
 
         <main class="admin-content">
 
+            <?php /* La acción abre la pantalla, no el topbar: ahí quedaba junto a la campana
+                     y el avatar, que son del panel entero. Aquí es lo primero que se ve al
+                     entrar, que es lo que se viene a hacer cuando no hay nada que responder.
+                     Quien coordina también abre swaps, pero el suyo no es una propuesta:
+                     designa a los dos profesores y nace ya validado. */ ?>
+            <?php if ($imparte || $coordina): ?>
+            <div class="swp-barra">
+                <a href="/dashboard/swaps/crear" class="admin-new-btn">
+                    <i class="fa-solid fa-plus"></i> <?= $imparte ? 'Proponer swap' : 'Registrar swap' ?>
+                </a>
+            </div>
+            <?php endif; ?>
+
             <?php if ($coordina && $porValidar > 0): ?>
             <div class="swp-aviso">
                 <span class="swp-aviso__ico"><i class="fa-solid fa-gavel"></i></span>
                 <div>
-                    <strong><?= (int)$porValidar ?> intercambio<?= $porValidar === 1 ? '' : 's' ?> esperando tu visto bueno</strong>
+                    <strong><?= (int)$porValidar ?> swap<?= $porValidar === 1 ? '' : 's' ?> esperando tu visto bueno</strong>
                     <span>Las dos partes ya se pusieron de acuerdo; falta confirmarlo.</span>
                 </div>
             </div>
             <?php endif; ?>
 
             <?php if ($imparte): ?>
-            <p class="mh-section-label"><i class="fa-solid fa-right-left"></i> Mis intercambios</p>
+            <p class="mh-section-label"><i class="fa-solid fa-right-left"></i> Mis swaps</p>
             <?php if (empty($mios)): ?>
                 <div class="swp-vacio">
                     <img src="/build/assets/img/alex/alex-point.png" alt="Alex" class="swp-vacio__alex">
-                    <h3>Aún no has propuesto ningún intercambio</h3>
+                    <h3>Aún no has propuesto ningún swap</h3>
                     <p>
                         Si un día no puedes dar una clase, puedes cambiarla con otro profesor:
                         tú das una suya y esa persona da la tuya. Es un cambio puntual, no toca tu horario.
                     </p>
                     <a href="/dashboard/swaps/crear" class="admin-btn admin-btn--primary">
-                        <i class="fa-solid fa-plus"></i> Proponer intercambio
+                        <i class="fa-solid fa-plus"></i> Proponer swap
                     </a>
                 </div>
             <?php else: ?>
@@ -98,7 +104,7 @@ $alcance = $alcance ?? [];
             <p class="mh-section-label"><i class="fa-solid fa-users-viewfinder"></i> Todo el claustro</p>
             <?php if (empty($todos)): ?>
                 <div class="swp-vacio swp-vacio--compacto">
-                    <p>Todavía no hay intercambios registrados.</p>
+                    <p>Todavía no hay swaps registrados.</p>
                 </div>
             <?php else: ?>
                 <div class="swp-lista">

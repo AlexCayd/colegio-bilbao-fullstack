@@ -32,12 +32,6 @@ $vista = 'profesor';
                 <span class="admin-topbar__title">Horario de <?= s($profesor->nombre) ?></span>
             </div>
             <div class="admin-topbar__actions">
-                <a href="/dashboard/horarios/profesor?id=<?= (int)$profesor->id ?>" class="admin-btn admin-btn--ghost admin-btn--sm">
-                    <i class="fa-regular fa-eye"></i> Ver en Horarios
-                </a>
-                <a href="/dashboard/usuarios/editar?id=<?= (int)$profesor->id ?>" class="admin-btn admin-btn--ghost admin-btn--sm">
-                    <i class="fa-solid fa-pen"></i> Ficha
-                </a>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>

@@ -2,7 +2,7 @@
 
 Sitio web público del **Colegio Bilbao** e intranet de colaboradores (suplencias, horarios,
 intercambios de clase, eventos y redacción). PHP 8 con MVC propio, MySQL, SCSS compilado con
-Gulp, desplegado sobre IIS en Windows Server.
+Gulp, desplegado sobre Apache en Hostinger (Linux).
 
 ---
 
@@ -36,7 +36,7 @@ jornada es por nivel, por qué `horarios` perdió sus UNIQUE, etc.), y
 | Librerías de cliente | GSAP 3.12, Three.js r128, Chart.js 4.4, Font Awesome 6.1 (por CDN) |
 | Build | Gulp 4, Sass, Terser, imagemin, WebP y AVIF |
 | Email | PHPMailer 6 sobre SMTP |
-| Servidor | IIS con URL Rewrite (`web.config`) |
+| Servidor | Apache + PHP-FPM (`.htaccess`, `.user.ini`) — hosting compartido Hostinger |
 
 ---
 
@@ -92,7 +92,8 @@ colegio-bilbao/
 ├── index.php                  Front controller: shim de /build/* + tabla de rutas
 ├── Router.php                 Router propio (GET/POST, patrones {param}, 3 layouts)
 ├── dev-server.php             Router file del servidor embebido de PHP
-├── web.config                 Reglas de URL Rewrite para IIS
+├── .htaccess                  Reparto de peticiones en Apache + denegación de carpetas
+├── .user.ini                  Límites de PHP en hosting compartido (subidas de 50 MB)
 ├── controllers/               EstaticasController · AuthController · BlogController
 ├── models/                    ActiveRecord + 18 modelos de dominio
 ├── classes/Email.php          Envoltorio de PHPMailer
@@ -131,9 +132,13 @@ vendor/bin/phpdoc   # genera docs/api/ a partir de los bloques PHPDoc
 1. `composer install --no-dev` y `npx gulp build`.
 2. Cargar `database/database.sql` + `database/deploy/deploy.sql` (**nunca** `development.sql`).
 3. Configurar `includes/.env` con credenciales reales.
-4. Subir `upload_max_filesize` y `post_max_size` en `php.ini`, y `maxAllowedContentLength` en
-   `web.config`: los justificantes admiten hasta 50 MB y los valores por defecto son menores.
-5. **Eliminar `diagnostico.php` e `informacion.php`** — exponen configuración del servidor.
-6. Cambiar las contraseñas del seed.
+4. Subir `.htaccess` y `.user.ini` (son dotfiles: muchos clientes FTP los ocultan por defecto).
+   Sin el primero **ninguna ruta funciona salvo la raíz** y las carpetas de código quedan
+   servibles; sin el segundo los justificantes de más de 2 MB llegan vacíos.
+5. Dar permiso de escritura a `public/build/assets/{blog,noticias,usuarios}/`,
+   `storage/justificantes/` y `storage/fuentes-pdf/`.
+6. Subir también `src/fonts/` — Dompdf lee los TTF de ahí para el PDF de «Mi horario».
+7. **Eliminar `diagnostico.php` e `informacion.php`** — exponen configuración del servidor.
+8. Cambiar las contraseñas del seed.
 
 Procedimiento completo en [docs/05-despliegue.md](docs/05-despliegue.md).

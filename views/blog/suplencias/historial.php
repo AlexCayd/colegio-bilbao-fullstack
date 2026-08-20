@@ -62,16 +62,16 @@ $porPagina = 15;
                         <?php /* El servidor preoculta lo que pasa de una página: sin esto la
                                  tabla se pinta entera y parpadea al montar el paginador. */ ?>
                         <tr data-pager-item<?= $i >= $porPagina ? ' class="is-hidden"' : '' ?>>
-                            <td data-val="<?= s($f->s_fecha) ?>">
+                            <td data-label="Fecha" data-val="<?= s($f->s_fecha) ?>">
                                 <div class="admin-table__title"><?= s(fecha_larga($f->s_fecha)) ?></div>
                             </td>
-                            <td data-val="<?= s($f->ausente_nombre) ?>">
+                            <td data-label="Faltó" data-val="<?= s($f->ausente_nombre) ?>">
                                 <span class="hpl-persona hpl-persona--falto">
                                     <i class="fa-solid fa-user-minus"></i>
                                     <?= s($f->ausente_nombre ?: '—') ?>
                                 </span>
                             </td>
-                            <td data-val="<?= s($f->suplente_nombre) ?>">
+                            <td data-label="Cubrió" data-val="<?= s($f->suplente_nombre) ?>">
                                 <span class="hpl-persona hpl-persona--cubrio">
                                     <i class="fa-solid fa-user-check"></i>
                                     <?= s($f->suplente_nombre ?: '—') ?>

@@ -6,7 +6,7 @@ Guía de contexto para Claude Code. Leer antes de tocar cualquier archivo.
 
 ## Qué es este proyecto
 
-Sitio web institucional del **Colegio Bilbao** (colegio privado, México) + panel de administración de blog. PHP 8 MVC custom (sin Laravel/Symfony), MySQL, SCSS compilado con Gulp, desplegado en IIS.
+Sitio web institucional del **Colegio Bilbao** (colegio privado, México) + panel de administración de blog. PHP 8 MVC custom (sin Laravel/Symfony), MySQL, SCSS compilado con Gulp, desplegado en **Hostinger (Apache + PHP-FPM, Linux)**.
 
 ---
 
@@ -18,19 +18,51 @@ Sitio web institucional del **Colegio Bilbao** (colegio privado, México) + pane
 - `Router.php` — router custom; soporta `get()`, `post()`, patrones con `{param}`
 - `includes/app.php` — bootstrap: inicia sesión, carga Dotenv, conecta BD
 - `dev-server.php` — **router file obligatorio** para `php -S` (ver abajo)
+- `.htaccess` — reparto en producción (Apache); `.user.ini` — límites de PHP
 
 **⚠️ En local hay que arrancar con `php -S localhost:3000 dev-server.php`.** Sin el router file,
 el servidor embebido devuelve 404 en todo `/build/*`: esos assets no existen físicamente (los sirve
 un shim dentro de `index.php`), y el servidor solo cae al front controller cuando la URI *no* parece
 un archivo — `/build/css/app.css` tiene extensión, así que nunca llega. Resultado: el sitio se pinta
-sin CSS ni JS. `dev-server.php` replica la condición `IsFile` de `web.config`, veta las carpetas
+sin CSS ni JS. `dev-server.php` replica la condición «archivo real» del `.htaccess`, veta las carpetas
 sensibles (`includes/`, `vendor/`, `database/`, dotfiles) y manda todo lo demás a `index.php`.
 
 > No renombrarlo a `router.php`: en Windows el FS es case-insensitive y chocaría con `Router.php`.
-> En producción (IIS) no se usa: el reparto lo hace `web.config`.
+> En producción no se usa: el reparto lo hace `.htaccess`.
 
 > Estuvo mucho tiempo sin existir en el repo (un clon limpio abortaba con *Failed opening
 > required*). Ya está creado.
+
+### ⚠️ Producción es Apache sobre Linux, no IIS
+
+El proyecto **se desplegó en IIS** hasta agosto de 2026 y varias decisiones vienen de ahí. Lo que
+cambió al pasar a Hostinger:
+
+| Antes (IIS) | Ahora (Apache) |
+|---|---|
+| `web.config` (URL Rewrite) | **`.htaccess`** — `web.config` se eliminó |
+| `maxAllowedContentLength` | **`.user.ini`** (`upload_max_filesize`, `post_max_size`, …) |
+| Permisos a `IIS_IUSRS` | `chmod`/propietario del usuario FTP |
+| FS case-insensitive | **FS case-sensitive** |
+
+**El `.htaccess` NO es una traducción literal del `web.config`.** IIS bloqueaba las carpetas de
+código por configuración del servidor; Apache no. Sin las reglas de denegación, un
+`GET /includes/.env` o `/database/credenciales.md` se sirve **como texto plano**, porque el
+catch-all `!-f` no los captura justamente por ser archivos reales. La lista de carpetas vetadas
+está duplicada a propósito en `.htaccess` y `dev-server.php:22` — **si se toca una, tocar la otra**.
+
+⚠️ **El orden de las reglas del `.htaccess` importa.** El atajo `^build/(.*)$ → public/build/$1`
+hace que el shim PHP de `index.php` **deje de correr** para esas URLs, y con él su portazo 404 a
+`assets/suplencias/` (justificantes heredados, § *Justificantes*). Por eso ese 404 se repite en el
+`.htaccess` **antes** del atajo. Mover una regla por encima de la otra reabre los partes médicos.
+
+⚠️ **Linux distingue mayúsculas.** Dos rutas de imagen (`Alex-espera.png`, `Alex-dice.png`) daban
+404 solo en producción. Verificado que las 143 referencias a `/build/assets/` resuelven; al añadir
+una imagen, respetar el nombre exacto del archivo.
+
+**Necesitan permiso de escritura**, y no solo las carpetas de subidas: `storage/justificantes/`
+(partes médicos) y `storage/fuentes-pdf/` (caché `.ufm` que genera Dompdf solo). Sin la segunda,
+«Mi horario» en PDF falla.
 
 ### MVC custom
 
@@ -357,19 +389,93 @@ Los layouts lo emiten como `<body data-page="blog-usuarios-index">`. Con eso:
 (`data-events`, `data-titulo-ref`) o una isla JSON
 (`<script type="application/json" id="dashboardChartData">` en `dashboard.php`) y leerla con `JSON.parse`.
 
+### Responsive — el móvil es el dispositivo de profesores y prefectura
+
+**Escala de breakpoints en `src/scss/base/_mixins.scss`:** `hasta-xl 1200 · hasta-lg 1024 ·
+hasta-md 900 · hasta-sm 720 · hasta-xs 520 · hasta-xxs 400`. Se añadió **al lado** de los
+cuatro mixins `min-width` que ya había (`telefono`/`tablet`/`desktop`/`xl_desktop`), que
+tienen **cero usos**: reescribirlos cambiaría su semántica, y migrar los ~25 breakpoints
+ad-hoc de `_blog-admin.scss` (3857 líneas) es riesgo de regresión sin contrapartida.
+**Regla: mixin en lo nuevo, ad-hoc intacto en lo viejo.**
+
+⚠️ **`hasta-lg` (1024px) no es negociable**: es donde el sidebar pasa a cajón, y ese umbral
+está además en `layout-admin.php` y en `blog-_sidebar.js`. Cambiarlo en un solo sitio
+descuadra el layout.
+
+**⚠️ Sin JS el panel móvil era inoperable, y las reglas del cajón cuelgan de `html.js`.**
+Por debajo de 1024px `.admin-sidebar` vive en `translateX(-100%)` y el botón que lo abre lo
+**inyecta `blog-_sidebar.js`** — no está en el HTML de ninguna vista. Si el bundle no cargaba,
+el resultado era un panel sin navegación ninguna. El script síncrono del `<head>` de
+`layout-admin.php` (la misma excepción ya justificada del anti-salto) estampa `html.js`, y sin
+él el sidebar se queda en el flujo: más feo, pero utilizable. El cajón es además un diálogo de
+verdad: `aria-expanded`/`aria-controls`, `Escape` que cierra y devuelve el foco, e **`inert`
+sobre `.admin-main`** — que resuelve trampa de foco y lectores de pantalla de un golpe, sin
+recorrer focusables a mano.
+
+⚠️ **`blog-_sidebar.js` empieza con `if (!sidebar || !overlay) return;`** y no es cosmético:
+los módulos de `src/js/admin/` se concatenan en **un solo** `admin.min.js`, así que una
+excepción aquí detiene el archivo y se lleva por delante todos los módulos posteriores.
+
+**Rejilla semanal: `.supl-week` cambia de forma, `.hor-grid` no.** Son decisiones opuestas a
+propósito:
+
+| | Móvil (≤640 / ≤720) | Por qué |
+|---|---|---|
+| `.supl-week` | **vista por día** en vertical | En modo `select` solo el día activo recibe listeners; los otros cuatro salen con `is-dim`. El ancho que forzaba el scroll era **decorado no accionable** |
+| `.hor-grid` | scroll-x, estrechado a 560px | Es **solo lectura** —el dato completo lo abre el modal de la casilla, que en táctil es la única vía— y ocultar columnas rompe la geometría de los `rowspan` bajo `table-layout:fixed` |
+
+La vista por día la pinta **el JS** (`renderDia()` en `admin-supl-week.js`), no el servidor:
+el JSON del endpoint no cambia, el contrato de selección es idéntico (mismos `[data-pick]`,
+misma `.is-on`, `emitir()`/`single`/`onChange` intactos) y las **tres** vistas consumidoras lo
+reciben gratis. Al cruzar el breakpoint se repinta, rehidratando con lo marcado **en ese
+momento** —leído del DOM, no de `opts.selected`, que es la selección inicial—: si no, girar el
+móvil a medio formulario borraba las horas ya elegidas.
+
+**⚠️ Apilar una `.admin-table` en tarjetas exige repetir la guarda de paginación.**
+`tbody tr.is-hidden, tbody tr.is-filtered { display:none }` vive en
+`estaticas/_blog-admin.scss`, y `app.scss` importa `estaticas` **antes** que `admin/`: misma
+especificidad, capa posterior. Un `tbody tr { display:block }` escrito en `admin/` la gana por
+cascada y **mata la paginación en silencio**. Es el mismo fallo que el de `[hidden]`. Todo
+bloque de apilado lleva obligatoriamente sus dos líneas y `.admin-table-scroll{overflow-x:visible}`.
+
+Solo se apilan **`suplencias/historial`** y **`mis-coberturas`** (flujos de profesor, columnas
+cortas); el resto se queda con scroll horizontal, que es cero regresión. Al apilar, `<thead>`
+se oculta con `clip-path: inset(50%)` y **no** con `display:none`, para no perderlo en
+lectores de pantalla; se pierde el afordance de ordenar y se asume, porque el servidor ya
+devuelve por fecha descendente. Y como `.admin-table` hereda `font-size:.88rem`, los bloques
+móviles suben el tamaño explícitamente: rebasear el root afectaría también al sitio público.
+
+**⚠️ 1rem = 16px, NO 10px, y esto estuvo documentado al revés.** Hay **dos** declaraciones de
+`html { font-size }` en conflicto: `base/_globales.scss:5` pone `62.5%` y `estaticas/_base.scss:7`
+pone `16px`; `app.scss` importa `base` **antes** que `estaticas`, misma especificidad, así que
+**gana 16px** y el `62.5%` es letra muerta (comprobable en `public/build/css/app.css`). Dos
+partials se escribieron creyendo lo contrario y salían **1,6× más grandes** —la ficha del
+colaborador y la cola de trabajo por revisar—; ya están reescalados. **Todo `rem` nuevo del panel
+va contra 16px**: el rango real del resto de `admin/` es `0.7rem–1.05rem`.
+
+**Hojas inferiores a ≤520:** `.bilbao-date` y los resultados de `.picker` pasan de popover
+anclado al campo a `position:fixed` pegada al borde inferior — un desplegable de 268px en la
+mitad baja de la pantalla queda medio fuera y el flip solo corrige el eje horizontal. Al ser
+`fixed` dejan de recortarlos los ancestros con `overflow`, que es lo que resolvía a mano
+`has-datepicker-open`. Van a `z-index: 210`, **por encima del cajón del sidebar (200)**.
+
+`.bilbao-cal` se adapta **en `estaticas/_comunidad-familias.scss`**, que es donde vive: la
+comparten Comunidad › Familias y cuatro pantallas del panel, así que arreglarlo ahí las cubre
+todas y evita que las dos superficies se desincronicen.
+
 **Componentes compartidos del panel** (sin scope de página; se activan por existencia de sus elementos):
 
 | Clase | Módulo JS | Para qué |
 |-------|-----------|----------|
 | `.admin-switch-row` | — | Interruptor con título y ayuda (`no_puede_suplir`) |
 | `.admin-file` | `admin-file.js` (`[data-file]`) | Zona de subida con nombre de archivo y validación de tamaño |
-| `.supl-week` | `admin-supl-week.js` (`window.SuplWeek`) | Rejilla semanal de horario, en modo `select` o `preview`. Las filas son **tramos de reloj**, no periodos (ver abajo). En `preview` recibe `targetIni`/`targetFin` y marca toda celda que **solape** ese rango. `single: true` la vuelve de selección única (la usa crear un intercambio) |
+| `.supl-week` | `admin-supl-week.js` (`window.SuplWeek`) | Rejilla semanal de horario, en modo `select` o `preview`. Las filas son **tramos de reloj**, no periodos (ver abajo). En `preview` recibe `targetIni`/`targetFin` y marca toda celda que **solape** ese rango. `single: true` la vuelve de selección única (la usa crear un swap) |
 | `.hed-grid` | `blog-usuarios-horario.js` | Rejilla **editable** del horario de un profesor. A diferencia de las otras dos, sus filas **son periodos** de un solo nivel: cada casilla es un `(dia, periodo_id)` escribible. **Un clic = un bloque**: abre `.hed-modal` en modo Clase (casilla libre) o Guardia (receso) |
-| `.picker` | `admin-picker.js` (`[data-picker]`) | Buscador de personas con autocompletado. `data-picker-endpoint` elige la fuente (por defecto la de Suplencias) porque cada consumidor tiene sus propios guards; `data-picker-multi` + `data-picker-name` lo vuelve de selección múltiple con chips (`.picker-chip`) y un hidden `<campo>[]` por elegido. Lo usan el ausente/suplente de Suplencias, los acompañantes de coteaching y el compañero de un intercambio. ⚠️ Emite `change` **a mano** en su hidden: escribirlo por propiedad no dispara eventos, y de ese `change` cuelgan las recargas encadenadas |
+| `.picker` | `admin-picker.js` (`[data-picker]`) | Buscador de personas con autocompletado. `data-picker-endpoint` elige la fuente (por defecto la de Suplencias) porque cada consumidor tiene sus propios guards; `data-picker-multi` + `data-picker-name` lo vuelve de selección múltiple con chips (`.picker-chip`) y un hidden `<campo>[]` por elegido. Lo usan el ausente/suplente de Suplencias, los acompañantes de coteaching y el compañero de un swap. ⚠️ Emite `change` **a mano** en su hidden: escribirlo por propiedad no dispara eventos, y de ese `change` cuelgan las recargas encadenadas |
 | `.hor-select` | — | Select estilizado del módulo Horarios (soporta `<optgroup>`) |
 | `.bilbao-cal` | por vista + `cal-anim.js` | Calendario reutilizable (cumpleaños, eventos, resumen diario, agenda de suplencias). La animación de entrada la pone `window.BilbaoCalAnim.entrada(grid)` con **GSAP**: cada vista repinta su rejilla por su cuenta, así que debe llamarla al final de su `render()`. Vive en `src/js/public/` porque `.bilbao-cal` también existe en Comunidad, y va en **los dos bundles** (ver `gulpfile.js`). Sin GSAP o con `prefers-reduced-motion` no hace nada |
 | `.admin-nav__mod` | `admin-sidebar-nav.js` (`[data-nav-toggle]`) | Acordeón de módulo del sidebar. Abierto = módulo activo; plegado, pulsarlo expande el sidebar |
-| `.bilbao-date` | `admin-datepicker.js` (`[data-datepicker]`) | Selector de fecha propio; sustituye a `<input type="date">`. **La semana empieza en domingo** (igual que `.bilbao-cal`). Tres vistas encadenadas **días → meses → años**: la cabecera sube de nivel, elegir baja. Escribe un hidden en `Y-m-d` y emite `change`. `data-habiles="1"` (default) bloquea fines de semana — **suplencias lo desactiva**: cualquier día es elegible. Se voltea solo (`.is-flipped`) si se saldría del viewport, y levanta el `overflow: clip` de **todos** los ancestros que recorten (`.admin-panel`, `.admin-form-section`, `.admin-form-row`). Lo pinta el partial `views/blog/_campo-fecha.php` |
+| `.bilbao-date` | `admin-datepicker.js` (`[data-datepicker]`) | Selector de fecha propio; sustituye a `<input type="date">`. **La semana empieza en domingo** (igual que `.bilbao-cal`). Tres vistas encadenadas **días → meses → años**: la cabecera sube de nivel, elegir baja. Escribe un hidden en `Y-m-d` y emite `change`. `data-habiles="1"` (default) bloquea fines de semana — **suplencias lo desactiva**: cualquier día es elegible. Se voltea solo (`.is-flipped`) si se saldría del viewport, y levanta el `overflow: clip` de **todos** los ancestros que recorten (`.admin-panel`, `.admin-form-section`, `.admin-form-row`). Lo pinta el partial `views/blog/_campo-fecha.php`. ⚠️ **Sin `text-transform: capitalize`**: el JS ya compone «Jueves, 20 de agosto de 2026» (mes en minúscula a propósito) y el capitalize lo rompía palabra a palabra — «20 De Agosto De 2026» |
 | `.mh-pager` / `.cb-pager` / `.supl-pager` | `admin-pager.js` (`[data-pager]`) | Paginación en cliente de una lista ya renderizada (`[data-pager-item]`, `data-pager-per`). `window.AdminPager.reset()` la relista tras repintarla |
 | `.admin-table` | `admin-table.js` (`[data-table]`) | Ordenamiento por columna (`<th data-sort="text\|num\|date">`) + paginación. Genera solo el paginador si hay `data-table-per` |
 | `.admin-act` | — | Acciones de fila: `--edit` ámbar de la paleta (`--pal-ambar`, `#f5b400`) con lápiz en **tinta oscura** (`--pal-tinta`; el blanco sobre ese amarillo no pasa AA), `--del` rojo `--pal-rojo` + papelera, `--horario` naranja `--pal-naranja` + calendario, `--ghost` neutra |
@@ -378,11 +484,11 @@ Los layouts lo emiten como `<body data-page="blog-usuarios-index">`. Con eso:
 | `.at-wrap` | `admin-toast.js` (`#alexToast`) | Aviso de Alex tras una acción, disparado por query params (`?success`, `?deleted`…) y retirado solo a los 5,6 s. El markup vive en el partial **`views/blog/_toast.php`** (recibe `$toast = ['title','msg','icon','color']`); lo nuevo entra por ahí. Sigue copiado a mano en diez vistas antiguas, que se migran cuando se toque cada una |
 | `.admin-topbar__bell` | `blog-notificaciones-index.js` | Campana con badge de pendientes; vive en `_topbar-avatar.php`, así que sale en todo el panel. Icono **blanco sobre el azul institucional** (`--pal-indigo`): estuvo en ámbar con tinta oscura porque el blanco sobre `#f5b400` no llega a AA |
 | `.cat-modal` | `admin-catalogo.js` (`#catModal`) | Confirmación de borrado de los catálogos (aulas, grupos) |
-| `.admin-tipo-card` / `.admin-mod-chip` | `admin-usuario-permisos.js` | Los dos lenguajes visuales del formulario de usuarios: **tarjeta de identidad** (tipo de personal, con el color del tipo) vs **chip de permiso** (módulo, con casilla cuadrada a la vista). Antes ambos eran la misma `.admin-modulo-check` y sus nombres son homónimos —módulo «Profesores» vs tipo «Profesor»—, así que no se distinguía qué se estaba respondiendo. El JS aplica rol→módulos, `no_puede_suplir`, niveles y la exclusividad, que lee de `data-excluyente` en lugar de repetir la lista |
-| `.swp-step` | — | Paso del alta de intercambio: número en columna fija y guía vertical que encadena los pasos. Es un recorrido con dependencias (el 3 necesita los dos anteriores) y como `.admin-form-section` apiladas no se veía |
+| `.admin-tipo-card` / `.admin-mod-chip` | `admin-usuario-permisos.js` | Los dos lenguajes visuales del formulario de usuarios: **tarjeta de identidad** (tipo de personal, con el color del tipo) vs **chip de permiso** (módulo, con casilla cuadrada a la vista y **solo el nombre** — la descripción vive en el `title`, porque eran trece líneas de texto entre el admin y las casillas que venía a marcar). Antes ambos eran la misma `.admin-modulo-check` y sus nombres son homónimos —módulo «Profesores» vs tipo «Profesor»—, así que no se distinguía qué se estaba respondiendo. El JS aplica rol→módulos, `no_puede_suplir`, niveles y la exclusividad, que lee de `data-excluyente` en lugar de repetir la lista |
+| `.swp-wiz` | `blog-swaps-crear.js` | Asistente del alta de swap: **una pregunta por pantalla** a ancho completo. Dos columnas — acompañamiento sticky (Alex + índice de pasos con lo ya elegido) y el paso activo. `sincronizar()` decide todo lo visible; `.swp-wiz__hint` dice qué falta antes de pulsar. ⚠️ `.swp-panel`, `.swp-wiz__hint`, el `<img>` de Alex y `.admin-btn` se alternan con `hidden` y **todos** llevan su `&[hidden]` |
 | — | `admin-motivo.js` (`[data-motivo]`) | El select de motivo revela el campo de texto al elegir "Otro" |
 | `.cat-tabs` | `admin-nivel-tabs.js` (`[data-nivel-tabs]`) | Tabs de nivel académico a ancho completo. Filtran una tabla ya renderizada (`is-filtered` + `AdminTable.refrescar()`) o hacen de radios en un formulario |
-| — | `forest.js` (`window.BilbaoForest.init(canvas, opts)`) | Bosque Three.js reutilizable (landing y login). Vive en `src/js/public/` pero **va en los dos bundles** (ver `gulpfile.js`), porque el login carga `admin.min.js`. Devuelve `null` sin WebGL o con `prefers-reduced-motion`: el llamador necesita fondo de respaldo en CSS |
+| — | `forest.js` (`window.BilbaoForest.init(canvas, opts)`) | Bosque Three.js reutilizable: landing, login, hero del panel y **Comunidad › Colaboradores**. Vive en `src/js/public/` pero **va en los dos bundles** (ver `gulpfile.js`), porque el login carga `admin.min.js`. Devuelve `null` sin WebGL o con `prefers-reduced-motion`: el llamador necesita fondo de respaldo en CSS. ⚠️ Se dimensiona con **`canvas.clientWidth/clientHeight` + `ResizeObserver`**, no con `window.innerWidth` — ver abajo |
 
 > **Tablas de lectura:** todas usan `admin-table.js`. El servidor preoculta las filas que pasan de
 > `data-table-per` con la clase `is-hidden` (evita el parpadeo inicial) y marca cada `<tr>` con
@@ -428,18 +534,37 @@ Los layouts lo emiten como `<body data-page="blog-usuarios-index">`. Con eso:
 > sus filas. Lo segundo tocaría las cinco columnas a la vez. Con cortes derivados de
 > eventos, el corte superfluo no llega a existir y no hace falta borrarlo nunca.
 >
-> ⚠️ **`rowspan` + `border-spacing`.** El alto de fila va en proporción a **`alto`**
-> (`<tr style="--min:50">` + `height: calc(var(--min) * 1.24px)`), y el contenido se ancla al
-> `<td>` con `position:absolute; inset:0` — en una tabla `height` es un mínimo y un
-> `height:100%` del hijo no resuelve bien bajo `rowspan`. Así la suma de filas y de los
-> `border-spacing` intermedios la hace el navegador y **no queda aritmética en el CSS**.
-> Por lo mismo, `.hor-cell__mat` necesita `nowrap`/`ellipsis`: una materia de nombre largo
-> estiraría la fila y descuadraría las cinco columnas.
+> ⚠️ **TODAS las filas miden lo mismo**, y el alto sale de **`--hor-fila` (62px)** en el
+> `:root` de `estaticas/_variables.scss` — más `--hor-fila-compacta` (46px) para
+> `.supl-week`. Antes iba en proporción a `alto` (los minutos del tramo, vía un
+> `<tr style="--min:50">`), y como el eje comprimido produce tramos de 50, 30 y 20
+> minutos, un profesor de dos niveles veía casillas de tres alturas: se leía como un
+> fallo de maquetación, no como información. 62px es justo lo que medía el tramo de 50
+> min, el dominante, así que **las vistas por grupo y por aula quedaron pixel-idénticas**.
 >
-> **`alto` ≠ `minutos`.** `alto` viene capado a `Periodo::EJE_TOPE_MIN` (un tramo comprimido
-> puede durar dos horas y la fila se iría a 174px) y baja a `EJE_HUECO_MIN` en los tramos
-> marcados `hueco` — los que ningún día usa, que se pintan como franja separadora. `minutos`
-> se conserva como dato. Alimentar `--min` de `minutos` revienta la altura.
+> El precedente estaba en el propio producto: **`views/blog/horarios/pdf.php` reparte el
+> alto útil de la página entre todos los tramos por igual desde siempre y nunca ha leído
+> `alto`**. La versión impresa ya había renunciado a la proporcionalidad.
+>
+> **`--min` ya no se emite** —ni en `_grid.php` ni en `admin-supl-week.js`—: un atributo
+> que ningún estilo lee es una mentira que la próxima persona intentará usar. `alto`,
+> `EJE_TOPE_MIN` y `EJE_HUECO_MIN` siguen en PHP porque `alto` viaja en el JSON del
+> endpoint, que es contrato de tres vistas, pero **ninguna rejilla los consume**.
+>
+> ⚠️ Los **`rowspan` no se ven afectados**: `Periodo::spanTramos()` cuenta por contención
+> de reloj y no lee `alto`. La suma de N filas más los N-1 `border-spacing` la sigue
+> haciendo el navegador. El contenido se ancla al `<td>` con `position:absolute; inset:0`
+> —en una tabla `height` es un mínimo y un `height:100%` del hijo no resuelve bajo
+> `rowspan`—, así que **`.hor-cell` no aporta altura y la fila no puede estirarse**: por
+> eso `.hor-cell__mat` necesita `nowrap`/`ellipsis` y `justify-content: safe center`.
+> El **hueco** conserva su tratamiento cosmético (atenuado, hora en tono menor) pero ya
+> no mide distinto: «ningún día usa este tramo» es información, la altura no lo era.
+>
+> ⚠️ **Con 3+ opciones de materia dividida no hay altura que alcance.** Tres franjas con
+> materia + subtítulo cuestan ~64px y la fila mide 62.
+> `_grid.php` emite `hor-cell--split-3` a partir de tres, y esa clase **oculta
+> `.hor-cell__sec`**: el dato completo de cada opción ya viaja en la isla JSON
+> `data-hor-cell` y lo pinta el modal de la casilla.
 >
 > ⚠️ **Solo se marca `hueco` un tramo SIN etiqueta propia.** `hueco` se pensó para los fragmentos
 > que el eje comprimido genera al cruzarse dos jornadas —trozos de reloj que no son periodo de
@@ -596,9 +721,12 @@ El panel está organizado en **módulos**. Tras iniciar sesión se llega a un **
 | `/dashboard/horarios/profesor\|aula\|grupo` | `BlogController::horariosVista` | **Horarios** en solo lectura (requiere módulo `horarios`) |
 | `/dashboard/horarios/mi-horario` | `BlogController::miHorario` | El colaborador ve **su propio** horario, sin edición (solo `requireAuth`). La cifra de la cabecera son sus **horas de clase**, no las libres: las libres eran un residuo del cálculo de suplencias y anunciarlas ahí sobraba |
 | `/dashboard/horarios/mi-horario.pdf` | `BlogController::miHorarioPdf` | El mismo horario en PDF (Dompdf), para llevarlo en papel |
+| `/dashboard/usuarios/horario.pdf` | `BlogController::horarioUsuarioPdf` | El horario de **otro** colaborador en PDF, desde su ficha. Mismo guard que la ficha (`requireFichaColaborador()`) |
+| `/dashboard/horarios/pdf` | `BlogController::horariosPdf` | La semana que se está viendo, en PDF (`?vista=profesor\|aula\|grupo&id=N`). Mismo guard que las tres vistas (`requireHorariosVista()`) |
 | `/dashboard/horarios/importar` | `BlogController::importarHorarios` | Carga de horarios por **CSV** — módulo `horarios` + **admin** (es destructivo) |
 | `/dashboard/usuarios*` | varios | **Usuarios** (requiere módulo `usuarios`) |
 | `/dashboard/usuarios/cumpleanos` | `BlogController::cumpleanos` | Calendario de cumpleaños (módulo Usuarios) |
+| `/dashboard/usuarios/detalle` | `BlogController::detalleUsuario` | **Ficha de un colaborador** (solo lectura): horario, ausencias, coberturas y swaps. La abre quien **coordina** + módulo `usuarios` **o** el directorio de su tipo |
 | `/dashboard/usuarios/horario` | `BlogController::horarioEditor`, `guardarBloqueHorario`, `eliminarBloqueHorario` | **Editor del horario de un profesor** — módulo `usuarios` + **admin** (es el único punto que escribe horario) |
 | `/dashboard/usuarios/horario/profesores` | `buscarProfesoresHorario` | Endpoint JSON: docentes para el campo de acompañantes (coteaching) |
 | `/dashboard/profesores` · `/prefectura` · `/administrativos` · `/directivos` | `BlogController::profesores`, `prefectura`, `administrativos`, `directivos` | **Directorios de personal**, uno por `tipo_personal`. Cada uno es su propio módulo asignable y los cuatro comparten `views/blog/personal/index.php` vía `renderDirectorio()` |
@@ -610,7 +738,7 @@ El panel está organizado en **módulos**. Tras iniciar sesión se llega a un **
 | `/dashboard/suplencias/trabajo` | `marcarTrabajo` | Prefectura registra si el ausente dejó trabajo para el grupo |
 | `/dashboard/suplencias/reabrir-hora` | `reabrirHora` | Devuelve al circuito una hora `no_cubierta` |
 | `/dashboard/usuarios/horario/lugar` | `crearLugarGuardia` | Alta en línea de un lugar de guardia (JSON, admin) |
-| `/dashboard/swaps*` | `swaps`, `crearSwap`, `clasesSwapJson`, `horarioSwapJson`, `buscarProfesoresSwap`, `responderSwap`, `validarSwap`, `cancelarSwap` | **Intercambios** (módulo `swaps`) |
+| `/dashboard/swaps*` | `swaps`, `crearSwap`, `clasesSwapJson`, `horarioSwapJson`, `buscarProfesoresSwap`, `responderSwap`, `validarSwap`, `cancelarSwap` | **Swaps** (módulo `swaps`) |
 | `/dashboard/soporte` | `soporte` | **Soporte técnico** — transversal, lo tiene todo el mundo |
 
 **Módulo Soporte técnico.** No se asigna: está en `BlogController::MODULOS_TRANSVERSALES`,
@@ -623,13 +751,13 @@ nombre y el tipo de personal que llegan ya resueltos en `data-*`. El Q&A vive en
 se **filtra a los módulos del usuario**: un profesor no necesita leer cómo se importa un
 CSV de horarios.
 
-**Módulo Swap de clases.** Intercambio PUNTUAL entre dos profesores: no altera el horario
+**Módulo Swaps.** Intercambio PUNTUAL de clases entre dos profesores: no altera el horario
 permanente, solo dice qué pasa esos dos días concretos, y por eso cada lado guarda la
 pareja `(horario_id, fecha)`. Flujo `pendiente → aceptado/rechazado → validado/denegado`,
 con notificación en los tres pasos; el último lo da prefectura o dirección.
 
 > **`aceptado` NO es efectivo.** Que las dos partes se pongan de acuerdo no basta: hasta
-> la validación el intercambio no vale, y la tarjeta lo dice con todas las letras
+> la validación el swap no vale, y la tarjeta lo dice con todas las letras
 > (`.swp-card__pendiente`) para que nadie deje de ir a su clase confiando en él. Al pasar
 > a `aceptado` se avisa a dirección: antes solo lo delataba el badge del subnav y un swap
 > podía quedarse ahí para siempre.
@@ -643,7 +771,7 @@ notificación**: antes había que abrir el listado para enterarse.
 `validacion_nota` de quien coordina. Compartían columna, y la validación pisaba la
 explicación del profesor: el solicitante se quedaba sin saber quién había dicho qué.
 
-**Prefectura también abre intercambios, y los suyos nacen `validado`.** No es una petición
+**Prefectura también abre swaps, y los suyos nacen `validado`.** No es una petición
 sino una reasignación: designa a los **dos** profesores (paso 0 con `.picker`) y ambos
 reciben un aviso `swap_impuesto` de que su clase cambió, no una pregunta. `creado_por`
 distinto de `solicitante_id` es lo que lo delata en la tarjeta. La comprobación de que
@@ -654,11 +782,36 @@ POST manipulado regalaría la clase de un tercero.
 formulario, el selector genérico agarraba el primero creyendo que era el compañero.
 `Swap::DIAS_VENTANA` (**7**) limita cuánto margen hay: las clases que se pueden pedir a
 cambio son las del otro profesor dentro de los 7 días siguientes al que se falta — más
-allá deja de ser un intercambio y es un cambio de horario. `crearSwap()` comprueba además
+allá deja de ser un swap y es un cambio de horario. `crearSwap()` comprueba además
 que **cada clase sea de quien dice ser**, o un POST manipulado podría regalar la clase de
 un tercero.
 
-Los tres pasos de `/dashboard/swaps/crear` reusan componentes del panel en vez de desplegables:
+**El alta es un ASISTENTE por pasos, una pregunta por pantalla** (`.swp-wiz`), no un
+formulario con las cuatro apiladas. Apiladas rompían dos cosas a la vez: el último paso
+caía fuera del viewport —había que hacer scroll para descubrir que existía— y la rejilla
+semanal, que es cinco días por la jornada entera, se pintaba en una columna de 940px.
+Ahora ocupa **el ancho completo**, que es lo que necesita.
+
+- **El catálogo de pasos son DATOS** (`$PASOS` al principio de la vista): de ahí salen a la
+  vez el índice lateral, la barra de progreso y la frase de Alex, así que no pueden
+  desincronizarse. La frase viaja en `data-dice` de cada `<img>`, no copiada en el JS.
+- **Alex acompaña el recorrido**: cambia de postura y de frase en cada paso
+  (`.swp-wiz__alex`). No decora — dice lo que el título no puede sin alargarse.
+- **El progreso es permanente**: índice lateral con lo elegido en cada paso + barra
+  «Paso N de M». En un formulario troceado, no ver cuánto queda es peor que verlo todo.
+- **`sincronizar()` es el único punto que decide qué se ve** (panel, índice, barra, Alex,
+  botones y resumen). El paso «confirmar» cierra con el swap entero en una línea.
+- El índice deja **volver atrás**, nunca saltar adelante: eso se saltaría los requisitos.
+- ⚠️ **Ningún botón sale deshabilitado.** `.swp-wiz__hint` dice qué falta *antes* de
+  pulsar; uno muerto sin explicación es indistinguible de uno roto.
+- ⚠️ **Cuatro componentes con `display` propio se alternan con `hidden`** y por tanto
+  llevan su `&[hidden]`: `.swp-panel`, `.swp-wiz__hint`, el `<img>` de Alex y —esta
+  faltaba en todo el panel— **`.admin-btn`**, que es `inline-flex`: sin ella se verían a
+  la vez «Siguiente» y «Enviar propuesta».
+- ⚠️ El POST **no cambió**: los cinco hidden siguen en el DOM aunque su panel esté oculto
+  (`hidden` no desactiva un input) y solo se envía desde el último paso.
+
+Los pasos reusan componentes del panel en vez de desplegables:
 
 1. **La clase propia se marca en la rejilla semanal** (`.supl-week` en modo `select` + `single`),
    no en un `<select>`. Un desplegable con «Lunes · 08:00–08:50 · Matemáticas (1A)» obliga a
@@ -666,7 +819,7 @@ Los tres pasos de `/dashboard/swaps/crear` reusan componentes del panel en vez d
    `/dashboard/swaps/horario`, puerta aparte de la de Suplencias **solo por el guard**: aquella
    pide `requireModulo('suplencias')` y un profesor con solo `swaps` recibía un 403. El cuerpo lo
    comparten en `rejillaProfesorJson()`, así que las dos rejillas no pueden divergir.
-   ⚠️ El JSON de la celda expone **`horario_id`** (la fila), no solo `periodo_id`: un intercambio
+   ⚠️ El JSON de la celda expone **`horario_id`** (la fila), no solo `periodo_id`: un swap
    referencia una clase concreta, no «la 3ª hora del lunes».
 2. **El compañero, con `.picker`** contra `/dashboard/swaps/buscar` (`UsuarioBlog::buscarProfesores()`,
    solo docentes y nunca uno mismo). Antes era un `<select>` con el claustro entero.
@@ -674,7 +827,7 @@ Los tres pasos de `/dashboard/swaps/crear` reusan componentes del panel en vez d
 
 Quien coordina ve «Todo el claustro»; quien no, solo lo suyo. `Swap::todos()` acepta un
 `$excluirUid` para que a un admin o prefecto que **además imparte** no le salgan sus propios
-intercambios dos veces en la misma pantalla. Los cuatro POST redirigen con su query param y el
+swaps dos veces en la misma pantalla. Los cuatro POST redirigen con su query param y el
 listado los pinta con el toast de Alex (`views/blog/_toast.php`); antes se emitían y nadie los leía.
 
 **Home de módulos y sidebar comparten catálogo.** `views/blog/_modulos.php` define las funciones
@@ -718,6 +871,33 @@ nuevo: todo estaba ya en `$h`/`$b` dentro del `foreach` de `_grid.php`.
 > además de su propia rejilla y dos ids iguales romperían el `getElementById`.
 > El SCSS de `.hcd-modal` va **fuera** del scope `body[data-page=...]`, como `.hor-select`.
 
+**Las tres vistas del módulo también se llevan en papel**, con
+`/dashboard/horarios/pdf?vista=&id=`. Reusan **la misma plantilla** que «Mi horario» sin
+ninguna rama: de su sujeto solo necesita el `nombre`, y eso lo tienen igual un profesor,
+un aula y un grupo (`$subtitulo` distingue de cuál se trata en el encabezado, porque
+«3A Secundaria» a secas no dice si es el horario del grupo o el del aula homónima).
+Pantalla y PDF salen de **`datosHorarioVista()`**, y el guard de las dos es
+**`requireHorariosVista()`** (módulo `horarios` + coordinar), extraído por lo mismo que
+`requireFichaColaborador()`: dos puertas al mismo cuarto no pueden pedir cosas distintas.
+El botón solo aparece si hay tramos — un PDF de una semana vacía no es nada que imprimir.
+
+⚠️ **El slug del nombre de archivo NO se hace con `strtr($s, 'áé…', 'ae…')`.** Con dos
+cadenas `strtr` opera **byte a byte** y en UTF-8 un acento ocupa dos, así que «Adrián»
+salía como `adriuen`. Va con la forma de array, la misma que `claveCatalogo()`.
+
+**⚠️ El PDF de OTRO colaborador va por su propia ruta**, `/dashboard/usuarios/horario.pdf?id=N`
+(`horarioUsuarioPdf()`), y no por un `?id=` opcional sobre `mi-horario.pdf`: aquella tiene
+guard `requireAuth()` a secas porque el horario que sirve es el de quien pide, y un mismo
+endpoint con dos niveles de autorización decididos dentro de un `if` es la forma que
+alguien «simplifica» seis meses después — con una fuga de horarios ajenos como resultado.
+La frontera ya existía en el panel: `/horarios/mi-horario` es lo propio,
+`/usuarios/horario?id=` es lo de otro.
+Las tres piezas están extraídas para que no puedan divergir: **`emitirHorarioPdf($datos)`**
+(render + descarga, no decide qué ni quién) y **`requireFichaColaborador($id)`** (el guard
+de tres pasos), que usan **tanto la ficha como el PDF**. El botón de la ficha va **fuera**
+del `if ($puedeEditar)`: eso es permiso de escritura, y una dirección en solo lectura
+también necesita llevarse el horario en papel.
+
 **PDF de «Mi horario».** `GET /dashboard/horarios/mi-horario.pdf` → `miHorarioPdf()`, mismo
 guard que la vista web (`requireAuth`). Se genera en servidor con **Dompdf**.
 
@@ -737,10 +917,11 @@ guard que la vista web (`requireAuth`). Se genera en servidor con **Dompdf**.
   Dompdf genera sola (ignorada en git). Si faltan los TTF cae a la fuente por defecto.
 - **Llena el folio, con la retícula regular**: A4 apaisado y **todas las filas del mismo
   alto**, repartido **en PHP** sobre el alto útil de página (el CSS de Dompdf no sabe
-  hacer `calc()` sobre el alto de página). En pantalla las filas van en proporción a su
-  duración; en papel eso dejaba la fila con clase estirada al contenido y la vacía
-  aplastada, que se lee como un fallo de maquetación. Por lo mismo la celda no repite la
-  hora —ya está en la cabecera de la fila— salvo cuando la clase abarca varios tramos.
+  hacer `calc()` sobre el alto de página). Fue el primer sitio en renunciar a la altura
+  proporcional a la duración, que dejaba la fila con clase estirada y la vacía aplastada;
+  la pantalla siguió el mismo camino después (ver `--hor-fila`). Por lo mismo la celda no
+  repite la hora —ya está en la cabecera de la fila— salvo cuando la clase abarca varios
+  tramos.
 - ⚠️ **`colorMateria()['oscuro']` significa color CLARO** (ámbar, lima y cyan), que son
   los tres sobre los que el blanco no llega a AA: ahí va tinta oscura (`.hp-cell--claro`)
   y en el resto texto blanco. Es la misma regla de la rejilla web; invertirla deja media
@@ -778,6 +959,39 @@ contra el horario ya cargado de los profesores que **no** vienen en él — sin 
 ocupado por un tercero reventaba la transacción con un `Duplicate entry 'lunes-41-5'`
 ilegible. El aula se valida la última: si va antes, su error tapa el de nivel/periodo/materia,
 que es el que hay que corregir primero.
+
+**Ficha del colaborador** (`/dashboard/usuarios/detalle?id=N`). Reúne en una pantalla lo que
+el panel ya sabía de una persona y estaba repartido entre tres módulos: identidad y permisos,
+su horario semanal, sus ausencias, las horas que ha cubierto y sus swaps. Antes lo más
+parecido a una ficha era el **formulario de edición**, que solo abre un admin y que no dice
+nada de lo que esa persona hace.
+
+- **Guard en tres pasos:** sesión → `puedeCoordinar()` (expone motivos de ausencia y horarios
+  ajenos: la misma frontera que separa la agenda del histórico del plantel) → módulo
+  `usuarios` **o** el directorio del tipo de la persona mirada (`DIRECTORIO_DE_TIPO`). Ese
+  mapeo vive en el **controlador** y no en un modelo: es política de acceso del panel, como
+  `nivelesAlcance()`.
+- **Cero consultas nuevas.** Reutiliza `datosHorarioProfesor()` —la misma fuente que «Mi
+  horario» y su PDF, así que las tres no pueden pintar semanas distintas— más los métodos que
+  ya sabían ceñirse a UNA persona: `Suplencia::listar(['ausente_id'=>N])`, `conteos($id)`,
+  `SuplenciaHora::historicoDeSuplente()`, `Swap::deProfesor()`. Las estadísticas se calculan
+  en PHP sobre esos arrays; `topIncumplimientos()` **no** sirve aquí (es ranking del plantel).
+- **Secciones apiladas + anclas, no pestañas.** Cuáles existen depende del `tipo_personal`:
+  un administrativo no tiene horario, ni suplencias, ni swaps, y ve un empty state que
+  lo dice. Unas pestañas cuyo número cambia según a quién mires obligan a aprender la
+  excepción; además así funcionan Ctrl-F, la impresión y el enlace directo, sin JS.
+- ⚠️ **El nivel se rotula según el puesto**: en un `profesor` son los que *imparte*, en un
+  `directivo` los que *gestiona* (y vacío = **todo el colegio**). Ver *Direcciones por nivel*.
+- ⚠️ Incluye `views/blog/horarios/_grid.php`, así que `blog-usuarios-detalle` **tiene que
+  estar en la lista de `body[data-page]` de `_admin-horarios.scss`** o la rejilla sale como
+  tabla desnuda. Es el paso que se olvida al añadir una vista que use ese partial.
+- Los swaps van en una `.admin-table` compacta y **no** en `.swp-card`: esa clase está
+  encerrada en `body[data-page="blog-swaps-index"]` y su partial es una superficie de decisión
+  que aquí saldría sin ninguna acción.
+- Se entra desde los dos listados (`usuarios` y los cuatro directorios) con `.admin-act--ficha`
+  —primera del grupo, azul: es la acción de lectura— y con el nombre de la fila convertido en
+  enlace. Envolverlo en un `<a>` no rompe el ordenamiento: `admin-table.js` lee `td.dataset.val`
+  antes que el `textContent`, y ambas vistas ya lo emiten.
 
 **Editor de horario** (`/dashboard/usuarios/horario?id=N`, módulo `usuarios` + **admin**).
 Vive en Usuarios, no en Horarios, porque es el punto que **escribe**. Corrige una clase suelta sin
@@ -952,11 +1166,25 @@ el calendario de abajo y los módulos los dicen sus propias tarjetas. El **cumpl
 perdió —es el único de todos esos datos que no aparece en ningún otro sitio del panel— sino que bajó
 a su propia tira `.mh-cumple-hoy`, pegada al calendario porque es su mismo tema.
 
-La marca sigue el patrón tipográfico del hero del landing (`src/scss/estaticas/_home.scss`): eyebrow
-en versalitas con `letter-spacing` amplio + pieza pesada (900) con `background-clip:text` y un halo
-`text-shadow` del color de fondo para que se lea sobre los árboles. ⚠️ El degradado de «Bilbao» es
-el **azul institucional** (`#1f5a94 → #2f7cb8`, el mismo de `.lnd-hero__hi`), no el naranja que
-tuvo antes: el naranja es un color de la paleta de categorías, el azul es la marca.
+**«Intranet Bilbao» es UN título, no un eyebrow con un logotipo al lado.** El degradado ya vivía
+en el contenedor y recorría las dos palabras, pero `.mh-hero__brand` iba a 15px, peso 800, en
+versalitas y con `letter-spacing:.24em` frente a los 24px/900 de `.mh-hero__colegio`: con esa
+diferencia de tamaño y tracking se leían como dos piezas distintas aunque compartieran tinta.
+Ahora **las dos declaraciones son la misma** —mismo tamaño, peso y tracking, sin versalitas— y
+lo único que queda es el degradado. Cambiar una de las dos vuelve a partir la marca.
+
+⚠️ El lockup **no crece más allá del tamaño que tenía «Bilbao»**: el saludo de debajo llega a
+29px y la marca acompaña, no compite.
+⚠️ El degradado es el **azul institucional** (`#1f5a94 → #2f7cb8`, el mismo de `.lnd-hero__hi`),
+no el naranja que tuvo antes: el naranja es un color de la paleta de categorías, el azul es la
+marca.
+⚠️ `background-clip:text` **no convive con `text-shadow`** (el halo se pintaría por detrás del
+recorte y se vería la caja): el contraste sobre los árboles lo da el vidrio de `.mh-hero__texto`.
+
+**Alex es la mitad del saludo, no un adorno de esquina.** A 118px se leía como un icono; ahora
+es `clamp(130px, 14vw, 190px)` y el `min-height` del hero subió a 320px para que quepa. En
+móvil ya **no se oculta**: se queda en fila con el texto (en columna empujaría las tarjetas de
+módulo fuera de la primera pantalla) y solo desaparece por debajo de 400px.
 
 **Quién ve qué: dos públicos que no se solapan.** La regla se ata a **`tipo_personal`, no al rol** —
 un admin de sistemas no imparte nada y `prefecto` es tipo excluyente, así que coordina las ausencias
@@ -1087,6 +1315,39 @@ nombre del archivo, ni la descarga, ni la cola, ni la resolución. Lo decide
 en las vistas por `blog_modulos_ve_justificantes()`. `$justifInfo` solo se calcula con permiso, o el
 nombre y el peso se filtrarían al HTML aunque el botón no estuviera.
 
+**⚠️ Las vistas pintan los CUATRO estados de `estadoJustificante()`, no un booleano.**
+`sin_archivo · vigente · en_cola · resuelto` estaban modelados desde el principio —junto con
+`JUSTIF_LABEL`, `diasParaCola()`, `diasParaPurga()` y `resolutor_nombre`— y **ninguna vista
+los usaba**. `agendar.php` miraba `!empty($justificante)`, y como aprobar un parte pone esa
+columna a `NULL`, al profesor al que se le acababa de aprobar el justificante la tarjeta le
+decía en **rojo** «Falta el justificante» y le reofrecía el formulario de subida; en una
+ausencia `anticipada` la tarjeta desaparecía sin dejar rastro de que hubo documento.
+`.supl-justif` tiene ahora cuatro variantes (`is-pending`/`is-ok`/`is-done`/`is-broken`).
+
+Tres cosas más que guard y UI no decían igual:
+
+- **`is-broken`**: con permiso pero sin archivo en disco, `infoJustificante()` devuelve `null`.
+  Ofrecer «Descargar» ahí prometía un 404 y el modal confirmaba el borrado de algo que no
+  podía nombrar. `justificantes.php` ya lo trataba bien; `agendar.php` no.
+- **El propio ausente puede descargar el suyo** (`descargarJustificante():849` lo autoriza),
+  pero la vista solo se lo ofrecía a dirección.
+- **Chips en los listados**: la agenda no decía nada del documento —había que abrir las
+  suplencias una a una— y en «Mis ausencias» un profesor veía el badge `por_justificar` y
+  **no tenía desde ahí ninguna vía para subir el archivo**. Ahora el chip es el enlace.
+
+`justificarSuplencia()` tenía solo `requireAuth()`: le faltaban `requireModulo('suplencias')`
+y `requireAlcance()` (este último solo si quien sube **no** es el ausente — un profesor sube
+el suyo sin que su nivel entre en juego).
+
+**Se acepta `txt`** además de PDF e imagen: no todo justificante es un escaneo, y un permiso
+administrativo o una constancia interna llega muchas veces como nota de texto. Es también el
+formato de los **ejemplos del seed** (`storage/justificantes/ejemplo-*.txt`, versionados como
+excepción en `.gitignore`), que antes apuntaban a un PDF inexistente y hacían que toda la cola
+saliera como «Archivo no encontrado». ⚠️ `mime_content_type()` no es estable con texto plano
+—devuelve `text/html` o `application/x-empty` según el contenido—, así que para `.txt` se
+acepta cualquier `text/*`: la extensión ya está en lista blanca y el archivo vive fuera de
+`public/`.
+
 **⚠️ El archivo vive FUERA de `public/`, en `storage/justificantes/`.** Estuvo en
 `public/build/assets/suplencias/`, que sirve el shim de `index.php` — y ese shim corre **antes** de
 `includes/app.php`, o sea sin sesión y sin permisos: cualquiera con la URL se descargaba el parte
@@ -1108,6 +1369,16 @@ revisarlo.
 | 8 – 29 | `en_cola` — espera decisión en `/dashboard/suplencias/justificantes` | **dirección**: descargar o eliminar |
 | ≥ 30 (`DIAS_PURGA`) | `purgado` — se borra solo | nadie |
 
+**El plazo de la cola es un semáforo de cuatro tramos**, no un booleano. Sobre los 30 días
+de `DIAS_PURGA` (y como la cola empieza a los 7, `quedan ∈ [0,23]`): **0-3 rojo · 4-7
+naranja · 8-14 ámbar · 15+ gris**. El corte del naranja son los `DIAS_DESCARGA`: le queda
+tanto plazo como el que ya esperó para entrar. El gris de arriba **no es un olvido** — si
+todo estuviera teñido, el color dejaría de señalar nada. Siempre tinte suave + tinta
+oscura, nunca fondo sólido: el blanco sobre el ámbar `#f5b400` no llega a AA.
+⚠️ El `data-val` del **`<td>`** sigue siendo `$quedan`: el `data-sort="num"` lee el
+`data-val` de la celda y no el texto del `<span>`, así que moverlo rompe el orden en
+silencio.
+
 `Suplencia::estadoJustificante()` **deriva** el estado de la fecha en vez de guardarlo, para
 que no envejezca mal si nadie entra al panel en una semana. La resolución sí se guarda y va
 **firmada** (`justificante_resuelto_por` / `_en` / `_resolucion`): el histórico tiene que
@@ -1123,6 +1394,45 @@ que leen el guard del servidor y el `data-file-max` de las vistas.
 porque un profesor puede dejar material para su clase de 3º y no para la de 5º; así el
 dato se cruza con grupo, materia y **nivel**. No aparece sobre las guardias: en el patio no
 hay trabajo que dejar.
+
+**Lo escribe SOLO prefectura** (`BlogController::puedeMarcarTrabajo()` = admin ∪ `prefecto`,
+espejado en las vistas por `blog_modulos_marca_trabajo()`). Es la simétrica del justificante:
+el parte médico es un documento que **dirección valora**, el trabajo es un hecho de campo que
+**prefectura constata** en el aula el día de la ausencia. El guard era `puedeAgendar()`, que
+incluye a `directivo`, y como el dato alimenta el ranking de «ausencias sin trabajo» eso
+permitía imputarle algo a un profesor desde el despacho. Dirección lo sigue **viendo** —la
+vista pinta el estado y, si está sin revisar, un «Lo registra prefectura» en vez de los
+botones.
+
+> ⚠️ `marcarTrabajo()` comprueba además que la **hora pertenezca a la suplencia del POST**.
+> `requireAlcance()` valida la suplencia, no la hora, así que sin eso un coordinador con
+> alcance sobre A podía marcar una hora de B mandando `id=A&hora_id=<hora de B>`.
+
+**Cada fila lleva las indicaciones del ausente.** `pendientesTrabajo()` trae
+`sup.notas AS s_notas` —lo que el profesor escribió al avisar de su ausencia—, que es
+justo el dato con el que se responde la pregunta de la pantalla; sin él había que abrir
+cada suplencia por separado para poder marcar con criterio. La nota es de la
+**suplencia**, no de la hora, así que se repite en todas las horas de la misma ausencia:
+es correcto —se marca fila a fila— y no se deduplica porque dos ausencias del mismo día
+se intercalan por hora y las filas no quedan contiguas. El caso vacío también se dice
+(`.tpe-nota--sin`): «no escribió nada» y «no se cargó el dato» son la misma pantalla en
+blanco, y esa duda es la que impide marcar con confianza.
+
+> `suplencia_horas.trabajo_notas` sigue **sin usarse**. `marcarTrabajo()` sabe
+> escribirlo y el POST ya lee `notas`, pero esta pantalla es un barrido de dos clics: un
+> campo de texto por fila convertiría cada `<li>` en un formulario con foco y scroll, y
+> mataría el flujo que justifica la vista. Su sitio es `agendar.php`.
+
+**Cola de pendientes: `/dashboard/suplencias/trabajo-pendiente`** (`trabajoPendiente()`,
+mismo guard). El dato no tenía dónde rellenarse: había que recordar en qué suplencia estaba
+cada hora y abrirlas de una en una desde la agenda, y el único indicio de cuántas faltaban
+era una cifra del KPI del tablero **que no enlazaba a ningún sitio** y que prefectura ni
+siquiera ve. La alimenta `SuplenciaHora::pendientesTrabajo()`, con tres filtros que importan:
+`dejo_trabajo IS NULL`, `tipo <> 'guardia'` y **`sup.fecha <= CURDATE()`** — antes de que la
+clase ocurra la pregunta no tiene respuesta posible, y una ausencia agendada con tres semanas
+de antelación inflaría la cola con trabajo que todavía no existe. El subnav lleva su badge
+(`contarPendientesTrabajo()`), y el POST acepta `volver=cola` para no saltar a `/agendar` a
+mitad del repaso.
 
 > ⚠️ **`NULL` ≠ `0`.** `NULL` es «todavía sin revisar» y queda **fuera del denominador**
 > del porcentaje; `0` es «no dejó». Meter los NULL en el cálculo convertiría un hueco de
@@ -1145,9 +1455,10 @@ el registro apunta a algo que ya no existe), pone la **descarga como acción dom
 hay que hacer antes— y el botón rojo nace `disabled`: lo suelta una casilla de confirmación. Antes
 pedía un borrado irreversible hablando en abstracto de «el justificante».
 
-> ⚠️ **50 MB supera los defaults de PHP e IIS.** Hay que subir `upload_max_filesize` y
-> `post_max_size` en `php.ini` (defaults 2M/8M) y `maxAllowedContentLength` en `web.config`
-> (default 30 MB). Sin eso el archivo llega vacío; `subirJustificante()` detecta
+> ⚠️ **50 MB supera los defaults de PHP** (2M/8M). Los valores viven en **`.user.ini`** de la raíz
+> (`upload_max_filesize=52M`, `post_max_size=56M`), porque en hosting compartido no hay acceso al
+> `php.ini` global. `post_max_size` va por encima a propósito: el POST lleva el archivo *más* los
+> campos del formulario. Sin eso el archivo llega vacío; `subirJustificante()` detecta
 > `UPLOAD_ERR_INI_SIZE` y lo explica en vez de fallar en silencio.
 
 ### Notificaciones (transversales)
@@ -1231,14 +1542,38 @@ con un toast de Alex. Antes era un `Location: /dashboard` mudo y parecía que el
     reafirma dónde estás. Lo alterna `src/js/admin/admin-sidebar-nav.js` (`aria-expanded` + `hidden`).
   - **Plegado (72px)** no hay sitio para submenús: pulsar un módulo con subopciones expande el
     sidebar y abre su acordeón, escribiendo `bilbao_sidebar_collapsed = '0'`.
-  - Cierran la lista dos transversales: **Notificaciones** (con badge) y **Ver sitio público**, que
-    bajó del topbar por ser una salida del panel y no una acción de la página.
+  - Cierra la lista **Ver sitio público**, que bajó del topbar por ser una salida del panel y
+    no una acción de la página.
+  - ⚠️ **Notificaciones NO está en el sidebar**, y es deliberado: la bandeja ya tiene su acceso
+    permanente en la **campana del topbar**, con el mismo badge de pendientes y en todas las
+    pantallas. Tenerla en los dos sitios duplicaba el contador y metía en la lista de módulos
+    algo que no lo es. La detección del módulo activo sí se conserva
+    (`$_modActivo === 'notificaciones'`), para que el breadcrumb siga diciendo
+    «Inicio › Notificaciones».
   - ⚠️ La lista de módulos del admin sale de `UsuarioBlog::MODULOS_ASIGNABLES`, igual que
     `BlogController::modulosDisponibles()`. Estuvo escrita a mano con cinco claves y dejaba fuera
     aulas, grupos y los tres directorios: el sidebar mostraba menos módulos que el home.
-- En el topbar quedan **campana** (icono blanco sobre `--pal-indigo`) y **avatar**,
-  más el **logout** rojo. Los pinta `_topbar-avatar.php`, que incluyen todas las vistas del panel,
-  así que basta tocarlo una vez para que un elemento salga en todas.
+- **⚠️ El topbar NO lleva acciones de página.** En él quedan **campana** (icono blanco sobre
+  `--pal-indigo`), **avatar** y el **logout** rojo, y nada más: los tres son del panel entero y
+  los pinta `_topbar-avatar.php`, que incluyen todas las vistas, así que basta tocarlo una vez
+  para que un elemento salga en todas.
+  24 vistas colgaban ahí su botón principal —cada una repitiendo a mano su `<header>`, porque
+  `layout-admin.php` no tiene slots— y era el peor sitio: la esquina menos escaneable, pegada a
+  elementos que no tienen nada que ver con la pantalla. **Cuatro destinos, según qué ES el botón:**
+
+  | Qué es | Dónde va | Clase |
+  |---|---|---|
+  | Alta / acción de un listado | Cabecera del panel al que pertenece | **`.admin-new-btn`** (era `.admin-topbar__new-btn`; el nombre BEM dejó de ser cierto al salir del topbar) |
+  | Varias herramientas juntas (buscador + botón) | `.admin-panel__tools` dentro de esa cabecera | ⚠️ es `display:flex` → lleva su propio `&[hidden]` |
+  | Guardar / Cancelar | Pie del formulario, `.admin-form-footer` | `--sticky` en los largos: el topbar era sticky y perder eso sí habría sido regresión. Su `z-index` va **por debajo** de los 210 de `.bilbao-date`/`.picker` en móvil |
+  | Ver la entidad fuera del panel | `.admin-view-bar`, sobre el contenido | — |
+  | Volver / ir a otra sección | **se retira**: es orientación, no acción, y el breadcrumb global ya la da | — |
+
+  La mayoría resultaron ser **duplicados**: los listados ya tenían un `.admin-panel__action`
+  («+ Nuevo», un enlace azul de texto que no se leía como botón) y diez formularios ya tenían su
+  barra al pie. Solo `perfil.php` estrenó pie de verdad.
+  ⚠️ Comprobación de que no se cuela otro: `grep -rn 'admin-topbar__actions' views/ | grep -v topbar-avatar`
+  no debe devolver ningún `<a>` ni `<button>`.
 - **Breadcrumb global:** `_sidebar.php` construye la ruta (`Inicio › Módulo › Subpágina`) desde la URL y
   el JS la mueve al `.admin-topbar__left` (ocultando el `.admin-topbar__title`). Vive en un solo lugar.
   La **última miga siempre se fuerza a `url = null`**, si no la raíz de un módulo se enlazaba a sí misma
@@ -1281,6 +1616,23 @@ el `EstaticasController`, y animaciones GSAP (ya global en `header.php`). Todo r
 prueba + calendario interactivo infantil con mascotas Alex), **Colaboradores** (landing de acceso al
 panel, enlaza a `/login`). *Exalumnos fue eliminado.* El calendario usa el componente reutilizable
 `.bilbao-cal` (definido en `_comunidad-familias.scss`, disponible también en el panel para cumpleaños).
+
+**Colaboradores usa `forest.js`, el MISMO bosque del login**, no la nube de partículas de
+`_bg.php` que tuvo antes (`$bg_scene='orbes'`). Es la puerta al panel y su único CTA lleva a
+`/login`: compartir escena encadena las dos pantallas en vez de cambiar de lenguaje visual a
+mitad de camino. El degradado oscuro de `.colab__stage` es el **respaldo real** —`init()`
+devuelve `null` sin WebGL o con `prefers-reduced-motion` y el canvas queda transparente.
+
+> ⚠️ **`forest.js` se dimensiona al CANVAS, no a la ventana.** Usaba
+> `window.innerWidth/innerHeight`, lo cual da igual en la landing y el login —ahí el canvas es
+> `position:fixed; inset:0`, o sea el viewport exacto— pero rompe en cuanto vive dentro de un
+> contenedor: el hero del panel (~320px de alto) se rasterizaba a pantalla completa y la escena
+> salía estirada, con un buffer varias veces mayor del necesario. Ahora mide con
+> `clientWidth/clientHeight` y escucha un `ResizeObserver`, porque el `resize` de `window` no
+> se dispara cuando lo que cambia es el contenedor (plegar el sidebar, por ejemplo). En
+> `fixed; inset:0` los dos valores coinciden, así que **no hay regresión** en landing ni login.
+> `renderer.setSize(w, h, false)` — el `false` evita que Three escriba `width`/`height` inline
+> y entre en bucle con el observer.
 
 ## Comandos frecuentes
 

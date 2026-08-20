@@ -14,7 +14,7 @@
 | **MySQL** | 8.0+ | O **MariaDB** 10.6+ |
 | **Composer** | 2+ | Solo para el autoloader y tres librerías |
 | **Node.js** | 16+ | Solo en desarrollo: compila los assets. **No** hace falta en el servidor de producción |
-| **IIS** | Con el módulo **URL Rewrite** | Producción. En desarrollo basta el servidor embebido de PHP |
+| **Apache** | 2.4 con `mod_rewrite` y `AllowOverride All` | Producción (Hostinger). En desarrollo basta el servidor embebido de PHP |
 
 ### Extensiones de PHP
 

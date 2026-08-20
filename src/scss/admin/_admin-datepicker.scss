@@ -34,7 +34,11 @@
     box-shadow: 0 0 0 3px rgba(66, 103, 172, .12);
 }
 
-.bilbao-date__field span { flex: 1; text-transform: capitalize; }
+/* ⚠️ SIN `text-transform: capitalize`. El JS ya compone el texto bien —
+   "Jueves, 20 de agosto de 2026", con el mes en minúscula a propósito— y el
+   capitalize lo rompía palabra a palabra: "Jueves, 20 De Agosto De 2026". El
+   placeholder ("Elige una fecha") también viene ya escrito como debe. */
+.bilbao-date__field span { flex: 1; }
 .bilbao-date__caret {
     font-size: .7rem;
     color: #94a3b8;
@@ -71,6 +75,38 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Móvil: hoja inferior ──
+   Un popover de 268px anclado al campo es inmanejable con el pulgar y, si el campo
+   está en la mitad baja de la pantalla, el calendario queda medio fuera —el flip solo
+   corrige el eje horizontal—. A ancho completo y pegado abajo se alcanza con una mano
+   y siempre cabe.
+   ⚠️ Es `position: fixed`, así que ya no lo recorta ningún ancestro: la maniobra de
+   `has-datepicker-open` deja de hacer falta aquí (no estorba, simplemente no aplica).
+   Y anula el `.is-flipped` que pone el JS, que en este modo no significa nada. */
+@media (max-width: 520px) {
+    .bilbao-date__pop,
+    .bilbao-date.is-flipped .bilbao-date__pop {
+        position: fixed;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: auto;
+        max-width: none;
+        padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+        border-radius: 20px 20px 0 0;
+        border-bottom: none;
+        z-index: 210;   /* por encima del cajón del sidebar (200) */
+        animation: bilbao-date-up .18s ease;
+    }
+    /* Objetivo táctil: los días eran cuadros de ~30px. */
+    .bilbao-date__day { min-height: 40px; }
+}
+@keyframes bilbao-date-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 /* `.admin-panel { overflow: clip }` recorta el popover por geometría, y el
    z-index no puede con eso: el calendario de "Fecha de nacimiento" quedaba
    cortado por el borde inferior del panel. Se levanta el recorte solo mientras
@@ -100,7 +136,6 @@
     font-size: .92rem;
     font-weight: 800;
     color: #0B1F3D;
-    text-transform: capitalize;
     cursor: pointer;
     transition: background .15s ease, color .15s ease;
 

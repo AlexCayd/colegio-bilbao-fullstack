@@ -142,6 +142,26 @@
 .picker__ava img { width:100%; height:100%; object-fit:cover; }
 .picker__name { font-size:13px; font-weight:600; color:#1E293B; }
 .picker__empty { padding:12px; font-size:12.5px; color:#94A3B8; text-align:center; }
+
+/* Móvil: los resultados heredan el ancho del campo y, si el picker está abajo del
+   formulario, la lista de 260px queda medio fuera de pantalla sin forma de subirla.
+   A ancho completo y pegada al borde inferior se ve entera y se alcanza con el pulgar.
+   ⚠️ `fixed` la saca de cualquier ancestro con `overflow`, que es el mismo problema
+   que resolvió el datepicker con `has-datepicker-open`. */
+@media (max-width: 520px) {
+    .picker__results {
+        position:fixed;
+        top:auto; left:0; right:0; bottom:0;
+        max-height:52vh;
+        border-radius:16px 16px 0 0;
+        border-bottom:none;
+        z-index:210;   /* por encima del cajón del sidebar (200) */
+        padding-bottom:env(safe-area-inset-bottom, 0px);
+    }
+    .picker__item { padding:12px; }            /* objetivo táctil */
+    .picker__ava  { width:32px; height:32px; }
+    .picker__name { font-size:14px; }
+}
 /* El wrapper crece con el hint, así que el tache se ancla al alto del input
    (inset-block + place-items) en lugar de a un 50 % que quedaba descentrado. */
 .picker .admin-form__input-wrapper { position:relative; display:flex; align-items:center; }
@@ -356,14 +376,27 @@
     thead th { font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#94a3b8; padding:4px 2px; }
     thead th.is-active-day { color:#4267ac; }
     th, td { text-align:center; vertical-align:middle; }
-    /* Las filas son tramos de reloj, no periodos, y su altura va en proporción a los
-       minutos. Así el alto de una celda con rowspan (más el border-spacing de en medio)
-       lo suma el navegador y no queda ninguna cuenta en el CSS. 50 min → 46px. */
-    tbody tr { height:calc(var(--min, 50) * .92px); }
+    /* TODAS las filas miden lo mismo, huecos incluidos — mismo criterio que `.hor-grid`
+       (ver el comentario largo de `_admin-horarios.scss`): la altura proporcional a la
+       duración del tramo daba casillas de tres alturas distintas en cuanto el eje se
+       comprimía, y se leía como un fallo de maquetación.
+
+       Va más baja que `.hor-grid` a propósito y no por descuido: esta rejilla es de
+       APOYO dentro de un formulario (previsualizar una suplencia, marcar la clase que se
+       cede en un swap), no la vista principal del horario. Uniformidad DENTRO de cada
+       rejilla, jerarquía ENTRE ellas. Si algún día se prefiere paridad literal, es
+       cambiar un token en `:root`.
+       46px es lo que medía aquí el tramo de 50 min, así que el caso dominante no se
+       mueve, y deja holgura sobre el contenido de ~29px de la celda. */
+    tbody tr { height: var(--hor-fila-compacta, 46px); }
     /* El contenido se ancla al <td>: en una tabla `height` es un mínimo, y con rowspan
        un height:100% del hijo no resuelve contra la altura real. */
     td { padding:0; border-radius:10px; position:relative; }
 }
+/* La acción de alta abre la pantalla. Esta vista no tiene un panel al que colgarla
+   —son dos listados distintos y el alta no pertenece a ninguno—, así que va arriba. */
+.supl-barra { display:flex; justify-content:flex-end; margin-bottom:16px; }
+
 .supl-week__corner  { width:74px; }
 /* Reparto exacto del ancho restante: con `width:20%` la suma (74px + 5×20% + los
    border-spacing) pasaba del 100% y el navegador reescalaba las cinco columnas, así
@@ -381,13 +414,15 @@
 
 /* Bloque de clase */
 .supl-week__class {
-    position:absolute; inset:0; border-radius:10px; padding:6px 9px;
-    display:flex; flex-direction:column; justify-content:center; gap:1px;
+    position:absolute; inset:0; border-radius:10px; padding:5px 9px;
+    /* `safe center`: al desbordar cae a `start` y el recorte se lleva la línea
+       secundaria en vez de media materia. Ver `.hor-cell` en _admin-horarios.scss. */
+    display:flex; flex-direction:column; justify-content:safe center; gap:1px;
     background:#4267ac; text-align:left; overflow:hidden;
     border:none; font-family:'Outfit',sans-serif;
 
     &-mat { font-size:.76rem; font-weight:700; color:#fff; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    &-sec { font-size:.66rem; color:rgba(255,255,255,.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    &-sec { font-size:.66rem; color:rgba(255,255,255,.8); line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 }
 /* Clase de un nivel que el profesor no tiene declarado en su ficha */
 .supl-week__class.is-ajeno { outline:2px dashed #e0a800; outline-offset:-2px; }
@@ -534,8 +569,95 @@
 
 /* Justificante: tarjeta propia y visible (antes vivía escondido en un <details>) */
 .supl-justif { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:15px 18px; border-radius:14px; margin-bottom:16px; flex-wrap:wrap; }
+/* Cuatro estados, no dos. `estadoJustificante()` distingue sin_archivo · vigente ·
+   en_cola · resuelto, y la tarjeta solo tenía color para los dos extremos: un parte ya
+   revisado se pintaba en ROJO como si faltara, justo después de haberlo aprobado. */
 .supl-justif.is-pending { background:#fdeef0; border:1px solid #f6c9ce; color:#b42318; }
 .supl-justif.is-ok { background:#e8f7ee; border:1px solid #bfe6cd; color:#15803d; }
+/* En cola: ámbar, porque RECLAMA una decisión de dirección. En verde se leía como
+   "todo en orden" mientras el propio texto decía que había pasado el plazo. */
+.supl-justif.is-wait { background:#fff7e6; border:1px solid #f6e2b4; color:#96690a; }
+/* Resuelto: neutro. El trámite terminó bien, así que no reclama nada — pero tampoco
+   se calla, o el histórico no distinguiría "nunca hubo" de "lo hubo y se resolvió". */
+.supl-justif.is-done { background:#f1f5f9; border:1px solid #dde5ee; color:#475569; }
+/* El registro dice que hay archivo y el disco dice que no. Ámbar y no rojo: no es una
+   falta del profesor, es un archivo que ya no está. */
+.supl-justif.is-broken { background:#fff7e6; border:1px solid #f6e2b4; color:#96690a; }
+/* ── Vista por DÍA de la rejilla semanal (≤640px) ──
+   La pinta `admin-supl-week.js` en lugar de la tabla cuando la pantalla es estrecha.
+   Sin scope de página, igual que `.supl-week`: la usan solicitar, crear, agendar y el
+   alta de intercambios.
+   Comparte `.supl-week__class` con la tabla (mismos colores, misma marca `.is-on`),
+   así que aquí solo va la caja: lo que cambia es el layout, no el bloque. */
+.supl-day {
+    display:flex; flex-direction:column; gap:6px;
+
+    &__head {
+        margin:0 0 4px;
+        font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+        color:#94a3b8;
+    }
+    &__row {
+        display:flex; align-items:stretch; gap:10px;
+        &.is-target { position:relative; }
+    }
+    &__hour {
+        flex:0 0 52px;
+        display:flex; flex-direction:column; justify-content:center;
+        text-align:right;
+        strong { font-size:13px; font-weight:800; color:#475569; }
+        small  { font-size:11px; color:#a3aec0; }
+    }
+    /* Altura fija y NO proporcional a los minutos: en vertical no hay que cuadrar
+       ningún rowspan con las columnas de al lado, y una clase de 30' con la mitad de
+       alto solo consigue que su texto no quepa. */
+    &__cell {
+        flex:1 1 auto; min-width:0;
+        display:flex; flex-direction:column; justify-content:center;
+        min-height:52px;
+        padding:8px 12px;
+        border-radius:10px;
+        border:none; text-align:left;
+        font-family:'Outfit',sans-serif;
+
+        &--receso { background:#fff7e6; color:#e0a800; font-size:12.5px; font-weight:700;
+                    flex-direction:row; align-items:center; gap:7px; }
+        &--libre  { background:repeating-linear-gradient(45deg,#f4f7fb,#f4f7fb 6px,#eef3f9 6px,#eef3f9 12px);
+                    color:#b3c0d0; font-size:12.5px; font-weight:700;
+                    flex-direction:row; align-items:center; }
+    }
+    /* Objetivo táctil holgado: se marcan varias seguidas y con el pulgar. */
+    button.supl-day__cell { cursor:pointer; min-height:56px; }
+
+    /* La hora que se quiere cubrir, en modo preview. Anillo y no relleno: el relleno ya
+       significa el color de la materia. */
+    &__row.is-target &__cell { box-shadow:0 0 0 3px #4285f4; }
+    &__row.is-target.is-free &__cell  { box-shadow:0 0 0 3px #34a853; }
+    &__row.is-target.is-break &__cell { box-shadow:0 0 0 3px #f5b400; }
+}
+
+/* Chip de estado del justificante en los LISTADOS (agenda, mis ausencias). Dice si la
+   ausencia está soportada sin abrirla, y nunca nombra el archivo ni enlaza a él: eso
+   sigue siendo competencia de dirección. */
+.supl-jchip {
+    display:inline-flex; align-items:center; gap:5px;
+    margin-top:4px; padding:2px 8px; border-radius:999px;
+    font-size:11px; font-weight:700; white-space:nowrap;
+
+    &--ok   { background:#e8f7ee; color:#15803d; }
+    &--wait { background:#fff7e6; color:#96690a; }
+    &--done { background:#f1f5f9; color:#64748b; }
+    &--miss { background:#fdeef0; color:#b42318; }
+
+    /* En "Mis ausencias" el chip es la ACCIÓN: el profesor entra ahí a subir el
+       archivo, así que tiene que verse pulsable. */
+    &--link {
+        text-decoration:none; cursor:pointer;
+        transition:filter .15s ease, transform .15s ease;
+        &:hover { filter:brightness(.94); transform:translateY(-1px); }
+    }
+}
+
 .supl-justif__msg { display:flex; align-items:flex-start; gap:12px; flex:1; min-width:240px; }
 .supl-justif__msg > i { font-size:19px; margin-top:2px; flex-shrink:0; }
 .supl-justif__msg strong { display:block; font-size:14px; font-weight:800; }
@@ -663,6 +785,12 @@
         &--no:hover, &--no.is-on { background:#b42318; border-color:#b42318; color:#fff; }
         &--reset { padding:4px 9px; font-size:11px;
                    &:hover { background:#f1f5f9; color:#334155; } }
+    }
+
+    /* Quien no es prefectura ve el estado, no los botones. Decir de quién se espera
+       el dato evita que un hueco se lea como un fallo de la pantalla. */
+    &__espera {
+        font-size:11px; font-style:italic; color:#a3aec0;
     }
 }
 
@@ -930,6 +1058,53 @@
 .supl-cover-card__clase { font-size:14px; font-weight:700; color:#334155; }
 .supl-cover-card__meta { font-size:12.5px; color:#64748b; }
 .supl-cover-card__notas { margin-top:6px; font-size:12px; color:#8a5a1f; background:#fffaf0; border:1px solid #ffe4bd; border-radius:9px; padding:6px 10px; line-height:1.5; i { color:#e0a800; margin-right:6px; } }
+
+/* ── Mis coberturas en móvil ──
+   "Mis ausencias" es una `.admin-table` de cinco columnas y ninguna sobra (la quinta
+   es el enlace para subir el justificante). Se apila igual que el histórico.
+
+   ⚠️ Las dos líneas de `.is-hidden` / `.is-filtered` son OBLIGATORIAS: esa regla vive
+   en `estaticas/_blog-admin.scss`, que `app.scss` importa ANTES que `admin/`, así que
+   `tbody tr{display:block}` la gana por cascada y mata la paginación sin avisar. */
+body[data-page="blog-suplencias-mis-coberturas"] {
+    @media (max-width: 720px) {
+        .admin-table-scroll { overflow-x:visible; }
+        .admin-table {
+            min-width:0;
+
+            thead {
+                position:absolute; width:1px; height:1px;
+                overflow:hidden; clip-path:inset(50%); white-space:nowrap;
+            }
+            tbody tr {
+                display:block;
+                margin-bottom:10px; padding:12px 14px;
+                border:1px solid #e6edf5; border-radius:14px; background:#fff;
+            }
+            tbody tr.is-hidden,
+            tbody tr.is-filtered { display:none; }
+
+            tbody td {
+                display:flex; align-items:center; justify-content:space-between; gap:12px;
+                padding:5px 0; border:none;
+                font-size:1.3rem; text-align:right;
+
+                &::before {
+                    content:attr(data-label);
+                    flex:0 0 auto;
+                    font-size:1.15rem; font-weight:700; color:#94a3b8; text-align:left;
+                }
+                &:not([data-label]) { justify-content:flex-end; }
+            }
+            /* La barra de cobertura se queda sin sitio junto a su etiqueta. */
+            .supl-cover { flex:1 1 auto; justify-content:flex-end; }
+        }
+
+        /* Las tarjetas de cobertura ya son flex: solo hay que dejarlas respirar. */
+        .supl-cover-card { flex-wrap:wrap; gap:12px; padding:12px 14px; }
+        .supl-cover-card__info { flex:1 1 100%; }
+    }
+}
 
 /* ══════════ Dashboard (admin y dirección) ══════════ */
 /* Aviso de alcance por nivel. Va arriba del todo y a ancho completo porque

@@ -205,6 +205,25 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
                                     <?php else: ?>
                                         <span class="supl-badge supl-badge--info">Anticipada</span>
                                     <?php endif; ?>
+                                    <?php /* Chip de justificante. Es la pantalla principal de quien
+                                             coordina y no decía NADA del documento: había que abrir
+                                             las suplencias una a una para saber si la ausencia
+                                             estaba soportada. Solo el ESTADO —nunca el nombre del
+                                             archivo ni un enlace—, que es lo que prefectura necesita
+                                             y lo único que le corresponde ver.
+                                             `sin_archivo` se calla salvo que fuera obligatorio: en
+                                             una ausencia anticipada nadie debe nada. */
+                                        $ej = $s->estadoJustificante();
+                                    ?>
+                                    <?php if ($ej === 'vigente'): ?>
+                                        <span class="supl-jchip supl-jchip--ok" title="Justificante recibido"><i class="fa-solid fa-file-circle-check"></i> Justificante</span>
+                                    <?php elseif ($ej === 'en_cola'): ?>
+                                        <span class="supl-jchip supl-jchip--wait" title="Pasó el plazo de descarga: espera decisión de dirección"><i class="fa-solid fa-hourglass-half"></i> Por revisar</span>
+                                    <?php elseif ($ej === 'resuelto'): ?>
+                                        <span class="supl-jchip supl-jchip--done" title="Dirección ya lo revisó; el archivo no se conserva"><i class="fa-solid fa-file-circle-check"></i> Revisado</span>
+                                    <?php elseif ($s->origen === 'sin_aviso'): ?>
+                                        <span class="supl-jchip supl-jchip--miss" title="Una ausencia sin aviso necesita comprobante"><i class="fa-solid fa-file-circle-exclamation"></i> Sin justificante</span>
+                                    <?php endif; ?>
                                 </td>
                                 <?php /* Ordena por % cubierto, que es lo que importa, no por horas absolutas */ ?>
                                 <td data-val="<?= $tot ? round($val / $tot * 100) : 0 ?>">

@@ -159,11 +159,15 @@
     }
 }
 
-/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo, "Mi horario" y
-   la "semana completa" del editor, que incluye el mismo partial `_grid.php`. */
+/* La rejilla `.hor-grid` la comparten la vista por profesor/aula/grupo, "Mi horario",
+   la "semana completa" del editor y la ficha de usuario: las cuatro incluyen el mismo
+   partial `_grid.php`.
+   ⚠️ Toda vista nueva que incluya `_grid.php` tiene que entrar en esta lista, o la
+   rejilla se renderiza sin un solo estilo (tabla desnuda). */
 body[data-page="blog-horarios-index"],
 body[data-page="blog-horarios-mi-horario"],
-body[data-page="blog-usuarios-horario"] {
+body[data-page="blog-usuarios-horario"],
+body[data-page="blog-usuarios-detalle"] {
     .hor-tabs {
         display: flex;
         gap: 8px;
@@ -223,14 +227,31 @@ body[data-page="blog-usuarios-horario"] {
             &-label { display: block; font-weight: 700; font-size: .82rem; color: var(--col-herencia, #374c69); }
             &-time  { display: block; font-size: .72rem; color: #94a3b8; }
         }
-        /* La altura de fila va en PROPORCIÓN a `alto` (los minutos del tramo, con tope).
-           Es lo que permite que una clase con rowspan cuadre: la suma de las filas que
-           abarca (más el border-spacing de en medio) la calcula el navegador, así que no
-           queda ninguna aritmética en el CSS que se pueda desincronizar.
-           50 min → 62px, exactamente el alto que tenía la rejilla de una sola jornada. */
-        tbody tr { height: calc(var(--min, 50) * 1.24px); }
-        /* Tramo que ningún día usa: franja separadora, no fila. Es lo que hace legible la
-           rejilla de un profesor que cruza dos jornadas desfasadas. */
+        /* TODAS las filas miden lo mismo. Antes la altura iba en proporción a `alto`
+           (los minutos del tramo), y como el eje comprimido produce tramos de 50, 30 y
+           20 minutos, la rejilla salía con casillas de alturas distintas: se leía como
+           un fallo de maquetación, no como información.
+
+           El argumento de que se puede renunciar a la proporcionalidad ya estaba escrito
+           en el propio producto: `views/blog/horarios/pdf.php` reparte el alto útil de la
+           página entre todos los tramos por igual desde siempre y nunca ha leído `alto`.
+           La versión impresa del mismo horario renunció a esto hace tiempo y nadie la ha
+           echado de menos.
+
+           62px es exactamente lo que medía el tramo de 50 min, que es el dominante: todo
+           profesor de un solo nivel —y TODAS las vistas por grupo y por aula— quedan
+           pixel-idénticas. Además deja 31px de holgura sobre el contenido mínimo de
+           `.hor-cell` (30.58px) y conserva el techo contra el que está calibrado
+           `--split-3` más abajo.
+
+           ⚠️ Los `rowspan` NO se ven afectados: `Periodo::spanTramos()` cuenta por
+           contención de reloj y no lee `alto`. La suma de N filas más los N-1
+           `border-spacing` la sigue haciendo el navegador, y con filas iguales la
+           aritmética es incluso más simple. */
+        tbody tr { height: var(--hor-fila, 62px); }
+        /* Tramo que ningún día usa. Conserva su tratamiento cosmético —atenuado y con la
+           hora en tono menor— porque «ningún día usa este tramo» es información; lo que
+           ya no hace es medir distinto que las demás. */
         &__gap {
             .hor-grid__hour { padding-right: 12px; }
             .hor-grid__hour-time { font-size: .64rem; opacity: .6; }
@@ -257,6 +278,43 @@ body[data-page="blog-usuarios-horario"] {
         /* El receso ya no es una fila entera: con jornada por nivel, el mismo tramo puede
            ser receso de Primaria y clase de Bachillerato. Es estado de celda. */
         &__receso-cell { background: #fff7e6; color: #e0a800; border-radius: 12px; }
+
+        /* ── Móvil ──
+           La rejilla se queda con scroll horizontal, al revés que `.supl-week`, y es
+           deliberado: aquí no hay nada que tocar —es solo lectura— y el dato completo
+           de cada casilla lo abre `admin-horario-celda.js` en su modal, que en táctil
+           es además la única vía (el `title` no existe). Filtrar columnas con CSS
+           tampoco es opción: ocultar 4 de los 5 días rompe la geometría de los
+           `rowspan` bajo `table-layout:fixed`.
+           Lo que sí se hace es estrechar, para que quepan más días por pantallazo. */
+        @media (max-width: 720px) {
+            min-width: 560px;
+            border-spacing: 4px;
+
+            &__corner { width: 52px; }
+            &__hour {
+                padding-right: 6px;
+                /* Solo la hora: "3ª hora" no cabe en 52px y se partía en dos líneas. */
+                &-label { display: none; }
+                &-time  { font-size: .78rem; font-weight: 700; color: #64748b; }
+            }
+            thead th { font-size: .74rem; padding: 6px 2px; }
+        }
+    }
+    /* Afordance de scroll: sin él la rejilla parece cortada en vez de deslizable. */
+    @media (max-width: 720px) {
+        .hor-grid-wrap {
+            padding: 6px 0 4px;
+            -webkit-overflow-scrolling: touch;
+            background:
+                linear-gradient(to right, #fff 30%, rgba(255,255,255,0)) left / 28px 100% no-repeat,
+                linear-gradient(to left,  #fff 30%, rgba(255,255,255,0)) right / 28px 100% no-repeat;
+        }
+        .hor-cell {
+            padding: 5px 8px;
+            &__mat { font-size: .8rem; }
+            &__sec { font-size: .7rem; }
+        }
     }
     /* Bloques de clase: fondo sólido del color de la materia y texto claro.
        Es un <button> —la casilla abre su ficha completa— así que hay que neutralizar
@@ -273,11 +331,21 @@ body[data-page="blog-usuarios-horario"] {
         appearance: none;
         cursor: pointer;
         border-radius: 12px;
-        padding: 8px 11px;
+        /* Padding, gap y line-height están ajustados al mínimo legible a propósito: cada
+           píxel que se ahorra aquí es un píxel menos de suelo necesario en `tbody tr`.
+           Contenido mínimo resultante: 12 (padding) + 9.66 (mat) + 1 (gap) + 7.92 (sec)
+           = 30.58px. Subirlos obliga a subir también el `max()` de arriba. */
+        padding: 6px 10px;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        gap: 2px;
+        /* `safe` cae a `start` SOLO cuando desborda. Sin él, un flex column centrado que
+           no cabe reparte el excedente por los dos extremos y se come la mitad del nombre
+           de la materia; con él, el recorte se lleva únicamente la línea secundaria — que
+           es el dato prescindible y que además está entero en el modal de la casilla.
+           Si el navegador no entiende `safe`, descarta la declaración y queda el `center`
+           de siempre. */
+        justify-content: safe center;
+        gap: 1px;
         background: var(--c);
         box-shadow: 0 6px 14px -8px rgba(11, 31, 61, .45);
         text-align: left;
@@ -295,11 +363,13 @@ body[data-page="blog-usuarios-horario"] {
         /* Sin el recorte, una materia de nombre largo estiraba la fila y descuadraba las
            cinco columnas — con rowspan eso se nota mucho más. */
         &__mat {
-            font-weight: 700; font-size: .84rem; color: #fff; line-height: 1.2;
+            font-weight: 700; font-size: .84rem; color: #fff; line-height: 1.15;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
+        /* line-height explícito: sin él hereda el 1.15 de `html` en _normalize.scss, que
+           es más de lo que hace falta en una línea de 7.2px. */
         &__sec {
-            font-size: .72rem; color: rgba(255, 255, 255, .82);
+            font-size: .72rem; color: rgba(255, 255, 255, .82); line-height: 1.1;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
@@ -357,9 +427,9 @@ body[data-page="blog-usuarios-horario"] {
         &__opt {
             flex: 1 1 0;
             min-height: 0;
-            display: flex; flex-direction: column; justify-content: center;
-            gap: 1px;
-            padding: 4px 10px;
+            display: flex; flex-direction: column; justify-content: safe center;
+            gap: 0;
+            padding: 2px 8px;
             border-radius: 10px;
             background: var(--c);
             overflow: hidden;
@@ -368,6 +438,18 @@ body[data-page="blog-usuarios-horario"] {
             .hor-cell__mat { font-size: .78rem; }
             .hor-cell__sec { font-size: .66rem; }
         }
+
+        /* ⚠️ Con TRES o más opciones no hay altura que alcance, y no es cuestión de
+           afinar: tres franjas con materia + subtítulo cuestan ~64px y la fila mide 62.
+           Ni bajar `--hor-fila` ni recortar el padding lo arreglan — la fila no puede
+           crecer porque `.hor-cell` es absoluta.
+
+           Se suelta la línea secundaria, que es lo prescindible: el dato completo de
+           cada opción (grupos, aula, docentes) ya viaja en la isla JSON `data-hor-cell`
+           y lo pinta el modal al tocar la casilla, además de estar en el `title`. Lo que
+           se pierde en pantalla es una línea de 7px que hoy sale recortada de todos
+           modos. Con solo materia bajan a ~42px y entran holgadas. */
+        &--split-3 .hor-cell__sec { display: none; }
 
         /* Guardia de receso: no es una clase, es vigilancia. Se distingue con un patrón
            diagonal para que no se lea como una materia más de la jornada. */

@@ -25,6 +25,15 @@
     (function () {
         var d = document.documentElement;
         d.classList.add('no-transition');
+        /* ⚠️ Marca de "hay JavaScript", y no es cosmética.
+           Por debajo de 1024px el sidebar es un cajón: vive en translateX(-100%) y el
+           botón que lo abre lo INYECTA blog-_sidebar.js — no existe en el HTML de
+           ninguna vista. Si el bundle no carga (red, bloqueador, error de sintaxis en
+           otro módulo del mismo archivo concatenado), el resultado en un móvil era un
+           panel sin ninguna navegación: sidebar fuera de pantalla y cero forma de
+           traerlo. Las reglas del cajón cuelgan ahora de `html.js`, así que sin JS el
+           sidebar se queda en el flujo — más feo, pero utilizable. */
+        d.classList.add('js');
         try {
             if (window.innerWidth > 1024 && localStorage.getItem('bilbao_sidebar_collapsed') === '1') {
                 d.classList.add('sidebar-boot-collapsed');

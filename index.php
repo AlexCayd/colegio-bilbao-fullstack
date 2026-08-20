@@ -192,6 +192,8 @@ $router->post('/dashboard/suplencias/aprobar-justificante', [BlogController::cla
 $router->post('/dashboard/suplencias/reabrir-hora',          [BlogController::class, 'reabrirHora']);
 // ¿El profesor ausente dejó trabajo para el grupo? Lo marca prefectura, hora a hora.
 $router->post('/dashboard/suplencias/trabajo',               [BlogController::class, 'marcarTrabajo']);
+// Cola de horas cuyo "¿dejó trabajo?" sigue sin revisar (prefectura y admin)
+$router->get('/dashboard/suplencias/trabajo-pendiente',      [BlogController::class, 'trabajoPendiente']);
 // Única puerta al archivo del justificante: vive fuera de public/ y este endpoint
 // comprueba permisos (dirección, o el propio ausente).
 $router->get('/dashboard/suplencias/justificante',           [BlogController::class, 'descargarJustificante']);
@@ -223,6 +225,13 @@ $router->post('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario
 $router->get('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
 $router->post('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
 $router->post('/dashboard/usuarios/eliminar', [BlogController::class, 'eliminarUsuario']);
+// Ficha de lectura de un colaborador (horario + suplencias + intercambios). La abre
+// quien coordina, con el módulo `usuarios` o el directorio de su tipo; `editar` sigue
+// siendo de admin.
+$router->get('/dashboard/usuarios/detalle', [BlogController::class, 'detalleUsuario']);
+// Su horario en PDF. Ruta aparte de `/horarios/mi-horario.pdf` (que es el propio y solo
+// pide sesión): esta enseña el de un tercero, así que lleva el guard de la ficha.
+$router->get('/dashboard/usuarios/horario.pdf', [BlogController::class, 'horarioUsuarioPdf']);
 // Editor del horario de un profesor. Vive en Usuarios (y no en Horarios) porque es el
 // único punto del panel que ESCRIBE horario: el módulo Horarios es de solo lectura.
 $router->get('/dashboard/usuarios/horario',           [BlogController::class, 'horarioEditor']);
@@ -244,6 +253,9 @@ $router->get('/dashboard/horarios',                [BlogController::class, 'hora
 $router->get('/dashboard/horarios/profesor',       [BlogController::class, 'horariosProfesor']);
 $router->get('/dashboard/horarios/aula',           [BlogController::class, 'horariosAula']);
 $router->get('/dashboard/horarios/grupo',          [BlogController::class, 'horariosGrupo']);
+// La semana que se está viendo, en PDF. Sirve a las tres vistas (?vista=&id=) con el
+// mismo guard que ellas: módulo `horarios` + coordinar.
+$router->get('/dashboard/horarios/pdf',            [BlogController::class, 'horariosPdf']);
 $router->get('/dashboard/horarios/mi-horario',     [BlogController::class, 'miHorario']);
 // El mismo horario en PDF, para llevarlo en papel. Mismo guard: es el suyo.
 $router->get('/dashboard/horarios/mi-horario.pdf', [BlogController::class, 'miHorarioPdf']);

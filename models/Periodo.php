@@ -144,9 +144,16 @@ class Periodo extends ActiveRecord {
         return $out;
     }
 
-    /** Alto máximo (en "minutos equivalentes") de un tramo largo del eje comprimido. */
+    /**
+     * Alto máximo (en "minutos equivalentes") de un tramo largo del eje comprimido.
+     *
+     * ⚠️ Desde que las rejillas web dan a TODAS las filas el mismo alto (`--hor-fila`
+     * en el SCSS), ni esta constante ni `EJE_HUECO_MIN` las gobiernan: `alto` sigue
+     * viajando en el JSON del endpoint —contrato del que cuelgan tres vistas— pero
+     * ninguna rejilla lo lee ya. El PDF nunca lo leyó.
+     */
     public const EJE_TOPE_MIN = 60;
-    /** Alto de un tramo que ningún día usa: una franja, no una fila entera. */
+    /** Alto de un tramo que ningún día usa. Ver la nota de EJE_TOPE_MIN: ya no se usa. */
     public const EJE_HUECO_MIN = 16;
 
     /**

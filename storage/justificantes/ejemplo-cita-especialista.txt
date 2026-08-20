@@ -1,0 +1,10 @@
+HOSPITAL REGIONAL - MODULO DE CITAS
+Comprobante de cita programada
+
+  Paciente ......... (nombre del docente)
+  Especialidad ..... Oftalmologia
+  Turno ............ Matutino
+  Observaciones .... Se requiere presentarse en ayuno
+
+--------------------------------------------------------------
+ARCHIVO DE PRUEBA. Documento ficticio del seed de desarrollo.

@@ -5,7 +5,75 @@
    Tres columnas y nada más. La vista existe para responder "quién cubrió a quién",
    así que lo único que se estiliza es distinguir de un vistazo los dos papeles: el
    que faltó y el que cubrió. Todo lo demás lo ponen .admin-panel y .admin-table. */
+@use '../base/mixins' as *;
+
 body[data-page="blog-suplencias-historial"] {
+
+    /* ── Móvil: la tabla se apila en tarjetas ──
+       Es una de las pantallas que un profesor abre en el pasillo, y sus cuatro columnas
+       son cortas: el caso canónico del apilado. El scroll horizontal de
+       `.admin-table-scroll` se desactiva aquí.
+
+       ⚠️ La regla `tbody tr.is-hidden { display:none }` vive en
+       `estaticas/_blog-admin.scss`, y `app.scss` importa `estaticas` ANTES que `admin`:
+       misma especificidad, capa posterior. Sin repetirla aquí, `tbody tr{display:block}`
+       gana por cascada y **la paginación deja de ocultar nada, en silencio**. Es el
+       mismo fallo que CLAUDE.md documenta para `[hidden]`.
+       Todo bloque de apilado necesita estas dos líneas. */
+    @include hasta-sm {
+        .admin-table-scroll { overflow-x: visible; }
+
+        .admin-table {
+            min-width: 0;
+
+            /* `clip-path` y no `display:none`: el encabezado sigue existiendo para un
+               lector de pantalla, que es quien más lo necesita. Se pierde el afordance
+               de ordenar, y se asume: el servidor ya devuelve por fecha descendente,
+               que es el único orden que se quiere en el móvil. */
+            thead {
+                position: absolute;
+                width: 1px; height: 1px;
+                overflow: hidden;
+                clip-path: inset(50%);
+                white-space: nowrap;
+            }
+
+            tbody tr {
+                display: block;
+                margin-bottom: 10px;
+                padding: 12px 14px;
+                border: 1px solid #e6edf5;
+                border-radius: 14px;
+                background: #fff;
+            }
+            tbody tr.is-hidden,
+            tbody tr.is-filtered { display: none; }
+
+            tbody td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 5px 0;
+                border: none;
+                /* 8.8px del `font-size:.88rem` heredado es ilegible en un móvil; se sube
+                   aquí y no en el root, que afecta también al sitio público. */
+                font-size: 1.3rem;
+                text-align: right;
+
+                &::before {
+                    content: attr(data-label);
+                    flex: 0 0 auto;
+                    font-size: 1.15rem;
+                    font-weight: 700;
+                    color: #94a3b8;
+                    text-align: left;
+                }
+                /* Una celda sin etiqueta (la de acciones) ocupa la fila entera. */
+                &:not([data-label]) { justify-content: flex-end; }
+            }
+        }
+    }
 
     /* Los dos papeles por color, no por posición: leer una tabla de dos nombres
        propios sin más pista que la columna obliga a volver a la cabecera en cada

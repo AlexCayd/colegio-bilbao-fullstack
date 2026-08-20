@@ -17,9 +17,6 @@ $usos = $usos ?? null;
                 </span>
             </div>
             <div class="admin-topbar__actions">
-                <button type="submit" form="formAula" class="admin-btn admin-btn--primary">
-                    <i class="fa-solid fa-floppy-disk"></i> Guardar
-                </button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>

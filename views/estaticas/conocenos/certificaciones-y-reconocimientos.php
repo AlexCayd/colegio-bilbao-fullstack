@@ -117,7 +117,7 @@
         <section class="cta-section">
             <div class="cta-pill">
                 <!-- Mascota Agregada -->
-                <img src="/build/assets/img/conocenos/certificaciones-y-reconocimientos/Alex-espera.png" alt="Mascota Alex" style="width: 140px; height: auto; margin-bottom: 24px; display: inline-block;" data-i18n-attr="alt:conocenos-certificaciones.cta.imgAlt">
+                <img src="/build/assets/img/conocenos/certificaciones-y-reconocimientos/alex-espera.png" alt="Mascota Alex" style="width: 140px; height: auto; margin-bottom: 24px; display: inline-block;" data-i18n-attr="alt:conocenos-certificaciones.cta.imgAlt">
                 <h2 data-i18n="conocenos-certificaciones.cta.title">Conoce nuestro modelo educativo</h2>
                 <p class="text-center" data-i18n="conocenos-certificaciones.cta.text">Conoce nuestro modelo educativo y descubre cómo cuidamos la formación y el futuro de tus hijas e hijos.</p>
                 <a href="/modelo-educativo/modelo-vida/" class="btn-primario" data-i18n="conocenos-certificaciones.cta.button">Conoce nuestro modelo educativo</a>

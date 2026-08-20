@@ -1,9 +1,14 @@
 <?php $paginaVista = 'blog-usuarios-index'; ?>
 <?php
+// Se requiere aquí y no se espera al sidebar: este bloque corre ANTES del include.
+require_once __DIR__ . '/../_modulos.php';
+
 $avatarColors = ['#4D8ABB', '#374C69', '#38A169', '#E67E22', '#9B59B6', '#319795'];
 
 // Solo el admin gestiona usuarios; el resto entra en solo lectura.
 $puedeGestionar = ($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador';
+// La ficha la abre quien coordina: expone motivos de ausencia y horarios ajenos.
+$puedeFicha = blog_modulos_coordina();
 
 function formatAcceso(?string $fecha): string {
     if (!$fecha) return 'Nunca';
@@ -78,11 +83,6 @@ $grupos = [
                 <span class="admin-topbar__title">Usuarios</span>
             </div>
             <div class="admin-topbar__actions">
-                <?php if ($puedeGestionar): ?>
-                <a href="/dashboard/usuarios/crear" class="admin-topbar__new-btn">
-                    <i class="fa-solid fa-plus"></i> Nuevo usuario
-                </a>
-                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -122,6 +122,15 @@ $grupos = [
                     </button>
                 </div>
                 <p class="usr-search__resumen" data-usr-resumen hidden></p>
+                <?php /* La acción va aquí y NO repetida en las tres cabeceras de panel: el
+                         destino es el mismo, y tres botones idénticos en la misma pantalla
+                         hacen dudar de si crean cosas distintas. Junto al buscador queda en
+                         la barra de herramientas de la lista, que es donde se busca. */ ?>
+                <?php if ($puedeGestionar): ?>
+                <a href="/dashboard/usuarios/crear" class="admin-new-btn usr-toolbar__new">
+                    <i class="fa-solid fa-plus"></i> Nuevo usuario
+                </a>
+                <?php endif; ?>
             </div>
 
             <?php foreach ($grupos as $g): ?>
@@ -132,9 +141,6 @@ $grupos = [
                         <?= s($g['titulo']) ?>
                         <span class="admin-panel__count" data-usr-count><?= count($g['lista']) ?></span>
                     </h2>
-                    <?php if ($puedeGestionar): ?>
-                    <a href="/dashboard/usuarios/crear" class="admin-panel__action">+ Nuevo</a>
-                    <?php endif; ?>
                 </div>
                 <p class="usr-panel__sub"><?= s($g['sub']) ?></p>
 
@@ -182,7 +188,13 @@ $grupos = [
                                                 <?= s($inicial) ?>
                                             <?php endif; ?>
                                         </div>
+                                        <?php /* El nombre abre la ficha. No rompe el ordenamiento: admin-table.js
+                                                 usa `td.dataset.val`, que esta celda ya emite. */ ?>
+                                        <?php if ($puedeFicha): ?>
+                                        <a class="admin-table__title usr-link" href="/dashboard/usuarios/detalle?id=<?= (int)$u->id ?>"><?= s($u->nombre) ?></a>
+                                        <?php else: ?>
                                         <div class="admin-table__title"><?= s($u->nombre) ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                                 <td style="color:var(--text-gray);font-size:.875rem;"><?= s($u->email) ?></td>
@@ -207,8 +219,14 @@ $grupos = [
                                 <td data-val="<?= $u->ultimo_acceso ? s(date('Y-m-d H:i', strtotime($u->ultimo_acceso))) : '' ?>"
                                     style="font-size:.85rem;color:var(--text-gray);"><?= s(formatAcceso($u->ultimo_acceso)) ?></td>
                                 <td>
-                                    <?php if ($puedeGestionar): ?>
+                                    <?php if ($puedeGestionar || $puedeFicha): ?>
                                     <div class="admin-table__actions">
+                                        <?php if ($puedeFicha): ?>
+                                        <a href="/dashboard/usuarios/detalle?id=<?= (int)$u->id ?>" class="admin-act admin-act--ficha" title="Ver ficha">
+                                            <i class="fa-solid fa-id-card"></i>
+                                        </a>
+                                        <?php endif; ?>
+                                        <?php if ($puedeGestionar): ?>
                                         <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-act admin-act--edit" title="Editar usuario">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
@@ -226,6 +244,7 @@ $grupos = [
                                         >
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
+                                        <?php endif; /* $puedeGestionar */ ?>
                                     </div>
                                     <?php else: ?>
                                     <span class="usr-nil">Solo lectura</span>

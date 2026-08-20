@@ -12,7 +12,6 @@ $inicial = mb_strtoupper(mb_substr($sesion['nombre'] ?? 'U', 0, 1));
         <header class="admin-topbar">
             <div class="admin-topbar__left"><span class="admin-topbar__title">Solicitar suplencia</span></div>
             <div class="admin-topbar__actions">
-                <button type="submit" form="form-solicitar" class="admin-btn admin-btn--primary"><i class="fa-solid fa-paper-plane"></i> Enviar solicitud</button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>

@@ -340,6 +340,27 @@ class BlogController {
         return in_array('directivo', self::sesionTipos(), true);
     }
 
+    /** ¿Es prefecto? Tipo excluyente: no se combina con ningún otro. */
+    private static function esPrefecto(): bool {
+        return in_array('prefecto', self::sesionTipos(), true);
+    }
+
+    /**
+     * ¿Quién registra si el ausente dejó trabajo para el grupo?
+     *
+     * **Solo prefectura** (más el admin, que puede todo en el panel). Es un dato de
+     * campo: quien pisa el aula el día de la ausencia y comprueba si había material
+     * es prefectura, no dirección — que lo lee después para decidir, en el tablero.
+     *
+     * Antes el guard era `puedeAgendar()`, que incluye a `directivo`: dirección podía
+     * afirmar un hecho que no le consta, y como el dato alimenta el ranking de
+     * «ausencias sin trabajo», eso es imputarle algo a un profesor desde el despacho.
+     * Dirección lo sigue VIENDO, en solo lectura.
+     */
+    private static function puedeMarcarTrabajo(): bool {
+        return self::esAdmin() || self::esPrefecto();
+    }
+
     /**
      * El parte médico es competencia de DIRECCIÓN, y de nadie más.
      *
@@ -572,7 +593,7 @@ class BlogController {
     }
 
     /**
-     * El mismo horario semanal, para el paso 1 de un intercambio: el profesor marca en
+     * El mismo horario semanal, para el paso 1 de un swap: el profesor marca en
      * su propia rejilla la clase que no va a poder dar.
      *
      * Es una puerta aparte y no un reuso de la de Suplencias porque el guard de aquella
@@ -662,7 +683,7 @@ class BlogController {
                     $esGuardia = ($h->tipo ?? 'clase') === 'guardia';
                     $celda += [
                         // `horario_id` es la FILA, no el periodo: es lo que referencia un
-                        // intercambio (`swap_clases.horario_origen_id`), que cambia una
+                        // swap (`swap_clases.horario_origen_id`), que cambia una
                         // clase concreta y no "la 3ª hora del lunes".
                         'horario_id' => (int)$h->id,
                         'periodo_id' => (int)$h->periodo_id,
@@ -804,17 +825,28 @@ class BlogController {
 
         $max     = Suplencia::MAX_JUSTIFICANTE_MB;
         $ext     = strtolower(pathinfo($_FILES['justificante']['name'], PATHINFO_EXTENSION));
-        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        // `txt` entra porque no todo justificante es un escaneo: un permiso administrativo
+        // o una constancia interna llega muchas veces como nota de texto, y hasta ahora
+        // había que convertirla a PDF para poder adjuntarla. Es también el formato de los
+        // ejemplos del seed, que así se pueden leer en un diff.
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'txt'];
         if (!in_array($ext, $allowed, true) || $_FILES['justificante']['size'] > $max * 1024 * 1024) {
-            Suplencia::setAlerta('error', "El justificante debe ser PDF o imagen (JPG/PNG/WebP) de máximo {$max} MB");
+            Suplencia::setAlerta('error', "El justificante debe ser PDF, imagen (JPG/PNG/WebP) o texto (TXT) de máximo {$max} MB");
             return null;
         }
 
         // El nombre del archivo no dice qué hay dentro: se comprueba el MIME real.
+        // ⚠️ `mime_content_type()` no es estable con texto plano — devuelve
+        // `text/plain`, pero también `text/html` o `application/x-empty` según el
+        // contenido y la versión de libmagic. Como la extensión ya está en lista blanca
+        // y un .txt no es ejecutable por el servidor (vive fuera de public/ y solo sale
+        // por un endpoint con permisos), se acepta cualquier `text/*`.
         $mimeOk = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
         $mime   = @mime_content_type($_FILES['justificante']['tmp_name']);
-        if ($mime && !in_array($mime, $mimeOk, true)) {
-            Suplencia::setAlerta('error', 'El archivo no es un PDF ni una imagen válida.');
+        $esTexto = $ext === 'txt' && (!$mime || str_starts_with($mime, 'text/')
+                                      || $mime === 'application/x-empty');
+        if ($mime && !$esTexto && !in_array($mime, $mimeOk, true)) {
+            Suplencia::setAlerta('error', 'El archivo no es un PDF, una imagen ni un texto válido.');
             return null;
         }
 
@@ -856,7 +888,10 @@ class BlogController {
 
         $ext  = strtolower(pathinfo($file, PATHINFO_EXTENSION));
         $mime = ['pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg',
-                 'png' => 'image/png', 'webp' => 'image/webp'][$ext] ?? 'application/octet-stream';
+                 'png' => 'image/png', 'webp' => 'image/webp',
+                 // `charset` explícito: el parte puede llevar acentos y sin él el
+                 // navegador lo interpreta con la codificación del sistema.
+                 'txt' => 'text/plain; charset=utf-8'][$ext] ?? 'application/octet-stream';
         $nombre = 'justificante-' . $s->fecha . '.' . $ext;
 
         header('Content-Type: ' . $mime);
@@ -1143,6 +1178,8 @@ class BlogController {
             'suplencia'    => $suplencia,
             'horas'        => SuplenciaHora::deSuplencia($id),
             'puedeAgendar' => self::puedeAgendar(),
+            // Escribir "¿dejó trabajo?" es más estrecho que agendar: solo prefectura.
+            'marcaTrabajo' => self::puedeMarcarTrabajo(),
             // Solo se calcula si quien mira puede abrirlo: si no, el nombre y el peso
             // del archivo se filtrarían al HTML aunque la descarga esté bloqueada.
             'veJustif'     => self::puedeVerJustificante(),
@@ -1174,18 +1211,30 @@ class BlogController {
             'nombre' => $base,
             'peso'   => ($i === 0 ? (string)(int)$bytes : number_format($bytes, 1, ',', '')) . ' ' . $u[$i],
             'ext'    => $ext,
-            'icono'  => $ext === 'pdf' ? 'fa-file-pdf' : (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true) ? 'fa-file-image' : 'fa-file'),
+            'icono'  => match (true) {
+                $ext === 'pdf' => 'fa-file-pdf',
+                $ext === 'txt' => 'fa-file-lines',
+                in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true) => 'fa-file-image',
+                default => 'fa-file',
+            },
         ];
     }
 
     /** El profesor ausente sube su justificante (flujo sin aviso). */
     public static function justificarSuplencia(Router $router) {
+        // Faltaban los dos guards de módulo y alcance: con solo `requireAuth()`, una
+        // dirección de nivel podía adjuntar un archivo a una suplencia de otro nivel —
+        // que después no vería en su cola ni podría descargar.
         $sesion = self::requireAuth();
+        self::requireModulo('suplencias');
         $id = (int)($_POST['id'] ?? 0);
         $sup = Suplencia::find($id);
         if ($sup && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // El propio ausente o dirección. Prefectura ya no sube el justificante de
             // otro: subirlo es tenerlo en la mano, y el documento no es suyo.
+            // El alcance solo se exige a quien NO es el ausente: un profesor sube el
+            // suyo sin que su nivel entre en juego.
+            if ((int)$sup->profesor_ausente_id !== (int)$sesion['id']) self::requireAlcance($id);
             if ((int)$sup->profesor_ausente_id === (int)$sesion['id'] || self::puedeVerJustificante()) {
                 $ruta = self::subirJustificante();
                 if ($ruta) {
@@ -1302,20 +1351,53 @@ class BlogController {
      */
     public static function marcarTrabajo(Router $router) {
         self::requireModulo('suplencias');
-        if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
+        // Solo prefectura (y admin). Ver puedeMarcarTrabajo(): dirección lo lee, no lo escribe.
+        if (!self::puedeMarcarTrabajo()) { header('Location: /dashboard/suplencias'); exit; }
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /dashboard/suplencias'); exit; }
 
         $horaId = (int)($_POST['hora_id'] ?? 0);
         $supId  = (int)($_POST['id'] ?? 0);
         self::requireAlcance($supId);
 
+        // ⚠️ `requireAlcance()` valida la SUPLENCIA del POST, no la hora. Sin esta
+        // comprobación, quien tuviera alcance sobre la suplencia A podía marcar una hora
+        // de la B mandando `id=A&hora_id=<hora de B>`: el modelo solo exige $horaId > 0.
+        $hora = SuplenciaHora::detalle($horaId);
+        if (!$hora || (int)$hora->suplencia_id !== $supId) {
+            header('Location: /dashboard/suplencias?sinacceso=nivel');
+            exit;
+        }
+
         $v    = (string)($_POST['dejo'] ?? '');
         $dejo = $v === '1' ? true : ($v === '0' ? false : null);
         SuplenciaHora::marcarTrabajo($horaId, $dejo, $_POST['notas'] ?? null,
                                      (int)($_SESSION['blog_usuario']['id'] ?? 0));
 
-        header('Location: /dashboard/suplencias/agendar?id=' . $supId . '&trabajo=1');
+        // `volver=cola` devuelve a la cola de pendientes en vez de a la suplencia: es
+        // el flujo de repaso, donde se marcan varias seguidas.
+        $destino = ($_POST['volver'] ?? '') === 'cola'
+            ? '/dashboard/suplencias/trabajo-pendiente?trabajo=1'
+            : '/dashboard/suplencias/agendar?id=' . $supId . '&trabajo=1';
+        header('Location: ' . $destino);
         exit;
+    }
+
+    /**
+     * Cola de horas cuyo "¿dejó trabajo?" sigue sin revisar.
+     *
+     * Hasta ahora el único rastro de `dejo_trabajo IS NULL` era una cifra en el KPI del
+     * tablero que no enlazaba a ningún sitio — y que prefectura, que es justo quien tiene
+     * que rellenarlo, ni siquiera veía, porque el tablero es de admin y dirección. Para
+     * marcar una hora había que recordar en qué suplencia estaba y abrirla una a una.
+     */
+    public static function trabajoPendiente(Router $router) {
+        self::requireModulo('suplencias');
+        if (!self::puedeMarcarTrabajo()) { header('Location: /dashboard/suplencias'); exit; }
+
+        $router->renderAdmin('blog/suplencias/trabajo-pendiente', [
+            'titulo'    => 'Trabajo por revisar',
+            'pendientes'=> SuplenciaHora::pendientesTrabajo(self::nivelesVista()),
+        ]);
     }
 
     /**
@@ -1561,7 +1643,7 @@ class BlogController {
     // ── MÓDULO SWAP DE CLASES ───────────────────────────────────────────────────
 
     /**
-     * Listado de intercambios. Dos públicos, como en Suplencias:
+     * Listado de swaps. Dos públicos, como en Suplencias:
      * quien imparte ve los suyos; quien coordina, los de todo el claustro para
      * validarlos.
      */
@@ -1573,11 +1655,11 @@ class BlogController {
 
         if (!$coordina && !$imparte) { header('Location: /dashboard?sinacceso=swaps'); exit; }
         // Alcance de las direcciones por nivel. Criterio OR sobre los dos lados del
-        // intercambio: le compete si cualquiera de las dos clases es de su nivel.
+        // swap: le compete si cualquiera de las dos clases es de su nivel.
         $niv = self::nivelesVista();
 
         $router->renderAdmin('blog/swaps/index', [
-            'titulo'     => 'Intercambios de clase',
+            'titulo'     => 'Swaps de clase',
             'mios'       => $imparte  ? \Model\Swap::deProfesor($uid) : [],
             // Quien coordina Y además imparte ya tiene los suyos arriba: se excluyen
             // de la lista del claustro para no verlos dos veces en la misma pantalla.
@@ -1591,7 +1673,7 @@ class BlogController {
     }
 
     /**
-     * Alta de un intercambio. Dos caminos según quién lo abre:
+     * Alta de un swap. Dos caminos según quién lo abre:
      *
      * - **Un profesor** propone: elige una clase SUYA y, a cambio, una del otro dentro
      *   de la ventana de Swap::DIAS_VENTANA días. Nace `pendiente` y recorre los dos
@@ -1651,18 +1733,18 @@ class BlogController {
                         foreach ([(int)$swap->solicitante_id, (int)$swap->destinatario_id] as $d) {
                             if (!$d || $d === $uid) continue;
                             Notificacion::nueva($d, 'swap_impuesto',
-                                "{$quien} registró un intercambio de clase que te afecta el "
+                                "{$quien} registró un swap de clase que te afecta el "
                                     . fecha_larga($swap->fecha_origen) . '. Ya está validado.',
                                 (int)$r['id'], 'swap', 'horarios', 'aviso', '/dashboard/swaps');
                         }
                         self::avisarSwapDireccion((int)$r['id'], 'swap_validado',
-                            'Se registró un intercambio de clase validado para el '
+                            'Se registró un swap de clase validado para el '
                                 . fecha_larga($swap->fecha_origen) . '.');
                     } else {
                         Notificacion::nueva(
                             (int)$swap->destinatario_id, 'swap_solicitado',
                             ($_SESSION['blog_usuario']['nombre'] ?? 'Un compañero')
-                                . ' te propone un intercambio de clase para el ' . fecha_larga($swap->fecha_origen) . '.',
+                                . ' te propone un swap de clase para el ' . fecha_larga($swap->fecha_origen) . '.',
                             (int)$r['id'], 'swap', 'horarios', 'info', '/dashboard/swaps'
                         );
                     }
@@ -1675,20 +1757,20 @@ class BlogController {
         // El compañero ya no se elige de una lista precargada: lo busca el picker contra
         // /dashboard/swaps/buscar, que filtra a personal docente y excluye al solicitante.
         $router->renderAdmin('blog/swaps/crear', [
-            'titulo'      => $coordina ? 'Registrar intercambio' : 'Proponer intercambio',
+            'titulo'      => $coordina ? 'Registrar swap' : 'Proponer swap',
             'swap'        => $swap,
             'alertas'     => $alertas,
             'misClases'   => Horario::porProfesor($uid),
             'ventana'     => \Model\Swap::DIAS_VENTANA,
             // Con esto la vista pide los dos profesores en vez de dar por hecho el
-            // primero, y anuncia que el intercambio nacerá ya validado.
+            // primero, y anuncia que el swap nacerá ya validado.
             'coordina'    => $coordina,
             'uid'         => $uid,
         ]);
     }
 
     /**
-     * Un intercambio validado llega a la dirección de los niveles que toca.
+     * Un swap validado llega a la dirección de los niveles que toca.
      * Son uno o dos: un swap cruza dos clases y pueden ser de niveles distintos.
      */
     private static function avisarSwapDireccion(int $swapId, string $tipo, string $texto): void {
@@ -1699,15 +1781,15 @@ class BlogController {
     }
 
     /**
-     * Busca al compañero con quien intercambiar. Solo personal docente y nunca uno
-     * mismo: intercambiar con quien no da clase no significa nada, y consigo mismo lo
+     * Busca al compañero con quien cambiar la clase. Solo personal docente y nunca uno
+     * mismo: cambiarla con quien no da clase no significa nada, y consigo mismo lo
      * rechaza Swap::validar() después de haber dejado elegirlo.
      */
     public static function buscarProfesoresSwap(Router $router) {
         self::requireModulo('swaps');
         if (!self::imparte() && !self::puedeCoordinar()) self::json(['error' => 'Sin acceso'], 403);
         // Excluirse a uno mismo solo tiene sentido buscando al COMPAÑERO. Quien
-        // coordina designa a los dos profesores y no es parte del intercambio, así que
+        // coordina designa a los dos profesores y no es parte del swap, así que
         // filtrarlo dejaría fuera a un admin que además imparte.
         $excluir = self::puedeCoordinar() ? 0 : (int)($_SESSION['blog_usuario']['id'] ?? 0);
         self::json(UsuarioBlog::buscarProfesores((string)($_GET['q'] ?? ''), $excluir));
@@ -1715,8 +1797,8 @@ class BlogController {
 
     /**
      * Clases de un profesor en un rango de fechas concreto, para el selector del
-     * intercambio. Devuelve una entrada por (clase × día del rango en que se imparte),
-     * porque lo que se intercambia es una clase EN UN DÍA, no la clase en abstracto.
+     * swap. Devuelve una entrada por (clase × día del rango en que se imparte),
+     * porque lo que se cambia es una clase EN UN DÍA, no la clase en abstracto.
      */
     public static function clasesSwapJson(Router $router) {
         self::requireModulo('swaps');
@@ -1739,7 +1821,7 @@ class BlogController {
             if ($dow > 5) continue;                       // sin clases el fin de semana
             $dia = Horario::DIAS[$dow - 1];
             foreach ($porDia[$dia] ?? [] as $h) {
-                if (($h->tipo ?? 'clase') === 'guardia') continue;   // una guardia no se intercambia
+                if (($h->tipo ?? 'clase') === 'guardia') continue;   // una guardia no se cambia
                 $out[] = [
                     'horario_id' => (int)$h->id,
                     'fecha'      => $f->format('Y-m-d'),
@@ -1796,10 +1878,10 @@ class BlogController {
                 $acepta ? 'swap_aceptado' : 'swap_rechazado',
                 ($_SESSION['blog_usuario']['nombre'] ?? 'Tu compañero')
                     . ($acepta
-                        ? ' aceptó el intercambio del ' . fecha_larga($swap->fecha_origen) . '. Queda pendiente de validación.'
+                        ? ' aceptó el swap del ' . fecha_larga($swap->fecha_origen) . '. Queda pendiente de validación.'
                         // El motivo viaja EN el aviso: si no, hay que abrir el listado
                         // para enterarse de por qué te han dicho que no.
-                        : ' no puede hacer el intercambio del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota),
+                        : ' no puede hacer el swap del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota),
                 (int)$swap->id, 'swap', 'horarios', $acepta ? 'exito' : 'aviso', '/dashboard/swaps'
             );
 
@@ -1807,7 +1889,7 @@ class BlogController {
             // lo delataba el badge del subnav, y podía quedarse ahí para siempre.
             if ($acepta) {
                 self::avisarSwapDireccion((int)$swap->id, 'swap_por_validar',
-                    'Hay un intercambio de clase aceptado que espera validación, para el '
+                    'Hay un swap de clase aceptado que espera validación, para el '
                         . fecha_larga($swap->fecha_origen) . '.');
             }
         }
@@ -1843,15 +1925,15 @@ class BlogController {
             $swap->guardar();
 
             $texto = $ok
-                ? 'Se validó el intercambio de clase del ' . fecha_larga($swap->fecha_origen) . '. Ya es efectivo.'
-                : 'Se denegó el intercambio de clase del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota;
+                ? 'Se validó el swap de clase del ' . fecha_larga($swap->fecha_origen) . '. Ya es efectivo.'
+                : 'Se denegó el swap de clase del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota;
             foreach ([(int)$swap->solicitante_id, (int)$swap->destinatario_id] as $destino) {
                 if ($destino) {
                     Notificacion::nueva($destino, $ok ? 'swap_validado' : 'swap_denegado', $texto,
                         (int)$swap->id, 'swap', 'horarios', $ok ? 'exito' : 'aviso', '/dashboard/swaps');
                 }
             }
-            // El intercambio efectivo llega a la dirección de su nivel.
+            // El swap efectivo llega a la dirección de su nivel.
             if ($ok) self::avisarSwapDireccion((int)$swap->id, 'swap_validado', $texto);
         }
         header('Location: /dashboard/swaps?validado=1');
@@ -1869,7 +1951,7 @@ class BlogController {
                 $swap->guardar();
                 Notificacion::nueva((int)$swap->destinatario_id, 'swap_cancelado',
                     ($_SESSION['blog_usuario']['nombre'] ?? 'Tu compañero')
-                        . ' retiró la propuesta de intercambio del ' . fecha_larga($swap->fecha_origen) . '.',
+                        . ' retiró la propuesta de swap del ' . fecha_larga($swap->fecha_origen) . '.',
                     (int)$swap->id, 'swap', 'horarios', 'info', '/dashboard/swaps');
             }
         }
@@ -2568,6 +2650,124 @@ class BlogController {
         ]);
     }
 
+    /**
+     * Qué módulo abre el directorio de cada tipo de personal.
+     *
+     * Es política de acceso del PANEL, no del dominio, y por eso vive en el controlador
+     * junto a `puedeCoordinar()` y `nivelesAlcance()` en vez de en el modelo: quien tiene
+     * el directorio de Profesores puede mirar la ficha de un profesor sin necesitar
+     * además el módulo Usuarios, que es el de administración de cuentas.
+     */
+    private const DIRECTORIO_DE_TIPO = [
+        'profesor'       => 'profesores',
+        'prefecto'       => 'prefectura',
+        'administrativo' => 'administrativos',
+        'directivo'      => 'directivos',
+    ];
+
+    /**
+     * Guard de la ficha de un colaborador, en tres pasos: sesión → **coordinar** (admin,
+     * prefecto o directivo: la ficha expone motivos de ausencia y horarios ajenos, que
+     * son datos de terceros) → tener el módulo `usuarios` **o** el directorio del tipo
+     * de la persona mirada.
+     *
+     * Vive extraído porque lo comparten `detalleUsuario()` y `horarioUsuarioPdf()`: el
+     * PDF enseña exactamente el mismo horario ajeno que la ficha, así que tiene que
+     * pedir exactamente lo mismo. Copiarlo en los dos sitios es como se desincronizan
+     * dos puertas que dan al mismo cuarto.
+     *
+     * Sale por `exit` en los tres cortes; devuelve el usuario si pasa.
+     */
+    private static function requireFichaColaborador(int $id): UsuarioBlog {
+        self::requireAuth();
+
+        $u = $id > 0 ? UsuarioBlog::findConArticulos($id) : null;
+        if (!$u) { header('Location: /dashboard'); exit; }
+
+        // Motivos de ausencia y horarios ajenos: la misma frontera que separa la agenda
+        // del histórico del plantel.
+        if (!self::puedeCoordinar()) { header('Location: /dashboard'); exit; }
+
+        $tipos = array_filter(array_map('trim', explode(',', (string)$u->tipo_personal)));
+        $puede = self::puede('usuarios');
+        foreach ($tipos as $t) {
+            if (isset(self::DIRECTORIO_DE_TIPO[$t]) && self::puede(self::DIRECTORIO_DE_TIPO[$t])) {
+                $puede = true;
+                break;
+            }
+        }
+        if (!$puede) { header('Location: /dashboard?sinacceso=usuarios'); exit; }
+
+        return $u;
+    }
+
+    /**
+     * Ficha interna de un colaborador: identidad, horario, ausencias, coberturas e
+     * swaps en una sola pantalla.
+     *
+     * Hasta ahora lo más parecido a una ficha era el formulario de edición, que solo
+     * abre un admin y que no dice nada de lo que esa persona hace: quien coordina tenía
+     * que cruzar a mano el módulo de horarios, la agenda de suplencias y el listado de
+     * swaps para hacerse una idea.
+     *
+     * **No ejecuta ni una consulta nueva.** Reutiliza `datosHorarioProfesor()` —la misma
+     * fuente que "Mi horario" y su PDF, así que las tres no pueden pintar semanas
+     * distintas— y los métodos que ya sabían ceñirse a UNA persona (`listar(ausente_id)`,
+     * `conteos($id)`, `historicoDeSuplente()`, `deProfesor()`). Las estadísticas se
+     * calculan en PHP sobre esos arrays.
+     *
+     * El guard de tres pasos vive en `requireFichaColaborador()`, compartido con el PDF
+     * del horario (`horarioUsuarioPdf()`).
+     */
+    public static function detalleUsuario(Router $router) {
+        $id = (int)($_GET['id'] ?? 0);
+        $u  = self::requireFichaColaborador($id);
+
+        $tipos     = array_filter(array_map('trim', explode(',', (string)$u->tipo_personal)));
+        $esDocente = in_array('profesor', $tipos, true);
+        $niveles   = self::nivelesAlcance();
+
+        // Horario: null si el usuario no existe (ya comprobado) — aquí solo interesa si
+        // tiene clases. Un administrativo entra con `tramos` vacío y la vista omite la
+        // sección en vez de pintar una rejilla en blanco.
+        $horario = $esDocente ? self::datosHorarioProfesor($id) : null;
+
+        // Ausencias propias y coberturas hechas. Ambas acotadas por el alcance de una
+        // dirección de nivel; para un admin `$niveles` es [] y no filtra nada.
+        $ausencias  = $esDocente ? Suplencia::listar(['ausente_id' => $id, 'niveles' => $niveles]) : [];
+        $conteos    = $esDocente ? Suplencia::conteos($id, $niveles) : [];
+        $coberturas = $esDocente ? SuplenciaHora::historicoDeSuplente($id) : [];
+        // FQN como el resto del módulo de swaps: `Swap` no está en los `use`.
+        $swaps      = $esDocente ? \Model\Swap::deProfesor($id) : [];
+
+        // Resúmenes en PHP sobre lo ya cargado: `topIncumplimientos()` y
+        // `contarIncumplimientos()` son del plantel entero, forma equivocada aquí y una
+        // consulta de más.
+        $porEstadoHora = array_count_values(array_map(
+            fn($h) => (string)$h->estado_hora, $coberturas));
+        $porEstadoSwap = array_count_values(array_map(
+            fn($sw) => (string)$sw->estado, $swaps));
+
+        $router->renderAdmin('blog/usuarios/detalle', [
+            'titulo'        => $u->nombre,
+            'u'             => $u,
+            'tipos'         => $tipos,
+            'esDocente'     => $esDocente,
+            'contenido'     => UsuarioBlog::contenidoDeAutor($id),
+            'ausencias'     => $ausencias,
+            'conteos'       => $conteos,
+            'coberturas'    => $coberturas,
+            'porEstadoHora' => $porEstadoHora,
+            'swaps'         => $swaps,
+            'porEstadoSwap' => $porEstadoSwap,
+            'acotado'       => !empty($niveles),
+            // Claves del horario (tramos, rejilla, ocupadoPorDia, totalClases,
+            // discrepantes…). `profesor` se pisa con `$u`, que es el mismo registro con
+            // `total_articulos` de propina.
+            'horario'       => $horario,
+        ]);
+    }
+
     // ── Editor de horario de un profesor (módulo Usuarios · solo admin) ─────────
     //
     // El módulo Horarios sigue siendo de solo lectura: allí se consulta la semana ya
@@ -3026,33 +3226,45 @@ class BlogController {
         exit;
     }
 
-    private static function horariosVista(Router $router, string $vista): void {
+    /**
+     * Guard de las tres vistas del módulo Horarios y de su PDF.
+     *
+     * Exponen el horario de TODO el claustro, de todas las aulas y de todos los grupos:
+     * el desplegable se llena con el catálogo completo y `?id=` no se compara con la
+     * sesión. Las abre quien coordina; un profesor se queda con su propio horario en
+     * /mi-horario, que es a donde se le manda.
+     */
+    private static function requireHorariosVista(): void {
         self::requireModulo('horarios');
-
-        // Estas tres vistas exponen el horario de TODO el claustro, de todas las
-        // aulas y de todos los grupos: el desplegable se llena con el catálogo
-        // completo y `?id=` no se comparaba con la sesión. Las abren quienes
-        // coordinan (admin y prefectura); un profesor se queda con su propio
-        // horario en /mi-horario.
         if (!self::puedeCoordinar()) {
             header('Location: /dashboard/horarios/mi-horario');
             exit;
         }
+    }
 
-        // Entidades disponibles según la vista
+    /**
+     * Los datos de una vista de Horarios (por profesor, aula o grupo).
+     *
+     * Fuente única de la pantalla y del PDF, igual que `datosHorarioProfesor()` lo es de
+     * "Mi horario" y el suyo: si cada una montara su rejilla podrían acabar pintando
+     * semanas distintas del mismo grupo.
+     *
+     * `entidad` es el objeto seleccionado (UsuarioBlog | Aula | Grupo) o null; los tres
+     * tienen `nombre`, que es lo único que la cabecera necesita de él.
+     */
+    private static function datosHorarioVista(string $vista, int $entidadId): array {
         if ($vista === 'aula') {
             $entidades = Aula::todas();
-            $titulo = 'Horarios por aula';
+            $titulo    = 'Horarios por aula';
         } elseif ($vista === 'grupo') {
             $entidades = Grupo::todos();
-            $titulo = 'Horarios por grupo';
+            $titulo    = 'Horarios por grupo';
         } else {
-            $vista = 'profesor';
+            $vista     = 'profesor';
             $entidades = UsuarioBlog::porTipo('profesor');
-            $titulo = 'Horarios por profesor';
+            $titulo    = 'Horarios por profesor';
         }
 
-        $entidadId = (int)($_GET['id'] ?? 0);
         if (!$entidadId && !empty($entidades)) $entidadId = (int)$entidades[0]->id;
 
         $filas = [];
@@ -3078,20 +3290,92 @@ class BlogController {
             'declarados' => $ambito['declarados'],
         ]);
 
+        // Minutos de CLASE por día. Solo lo consume el PDF (la pantalla no pinta la
+        // carga en estas tres vistas), pero se calcula aquí para no tener dos sitios
+        // sumando lo mismo. Va en minutos y no en celdas: con el eje mezclado un
+        // fragmento de 20 min contaría como una hora entera.
+        $ocupadoPorDia = [];
+        foreach (Horario::DIAS as $d) {
+            $ocupadoPorDia[$d] = array_sum(array_map(
+                fn($c) => Periodo::minutos($c['inicio'], $c['fin']),
+                array_filter($rejilla['rejilla'][$d] ?? [], fn($c) => $c['tipo'] === 'clase')
+            ));
+        }
+
+        $entidad = null;
+        if ($entidadId) {
+            $entidad = match ($vista) {
+                'aula'  => Aula::find($entidadId),
+                'grupo' => Grupo::find($entidadId),
+                default => UsuarioBlog::find($entidadId),
+            };
+        }
+
+        return [
+            'titulo'        => $titulo,
+            'vista'         => $vista,
+            'entidades'     => $entidades,
+            'entidadId'     => $entidadId,
+            'entidad'       => $entidad,
+            'niveles'       => $ambito['niveles'],
+            'discrepantes'  => $ambito['discrepantes'],
+            'tramos'        => $rejilla['tramos'],
+            'rejilla'       => $rejilla['rejilla'],
+            'ocupadoPorDia' => $ocupadoPorDia,
+            'totalClases'   => count($filas),
+        ];
+    }
+
+    private static function horariosVista(Router $router, string $vista): void {
+        self::requireHorariosVista();
+        $d = self::datosHorarioVista($vista, (int)($_GET['id'] ?? 0));
+
         $router->renderAdmin('blog/horarios/index', [
-            'titulo'       => $titulo,
-            'vista'        => $vista,
-            'entidades'    => $entidades,
-            'entidadId'    => $entidadId,
-            'niveles'      => $ambito['niveles'],
-            'discrepantes' => $ambito['discrepantes'],
-            'tramos'       => $rejilla['tramos'],
-            'rejilla'      => $rejilla['rejilla'],
+            'titulo'       => $d['titulo'],
+            'vista'        => $d['vista'],
+            'entidades'    => $d['entidades'],
+            'entidadId'    => $d['entidadId'],
+            'niveles'      => $d['niveles'],
+            'discrepantes' => $d['discrepantes'],
+            'tramos'       => $d['tramos'],
+            'rejilla'      => $d['rejilla'],
         ]);
     }
     public static function horariosProfesor(Router $router) { self::horariosVista($router, 'profesor'); }
     public static function horariosAula(Router $router)     { self::horariosVista($router, 'aula'); }
     public static function horariosGrupo(Router $router)    { self::horariosVista($router, 'grupo'); }
+
+    /**
+     * La semana que se está viendo, en PDF. Sirve a las tres vistas del módulo
+     * (`?vista=profesor|aula|grupo&id=N`) con el mismo guard que la pantalla.
+     *
+     * La plantilla es la misma que la de "Mi horario": solo necesita del sujeto su
+     * `nombre`, y eso lo tienen igual un profesor, un aula y un grupo. `$subtitulo`
+     * distingue de qué se trata en el encabezado, porque "3A Secundaria" a secas no
+     * dice si es el horario del grupo o el del aula que se llama así.
+     */
+    public static function horariosPdf(Router $router) {
+        self::requireHorariosVista();
+
+        $vista = (string)($_GET['vista'] ?? 'profesor');
+        $d     = self::datosHorarioVista($vista, (int)($_GET['id'] ?? 0));
+        if (!$d['entidad']) { header('Location: /dashboard/horarios/' . $d['vista']); exit; }
+
+        self::emitirHorarioPdf([
+            'profesor'      => $d['entidad'],
+            'subtitulo'     => match ($d['vista']) {
+                'aula'  => 'Horario del aula',
+                'grupo' => 'Horario del grupo',
+                default => 'Horario del profesor',
+            },
+            'niveles'       => $d['niveles'],
+            'discrepantes'  => $d['discrepantes'],
+            'tramos'        => $d['tramos'],
+            'rejilla'       => $d['rejilla'],
+            'ocupadoPorDia' => $d['ocupadoPorDia'],
+            'totalClases'   => $d['totalClases'],
+        ]);
+    }
 
     /**
      * "Mi horario": el colaborador en sesión consulta su propio horario, solo lectura.
@@ -3164,7 +3448,39 @@ class BlogController {
         $sesion = self::requireAuth();
         $datos  = self::datosHorarioProfesor((int)$sesion['id']);
         if ($datos === null) { header('Location: /dashboard'); exit; }
+        self::emitirHorarioPdf($datos);
+    }
 
+    /**
+     * El horario de OTRO colaborador en PDF, desde su ficha.
+     *
+     * Ruta aparte de `mi-horario.pdf` a propósito, y no un `?id=` opcional sobre ella:
+     * aquella tiene guard `requireAuth()` a secas porque el horario que sirve es el de
+     * quien pide. Un único endpoint con dos niveles de autorización decididos dentro de
+     * un `if` es la forma que alguien "simplifica" seis meses después, y el fallo sería
+     * una fuga de horarios ajenos. La frontera ya existe en el panel: `/horarios/mi-horario`
+     * es lo propio, `/usuarios/horario?id=` es lo de otro.
+     *
+     * Mismo guard que la ficha, literalmente el mismo código: ambas enseñan el horario
+     * de un tercero.
+     */
+    public static function horarioUsuarioPdf(Router $router) {
+        $id = (int)($_GET['id'] ?? 0);
+        self::requireFichaColaborador($id);
+
+        $datos = self::datosHorarioProfesor($id);
+        if ($datos === null) { header('Location: /dashboard/usuarios/detalle?id=' . $id); exit; }
+        self::emitirHorarioPdf($datos);
+    }
+
+    /**
+     * Render + descarga del PDF de un horario. No decide QUÉ horario ni QUIÉN puede
+     * verlo: eso lo resuelve quien la llama, que es donde vive el guard.
+     *
+     * El nombre del archivo sale de `$datos['profesor']`, así que sirve igual al horario
+     * propio y al de un tercero sin ninguna rama.
+     */
+    private static function emitirHorarioPdf(array $datos): void {
         // El CSS vive en src/scss como todo lo demás (aquí no vale una hoja enlazada:
         // Dompdf no resuelve URLs del sitio). Se compila a este archivo y se inyecta.
         $css  = @file_get_contents(__DIR__ . '/../public/build/css/horario-pdf.css') ?: '';
@@ -3195,8 +3511,14 @@ class BlogController {
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
 
+        // ⚠️ `strtr($s, 'áé…', 'ae…')` NO vale aquí: con dos cadenas opera BYTE a byte, y
+        // en UTF-8 un acento ocupa dos, así que "Adrián" salía como "adriuen". La forma
+        // de array —la misma que usa `claveCatalogo()`— sustituye cadenas completas.
         $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-',
-            strtr($datos['profesor']->nombre, 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN')));
+            strtr($datos['profesor']->nombre, [
+                'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n',
+                'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ü'=>'U','Ñ'=>'N',
+            ])));
         $dompdf->stream('horario-' . trim($slug, '-') . '.pdf', ['Attachment' => true]);
         exit;
     }

@@ -1,6 +1,8 @@
 /* =========================================================
-   PANEL · INTERCAMBIOS DE CLASE (/dashboard/swaps)
+   PANEL · SWAPS DE CLASE (/dashboard/swaps)
 ========================================================= */
+@use '../base/mixins' as *;
+
 body[data-page="blog-swaps-index"] {
 
     .swp-aviso {
@@ -20,6 +22,14 @@ body[data-page="blog-swaps-index"] {
         }
         strong { display: block; font-size: .9rem; color: #0B1F3D; }
         span   { font-size: .8rem; color: #5b708c; }
+    }
+
+    /* La acción de la vista, arriba del todo. Esta pantalla no tiene `.admin-panel`
+       —son tarjetas sueltas bajo etiquetas de sección— así que no hay cabecera de panel
+       donde colgarla. */
+    .swp-barra {
+        display: flex; justify-content: flex-end;
+        margin-bottom: 18px;
     }
 
     .swp-lista { display: grid; gap: 14px; margin-bottom: 32px; }
@@ -70,7 +80,7 @@ body[data-page="blog-swaps-index"] {
         }
 
         // "Aceptado" no es "efectivo": falta validar. Sin decirlo, alguien podía dejar
-        // de ir a su clase confiando en un intercambio que aún no vale.
+        // de ir a su clase confiando en un swap que aún no vale.
         &__pendiente {
             display: flex; align-items: flex-start; gap: 7px;
             margin: 12px 0 0; padding: 9px 13px;
@@ -165,20 +175,174 @@ body[data-page="blog-swaps-index"] {
     }
 }
 
-/* ── Formulario de propuesta ── */
+/* =========================================================
+   ASISTENTE DE ALTA DE SWAP (/dashboard/swaps/crear)
+
+   Una pregunta por pantalla, a ancho completo. Antes las cuatro se apilaban en una
+   columna de 940px y eso rompía dos cosas a la vez: el último paso caía fuera del
+   viewport —había que hacer scroll para descubrir que existía— y la REJILLA SEMANAL,
+   que es cinco días por la jornada entera, se pintaba en poco más de media pantalla.
+
+   Dos columnas: acompañamiento a la izquierda (Alex + índice de pasos, sticky) y el
+   paso activo a la derecha. El progreso es permanente y explícito, porque en un
+   formulario troceado no ver cuánto queda es peor que verlo todo de golpe.
+========================================================= */
 body[data-page="blog-swaps-crear"] {
 
-    .swp-form-wrap { max-width: 940px; }
+    .swp-wiz {
+        display: grid;
+        grid-template-columns: 264px minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+        /* Sin `max-width`: el ancho entero es justamente el objetivo del rediseño.
+           El `minmax(0, 1fr)` es obligatorio — con un `1fr` a secas la columna no
+           puede encogerse por debajo del ancho de su contenido y `.supl-week`
+           (min-width 620px) la desbordaría en portátiles. */
+    }
 
-    /* Aviso de que quien coordina no pide permiso a nadie.
-       ⚠️ NO reutiliza `.swp-aviso`: aquella vive dentro del scope de
-       `blog-swaps-index` y aquí no aplicaría — el bloque salía sin un solo estilo,
-       con el <strong> y el <span> corridos como un titular gigante. */
+    /* ── Columna de acompañamiento ─────────────────────────────────────────── */
+    .swp-wiz__aside {
+        position: sticky;
+        top: 88px;                          /* 68px de topbar sticky + aire */
+        display: flex; flex-direction: column; gap: 16px;
+        min-width: 0;
+    }
+
+    /* Alex no es decoración: dice en cada paso lo que el título no puede decir sin
+       alargarse. Misma función que en el home y en «Trabajo por revisar». */
+    .swp-wiz__alex {
+        background: #fff;
+        border: 1px solid #e6edf5;
+        border-radius: 18px;
+        padding: 16px 18px 18px;
+        box-shadow: 0 1px 3px rgba(11, 31, 61, .05);
+        text-align: center;
+
+        &-img {
+            /* Alto fijo: las cinco posturas no miden lo mismo y sin esto la tarjeta
+               daba un salto al cambiar de paso. */
+            height: 116px;
+            display: grid; place-items: center;
+            margin-bottom: 10px;
+
+            img {
+                max-height: 116px; width: auto;
+                /* ⚠️ `img` es `display:block` por el reset global, así que necesita su
+                   propio `&[hidden]`: `[hidden]{display:none}` vive en
+                   `base/_normalize.scss`, capa anterior y misma especificidad, y sin
+                   esta línea se verían las cinco posturas apiladas a la vez. */
+                &[hidden] { display: none; }
+            }
+        }
+    }
+    .swp-wiz__dice {
+        margin: 0;
+        font-size: .82rem; line-height: 1.5; color: #5b708c;
+        text-align: left;
+        /* Burbuja de diálogo: el pico la ata a Alex, si no se lee como un pie de foto. */
+        position: relative;
+        padding: 11px 13px;
+        background: #f5f9ff;
+        border: 1px solid #dbe7f5;
+        border-radius: 13px;
+
+        &::before {
+            content: '';
+            position: absolute; top: -7px; left: 26px;
+            width: 12px; height: 12px;
+            background: #f5f9ff;
+            border-left: 1px solid #dbe7f5;
+            border-top: 1px solid #dbe7f5;
+            transform: rotate(45deg);
+        }
+    }
+
+    /* Índice del recorrido: dónde estoy, qué llevo hecho y qué elegí en cada paso. */
+    .swp-wiz__pasos {
+        list-style: none;
+        margin: 0; padding: 0;
+        background: #fff;
+        border: 1px solid #e6edf5;
+        border-radius: 18px;
+        overflow: hidden;
+    }
+    .swp-wiz__paso {
+        display: flex; align-items: flex-start; gap: 11px;
+        padding: 11px 15px;
+        border-top: 1px solid #f1f5f9;
+        color: #94a3b8;
+        transition: background .15s ease;
+
+        &:first-child { border-top: none; }
+
+        &-n {
+            flex-shrink: 0;
+            width: 24px; height: 24px; border-radius: 50%;
+            display: grid; place-items: center;
+            background: #eef2f7; color: #94a3b8;
+            font-size: .72rem; font-weight: 800;
+            transition: background .15s ease, color .15s ease;
+        }
+        &-txt   { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        &-corto { font-size: .8rem; font-weight: 700; }
+        /* Lo elegido en ese paso. Vacío mientras no haya respuesta: un guion o un
+           «pendiente» ocuparía sitio para no decir nada. */
+        &-val {
+            font-size: .72rem; color: #94a3b8;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            &:empty { display: none; }
+        }
+
+        &.is-actual {
+            background: #f5f9ff;
+            color: #0B1F3D;
+            .swp-wiz__paso-n { background: linear-gradient(135deg, #4267ac, #2e4b8a); color: #fff; }
+        }
+        /* Resuelto Y ya visitado. Marcar en verde un paso al que todavía no se ha
+           llegado sería mentir sobre el avance real. */
+        &.is-hecho {
+            color: #475569;
+            cursor: pointer;
+            .swp-wiz__paso-n {
+                background: #34a853; color: #fff;
+                font-size: 0;
+                &::after {
+                    content: '\f00c';
+                    font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: .66rem;
+                }
+            }
+            &:hover { background: #f8fafc; }
+        }
+    }
+
+    /* ── Columna del paso activo ───────────────────────────────────────────── */
+    .swp-wiz__main { min-width: 0; }
+
+    .swp-wiz__bar {
+        margin-bottom: 14px;
+
+        &-txt {
+            display: flex; justify-content: space-between; align-items: baseline;
+            gap: 12px; margin-bottom: 6px;
+            font-size: .76rem; color: #94a3b8;
+            strong { color: #0B1F3D; font-weight: 800; }
+        }
+        &-riel {
+            height: 5px; border-radius: 999px;
+            background: #e8eef6; overflow: hidden;
+        }
+        &-fill {
+            display: block; height: 100%;
+            background: linear-gradient(90deg, #4267ac, #2e4b8a);
+            border-radius: 999px;
+            transition: width .3s ease;
+        }
+    }
+
     .swp-nota-rol {
         display: flex; align-items: flex-start; gap: 13px;
-        max-width: 940px;
-        margin: 0 0 22px;
-        padding: 14px 18px;
+        margin: 0 0 14px;
+        padding: 11px 15px;
         border-radius: 14px;
         background: rgba(170, 34, 150, .06);
         border: 1px solid rgba(170, 34, 150, .22);
@@ -195,57 +359,81 @@ body[data-page="blog-swaps-crear"] {
         }
     }
 
-    /* ── Los pasos, como recorrido y no como secciones sueltas ──
-       El paso 3 depende de los dos anteriores, así que se pintan encadenados: número
-       en una columna fija y una guía vertical que los cose. Antes eran
-       `.admin-form-section` apiladas, sin jerarquía ni relación visible entre ellas. */
-    .swp-step {
-        display: grid;
-        grid-template-columns: 46px 1fr;
-        gap: 0 16px;
-        position: relative;
+    /* El paso. ⚠️ Tiene `display` propio → SU PROPIO `&[hidden]`, o el `flex` gana a
+       `[hidden]{display:none}` de `base/_normalize.scss` (misma especificidad, capa
+       anterior) y se verían los cinco pasos a la vez. */
+    .swp-panel {
+        display: flex; flex-direction: column;
+        background: #fff;
+        border: 1px solid #e6edf5;
+        border-radius: 18px;
+        box-shadow: 0 1px 3px rgba(11, 31, 61, .05);
+        overflow: clip;
 
-        &__aside {
-            position: relative;
-            display: flex;
-            justify-content: center;
+        &[hidden] { display: none; }
+
+        &__head {
+            padding: 18px 24px 14px;
+            border-bottom: 1px solid #f1f5f9;
         }
-
-        /* La guía baja desde el número hasta el siguiente paso. En el último no se
-           pinta: colgaría en el vacío. */
-        &:not(:last-of-type) &__aside::after {
-            content: '';
-            position: absolute;
-            top: 40px; bottom: -6px; left: 50%;
-            width: 2px; margin-left: -1px;
-            background: linear-gradient(#dbe4f0, #eef2f7);
-        }
-
-        &__n {
-            width: 34px; height: 34px; border-radius: 50%;
-            display: grid; place-items: center;
-            background: linear-gradient(135deg, #4267ac, #2e4b8a);
-            color: #fff; font-size: .88rem; font-weight: 800;
-            box-shadow: 0 6px 14px -8px rgba(46, 75, 138, .9);
-            flex-shrink: 0;
-        }
-
-        &__body {
-            min-width: 0;                  /* la rejilla puede desbordar si no */
-            padding: 0 0 26px;
-        }
-
         &__title {
-            margin: 5px 0 2px;
-            font-size: 1.02rem; font-weight: 800; color: #0B1F3D;
-            line-height: 1.3;
+            margin: 0 0 3px;
+            font-size: 1.05rem; font-weight: 800; color: #0B1F3D; line-height: 1.3;
         }
+        &__sub  { margin: 0; font-size: .82rem; color: #64748B; }
+        &__body { padding: 18px 24px 22px; }
+    }
 
-        &__sub {
-            margin: 0 0 15px;
-            font-size: .82rem; color: #64748B;
-            strong { color: #475569; font-weight: 700; }
+    /* Los campos de texto NO se estiran a lo ancho de la pantalla: una caja de nombre
+       de 1400px es más difícil de leer que una de 460, no más fácil. La rejilla y las
+       opciones sí ocupan todo, porque ahí el ancho es información. */
+    .swp-campo {
+        max-width: 460px;
+        &--fecha  { max-width: 340px; margin-bottom: 16px; }
+        &--motivo { max-width: 640px; margin-top: 18px; }
+    }
+
+    /* ── Navegación ────────────────────────────────────────────────────────── */
+    .swp-wiz__nav {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap;
+        margin-top: 16px;
+
+        &-btns { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    }
+    /* Qué falta para avanzar, ANTES de pulsar. El botón nunca sale deshabilitado: uno
+       muerto sin explicación es indistinguible de uno roto. */
+    .swp-wiz__hint {
+        display: flex; align-items: center; gap: 8px;
+        margin: 0;
+        padding: 9px 14px;
+        border-radius: 11px;
+        background: #fffaf0; border: 1px solid #ffe4bd;
+        color: #8a5a1f; font-size: .8rem; font-weight: 600;
+
+        &::before {
+            content: '\f06a';
+            font-family: 'Font Awesome 6 Free'; font-weight: 900;
+            color: #e0a800; font-size: .78rem;
         }
+        &[hidden] { display: none; }
+        /* Al intentar avanzar sin resolver el paso, el aviso llama la atención en vez
+           de aparecer callado donde ya estaba. */
+        &.is-avisando { animation: swpAviso .32s ease; }
+    }
+
+    /* Rejilla del paso de la clase. El componente (.supl-week) trae su propio aspecto;
+       aquí solo se le da sitio —todo el ancho, que era el objetivo— y el pie que
+       confirma en palabras qué clase se cede: el relleno de color dice "elegida", pero
+       no cuál. */
+    .swp-week { margin-top: 4px; }
+    .swp-week__pie {
+        margin: 12px 0 0;
+        padding: 9px 14px;
+        border-radius: 11px;
+        background: #f5f9ff;
+        border: 1px solid #dbe7f5;
+        font-size: .82rem; font-weight: 600; color: #2e4b8a;
     }
 
     /* Sin horario que ofrecer. Mismo lenguaje que `.swp-opciones__vacio` pero con
@@ -263,46 +451,16 @@ body[data-page="blog-swaps-crear"] {
         i { font-size: 1rem; color: #e0a800; }
     }
 
-    /* El motivo no es un paso: es opcional y no condiciona nada, así que sale de la
-       cadena numerada y se alinea con el cuerpo de los pasos. */
-    .swp-motivo {
-        margin-left: 62px;                 /* 46px de columna + 16px de gap */
-        max-width: 620px;
-        padding-top: 4px;
-    }
-
-    .swp-acciones {
-        display: flex; justify-content: flex-end; gap: 10px;
-        max-width: 940px;
-        margin-top: 26px; padding-top: 20px;
-        border-top: 1px solid #eef2f7;
-    }
-
-    @media (max-width: 760px) {
-        .swp-step { grid-template-columns: 34px 1fr; gap: 0 12px; }
-        .swp-step__n { width: 28px; height: 28px; font-size: .8rem; }
-        .swp-step:not(:last-of-type) .swp-step__aside::after { top: 34px; }
-        .swp-motivo { margin-left: 0; }
-        .swp-acciones { flex-direction: column-reverse; }
-    }
-
-    /* Rejilla del paso 1. El componente (.supl-week) trae su propio aspecto; aquí solo
-       se le da sitio y el pie que confirma en palabras qué clase se está cediendo —el
-       relleno de color dice "elegida", pero no cuál. */
-    .swp-week { margin-top: 4px; }
-    .swp-week__pie {
-        margin: 10px 0 0;
-        padding: 9px 14px;
-        border-radius: 11px;
-        background: #f5f9ff;
-        border: 1px solid #dbe7f5;
-        font-size: .82rem; font-weight: 600; color: #2e4b8a;
-    }
-
+    /* Las clases del compañero, en columnas: con el ancho entero disponible caben tres
+       o cuatro días a la vez en vez de una lista de scroll interminable. */
     .swp-opciones {
-        display: grid; gap: 18px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 18px 20px;
+        align-items: start;
 
         &__vacio {
+            grid-column: 1 / -1;
             padding: 24px;
             border-radius: 13px;
             background: #f8fafc;
@@ -332,7 +490,7 @@ body[data-page="blog-swaps-crear"] {
         &__box {
             display: grid;
             grid-template-columns: 82px 1fr;
-            grid-template-areas: 'hora mat' 'hora meta';
+            grid-template-areas: "hora mat" "hora meta";
             gap: 0 14px;
             padding: 11px 15px;
             border-radius: 12px;
@@ -358,4 +516,108 @@ body[data-page="blog-swaps-crear"] {
         }
         input:focus-visible + .swp-op__box { outline: 2px solid var(--c); outline-offset: 2px; }
     }
+
+    /* El trato entero en una línea, en el paso de confirmar. Los dos lados vivían
+       repartidos entre el pie de la rejilla y un radio marcado tres pantallazos más
+       abajo, así que nadie llegaba a ver el cambio completo.
+       ⚠️ NO reutiliza `.swp-permuta`: aquella está encerrada en el scope de
+       `blog-swaps-index` y aquí saldría sin un solo estilo. */
+    .swp-resumen {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 14px;
+        margin: 0;
+        padding: 16px 20px;
+        border-radius: 14px;
+        background: #f5f9ff;
+        border: 1px solid #dbe7f5;
+
+        &__lado {
+            min-width: 0;
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        &__rol {
+            font-size: .68rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: .05em; color: #94a3b8;
+        }
+        &__clase {
+            font-size: .95rem; font-weight: 800; color: #cbd5e1;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        &__meta { font-size: .76rem; color: #64748B; }
+        &__lado.is-set &__clase { color: #0B1F3D; }
+
+        &__flecha {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: grid; place-items: center;
+            background: #fff; border: 1px solid #dbe7f5;
+            color: #4267ac; font-size: .84rem;
+        }
+
+        &__falta {
+            grid-column: 1 / -1;
+            margin: 0;
+            font-size: .78rem; color: #8494a8;
+        }
+        /* Incompleto: se ve la forma del cambio pero atenuada, para que quede claro
+           que todavía no dice nada. */
+        &--pendiente { background: #f8fafc; border-color: #e6edf5; }
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @include hasta-lg {
+        /* El acompañamiento pasa arriba y en horizontal. Alex se queda: es la mitad
+           del sentido del recorrido, no un adorno de escritorio. */
+        .swp-wiz { grid-template-columns: 1fr; gap: 16px; }
+        .swp-wiz__aside {
+            position: static;
+            flex-direction: row; align-items: stretch; gap: 14px;
+        }
+        .swp-wiz__alex {
+            flex: 0 1 380px;
+            display: flex; align-items: center; gap: 14px;
+            text-align: left;
+            &-img { height: 76px; margin-bottom: 0; flex-shrink: 0; img { max-height: 76px; } }
+        }
+        /* Sin pico: en horizontal apuntaría al techo. */
+        .swp-wiz__dice::before { display: none; }
+        .swp-wiz__pasos { flex: 1 1 0; }
+    }
+
+    @include hasta-md {
+        /* Por debajo de 900px el índice completo se come la primera pantalla. Se queda
+           la barra de progreso, que dice lo mismo en una línea, y Alex. */
+        .swp-wiz__pasos { display: none; }
+        .swp-wiz__alex  { flex: 1 1 auto; }
+    }
+
+    @include hasta-sm {
+        .swp-wiz__aside  { flex-direction: column; }
+        .swp-panel__head { padding: 14px 16px 12px; }
+        .swp-panel__body { padding: 14px 16px 18px; }
+        .swp-campo, .swp-campo--fecha, .swp-campo--motivo { max-width: none; }
+        .swp-wiz__nav    { flex-direction: column; align-items: stretch; }
+        .swp-wiz__nav-btns {
+            margin-left: 0;
+            /* Objetivo táctil de 44px y reparto a partes iguales: en 360px los tres
+               botones a la derecha se solapaban. */
+            .admin-btn { flex: 1 1 0; justify-content: center; min-height: 44px; }
+        }
+        /* Los dos lados se apilan y la flecha gira: en 360px el reparto en tres
+           columnas dejaba cada materia en dos caracteres. */
+        .swp-resumen {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            &__flecha { transform: rotate(90deg); justify-self: center; }
+        }
+    }
+}
+
+/* Fuera del scope: los @keyframes no se anidan bajo `body[data-page]`. */
+@keyframes swpAviso {
+    0%   { transform: translateX(0); }
+    25%  { transform: translateX(-4px); }
+    60%  { transform: translateX(4px); }
+    100% { transform: translateX(0); }
 }

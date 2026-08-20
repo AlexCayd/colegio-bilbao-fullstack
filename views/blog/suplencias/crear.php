@@ -19,7 +19,6 @@ $fechaValor  = trim((string)($suplencia->fecha ?? '')) ?: date('Y-m-d');
         <header class="admin-topbar">
             <div class="admin-topbar__left"><span class="admin-topbar__title">Abrir suplencia</span></div>
             <div class="admin-topbar__actions">
-                <button type="submit" form="form-crear-supl" class="admin-btn admin-btn--primary"><i class="fa-solid fa-floppy-disk"></i> Crear y agendar</button>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>

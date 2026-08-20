@@ -11,10 +11,6 @@
                 <span class="admin-topbar__title">Mi perfil</span>
             </div>
             <div class="admin-topbar__actions">
-                <button type="submit" form="form-perfil" class="admin-btn admin-btn--primary">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    Guardar cambios
-                </button>
                 <?php include __DIR__ . '/_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -226,6 +222,17 @@
                     </div>
 
                 </div><!-- /admin-form-grid -->
+
+                <?php /* La acción baja del topbar al pie de su propio formulario. Va
+                         `--sticky` porque este es largo (avatar, datos, contraseña) y en el
+                         topbar —que es sticky— «Guardar» estaba siempre a la vista; sin el
+                         modificador el cambio habría sido una regresión, no una mejora. */ ?>
+                <div class="admin-form-footer admin-form-footer--sticky">
+                    <button type="submit" class="admin-btn admin-btn--primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar cambios
+                    </button>
+                    <a href="/dashboard" class="admin-btn admin-btn--ghost">Cancelar</a>
+                </div>
 
             </form>
 

@@ -1,6 +1,9 @@
 <?php $paginaVista = 'blog-personal-index'; ?>
 <?php
 /** @var \Model\UsuarioBlog[] $usuarios  @var string $tipo  @var string $slug  @var string $titulo */
+// Se requiere aquí y no se espera al sidebar: este bloque corre ANTES del include.
+require_once __DIR__ . '/../_modulos.php';
+
 $avatarColors = ['#4D8ABB', '#374C69', '#38A169', '#E67E22', '#9B59B6', '#319795'];
 
 $iconos = ['profesores' => 'fa-chalkboard-user', 'prefectura' => 'fa-user-shield',
@@ -9,6 +12,9 @@ $icono  = $iconos[$slug] ?? 'fa-users';
 
 $rolSesion = $_SESSION['blog_usuario']['rol'] ?? '';
 $puedeEditar = $rolSesion === 'administrador';
+// La ficha expone motivos de ausencia y horarios ajenos, así que la abre quien
+// coordina — el mismo corte que separa la agenda del histórico del plantel.
+$puedeFicha = blog_modulos_coordina();
 
 function tipoChips(?string $tipos): string {
     // Los rótulos salen de la constante del modelo: la copia local que había aquí se
@@ -61,11 +67,6 @@ foreach (($usuarios ?? []) as $u) {
                 <span class="admin-topbar__title"><?= s($titulo) ?></span>
             </div>
             <div class="admin-topbar__actions">
-                <?php if ($puedeEditar): ?>
-                <a href="/dashboard/usuarios/crear" class="admin-topbar__new-btn">
-                    <i class="fa-solid fa-plus"></i> Nuevo usuario
-                </a>
-                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
@@ -100,16 +101,27 @@ foreach (($usuarios ?? []) as $u) {
                         <span class="admin-panel__count" data-per-count><?= $total ?></span>
                         <?php endif; ?>
                     </h2>
-                    <?php if ($total): ?>
                     <?php /* El filtro "Solo quienes pueden suplir" se retiró: ordenar por la
-                             columna "Puede suplir" hace lo mismo sin ocupar la barra. */ ?>
+                             columna "Puede suplir" hace lo mismo sin ocupar la barra.
+
+                             La barra ya NO cuelga de `if ($total)`: el botón de alta tiene que
+                             salir sobre todo cuando el directorio está vacío, que es justo
+                             cuando hace falta. Lo que sigue condicionado es el buscador. */ ?>
                     <div class="per-toolbar">
+                        <?php if ($total): ?>
                         <div class="per-search">
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="search" class="per-search__input" data-per-buscar placeholder="Buscar por nombre o correo…" aria-label="Buscar colaborador">
                         </div>
+                        <?php endif; ?>
+                        <?php /* La acción principal, en la cabecera del panel sobre el que actúa
+                                 y no en el topbar, donde quedaba junto a la campana y el avatar. */ ?>
+                        <?php if ($puedeEditar): ?>
+                        <a href="/dashboard/usuarios/crear" class="admin-new-btn">
+                            <i class="fa-solid fa-plus"></i> Nuevo usuario
+                        </a>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
                 </div>
 
                 <?php if (empty($usuarios)): ?>
@@ -149,7 +161,14 @@ foreach (($usuarios ?? []) as $u) {
                                                 <img src="<?= s($u->avatar) ?>" alt="" onerror="this.parentElement.textContent='<?= s($inicial) ?>'">
                                             <?php else: ?><?= s($inicial) ?><?php endif; ?>
                                         </div>
+                                        <?php /* El nombre lleva a la ficha. Envolverlo en un <a> NO afecta al
+                                                 ordenamiento: admin-table.js lee `td.dataset.val` antes que el
+                                                 textContent, y la celda ya lo emite. */ ?>
+                                        <?php if ($puedeFicha): ?>
+                                        <a class="admin-table__title per-user__link" href="/dashboard/usuarios/detalle?id=<?= (int)$u->id ?>"><?= s($u->nombre) ?></a>
+                                        <?php else: ?>
                                         <div class="admin-table__title"><?= s($u->nombre) ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                                 <td class="per-mail"><?= s($u->email) ?></td>
@@ -166,6 +185,11 @@ foreach (($usuarios ?? []) as $u) {
                                 <?php endif; ?>
                                 <td>
                                     <div class="admin-table__actions">
+                                        <?php /* Primera del grupo: es la acción de lectura y la menos
+                                                 destructiva. Editar y Eliminar conservan su orden detrás. */ ?>
+                                        <?php if ($puedeFicha): ?>
+                                        <a href="/dashboard/usuarios/detalle?id=<?= (int)$u->id ?>" class="admin-act admin-act--ficha" title="Ver ficha"><i class="fa-solid fa-id-card"></i></a>
+                                        <?php endif; ?>
                                         <?php if ($puedeEditar): ?>
                                         <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-act admin-act--edit" title="Editar"><i class="fa-solid fa-pen"></i></a>
                                         <?php endif; ?>
@@ -177,7 +201,10 @@ foreach (($usuarios ?? []) as $u) {
                                         <a href="/dashboard/usuarios/horario?id=<?= (int)$u->id ?>" class="admin-act admin-act--horario-edit" title="Editar horario"><i class="fa-regular fa-calendar-plus"></i></a>
                                         <?php endif; ?>
                                         <?php endif; ?>
-                                        <?php if (!$puedeEditar && !esDocente($u->tipo_personal)): ?>
+                                        <?php /* Solo cuando de verdad no queda ninguna acción. Antes salía en toda
+                                                 fila de un no-docente vista por un no-admin: una celda dedicada a
+                                                 decir que no hay nada que hacer. */ ?>
+                                        <?php if (!$puedeEditar && !$puedeFicha && !esDocente($u->tipo_personal)): ?>
                                         <span class="per-nil">Solo lectura</span>
                                         <?php endif; ?>
                                     </div>

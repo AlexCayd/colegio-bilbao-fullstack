@@ -24,7 +24,7 @@ usa solo para el autoloader PSR-4 y tres librerías de apoyo (ver
 Navegador
     │
     ▼
-web.config (IIS)  ó  dev-server.php (php -S)      ← reparto de estáticos vs. dinámico
+.htaccess (Apache)  ó  dev-server.php (php -S)    ← reparto de estáticos vs. dinámico
     │
     ▼
 index.php ─── ¿la URI empieza por /build/? ──► sirve el archivo desde public/build/ y termina
@@ -432,13 +432,23 @@ implementada dos veces, una por entorno:
 
 | Entorno | Archivo | Mecanismo |
 |---|---|---|
-| Producción (IIS) | `web.config` | Reglas de URL Rewrite con condiciones `IsFile` / `IsDirectory` negadas |
+| Producción (Apache/Hostinger) | `.htaccess` | `mod_rewrite` con condiciones `!-f` / `!-d`, más denegación explícita de las carpetas de código |
 | Desarrollo (`php -S`) | `dev-server.php` | Router file que replica la misma condición en PHP |
 
-`dev-server.php` además **veta explícitamente** las carpetas sensibles (`includes/`, `vendor/`,
-`database/`, `models/`, `controllers/`, `views/`, `classes/`, `src/`, `node_modules/`) y cualquier
-archivo que empiece por punto, devolviendo `403`. En IIS esa protección la da la configuración del
-sitio.
+Ambos **vetan explícitamente** las mismas carpetas sensibles (`includes/`, `vendor/`, `database/`,
+`models/`, `controllers/`, `views/`, `classes/`, `src/`, `node_modules/`, `storage/`) y cualquier
+archivo que empiece por punto. **La lista está duplicada a propósito en los dos archivos: si se
+toca una, hay que tocar la otra.**
+
+> ⚠️ Hasta agosto de 2026 producción era **IIS con `web.config`**, y ahí la denegación la daba la
+> configuración del sitio, no el archivo de reglas. Al pasar a Apache hubo que escribirla: sin
+> ella, `GET /includes/.env` se sirve **como texto plano**, porque el catch-all `!-f` no lo captura
+> justamente por ser un archivo real.
+
+En producción `/build/*` lo sirve **Apache directamente** (`RewriteRule ^build/(.*)$
+public/build/$1`), no el shim PHP de `index.php`, que queda como respaldo. Esa regla va
+obligatoriamente **después** del 404 a `build/assets/suplencias/`: al atajar `/build/`, el shim deja
+de correr y con él su portazo a los justificantes heredados.
 
 > ⚠️ **No renombrar `dev-server.php` a `router.php`.** En Windows el sistema de archivos es
 > insensible a mayúsculas y chocaría con `Router.php`.

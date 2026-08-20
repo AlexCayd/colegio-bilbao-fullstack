@@ -184,7 +184,7 @@
         <!-- CTA FINAL -->
         <section class="cta-section">
             <div class="cta-container">
-                <img src="/build/assets/img/conocenos/quienes-somos/Alex-dice.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img" data-i18n-attr="alt:conocenos-quienes-somos.cta.imgAlt">
+                <img src="/build/assets/img/conocenos/quienes-somos/alex-dice.png" alt="Mascota Alex del Colegio Bilbao" class="mascot-img" data-i18n-attr="alt:conocenos-quienes-somos.cta.imgAlt">
                 <div class="cta-content">
                     <h2 data-i18n="conocenos-quienes-somos.cta.title">¿Resuena contigo?</h2>
                     <p data-i18n="conocenos-quienes-somos.cta.text">Si esta forma de ver la educación resuena contigo, nos encantará conocerte y escuchar la historia de tu familia. Conoce nuestro modelo educativo y da el siguiente paso para acercarte a la experiencia Bilbao.</p>

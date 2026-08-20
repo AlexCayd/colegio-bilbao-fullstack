@@ -50,7 +50,9 @@ class SuplenciaHora extends ActiveRecord {
     public $s_motivo;
     public $s_notas;
     public $s_estado;       // alias de suplencias.estado (histórico del suplente)
+    public $s_origen;       // alias de suplencias.origen (cola de "¿dejó trabajo?")
     public $ausente_nombre;
+    public $ausente_avatar;
 
     private const DOW_DIA = [1 => 'lunes', 2 => 'martes', 3 => 'miercoles', 4 => 'jueves', 5 => 'viernes', 6 => null, 7 => null];
 
@@ -442,6 +444,70 @@ class SuplenciaHora extends ActiveRecord {
             'pendientes' => (int) ($row['pend'] ?? 0),
             'pct'        => $rev > 0 ? (int) round($con * 100 / $rev) : 0,
         ];
+    }
+
+    /**
+     * Horas cuyo "¿dejó trabajo?" sigue sin revisar, para la cola de prefectura.
+     *
+     * Tres condiciones, y las tres importan:
+     *
+     * - `dejo_trabajo IS NULL` — el estado "sin revisar". `0` ya es una respuesta.
+     * - `tipo <> 'guardia'` — en el patio no hay trabajo que dejar, así que una guardia
+     *   no es una pregunta pendiente: sería ruido permanente en la cola.
+     * - `sup.fecha <= CURDATE()` — antes de que la clase ocurra la pregunta no tiene
+     *   respuesta posible, y una ausencia agendada con tres semanas de antelación
+     *   inflaría la cola con trabajo que todavía no existe.
+     *
+     * Se ordena de la más antigua a la más reciente: lo que lleva más tiempo sin revisar
+     * es lo que peor se recuerda, y es lo primero que hay que cerrar.
+     *
+     * Trae `sup.notas AS s_notas` —las indicaciones que el ausente escribió al avisar—
+     * porque son justo el dato con el que se responde la pregunta de la cola, y sin
+     * ellas había que abrir cada suplencia por separado para poder marcar con criterio.
+     *
+     * @param string[] $niveles Alcance de una dirección de nivel. [] = sin filtro.
+     * @param int      $limite  0 = sin límite
+     */
+    public static function pendientesTrabajo(array $niveles = [], int $limite = 0): array {
+        $n   = Suplencia::sqlNivelHora($niveles, 'sh');
+        $lim = $limite > 0 ? ' LIMIT ' . (int)$limite : '';
+        $sql = "
+            SELECT sh.*,
+                   sup.fecha AS s_fecha, sup.motivo AS s_motivo, sup.origen AS s_origen,
+                   sup.notas AS s_notas,
+                   p.etiqueta AS periodo_etiqueta, p.nivel AS periodo_nivel,
+                   p.hora_inicio AS periodo_inicio, p.hora_fin AS periodo_fin,
+                   g.nombre AS grupo_nombre, a.nombre AS aula_nombre,
+                   m.nombre AS materia,
+                   au.nombre AS ausente_nombre, au.avatar AS ausente_avatar,
+                   s.nombre AS suplente_nombre
+              FROM suplencia_horas sh
+              JOIN suplencias sup ON sup.id = sh.suplencia_id
+              LEFT JOIN periodos p ON p.id = sh.periodo_id
+              LEFT JOIN grupos   g ON g.id = sh.grupo_id
+              LEFT JOIN aulas    a ON a.id = sh.aula_id
+              LEFT JOIN materias m ON m.id = sh.materia_id
+              LEFT JOIN usuarios au ON au.id = sup.profesor_ausente_id
+              LEFT JOIN usuarios s  ON s.id  = sh.suplente_id
+             WHERE sh.dejo_trabajo IS NULL
+               AND sh.tipo <> 'guardia'
+               AND sup.fecha <= CURDATE(){$n}
+             ORDER BY sup.fecha ASC, p.hora_inicio ASC{$lim}
+        ";
+        return static::consultarSQL($sql);
+    }
+
+    /** Cuántas horas esperan revisión. Alimenta el badge del subnav. */
+    public static function contarPendientesTrabajo(array $niveles = []): int {
+        $n = Suplencia::sqlNivelHora($niveles, 'sh');
+        $r = self::$db->query("
+            SELECT COUNT(*) c
+              FROM suplencia_horas sh
+              JOIN suplencias sup ON sup.id = sh.suplencia_id
+             WHERE sh.dejo_trabajo IS NULL
+               AND sh.tipo <> 'guardia'
+               AND sup.fecha <= CURDATE(){$n}");
+        return $r ? (int)($r->fetch_assoc()['c'] ?? 0) : 0;
     }
 
     /**

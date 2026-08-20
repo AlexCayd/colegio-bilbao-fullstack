@@ -39,17 +39,22 @@ $estadoBadge = $badgeMap[$articulo->estado ?? 'borrador'] ?? $badgeMap['borrador
                 <span class="admin-topbar__title">Editar artículo</span>
             </div>
             <div class="admin-topbar__actions">
-                <?php if (($articulo->estado ?? '') === 'publicado' && $articulo->slug): ?>
-                <a href="/blog/<?= s($articulo->slug) ?>" class="admin-topbar__preview-btn" target="_blank">
-                    <i class="fa-solid fa-eye"></i> Ver en el sitio
-                </a>
-                <?php endif; ?>
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
             </div>
         </header>
 
         <!-- CONTENIDO -->
         <main class="admin-content">
+
+            <?php if (($articulo->estado ?? '') === 'publicado' && $articulo->slug): ?>
+            <?php /* Del ARTÍCULO, no del panel: baja del topbar al aviso de estado, que es
+                     justo donde se dice que está publicado. */ ?>
+            <div class="admin-view-bar">
+                <a href="/blog/<?= s($articulo->slug) ?>" class="admin-topbar__preview-btn" target="_blank">
+                    <i class="fa-solid fa-eye"></i> Ver en el sitio
+                </a>
+            </div>
+            <?php endif; ?>
 
             <!-- Aviso de estado -->
             <div class="admin-edit-notice">
