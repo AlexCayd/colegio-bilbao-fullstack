@@ -339,8 +339,11 @@ body[data-page="blog-swaps-crear"] {
         }
     }
 
+    /* Centrado, no `flex-start`: el icono es una insignia de 34px y el texto ocupa una
+       o dos líneas según el ancho. Anclado arriba quedaba descolgado del texto en la
+       versión de una línea, que es como se ve casi siempre. */
     .swp-nota-rol {
-        display: flex; align-items: flex-start; gap: 13px;
+        display: flex; align-items: center; gap: 13px;
         margin: 0 0 14px;
         padding: 11px 15px;
         border-radius: 14px;
@@ -371,6 +374,17 @@ body[data-page="blog-swaps-crear"] {
         overflow: clip;
 
         &[hidden] { display: none; }
+
+        /* ⚠️ El desrecorte de los popovers (buscador de profesores, calendario) se declara
+           AQUÍ, y no basta con la lista genérica de `_admin-suplencias.scss` /
+           `_admin-datepicker.scss`. Aquellas son `.swp-panel.has-picker-open` → (0,2,0), y
+           el `overflow: clip` de arriba es `body[data-page=…] .swp-panel` → (0,2,1): ganaba
+           el recorte y el desplegable seguía cortado por el borde del panel.
+           Es la misma trampa de cascada que `[hidden]` y que la paginación de
+           `.admin-table`: una regla genérica NO puede levantar algo declarado dentro de un
+           scope de página. Anidada, hereda el scope y sube a (0,3,1). */
+        &.has-picker-open,
+        &.has-datepicker-open { overflow: visible; }
 
         &__head {
             padding: 18px 24px 14px;

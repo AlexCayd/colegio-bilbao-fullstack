@@ -28,6 +28,33 @@
 (function () {
     var ENDPOINT_DEFECTO = '/dashboard/suplencias/buscar-colaboradores';
 
+    /* ── Recorte de los ancestros ──────────────────────────────────────────────
+       `.picker__results` es `position:absolute`, así que un ancestro con
+       `overflow: clip` lo recorta POR GEOMETRÍA y el `z-index: 40` no puede con eso.
+       Dentro de `.swp-panel` (que es `overflow: clip`) el desplegable caía entero
+       fuera del panel y parecía que el buscador no devolvía nada.
+
+       Mismo patrón, y por el mismo motivo, que `admin-datepicker.js`: se levanta el
+       recorte de TODOS los ancestros que recorten, no solo del más cercano.
+
+       El contador por nodo es necesario porque dos pickers pueden compartir ancestro
+       (ausente y suplente en Suplencias): sin él, el `blur` diferido del primero
+       borraba la clase que el segundo acababa de poner. */
+    var RECORTAN = '.admin-panel, .admin-form-section, .admin-form-row, .swp-panel';
+
+    function marcar(n) {
+        n._pickersAbiertos = (n._pickersAbiertos || 0) + 1;
+        n.classList.add('has-picker-open');
+    }
+
+    function desmarcar(n) {
+        n._pickersAbiertos = (n._pickersAbiertos || 1) - 1;
+        if (n._pickersAbiertos <= 0) {
+            n._pickersAbiertos = 0;
+            n.classList.remove('has-picker-open');
+        }
+    }
+
     function esc(s) {
         return String(s == null ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -50,13 +77,32 @@
 
         var timer = null, items = [], active = -1;
         var elegidos = [];   // solo en modo múltiple: [{id, nombre}]
+        var abierto = false, recortadores = [];
 
-        function close() { results.classList.remove('is-open'); active = -1; }
+        // `render()` corre en cada pulsación y en cada flecha, así que el desrecorte
+        // va detrás de una guarda: si no, el contador por nodo subiría sin bajar.
+        function abrirLista() {
+            results.classList.add('is-open');
+            if (abierto) return;
+            abierto = true;
+            for (var n = root.parentElement; n && n !== document.body; n = n.parentElement) {
+                if (n.matches && n.matches(RECORTAN)) { marcar(n); recortadores.push(n); }
+            }
+        }
+
+        function close() {
+            results.classList.remove('is-open');
+            active = -1;
+            if (!abierto) return;
+            abierto = false;
+            recortadores.forEach(desmarcar);
+            recortadores = [];
+        }
 
         function render() {
             if (!items.length) {
                 results.innerHTML = '<div class="picker__empty">Sin coincidencias</div>';
-                results.classList.add('is-open');
+                abrirLista();
                 return;
             }
             results.innerHTML = items.map(function (u, i) {
@@ -67,7 +113,7 @@
                     '<span class="picker__ava">' + ava + '</span>' +
                     '<span class="picker__name">' + esc(u.nombre) + '</span></div>';
             }).join('');
-            results.classList.add('is-open');
+            abrirLista();
             results.querySelectorAll('.picker__item').forEach(function (el) {
                 el.addEventListener('mousedown', function (e) {
                     e.preventDefault();

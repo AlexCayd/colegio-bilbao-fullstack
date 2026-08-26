@@ -65,7 +65,7 @@ $hora = fn($i, $f) => substr((string)$i, 0, 5) . '–' . substr((string)$f, 0, 5
               la validación. Decirlo aquí evita que alguien deje de ir a su clase. */ ?>
     <p class="swp-card__pendiente">
         <i class="fa-solid fa-hourglass-half"></i>
-        Ambos profesores están de acuerdo, pero el swap <strong>aún no es efectivo</strong>:
+        Ambos profesores están de acuerdo, pero el intercambio <strong>aún no es efectivo</strong>:
         falta la validación de prefectura o dirección.
     </p>
     <?php endif; ?>

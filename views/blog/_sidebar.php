@@ -77,9 +77,10 @@ $_catMods = blog_modulos_catalogo();
 $_misMods = $_esAdmin
     ? \Model\UsuarioBlog::MODULOS_ASIGNABLES
     : array_values(array_filter(array_map('trim', explode(',', (string)($_SESSION['blog_usuario']['modulos'] ?? '')))));
-// Soporte técnico no se asigna: lo tiene todo el mundo (ver
-// BlogController::MODULOS_TRANSVERSALES). Es la vía para pedir ayuda cuando algo falla.
-if (!in_array('soporte', $_misMods, true)) $_misMods[] = 'soporte';
+// Los transversales (Soporte + los cuatro directorios) no se asignan: los tiene todo el
+// mundo. Se unen aquí igual que en BlogController::modulosDisponibles(), leyendo la
+// MISMA constante — antes 'soporte' estaba empujado a mano y era una segunda lista.
+$_misMods = array_values(array_unique(array_merge($_misMods, \Model\UsuarioBlog::MODULOS_TRANSVERSALES)));
 $_grupos  = blog_modulos_visibles($_misMods);
 
 // Contador de la campana. Se calcula aquí porque el sidebar se incluye ANTES que

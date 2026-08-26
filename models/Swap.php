@@ -4,8 +4,10 @@ namespace Model;
 /**
  * Swap: intercambio PUNTUAL de clases entre dos profesores.
  *
- * En la UI se llama «swap»; el nombre interno de la clase, la tabla y las rutas ya
- * lo eran, así que el rótulo y el código dicen por fin lo mismo.
+ * ⚠️ En la UI se llama **«Intercambio»**: la clase, la tabla `swap_clases`, las rutas
+ * `/dashboard/swaps`, la clave de módulo `swaps` y los tipos de notificación `swap_*`
+ * conservan el nombre viejo a propósito. Renombrarlos sería una migración de datos y
+ * de permisos por un cambio de rótulo. Al tocar texto que se lee, decir «intercambio».
  *
  * No es una suplencia: nadie falta y nadie cubre a nadie. Es un trato — «da tú mi
  * clase del martes y yo doy la tuya del jueves» — que no altera el horario
@@ -94,7 +96,7 @@ class Swap extends ActiveRecord {
     public function validar(): array {
         static::$alertas = [];
 
-        if (!$this->solicitante_id)  static::setAlerta('error', 'Falta quién solicita el swap');
+        if (!$this->solicitante_id)  static::setAlerta('error', 'Falta quién solicita el intercambio');
         if (!$this->destinatario_id) static::setAlerta('error', 'Elige con qué profesor quieres cambiar la clase');
         if ((int)$this->solicitante_id === (int)$this->destinatario_id) {
             static::setAlerta('error', 'No puedes cambiar una clase contigo mismo');
@@ -119,7 +121,7 @@ class Swap extends ActiveRecord {
             if ($dif < 0) {
                 static::setAlerta('error', 'La clase que tomas a cambio no puede ser anterior al día que faltas');
             } elseif ($dif > self::DIAS_VENTANA) {
-                static::setAlerta('error', 'El swap debe caer dentro de los '
+                static::setAlerta('error', 'El intercambio debe caer dentro de los '
                     . self::DIAS_VENTANA . ' días siguientes al día que faltas');
             }
         }

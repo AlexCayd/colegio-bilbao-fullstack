@@ -15,12 +15,27 @@
  * @var array              $porEstadoSwap
  * @var bool               $acotado     el alcance por nivel recorta lo que se ve
  * @var array|null         $horario     claves de datosHorarioProfesor()
+ * @var bool               $esPropio    true en /dashboard/perfil (es uno mismo)
  *
  * SECCIONES APILADAS, no pestañas: cuáles existen depende del tipo de personal (un
  * administrativo no tiene horario ni suplencias), y unas pestañas cuyo número cambia
  * según a quién mires obligan a aprender la excepción. Además así funciona Ctrl-F,
  * se puede imprimir y no hace falta JS.
+ *
+ * ── DOS RUTAS, UNA PLANTILLA ──
+ * `/dashboard/usuarios/detalle?id=N`  → ficha de OTRA persona (solo lectura)
+ * `/dashboard/perfil`                 → la de uno mismo, con «Mi cuenta» editable arriba
+ *
+ * Antes «Mi perfil» era un formulario suelto que no decía nada de lo que esa persona
+ * hace, y la ficha —que sí— solo la abría quien coordina: un profesor no tenía dónde ver
+ * su propio histórico. Los datos salen de `BlogController::datosFicha()` en los dos
+ * casos, así que las dos pantallas no pueden divergir.
+ *
+ * ⚠️ `$paginaVista` es el MISMO en las dos rutas, y tiene que serlo: `blog-usuarios-detalle`
+ * está en la lista de `body[data-page]` de `src/scss/admin/_admin-horarios.scss`, sin la
+ * cual la rejilla del horario sale como tabla desnuda.
  */
+$esPropio    = $esPropio ?? false;
 $puedeEditar = ($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador';
 
 $avatarColors = ['#4D8ABB', '#374C69', '#38A169', '#E67E22', '#9B59B6', '#319795'];
@@ -41,6 +56,12 @@ $mostrarNiv  = $esDocente || $esDirectivo;
 $modulosU = ($u->rol === 'administrador')
     ? []
     : array_filter(array_map('trim', explode(',', (string)$u->modulos)));
+
+// Rótulos de los módulos. `true` porque describen los permisos de la persona MIRADA, no
+// los de quien mira. Nombre propio y no `$_catMods`: esa la define `_sidebar.php` —que se
+// incluye más abajo— con el catálogo adaptado al usuario en sesión, y se pisarían.
+require_once __DIR__ . '/../_modulos.php';
+$modCat = blog_modulos_catalogo(true);
 
 // El horario puede venir a null (no docente) o con `tramos` vacío (docente sin clases).
 $tramos        = $horario['tramos']        ?? [];
@@ -74,7 +95,7 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
     <div class="admin-main">
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <span class="admin-topbar__title">Ficha del colaborador</span>
+                <span class="admin-topbar__title"><?= $esPropio ? 'Mi perfil' : 'Ficha del colaborador' ?></span>
             </div>
             <div class="admin-topbar__actions">
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
@@ -139,12 +160,17 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
             <?php /* Enlaces, no pestañas: el conjunto varía según el puesto y así el
                       salto funciona sin JS. */ ?>
             <nav class="ufi-nav" aria-label="Secciones de la ficha">
+                <?php if ($esPropio): ?><a href="#ufi-cuenta"><i class="fa-solid fa-user-pen"></i> Mi cuenta</a><?php endif; ?>
                 <a href="#ufi-perfil"><i class="fa-solid fa-id-card"></i> Perfil</a>
                 <?php if ($hayHorario): ?><a href="#ufi-horario"><i class="fa-regular fa-calendar"></i> Horario</a><?php endif; ?>
                 <?php if ($esDocente): ?><a href="#ufi-suplencias"><i class="fa-solid fa-user-clock"></i> Suplencias</a><?php endif; ?>
-                <?php if ($haySwaps): ?><a href="#ufi-swaps"><i class="fa-solid fa-right-left"></i> Swaps</a><?php endif; ?>
+                <?php if ($haySwaps): ?><a href="#ufi-swaps"><i class="fa-solid fa-right-left"></i> Intercambios</a><?php endif; ?>
                 <?php if ($hayCont): ?><a href="#ufi-contenido"><i class="fa-regular fa-newspaper"></i> Redacción</a><?php endif; ?>
             </nav>
+
+            <?php /* Los campos editables van PRIMERO y solo sobre uno mismo: es lo único
+                      accionable de la pantalla, y debajo empieza lo que solo se consulta. */ ?>
+            <?php if ($esPropio) include __DIR__ . '/_perfil-cuenta.php'; ?>
 
             <!-- ── Perfil: niveles, módulos, disponibilidad ─────────────────── -->
             <section class="admin-panel" id="ufi-perfil">
@@ -196,9 +222,13 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                         <p class="ufi-field__hint">Es administrador: accede a <strong>todos</strong> los módulos, así
                            que no tiene lista asignada.</p>
                         <?php elseif ($modulosU): ?>
+                        <?php /* ⚠️ El rótulo sale del catálogo compartido, no de un
+                                  `ucfirst($clave)`: eso pintaba la clave cruda y decía
+                                  «Swaps» donde el resto del panel dice «Intercambios».
+                                  El fallback cubre una clave huérfana en un CSV viejo. */ ?>
                         <div class="ufi-chips">
                             <?php foreach ($modulosU as $m): ?>
-                            <span class="ufi-mod"><?= s(ucfirst(str_replace('_', ' ', $m))) ?></span>
+                            <span class="ufi-mod"><?= s($modCat[$m]['nombre'] ?? ucfirst(str_replace('_', ' ', $m))) ?></span>
                             <?php endforeach; ?>
                         </div>
                         <?php else: ?>
@@ -359,7 +389,7 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                       de decisión que aquí saldría sin ninguna acción. */ ?>
             <section class="admin-panel" id="ufi-swaps">
                 <div class="admin-panel__header">
-                    <h2 class="admin-panel__title"><i class="fa-solid fa-right-left"></i> Swaps de clase</h2>
+                    <h2 class="admin-panel__title"><i class="fa-solid fa-right-left"></i> Intercambios de clase</h2>
                 </div>
                 <div class="admin-table-scroll">
                     <table class="admin-table" data-table data-table-per="8">
@@ -445,7 +475,7 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                       pensar que faltan datos. */ ?>
             <p class="ufi-vacio ufi-vacio--big">
                 <i class="fa-regular fa-folder-open"></i>
-                Este puesto no imparte clase, así que no tiene horario, suplencias ni swaps.
+                Este puesto no imparte clase, así que no tiene horario, suplencias ni intercambios.
             </p>
             <?php endif; ?>
 

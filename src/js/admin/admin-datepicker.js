@@ -223,7 +223,7 @@
             // liberaba, así que el calendario no se veía.
             root._contenedores = [];
             for (var n = root.parentElement; n; n = n.parentElement) {
-                if (n.matches('.admin-panel, .admin-form-section, .admin-form-row')) {
+                if (n.matches('.admin-panel, .admin-form-section, .admin-form-row, .swp-panel')) {
                     n.classList.add('has-datepicker-open');
                     root._contenedores.push(n);
                 }

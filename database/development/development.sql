@@ -70,14 +70,14 @@ INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `rol_redacci
 -- Cuentas de prueba (contraseña: Tlalmimilolpan39%) — ver database/credenciales.md
 (63, 'Profesor Uno (prueba)', 'profesor1@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'usuario', NULL, 'profesor', NULL, 1, 'suplencias,horarios,swaps', '1986-04-18', '', NULL, '2026-07-27 09:00:00'),
 (64, 'Profesor Dos (prueba)', 'profesor2@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'usuario', NULL, 'profesor', NULL, 1, 'suplencias,horarios,swaps', '1991-09-02', '', NULL, '2026-07-27 09:00:00'),
-(65, 'Prefectura (prueba)', 'prefecto@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'usuario', NULL, 'prefecto', NULL, 1, 'suplencias,horarios,swaps,profesores', '1983-11-21', '', NULL, '2026-07-27 09:00:00'),
+(65, 'Prefectura (prueba)', 'prefecto@bilbao.edu.mx', '$2y$12$nJQBtZftIX.10iSyqFSv6uKIw0BhTQsGeCOO1xSkL.Cu77TWZ1Kai', 'usuario', NULL, 'prefecto', NULL, 1, 'suplencias,horarios,swaps', '1983-11-21', '', NULL, '2026-07-27 09:00:00'),
 -- Prefectura de ejemplo (contraseña de desarrollo: EditorBilbao25)
-(66, 'Ricardo Beltrán Ochoa', 'ricardo.beltran@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'prefecto', NULL, 1, 'suplencias,horarios,swaps,profesores', '1979-06-30', '', NULL, '2026-07-27 09:00:00'),
-(67, 'Paola Estrada Nava', 'paola.estrada@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'prefecto', NULL, 1, 'suplencias,horarios,swaps,profesores', '1990-01-16', '', NULL, '2026-07-27 09:00:00'),
+(66, 'Ricardo Beltrán Ochoa', 'ricardo.beltran@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'prefecto', NULL, 1, 'suplencias,horarios,swaps', '1979-06-30', '', NULL, '2026-07-27 09:00:00'),
+(67, 'Paola Estrada Nava', 'paola.estrada@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'prefecto', NULL, 1, 'suplencias,horarios,swaps', '1990-01-16', '', NULL, '2026-07-27 09:00:00'),
 -- Altas derivadas del horario real (no estaban en el claustro) + dirección
-(70, 'Profesor de Habilidades Digitales', 'hd@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 'Kinder,Primaria', 1, 'suplencias,horarios,soporte', NULL, '', NULL, '2026-08-07 09:00:00'),
-(71, 'Profesor de Alemán', 'aleman@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 'Bachillerato', 1, 'suplencias,horarios,soporte', NULL, '', NULL, '2026-08-07 09:00:00'),
-(72, 'Dirección Académica', 'direccion@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', NULL, 1, 'suplencias,horarios,usuarios,profesores,prefectura,administrativos,directivos,aulas,grupos,eventos,swaps,soporte', '1975-09-14', '', NULL, '2026-08-07 09:00:00'),
+(70, 'Profesor de Habilidades Digitales', 'hd@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 'Kinder,Primaria', 1, 'suplencias,horarios', NULL, '', NULL, '2026-08-07 09:00:00'),
+(71, 'Profesor de Alemán', 'aleman@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'profesor', 'Bachillerato', 1, 'suplencias,horarios', NULL, '', NULL, '2026-08-07 09:00:00'),
+(72, 'Dirección Académica', 'direccion@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', NULL, 1, 'suplencias,horarios,usuarios,aulas,grupos,eventos,swaps', '1975-09-14', '', NULL, '2026-08-07 09:00:00'),
 -- ── Direcciones POR NIVEL ──
 -- `niveles` acota lo que ven: tablero, agenda de suplencias, intercambios, cola de
 -- justificantes y los avisos que reciben. La cuenta 72 se queda SIN niveles a
@@ -88,11 +88,11 @@ INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`, `rol_redacci
 -- en el calendario del home de todo el panel.
 -- ⚠️ IDÉNTICAS a las de deploy.sql, byte a byte: si divergen, recargar un entorno u
 -- otro deja direcciones distintas.
-(73, 'Dirección de Maternal', 'direccion.maternal@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Maternal', 1, 'suplencias,horarios,usuarios,profesores,prefectura,administrativos,directivos,aulas,grupos,eventos,swaps,soporte', NULL, '', NULL, '2026-08-14 09:00:00'),
-(74, 'Dirección de Kinder', 'direccion.kinder@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Kinder', 1, 'suplencias,horarios,usuarios,profesores,prefectura,administrativos,directivos,aulas,grupos,eventos,swaps,soporte', NULL, '', NULL, '2026-08-14 09:00:00'),
-(75, 'Dirección de Primaria', 'direccion.primaria@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Primaria', 1, 'suplencias,horarios,usuarios,profesores,prefectura,administrativos,directivos,aulas,grupos,eventos,swaps,soporte', NULL, '', NULL, '2026-08-14 09:00:00'),
-(76, 'Dirección de Secundaria', 'direccion.secundaria@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Secundaria', 1, 'suplencias,horarios,usuarios,profesores,prefectura,administrativos,directivos,aulas,grupos,eventos,swaps,soporte', NULL, '', NULL, '2026-08-14 09:00:00'),
-(77, 'Dirección de Bachillerato', 'direccion.bachillerato@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Bachillerato', 1, 'suplencias,horarios,usuarios,profesores,prefectura,administrativos,directivos,aulas,grupos,eventos,swaps,soporte', NULL, '', NULL, '2026-08-14 09:00:00');
+(73, 'Dirección de Maternal', 'direccion.maternal@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Maternal', 1, 'suplencias,horarios,usuarios,aulas,grupos,eventos,swaps', NULL, '', NULL, '2026-08-14 09:00:00'),
+(74, 'Dirección de Kinder', 'direccion.kinder@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Kinder', 1, 'suplencias,horarios,usuarios,aulas,grupos,eventos,swaps', NULL, '', NULL, '2026-08-14 09:00:00'),
+(75, 'Dirección de Primaria', 'direccion.primaria@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Primaria', 1, 'suplencias,horarios,usuarios,aulas,grupos,eventos,swaps', NULL, '', NULL, '2026-08-14 09:00:00'),
+(76, 'Dirección de Secundaria', 'direccion.secundaria@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Secundaria', 1, 'suplencias,horarios,usuarios,aulas,grupos,eventos,swaps', NULL, '', NULL, '2026-08-14 09:00:00'),
+(77, 'Dirección de Bachillerato', 'direccion.bachillerato@bilbao.edu.mx', '$2y$12$Pe/BFLXz89VJXUIR1lxpkeyu6e9fYX7aNdAubqHCJyv5PWEdtkIUi', 'usuario', NULL, 'directivo', 'Bachillerato', 1, 'suplencias,horarios,usuarios,aulas,grupos,eventos,swaps', NULL, '', NULL, '2026-08-14 09:00:00');
 
 INSERT INTO `categorias` (`id`, `nombre`, `slug`, `descripcion`, `color`, `creado_en`) VALUES
 (1, 'Modelo Educativo', 'modelo-educativo', 'Filosofía, pedagogía y propuesta formativa del Colegio Bilbao.', '#4267ac', '2026-06-19 18:00:53'),

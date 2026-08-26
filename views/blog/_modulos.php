@@ -145,11 +145,13 @@ if (!function_exists('blog_modulos_catalogo')) {
                 ? ['nombre' => 'Horarios',   'desc' => 'Horarios por profesor, aula y grupo de alumnos.',       'icon' => 'fa-table-cells', 'url' => '/dashboard/horarios']
                 : ['nombre' => 'Mi horario', 'desc' => 'Consulta tu horario semanal de clases.',                'icon' => 'fa-table-cells', 'url' => '/dashboard/horarios/mi-horario'],
 
-            // Swap: intercambio puntual de clases entre profesores. Quien no imparte solo
-            // entra a validar, así que su tarjeta lo dice.
+            // Intercambio puntual de clases entre profesores. Quien no imparte solo entra
+            // a validar, así que su tarjeta lo dice.
+            // ⚠️ La clave sigue siendo 'swaps' (módulo, rutas, tabla y notificaciones);
+            // lo que se renombró a «Intercambios» es solo el rótulo que se lee.
             'swaps'           => $coordina && !blog_modulos_imparte()
-                ? ['nombre' => 'Swaps', 'desc' => 'Valida los swaps de clase del claustro.',              'icon' => 'fa-right-left', 'url' => '/dashboard/swaps']
-                : ['nombre' => 'Swaps', 'desc' => 'Cambia una clase con otro profesor por excepción.',   'icon' => 'fa-right-left', 'url' => '/dashboard/swaps'],
+                ? ['nombre' => 'Intercambios', 'desc' => 'Valida los intercambios de clase del claustro.', 'icon' => 'fa-right-left', 'url' => '/dashboard/swaps']
+                : ['nombre' => 'Intercambios', 'desc' => 'Cambia una clase con otro profesor por excepción.', 'icon' => 'fa-right-left', 'url' => '/dashboard/swaps'],
 
             'eventos'         => ['nombre' => 'Eventos',         'desc' => 'Calendario institucional y avisos para familias.',    'icon' => 'fa-calendar-day',    'url' => '/dashboard/eventos'],
             'aulas'           => ['nombre' => 'Aulas',           'desc' => 'Catálogo de espacios donde se imparte clase.',        'icon' => 'fa-door-open',       'url' => '/dashboard/aulas'],

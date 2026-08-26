@@ -1,5 +1,7 @@
 /* ─────────────────────────────────────────────────────────────────────────────
-   Ficha interna de un colaborador — /dashboard/usuarios/detalle?id=N
+   Ficha de una persona. DOS RUTAS, UNA PLANTILLA:
+     /dashboard/usuarios/detalle?id=N  → otra persona, solo lectura
+     /dashboard/perfil                 → uno mismo, con «Mi cuenta» editable arriba
 
    Secciones apiladas y un subnav de anclas, no pestañas: qué secciones existen
    depende del tipo de personal, y unas pestañas cuyo número cambia según a quién
@@ -20,6 +22,12 @@
 
 body[data-page="blog-usuarios-detalle"] {
 
+    /* ⚠️ `.admin-panel` no trae margen propio (`estaticas/_blog-admin.scss`) y
+       `.admin-content` no es flex con `gap`, así que las hasta SEIS secciones apiladas
+       de esta vista se tocaban borde con borde y se leían como un solo bloque. Mismo
+       remedio, y por lo mismo, que en `blog-suplencias-mis-coberturas`. */
+    .admin-panel + .admin-panel { margin-top: 22px; }
+
     /* ── Cabecera de identidad ────────────────────────────────────────────── */
     .ufi-hero {
         display: flex;
@@ -27,7 +35,7 @@ body[data-page="blog-usuarios-detalle"] {
         gap: 16px;
         flex-wrap: wrap;
         padding: 16px 20px;
-        margin-bottom: 14px;
+        margin-bottom: 18px;
         background: #fff;
         border: 1px solid #e6edf5;
         border-radius: 18px;
@@ -88,7 +96,7 @@ body[data-page="blog-usuarios-detalle"] {
        dato completo del colegio. */
     .ufi-alcance {
         display: flex; align-items: center; gap: 8px;
-        margin: 0 0 14px;
+        margin: 0 0 18px;
         padding: 8px 12px;
         border-radius: 12px;
         background: #fff7e6; color: #96690a;
@@ -99,7 +107,7 @@ body[data-page="blog-usuarios-detalle"] {
     /* ── Subnav de anclas ─────────────────────────────────────────────────── */
     .ufi-nav {
         display: flex; flex-wrap: wrap; gap: 8px;
-        margin-bottom: 14px;
+        margin-bottom: 18px;
         a {
             display: inline-flex; align-items: center; gap: 7px;
             padding: 6px 12px;
@@ -116,8 +124,8 @@ body[data-page="blog-usuarios-detalle"] {
     .ufi-cols {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 14px 20px;
-        padding: 15px 20px 18px;
+        gap: 14px 22px;
+        padding: 16px 24px 20px;
     }
     .ufi-field {
         min-width: 0;
@@ -149,7 +157,7 @@ body[data-page="blog-usuarios-detalle"] {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 10px;
-        padding: 15px 20px 4px;
+        padding: 16px 24px 4px;
     }
     .ufi-stat {
         padding: 11px 13px;
@@ -164,17 +172,17 @@ body[data-page="blog-usuarios-detalle"] {
     }
 
     .ufi-sub {
-        margin: 18px 20px 8px;
+        margin: 20px 24px 8px;
         font-size: .95rem; font-weight: 800; color: #374c69;
     }
     .ufi-vacio {
-        margin: 0 20px 18px;
+        margin: 0 24px 20px;
         padding: 15px;
         border-radius: 12px;
         background: #f8fafc;
         color: #94a3b8; font-size: .82rem; text-align: center;
         &--big {
-            margin: 0; padding: 34px 20px;
+            margin: 0; padding: 34px 24px;
             display: flex; flex-direction: column; align-items: center; gap: 12px;
             background: #fff; border: 1px solid #e6edf5; border-radius: 18px;
             i { font-size: 1.6rem; opacity: .5; }
@@ -209,8 +217,80 @@ body[data-page="blog-usuarios-detalle"] {
        escala real de 16px conseguía justo lo contrario: 20,8px contra los 13,6 de allí. */
     .admin-table td { font-size: .85rem; }
 
+    /* ── «Mi cuenta»: la única sección editable, solo en /dashboard/perfil ──── */
+    .ufi-cuenta {
+        &__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px 22px;
+            padding: 18px 24px 4px;   /* mismo eje que .ufi-cols */
+        }
+        &__pie {
+            display: flex; justify-content: flex-end; gap: 10px;
+            padding: 16px 24px 18px;
+            margin-top: 14px;
+            border-top: 1px solid #f0f4f8;
+        }
+    }
+    .ufi-campo {
+        min-width: 0;
+        &--wide { grid-column: 1 / -1; }
+        /* ⚠️ Tiene `display` propio, así que necesita su `&[hidden]`: si no,
+           `[hidden]{display:none}` de `base/_normalize.scss` pierde por cascada y
+           «Confirmar contraseña» nacería visible. */
+        &[hidden] { display: none; }
+
+        &__hint {
+            margin: 5px 0 0;
+            font-size: .75rem; color: #94a3b8; line-height: 1.45;
+            min-height: 1em;
+            &--pre { margin: 0 0 4px; }
+            &[hidden] { display: none; }
+        }
+        /* Ancla del botón del ojo, que va superpuesto dentro del campo. */
+        &__pw {
+            position: relative;
+            .admin-form__input { padding-right: 44px; }
+        }
+    }
+    /* Medidor de fortaleza. Vino de `_blog-perfil.scss`, que desapareció con la vista:
+       estos estilos solo los usa este formulario. */
+    .ufi-fuerza {
+        display: flex; gap: 3px;
+        margin-top: 8px;
+        &[hidden] { display: none; }
+    }
+    .sp-seg {
+        flex: 1; height: 4px; border-radius: 2px;
+        background: #E2E8F0;
+        transition: background .2s ease;
+    }
+    .admin-form__eye-btn {
+        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+        background: none; border: 0; padding: 4px;
+        color: #94A3B8; cursor: pointer; line-height: 1;
+        &:hover { color: #4267ac; }
+    }
+    /* Avisos del guardado. Antes eran `style=""` a pie de vista. */
+    .ufi-aviso {
+        display: flex; align-items: center; gap: 10px;
+        margin: 16px 24px 0;
+        padding: 11px 15px;
+        border-radius: 12px;
+        font-size: .82rem; line-height: 1.5;
+        &--ok    { background: #eef8d9; border: 1px solid #b6e06a; color: #3a6008; }
+        &--error { background: #fdeef0; border: 1px solid #f7d4d9; color: #b42318; align-items: flex-start; }
+        ul { margin: 0; padding-left: 18px; }
+    }
+    /* Encabezado interior del formulario: no lleva el inset de `.ufi-sub`, que ya lo
+       pone la rejilla que lo contiene. */
+    .ufi-sub--enform { margin: 6px 0 0; }
+
     /* ── Móvil ────────────────────────────────────────────────────────────── */
     @include hasta-sm {
+        .ufi-cuenta__grid { padding: 16px 16px 4px; gap: 14px; }
+        .ufi-cuenta__pie  { padding: 14px 16px 16px; }
+        .ufi-aviso        { margin: 14px 16px 0; }
         .ufi-hero {
             padding: 14px;
             gap: 12px;
@@ -221,10 +301,10 @@ body[data-page="blog-usuarios-detalle"] {
             }
             &__name { font-size: 1.1rem; }
         }
-        .ufi-cols  { padding: 13px 15px 16px; gap: 13px; }
-        .ufi-stats { padding: 13px 15px 4px; }
-        .ufi-sub   { margin: 16px 15px 8px; }
-        .ufi-vacio { margin: 0 15px 15px; }
+        .ufi-cols  { padding: 14px 16px 16px; gap: 13px; }
+        .ufi-stats { padding: 14px 16px 4px; }
+        .ufi-sub   { margin: 18px 16px 8px; }
+        .ufi-vacio { margin: 0 16px 16px; }
         /* El subnav en una sola línea deslizable: apilado en vertical ocuparía media
            pantalla justo antes del contenido al que lleva. */
         .ufi-nav {

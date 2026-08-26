@@ -52,17 +52,17 @@ $PASOS = [];
 if ($coordina) {
     $PASOS[] = ['clave' => 'cede', 'titulo' => '¿Quién no puede dar su clase?', 'corto' => 'Quién cede',
                 'sub'   => 'Elige al profesor que cede la clase. Su horario aparecerá en el paso siguiente.',
-                'alex'  => 'bby-alex-saluda', 'dice' => 'Un swap siempre es entre dos profesores. Empecemos por quien no puede dar su clase.'];
+                'alex'  => 'bby-alex-saluda', 'dice' => 'Un intercambio siempre es entre dos profesores. Empecemos por quien no puede dar su clase.'];
 }
 $PASOS[] = ['clave' => 'clase', 'titulo' => $coordina ? '¿Qué clase se cede?' : '¿Qué clase no puedes dar?', 'corto' => 'La clase',
             'sub'   => 'Elige el día y toca la clase en la rejilla.',
-            'alex'  => 'alex-point', 'dice' => 'Toca la clase en la semana. Solo se puede ceder una: el swap cambia una clase por otra.'];
+            'alex'  => 'alex-point', 'dice' => 'Toca la clase en la semana. Solo se puede ceder una: el intercambio cambia una clase por otra.'];
 $PASOS[] = ['clave' => 'quien', 'titulo' => $coordina ? '¿Con quién se cambia?' : '¿Con quién quieres cambiarla?', 'corto' => 'El compañero',
             'sub'   => 'Solo aparece personal docente.',
             'alex'  => 'alex-dice', 'dice' => 'Escribe unas letras del nombre. Solo salen profesores, y nunca quien ya cede la clase.'];
 $PASOS[] = ['clave' => 'cual', 'titulo' => $coordina ? '¿Cuál de sus clases toma a cambio?' : '¿Cuál de sus clases das tú a cambio?', 'corto' => 'La clase a cambio',
             'sub'   => 'Dentro de los ' . (int)$ventana . ' días siguientes al día que se cede.',
-            'alex'  => 'alex-lee', 'dice' => 'Estas son sus clases dentro de la ventana de ' . (int)$ventana . ' días. Más allá ya no sería un swap, sería un cambio de horario.'];
+            'alex'  => 'alex-lee', 'dice' => 'Estas son sus clases dentro de la ventana de ' . (int)$ventana . ' días. Más allá ya no sería un intercambio, sería un cambio de horario.'];
 $PASOS[] = ['clave' => 'fin', 'titulo' => 'Repasa el cambio', 'corto' => 'Confirmar',
             'sub'   => 'Comprueba que las dos clases son las correctas antes de enviarlo.',
             'alex'  => 'bby-alex-feliz',
@@ -80,7 +80,7 @@ $TOTAL = count($PASOS);
 
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <span class="admin-topbar__title"><?= $coordina ? 'Registrar swap' : 'Proponer swap' ?></span>
+                <span class="admin-topbar__title"><?= $coordina ? 'Registrar intercambio' : 'Proponer intercambio' ?></span>
             </div>
             <div class="admin-topbar__actions">
                 <?php include __DIR__ . '/../_topbar-avatar.php'; ?>
@@ -144,12 +144,12 @@ $TOTAL = count($PASOS);
                     </div>
 
                     <?php if ($coordina): ?>
-                    <?php /* El aviso vive fuera de los pasos: aplica al swap entero y hay
+                    <?php /* El aviso vive fuera de los pasos: aplica al intercambio entero y hay
                              que verlo desde el principio, no solo al confirmar. */ ?>
                     <div class="swp-nota-rol">
                         <span class="swp-nota-rol__ico"><i class="fa-solid fa-user-shield"></i></span>
                         <span class="swp-nota-rol__txt">
-                            <strong>Este swap quedará validado al registrarlo.</strong>
+                            <strong>Este intercambio quedará validado al registrarlo.</strong>
                             No se pide la conformidad de los profesores: se les avisa de que su clase cambió.
                         </span>
                     </div>

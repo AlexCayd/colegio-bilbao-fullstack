@@ -1,7 +1,11 @@
-/* blog-perfil
-   Migrado desde el <script> embebido de views/blog/perfil.php */
+/* blog-perfil — campos editables de «Mi cuenta».
+
+   ⚠️ Guarda por EXISTENCIA del formulario, no por `data-page`: la sección editable dejó
+   de tener página propia y ahora vive dentro de la ficha (`blog-usuarios-detalle`), que
+   es la misma plantilla que se usa para mirar a otra persona —donde el formulario no se
+   pinta—. Es la convención de los módulos compartidos (`_sidebar`, `_form`, `_bg`). */
 (function () {
-    if (!document.body || document.body.dataset.page !== 'blog-perfil') return;
+    if (!document.getElementById('form-perfil')) return;
     document.getElementById('avatar')?.addEventListener('change', function () {
         const file = this.files[0];
         if (!file) return;
@@ -80,9 +84,12 @@
             pwInput.addEventListener('input', function () {
                 const pw = this.value;
                 const hasContent = pw.length > 0;
-                if (spBar)        spBar.style.display = hasContent ? 'flex' : 'none';
-                if (spLabel)      spLabel.style.display = hasContent ? 'block' : 'none';
-                if (confirmGroup) confirmGroup.style.display = hasContent ? 'block' : 'none';
+                // `hidden`, no `style.display`: es lo que usa el resto del panel, y estos
+                // tres elementos tienen `display` propio en SCSS, así que su partial les
+                // declara su `&[hidden]`.
+                if (spBar)        spBar.hidden = !hasContent;
+                if (spLabel)      spLabel.hidden = !hasContent;
+                if (confirmGroup) confirmGroup.hidden = !hasContent;
                 if (hasContent) updateBar(evalStrength(pw));
                 checkMatch();
             });

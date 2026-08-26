@@ -178,10 +178,18 @@ coordinan las ausencias, pero nunca aparecen como candidatos a suplente. Por eso
 de Prefectura, Administrativos y Directivos no muestran la columna «Puede suplir».
 
 **Un directorio por tipo de personal.** `profesores` · `prefectura` · `administrativos` ·
-`directivos`, cada uno su propio módulo asignable, los cuatro sobre la misma vista
-(`views/blog/personal/index.php`, vía `renderDirectorio()`). Añadir uno nuevo no necesita vista, JS
-ni SCSS: entra en `UsuarioBlog::MODULOS_ASIGNABLES`, una ruta, un método de una línea, el catálogo y
-la categoría de `_modulos.php`, y los cuatro mapas de `_sidebar.php`.
+`directivos`, los cuatro sobre la misma vista (`views/blog/personal/index.php`, vía
+`renderDirectorio()`). Añadir uno nuevo no necesita vista, JS ni SCSS: entra en la constante de
+módulos que corresponda, una ruta, un método de una línea, el catálogo y la categoría de
+`_modulos.php`, y los cuatro mapas de `_sidebar.php`.
+
+⚠️ **Los cuatro son TRANSVERSALES, ya no asignables.** Están en
+`UsuarioBlog::MODULOS_TRANSVERSALES` junto a `soporte`, así que `puede('profesores')` da `true`
+para cualquiera con sesión y **no tienen casilla** en el formulario de usuarios. El directorio es
+la guía de personal —nombre, correo y puesto—, no una herramienta de gestión: el enlace a la ficha
+y las acciones de edición que viven dentro de esa vista siguen colgando de
+`blog_modulos_coordina()` y de `$puedeEditar`, así que abrir el listado no abre nada más.
+Con el cambio se retiró `BlogController::DIRECTORIO_DE_TIPO` (ver *Ficha del colaborador*).
 ⚠️ El color y el número de las tarjetas del home los asigna la **posición de render**, así que meter
 una clave en una categoría corre la paleta de las siguientes. Es esperado.
 
@@ -740,18 +748,28 @@ El panel está organizado en **módulos**. Tras iniciar sesión se llega a un **
 | `/dashboard/usuarios/horario/lugar` | `crearLugarGuardia` | Alta en línea de un lugar de guardia (JSON, admin) |
 | `/dashboard/swaps*` | `swaps`, `crearSwap`, `clasesSwapJson`, `horarioSwapJson`, `buscarProfesoresSwap`, `responderSwap`, `validarSwap`, `cancelarSwap` | **Swaps** (módulo `swaps`) |
 | `/dashboard/soporte` | `soporte` | **Soporte técnico** — transversal, lo tiene todo el mundo |
+| `/dashboard/perfil` | `BlogController::perfil` | **Mi perfil = mi propia ficha** (misma plantilla que `usuarios/detalle`, con los campos editables). Solo `requireAuth()` |
 
-**Módulo Soporte técnico.** No se asigna: está en `BlogController::MODULOS_TRANSVERSALES`,
-así que `puede('soporte')` siempre da `true` y `_sidebar.php` lo añade a mano a
-`$_misMods`. Es la vía para pedir ayuda cuando el panel falla, y condicionarla a un
-permiso dejaría sin ella justo a quien no puede arreglarlo por su cuenta. El CTA compone
+**Módulo Soporte técnico.** No se asigna: está en `UsuarioBlog::MODULOS_TRANSVERSALES`,
+así que `puede('soporte')` siempre da `true`. Es la vía para pedir ayuda cuando el panel
+falla, y condicionarla a un permiso dejaría sin ella justo a quien no puede arreglarlo
+por su cuenta.
+
+> ⚠️ **Hay DOS listas y las dos hacen falta.** `MODULOS_ASIGNABLES` es lo que se marca en el
+> formulario; `MODULOS_TRANSVERSALES` lo que se tiene sin marcar. Quien enumera módulos para
+> pintarlos —`BlogController::modulosDisponibles()` y `_sidebar.php`— tiene que recorrer **las
+> dos** (`UsuarioBlog::modulosTodos()`): mirando solo las asignables, Soporte y los cuatro
+> directorios desaparecen del home y del sidebar **para todo el mundo, admin incluido**, aunque
+> `puede()` los conceda. Ambas viven en el **modelo**, no en el controlador, porque las leen
+> también las vistas — como `private const` del controlador, `_sidebar.php` tenía que repetir
+> `'soporte'` a mano. El CTA compone
 el mensaje de WhatsApp en cliente (`SOPORTE_WHATSAPP`, formato internacional) con el
 nombre y el tipo de personal que llegan ya resueltos en `data-*`. El Q&A vive en
 `views/blog/soporte/_faq.php` —añadir una pregunta se hace ahí y en ningún otro sitio— y
 se **filtra a los módulos del usuario**: un profesor no necesita leer cómo se importa un
 CSV de horarios.
 
-**Módulo Swaps.** Intercambio PUNTUAL de clases entre dos profesores: no altera el horario
+**Módulo Swaps — en la UI, «Intercambios».** Intercambio PUNTUAL de clases entre dos profesores: no altera el horario
 permanente, solo dice qué pasa esos dos días concretos, y por eso cada lado guarda la
 pareja `(horario_id, fecha)`. Flujo `pendiente → aceptado/rechazado → validado/denegado`,
 con notificación en los tres pasos; el último lo da prefectura o dirección.
@@ -960,17 +978,40 @@ ocupado por un tercero reventaba la transacción con un `Duplicate entry 'lunes-
 ilegible. El aula se valida la última: si va antes, su error tapa el de nivel/periodo/materia,
 que es el que hay que corregir primero.
 
-**Ficha del colaborador** (`/dashboard/usuarios/detalle?id=N`). Reúne en una pantalla lo que
-el panel ya sabía de una persona y estaba repartido entre tres módulos: identidad y permisos,
-su horario semanal, sus ausencias, las horas que ha cubierto y sus swaps. Antes lo más
-parecido a una ficha era el **formulario de edición**, que solo abre un admin y que no dice
-nada de lo que esa persona hace.
+**Ficha del colaborador.** Reúne en una pantalla lo que el panel ya sabía de una persona y
+estaba repartido entre tres módulos: identidad y permisos, su horario semanal, sus ausencias,
+las horas que ha cubierto y sus intercambios. Antes lo más parecido a una ficha era el
+**formulario de edición**, que solo abre un admin y que no dice nada de lo que esa persona hace.
 
-- **Guard en tres pasos:** sesión → `puedeCoordinar()` (expone motivos de ausencia y horarios
-  ajenos: la misma frontera que separa la agenda del histórico del plantel) → módulo
-  `usuarios` **o** el directorio del tipo de la persona mirada (`DIRECTORIO_DE_TIPO`). Ese
-  mapeo vive en el **controlador** y no en un modelo: es política de acceso del panel, como
-  `nivelesAlcance()`.
+**DOS RUTAS, UNA PLANTILLA** (`views/blog/usuarios/detalle.php`), que es lo que impide que las
+dos pantallas acaben pintando historiales distintos:
+
+| Ruta | Guard | Qué añade |
+|---|---|---|
+| `/dashboard/usuarios/detalle?id=N` | `requireFichaColaborador($id)` | — (solo lectura) |
+| `/dashboard/perfil` | **`requireAuth()` a secas** | la sección editable `#ufi-cuenta` (`esPropio`) |
+
+- **«Mi perfil» ES mi propia ficha.** Era un formulario suelto —foto, nombre, correo,
+  contraseña— que no decía nada de lo que esa persona hace, mientras que la ficha, que sí,
+  solo la abría quien coordina: **un profesor no tenía dónde ver su propio histórico**. Ahora
+  `perfil()` reusa `datosFicha()` y solo levanta el flag `esPropio`. Los campos editables van
+  en `views/blog/usuarios/_perfil-cuenta.php`, primero de la pila; su `<form>` envuelve **solo
+  esa sección** y su pie **no** es `--sticky` (es una sección de cinco, no la página entera).
+  `views/blog/perfil.php` y `_blog-perfil.scss` desaparecieron; `blog-perfil.js` pasó a
+  guarda **por existencia de `#form-perfil`**, no por `data-page`.
+- ⚠️ `$paginaVista` es **`blog-usuarios-detalle` en las dos rutas**, y tiene que serlo: ese id
+  está en la lista de `body[data-page]` de `_admin-horarios.scss` (ver abajo).
+- ⚠️ `/dashboard/perfil` pasa `niveles = []`: una dirección de nivel no debe verse **su propia**
+  ficha recortada por su alcance de gestión.
+- **Guard en dos pasos** (la ajena): sesión → `puedeCoordinar()` (expone motivos de ausencia y
+  horarios ajenos: la misma frontera que separa la agenda del histórico del plantel).
+  Hubo un tercer paso —módulo `usuarios` **o** el directorio del tipo de la persona mirada, vía
+  `DIRECTORIO_DE_TIPO`— que acotaba a un prefecto a las fichas de los tipos cuyo directorio
+  tuviera asignado. Se retiró al volverse transversales los cuatro directorios: con
+  `puede('profesores')` devolviendo siempre `true` era ya un `true` constante, y dejarlo escrito
+  habría aparentado decidir algo que no podía decidir. **Consecuencia real:** un coordinador
+  abre ahora la ficha de cualquier tipo de personal, no solo la de aquellos cuyo directorio
+  tenía. Ningún profesor raso gana nada — `puedeCoordinar()` sigue en pie.
 - **Cero consultas nuevas.** Reutiliza `datosHorarioProfesor()` —la misma fuente que «Mi
   horario» y su PDF, así que las tres no pueden pintar semanas distintas— más los métodos que
   ya sabían ceñirse a UNA persona: `Suplencia::listar(['ausente_id'=>N])`, `conteos($id)`,
@@ -1550,9 +1591,10 @@ con un toast de Alex. Antes era un `Location: /dashboard` mudo y parecía que el
     algo que no lo es. La detección del módulo activo sí se conserva
     (`$_modActivo === 'notificaciones'`), para que el breadcrumb siga diciendo
     «Inicio › Notificaciones».
-  - ⚠️ La lista de módulos del admin sale de `UsuarioBlog::MODULOS_ASIGNABLES`, igual que
-    `BlogController::modulosDisponibles()`. Estuvo escrita a mano con cinco claves y dejaba fuera
-    aulas, grupos y los tres directorios: el sidebar mostraba menos módulos que el home.
+  - ⚠️ La lista de módulos del admin sale de `UsuarioBlog::MODULOS_ASIGNABLES` **unida a
+    `MODULOS_TRANSVERSALES`**, igual que `BlogController::modulosDisponibles()`. Estuvo escrita a
+    mano con cinco claves y dejaba fuera aulas, grupos y los tres directorios: el sidebar mostraba
+    menos módulos que el home. Sin la unión pasa lo mismo con Soporte y los cuatro directorios.
 - **⚠️ El topbar NO lleva acciones de página.** En él quedan **campana** (icono blanco sobre
   `--pal-indigo`), **avatar** y el **logout** rojo, y nada más: los tres son del panel entero y
   los pinta `_topbar-avatar.php`, que incluyen todas las vistas, así que basta tocarlo una vez

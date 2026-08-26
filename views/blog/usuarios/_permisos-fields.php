@@ -30,11 +30,11 @@ $MODS_CAT = blog_modulos_catalogo(true);
 $MODS_GRP = blog_modulos_categorias();
 $ASIGNABLES = \Model\UsuarioBlog::MODULOS_ASIGNABLES;
 
-// Los cuatro módulos-directorio se rotulan «Directorio · X» SOLO aquí, para que no se
-// confundan con el tipo de personal homónimo. En el home y el sidebar «Profesores» es
-// el rótulo correcto y alargarlo descuadraría las tarjetas, así que el catálogo
-// compartido no se toca.
-$DIRECTORIOS = ['profesores', 'prefectura', 'administrativos', 'directivos'];
+// ⚠️ Los cuatro directorios de personal y Soporte técnico YA NO SE MARCAN: son
+// transversales (UsuarioBlog::MODULOS_TRANSVERSALES) y los tiene todo el mundo, así que
+// no están en MODULOS_ASIGNABLES y el filtro de abajo los deja fuera solo. Con ellos se
+// fue el rótulo «Directorio · X» que los desambiguaba del tipo de personal homónimo, y
+// la categoría «Ayuda» entera, que se queda sin claves.
 
 // El orden va alineado con UsuarioBlog::normalizarTipoPersonal(), que es quien
 // decide en qué orden se guarda el CSV y salen los chips del listado. El color es el
@@ -137,7 +137,7 @@ $EXCLUYENTES = \Model\UsuarioBlog::TIPOS_EXCLUYENTES;
                           de nivel. Hay que decirlo o se creará sin alcance sin querer. */ ?>
                 <span class="admin-form__hint" style="margin-top:10px;display:block;"
                       data-niveles-hint="directivo"<?= in_array('directivo', $tiposSel, true) ? '' : ' hidden' ?>>
-                    Acota lo que verá: su tablero, su agenda de suplencias, los swaps
+                    Acota lo que verá: su tablero, su agenda de suplencias, los intercambios
                     y la cola de justificantes se limitan a estos niveles.
                     <strong>Déjalo vacío solo si debe ver todo el colegio.</strong>
                 </span>
@@ -161,7 +161,7 @@ $EXCLUYENTES = \Model\UsuarioBlog::TIPOS_EXCLUYENTES;
             <span class="admin-form-step__n">2</span>
             <div class="admin-form-step__txt">
                 <strong>¿A qué puede entrar en el panel?</strong>
-                <small>Sus permisos. El <strong>Administrador</strong> accede a todo sin excepción; el <strong>Usuario</strong>, solo a los módulos que marques.</small>
+                <small>El administrador entra a todo. El usuario, solo a lo que marques aquí abajo.</small>
             </div>
         </div>
 
@@ -201,20 +201,15 @@ $EXCLUYENTES = \Model\UsuarioBlog::TIPOS_EXCLUYENTES;
             <div class="admin-modulos__cat">
                 <span class="admin-modulos__cat-label"><i class="fa-solid <?= $grp['icon'] ?>"></i> <?= $grp['label'] ?></span>
                 <div class="admin-mod-grid">
-                    <?php foreach ($claves as $key): $m = $MODS_CAT[$key];
-                        // «Directorio · Profesores» desambigua del tipo «Profesor»
-                        $rotulo = in_array($key, $DIRECTORIOS, true)
-                            ? 'Directorio · ' . $m['nombre']
-                            : $m['nombre']; ?>
+                    <?php foreach ($claves as $key): $m = $MODS_CAT[$key]; ?>
                     <?php /* Solo el nombre. La descripción se leía una vez, al aprender el
                              panel, y luego eran trece líneas de texto entre el admin y las
-                             casillas que venía a marcar. Sigue disponible en el `title`, junto
-                             al rótulo, para cuando el nombre se recorte por ellipsis. */ ?>
-                    <label class="admin-mod-chip" data-modulo="<?= $key ?>" title="<?= s($rotulo . ' — ' . $m['desc']) ?>">
+                             casillas que venía a marcar. Sigue disponible en el `title`. */ ?>
+                    <label class="admin-mod-chip" data-modulo="<?= $key ?>" title="<?= s($m['nombre'] . ' — ' . $m['desc']) ?>">
                         <input type="checkbox" name="modulos[]" value="<?= $key ?>" <?= in_array($key, $modsSel, true) ? 'checked' : '' ?>>
                         <span class="admin-mod-chip__box"><i class="fa-solid fa-check"></i></span>
                         <span class="admin-mod-chip__icon"><i class="fa-solid <?= $m['icon'] ?>"></i></span>
-                        <span class="admin-mod-chip__name"><?= s($rotulo) ?></span>
+                        <span class="admin-mod-chip__name"><?= s($m['nombre']) ?></span>
                     </label>
                     <?php endforeach; ?>
                 </div>

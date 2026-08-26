@@ -113,10 +113,33 @@ class UsuarioBlog extends ActiveRecord {
 
     /** Lista blanca de módulos asignables a un rol 'usuario'. */
     public const MODULOS_ASIGNABLES = [
-        'usuarios', 'profesores', 'prefectura', 'administrativos', 'directivos',
-        'eventos', 'horarios', 'aulas', 'grupos', 'suplencias', 'swaps',
-        'redaccion', 'soporte',
+        'usuarios', 'eventos', 'horarios', 'aulas', 'grupos', 'suplencias', 'swaps',
+        'redaccion',
     ];
+
+    /**
+     * Módulos que NO se asignan porque los tiene todo el mundo.
+     *
+     * `soporte` es la vía para pedir ayuda cuando algo del panel falla: condicionarla a
+     * un permiso dejaría sin ella justo a quien no puede entrar a arreglarlo por su
+     * cuenta. Los cuatro **directorios** son la guía de personal del colegio —nombre,
+     * correo y puesto—, no una herramienta de gestión: el enlace a la ficha y las
+     * acciones de edición que viven dentro de esa vista siguen con su propio guard
+     * (`blog_modulos_coordina()` en `views/blog/personal/index.php`), así que abrir el
+     * listado no abre nada más.
+     *
+     * ⚠️ Vive aquí, y no en `BlogController`, porque la leen los dos: el guard
+     * (`puede()`, `modulosDisponibles()`) y las vistas (`_sidebar.php`). Como
+     * `private const` del controlador obligaba al sidebar a repetir la lista a mano.
+     */
+    public const MODULOS_TRANSVERSALES = [
+        'soporte', 'profesores', 'prefectura', 'administrativos', 'directivos',
+    ];
+
+    /** Todo lo que puede aparecer en el panel: asignables + transversales. */
+    public static function modulosTodos(): array {
+        return array_merge(self::MODULOS_ASIGNABLES, self::MODULOS_TRANSVERSALES);
+    }
 
     /**
      * Módulos que se preseleccionan al marcar un tipo de personal.
@@ -126,17 +149,18 @@ class UsuarioBlog extends ActiveRecord {
      * tiene asignado en el seed, así que dar de alta a alguien «como los demás» deja
      * de ser un ejercicio de memoria.
      *
-     * `soporte` no aparece en ninguna: es transversal (`MODULOS_TRANSVERSALES`) y lo
-     * tiene todo el mundo, así que marcarlo sería ruido.
+     * Ni `soporte` ni los cuatro directorios aparecen en ninguna: son transversales
+     * (`MODULOS_TRANSVERSALES`) y los tiene todo el mundo, así que sugerirlos sería
+     * ruido — y además inflaría el «se marcaron N módulos recomendados» con casillas
+     * que ya no existen en el formulario.
      */
     public const MODULOS_SUGERIDOS = [
         'profesor'       => ['suplencias', 'horarios', 'swaps'],
         'administrativo' => ['eventos'],
-        'prefecto'       => ['suplencias', 'horarios', 'swaps', 'profesores'],
+        'prefecto'       => ['suplencias', 'horarios', 'swaps'],
         // Dirección gobierna: ve todo el panel, acotado por `niveles` a su nivel.
-        'directivo'      => ['suplencias', 'horarios', 'swaps', 'usuarios', 'profesores',
-                             'prefectura', 'administrativos', 'directivos', 'aulas',
-                             'grupos', 'eventos'],
+        'directivo'      => ['suplencias', 'horarios', 'swaps', 'usuarios',
+                             'aulas', 'grupos', 'eventos'],
     ];
 
     /** Tipos de personal que NO se combinan con ningún otro, en orden de prioridad. */

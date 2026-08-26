@@ -14939,14 +14939,18 @@ tbody tr.is-filtered {
 .admin-form-step__txt {
   min-width: 0;
   padding-top: 1px;
+  /* ⚠️ HIJO DIRECTO, no descendiente. Con `strong` a secas la regla alcanzaba
+     también al énfasis escrito DENTRO del `<small>`, y cada palabra resaltada
+     se partía a su propia línea: «Sus permisos. El / Administrador / accede a
+     todo…» se leía como tres frases rotas en vez de una. */
 }
-.admin-form-step__txt strong {
+.admin-form-step__txt > strong {
   display: block;
   font-size: 0.98rem;
   font-weight: 800;
   color: #0B1F3D;
 }
-.admin-form-step__txt small {
+.admin-form-step__txt > small {
   display: block;
   margin-top: 3px;
   font-size: 0.82rem;
@@ -15099,19 +15103,17 @@ input:focus-visible + .admin-tipo-card__box {
    vs «Directivo» se vuelve ambiguo. */
 .admin-mod-grid {
   display: grid;
-  /* ⚠️ No bajar de ~216px: la etiqueta más larga es «Directorio · Administrativos» a
-     13px/700, y por debajo salen con ellipsis TODOS los directorios a la vez. */
-  grid-template-columns: repeat(auto-fit, minmax(216px, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
 }
 
 .admin-mod-chip {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 11px;
+  gap: 11px;
+  padding: 12px 14px;
   border: 1.5px solid #e8edf4;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fbfcfe;
   cursor: pointer;
   transition: border-color 0.16s ease, background 0.16s ease;
@@ -15126,15 +15128,15 @@ input:focus-visible + .admin-tipo-card__box {
   background: #fff;
 }
 .admin-mod-chip__box {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   border: 1.5px solid #cbd5e1;
-  border-radius: 5px;
+  border-radius: 6px;
   background: #fff;
   display: grid;
   place-items: center;
-  font-size: 9px;
+  font-size: 10px;
   color: #fff;
   transition: background 0.16s ease, border-color 0.16s ease;
 }
@@ -15143,27 +15145,26 @@ input:focus-visible + .admin-tipo-card__box {
   transition: opacity 0.12s ease;
 }
 .admin-mod-chip__icon {
-  width: 22px;
+  width: 26px;
   flex-shrink: 0;
   text-align: center;
-  font-size: 13px;
+  font-size: 15px;
   color: #94A3B8;
   transition: color 0.16s ease;
 }
 .admin-mod-chip {
-  /* El ellipsis se hereda del `__desc` que desapareció: ahora es el nombre el que
-     puede no caber, y recortarlo es preferible a que empuje la columna. */
+  /* Sin `ellipsis`: el recorte lo pedía «Directorio · Administrativos», y los cuatro
+     directorios dejaron de ser asignables (son transversales). Con las etiquetas que
+     quedan —la más larga es «Suplencias»— sobra ancho de columna, y un nombre de
+     módulo cortado es justo el dato que hay que leer para marcar la casilla. */
 }
 .admin-mod-chip__name {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #1E293B;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
 }
 input:checked ~ .admin-mod-chip__icon {
   color: #4267ac;
@@ -19755,6 +19756,9 @@ body[data-page=blog-grupos-form] .cat-aviso {
    cortado por el borde inferior del panel. Se levanta el recorte solo mientras
    hay un datepicker abierto, para no perder el clip el resto del tiempo.
    El JS marca TODOS los ancestros que recortan, no solo el más cercano. */
+/* ⚠️ (0,2,0): solo levanta recortes declarados SIN scope de página. Un `overflow` dentro
+   de `body[data-page=…]` es (0,2,1) y gana — ese contenedor declara su propio desrecorte
+   anidado (ver `.swp-panel` en `_blog-swaps.scss`). */
 .admin-panel.has-datepicker-open,
 .admin-form-section.has-datepicker-open,
 .admin-form-row.has-datepicker-open {
@@ -24648,6 +24652,22 @@ body[data-page=blog-personal-index] .per-empty {
   font-size: 12.5px;
   color: #94A3B8;
   text-align: center;
+}
+
+/* `.picker__results` es `position:absolute`, así que cualquier ancestro con
+   `overflow: clip` lo recorta por GEOMETRÍA y el `z-index:40` no puede con eso.
+   `admin-picker.js` marca con `has-picker-open` todos los ancestros que recortan
+   mientras la lista está abierta, no solo el más cercano — misma solución que
+   `has-datepicker-open`.
+
+   ⚠️ Estos selectores son (0,2,0) y solo levantan recortes declarados SIN scope de
+   página. Un contenedor cuyo `overflow` viva dentro de `body[data-page=…]` es (0,2,1) y
+   gana: ese tiene que declarar su propio desrecorte anidado, como hace `.swp-panel` en
+   `_blog-swaps.scss`. Añadir su clase a esta lista no sirve de nada. */
+.admin-panel.has-picker-open,
+.admin-form-section.has-picker-open,
+.admin-form-row.has-picker-open {
+  overflow: visible;
 }
 
 /* Móvil: los resultados heredan el ancho del campo y, si el picker está abajo del
@@ -32260,34 +32280,6 @@ body[data-page=blog-noticias-index] .at-bar {
   }
 }
 /* =========================================================
-   blog-perfil
-   Migrado desde el \3c style> embebido de views/blog/perfil.php
-========================================================= */
-body[data-page=blog-perfil] .admin-form__eye-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #94A3B8;
-  padding: 6px;
-  line-height: 1;
-  font-size: 0.9rem;
-}
-body[data-page=blog-perfil] .admin-form__eye-btn:hover {
-  color: #4267ac;
-}
-body[data-page=blog-perfil] .sp-seg {
-  flex: 1;
-  height: 4px;
-  border-radius: 4px;
-  background: #E2E8F0;
-  transition: background 0.2s;
-}
-
-/* =========================================================
    blog-revisiones-index
    Migrado desde el \3c style> embebido de views/blog/revisiones/index.php
 ========================================================= */
@@ -33245,9 +33237,14 @@ body[data-page=blog-swaps-crear] .swp-wiz__bar-fill {
   border-radius: 999px;
   transition: width 0.3s ease;
 }
+body[data-page=blog-swaps-crear] {
+  /* Centrado, no `flex-start`: el icono es una insignia de 34px y el texto ocupa una
+     o dos líneas según el ancho. Anclado arriba quedaba descolgado del texto en la
+     versión de una línea, que es como se ve casi siempre. */
+}
 body[data-page=blog-swaps-crear] .swp-nota-rol {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 13px;
   margin: 0 0 14px;
   padding: 11px 15px;
@@ -33290,6 +33287,19 @@ body[data-page=blog-swaps-crear] .swp-panel {
 }
 body[data-page=blog-swaps-crear] .swp-panel[hidden] {
   display: none;
+}
+body[data-page=blog-swaps-crear] .swp-panel {
+  /* ⚠️ El desrecorte de los popovers (buscador de profesores, calendario) se declara
+     AQUÍ, y no basta con la lista genérica de `_admin-suplencias.scss` /
+     `_admin-datepicker.scss`. Aquellas son `.swp-panel.has-picker-open` → (0,2,0), y
+     el `overflow: clip` de arriba es `body[data-page=…] .swp-panel` → (0,2,1): ganaba
+     el recorte y el desplegable seguía cortado por el borde del panel.
+     Es la misma trampa de cascada que `[hidden]` y que la paginación de
+     `.admin-table`: una regla genérica NO puede levantar algo declarado dentro de un
+     scope de página. Anidada, hereda el scope y sube a (0,3,1). */
+}
+body[data-page=blog-swaps-crear] .swp-panel.has-picker-open, body[data-page=blog-swaps-crear] .swp-panel.has-datepicker-open {
+  overflow: visible;
 }
 body[data-page=blog-swaps-crear] .swp-panel__head {
   padding: 18px 24px 14px;
@@ -34706,7 +34716,9 @@ body[data-page=blog-testimoniales-index] .cmodal__actions {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Ficha interna de un colaborador — /dashboard/usuarios/detalle?id=N
+   Ficha de una persona. DOS RUTAS, UNA PLANTILLA:
+     /dashboard/usuarios/detalle?id=N  → otra persona, solo lectura
+     /dashboard/perfil                 → uno mismo, con «Mi cuenta» editable arriba
 
    Secciones apiladas y un subnav de anclas, no pestañas: qué secciones existen
    depende del tipo de personal, y unas pestañas cuyo número cambia según a quién
@@ -34724,6 +34736,15 @@ body[data-page=blog-testimoniales-index] .cmodal__actions {
    0.7rem–1.05rem.
    ───────────────────────────────────────────────────────────────────────────── */
 body[data-page=blog-usuarios-detalle] {
+  /* ⚠️ `.admin-panel` no trae margen propio (`estaticas/_blog-admin.scss`) y
+     `.admin-content` no es flex con `gap`, así que las hasta SEIS secciones apiladas
+     de esta vista se tocaban borde con borde y se leían como un solo bloque. Mismo
+     remedio, y por lo mismo, que en `blog-suplencias-mis-coberturas`. */
+}
+body[data-page=blog-usuarios-detalle] .admin-panel + .admin-panel {
+  margin-top: 22px;
+}
+body[data-page=blog-usuarios-detalle] {
   /* ── Cabecera de identidad ────────────────────────────────────────────── */
 }
 body[data-page=blog-usuarios-detalle] .ufi-hero {
@@ -34732,7 +34753,7 @@ body[data-page=blog-usuarios-detalle] .ufi-hero {
   gap: 16px;
   flex-wrap: wrap;
   padding: 16px 20px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   background: #fff;
   border: 1px solid #e6edf5;
   border-radius: 18px;
@@ -34847,7 +34868,7 @@ body[data-page=blog-usuarios-detalle] .ufi-alcance {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 14px;
+  margin: 0 0 18px;
   padding: 8px 12px;
   border-radius: 12px;
   background: #fff7e6;
@@ -34862,7 +34883,7 @@ body[data-page=blog-usuarios-detalle] .ufi-nav {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 body[data-page=blog-usuarios-detalle] .ufi-nav a {
   display: inline-flex;
@@ -34889,8 +34910,8 @@ body[data-page=blog-usuarios-detalle] {
 body[data-page=blog-usuarios-detalle] .ufi-cols {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px 20px;
-  padding: 15px 20px 18px;
+  gap: 14px 22px;
+  padding: 16px 24px 20px;
 }
 body[data-page=blog-usuarios-detalle] .ufi-field {
   min-width: 0;
@@ -34950,7 +34971,7 @@ body[data-page=blog-usuarios-detalle] .ufi-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
-  padding: 15px 20px 4px;
+  padding: 16px 24px 4px;
 }
 body[data-page=blog-usuarios-detalle] .ufi-stat {
   padding: 11px 13px;
@@ -34994,13 +35015,13 @@ body[data-page=blog-usuarios-detalle] .ufi-stat--bad .ufi-stat__n {
   color: #b42318;
 }
 body[data-page=blog-usuarios-detalle] .ufi-sub {
-  margin: 18px 20px 8px;
+  margin: 20px 24px 8px;
   font-size: 0.95rem;
   font-weight: 800;
   color: #374c69;
 }
 body[data-page=blog-usuarios-detalle] .ufi-vacio {
-  margin: 0 20px 18px;
+  margin: 0 24px 20px;
   padding: 15px;
   border-radius: 12px;
   background: #f8fafc;
@@ -35010,7 +35031,7 @@ body[data-page=blog-usuarios-detalle] .ufi-vacio {
 }
 body[data-page=blog-usuarios-detalle] .ufi-vacio--big {
   margin: 0;
-  padding: 34px 20px;
+  padding: 34px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -35085,9 +35106,141 @@ body[data-page=blog-usuarios-detalle] .admin-table td {
   font-size: 0.85rem;
 }
 body[data-page=blog-usuarios-detalle] {
+  /* ── «Mi cuenta»: la única sección editable, solo en /dashboard/perfil ──── */
+}
+body[data-page=blog-usuarios-detalle] .ufi-cuenta__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px 22px;
+  padding: 18px 24px 4px; /* mismo eje que .ufi-cols */
+}
+body[data-page=blog-usuarios-detalle] .ufi-cuenta__pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 18px;
+  margin-top: 14px;
+  border-top: 1px solid #f0f4f8;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo {
+  min-width: 0;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo--wide {
+  grid-column: 1/-1;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo {
+  /* ⚠️ Tiene `display` propio, así que necesita su `&[hidden]`: si no,
+     `[hidden]{display:none}` de `base/_normalize.scss` pierde por cascada y
+     «Confirmar contraseña» nacería visible. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo[hidden] {
+  display: none;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo__hint {
+  margin: 5px 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.45;
+  min-height: 1em;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo__hint--pre {
+  margin: 0 0 4px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo__hint[hidden] {
+  display: none;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo {
+  /* Ancla del botón del ojo, que va superpuesto dentro del campo. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo__pw {
+  position: relative;
+}
+body[data-page=blog-usuarios-detalle] .ufi-campo__pw .admin-form__input {
+  padding-right: 44px;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* Medidor de fortaleza. Vino de `_blog-perfil.scss`, que desapareció con la vista:
+     estos estilos solo los usa este formulario. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-fuerza {
+  display: flex;
+  gap: 3px;
+  margin-top: 8px;
+}
+body[data-page=blog-usuarios-detalle] .ufi-fuerza[hidden] {
+  display: none;
+}
+body[data-page=blog-usuarios-detalle] .sp-seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #E2E8F0;
+  transition: background 0.2s ease;
+}
+body[data-page=blog-usuarios-detalle] .admin-form__eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  padding: 4px;
+  color: #94A3B8;
+  cursor: pointer;
+  line-height: 1;
+}
+body[data-page=blog-usuarios-detalle] .admin-form__eye-btn:hover {
+  color: #4267ac;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* Avisos del guardado. Antes eran `style=""` a pie de vista. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 24px 0;
+  padding: 11px 15px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+body[data-page=blog-usuarios-detalle] .ufi-aviso--ok {
+  background: #eef8d9;
+  border: 1px solid #b6e06a;
+  color: #3a6008;
+}
+body[data-page=blog-usuarios-detalle] .ufi-aviso--error {
+  background: #fdeef0;
+  border: 1px solid #f7d4d9;
+  color: #b42318;
+  align-items: flex-start;
+}
+body[data-page=blog-usuarios-detalle] .ufi-aviso ul {
+  margin: 0;
+  padding-left: 18px;
+}
+body[data-page=blog-usuarios-detalle] {
+  /* Encabezado interior del formulario: no lleva el inset de `.ufi-sub`, que ya lo
+     pone la rejilla que lo contiene. */
+}
+body[data-page=blog-usuarios-detalle] .ufi-sub--enform {
+  margin: 6px 0 0;
+}
+body[data-page=blog-usuarios-detalle] {
   /* ── Móvil ────────────────────────────────────────────────────────────── */
 }
 @media (max-width: 720px) {
+  body[data-page=blog-usuarios-detalle] .ufi-cuenta__grid {
+    padding: 16px 16px 4px;
+    gap: 14px;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-cuenta__pie {
+    padding: 14px 16px 16px;
+  }
+  body[data-page=blog-usuarios-detalle] .ufi-aviso {
+    margin: 14px 16px 0;
+  }
   body[data-page=blog-usuarios-detalle] .ufi-hero {
     padding: 14px;
     gap: 12px;
@@ -35104,17 +35257,17 @@ body[data-page=blog-usuarios-detalle] {
     font-size: 1.1rem;
   }
   body[data-page=blog-usuarios-detalle] .ufi-cols {
-    padding: 13px 15px 16px;
+    padding: 14px 16px 16px;
     gap: 13px;
   }
   body[data-page=blog-usuarios-detalle] .ufi-stats {
-    padding: 13px 15px 4px;
+    padding: 14px 16px 4px;
   }
   body[data-page=blog-usuarios-detalle] .ufi-sub {
-    margin: 16px 15px 8px;
+    margin: 18px 16px 8px;
   }
   body[data-page=blog-usuarios-detalle] .ufi-vacio {
-    margin: 0 15px 15px;
+    margin: 0 16px 16px;
   }
   body[data-page=blog-usuarios-detalle] {
     /* El subnav en una sola línea deslizable: apilado en vertical ocuparía media

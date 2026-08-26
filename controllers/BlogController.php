@@ -95,18 +95,13 @@ class BlogController {
         }
     }
 
-    /**
-     * Módulos que no se asignan porque los tiene todo el mundo. Soporte técnico es la
-     * vía para pedir ayuda cuando algo del panel falla: condicionarla a un permiso
-     * dejaría sin ella justo a quien no puede entrar a arreglarlo por su cuenta.
-     */
-    private const MODULOS_TRANSVERSALES = ['soporte'];
-
     /** ¿El usuario en sesión puede acceder al módulo indicado? El admin accede a todos. */
     private static function puede(string $modulo): bool {
         $u = $_SESSION['blog_usuario'] ?? null;
         if (!$u) return false;
-        if (\in_array($modulo, self::MODULOS_TRANSVERSALES, true)) return true;
+        // Transversales (soporte + los cuatro directorios): los tiene cualquiera con
+        // sesión. La lista vive en el modelo porque también la leen las vistas.
+        if (\in_array($modulo, \Model\UsuarioBlog::MODULOS_TRANSVERSALES, true)) return true;
         if (($u['rol'] ?? '') === 'administrador') return true;
         $lista = array_filter(array_map('trim', explode(',', (string) ($u['modulos'] ?? ''))));
         return \in_array($modulo, $lista, true);
@@ -145,9 +140,14 @@ class BlogController {
         }
     }
 
-    /** Lista de módulos disponibles para el usuario en sesión (para el home/sidebar). */
+    /**
+     * Lista de módulos disponibles para el usuario en sesión (para el home/sidebar).
+     * ⚠️ Sobre asignables **+ transversales**: si solo mirase la lista blanca de
+     * asignables, los cuatro directorios y Soporte desaparecerían del home para todo
+     * el mundo, admin incluido, aunque `puede()` los conceda.
+     */
     private static function modulosDisponibles(): array {
-        $todos = \Model\UsuarioBlog::MODULOS_ASIGNABLES;
+        $todos = \Model\UsuarioBlog::modulosTodos();
         return array_values(array_filter($todos, fn($m) => self::puede($m)));
     }
 
@@ -1659,7 +1659,7 @@ class BlogController {
         $niv = self::nivelesVista();
 
         $router->renderAdmin('blog/swaps/index', [
-            'titulo'     => 'Swaps de clase',
+            'titulo'     => 'Intercambios de clase',
             'mios'       => $imparte  ? \Model\Swap::deProfesor($uid) : [],
             // Quien coordina Y además imparte ya tiene los suyos arriba: se excluyen
             // de la lista del claustro para no verlos dos veces en la misma pantalla.
@@ -1733,18 +1733,18 @@ class BlogController {
                         foreach ([(int)$swap->solicitante_id, (int)$swap->destinatario_id] as $d) {
                             if (!$d || $d === $uid) continue;
                             Notificacion::nueva($d, 'swap_impuesto',
-                                "{$quien} registró un swap de clase que te afecta el "
+                                "{$quien} registró un intercambio de clase que te afecta el "
                                     . fecha_larga($swap->fecha_origen) . '. Ya está validado.',
                                 (int)$r['id'], 'swap', 'horarios', 'aviso', '/dashboard/swaps');
                         }
                         self::avisarSwapDireccion((int)$r['id'], 'swap_validado',
-                            'Se registró un swap de clase validado para el '
+                            'Se registró un intercambio de clase validado para el '
                                 . fecha_larga($swap->fecha_origen) . '.');
                     } else {
                         Notificacion::nueva(
                             (int)$swap->destinatario_id, 'swap_solicitado',
                             ($_SESSION['blog_usuario']['nombre'] ?? 'Un compañero')
-                                . ' te propone un swap de clase para el ' . fecha_larga($swap->fecha_origen) . '.',
+                                . ' te propone un intercambio de clase para el ' . fecha_larga($swap->fecha_origen) . '.',
                             (int)$r['id'], 'swap', 'horarios', 'info', '/dashboard/swaps'
                         );
                     }
@@ -1757,7 +1757,7 @@ class BlogController {
         // El compañero ya no se elige de una lista precargada: lo busca el picker contra
         // /dashboard/swaps/buscar, que filtra a personal docente y excluye al solicitante.
         $router->renderAdmin('blog/swaps/crear', [
-            'titulo'      => $coordina ? 'Registrar swap' : 'Proponer swap',
+            'titulo'      => $coordina ? 'Registrar intercambio' : 'Proponer intercambio',
             'swap'        => $swap,
             'alertas'     => $alertas,
             'misClases'   => Horario::porProfesor($uid),
@@ -1878,10 +1878,10 @@ class BlogController {
                 $acepta ? 'swap_aceptado' : 'swap_rechazado',
                 ($_SESSION['blog_usuario']['nombre'] ?? 'Tu compañero')
                     . ($acepta
-                        ? ' aceptó el swap del ' . fecha_larga($swap->fecha_origen) . '. Queda pendiente de validación.'
+                        ? ' aceptó el intercambio del ' . fecha_larga($swap->fecha_origen) . '. Queda pendiente de validación.'
                         // El motivo viaja EN el aviso: si no, hay que abrir el listado
                         // para enterarse de por qué te han dicho que no.
-                        : ' no puede hacer el swap del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota),
+                        : ' no puede hacer el intercambio del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota),
                 (int)$swap->id, 'swap', 'horarios', $acepta ? 'exito' : 'aviso', '/dashboard/swaps'
             );
 
@@ -1889,7 +1889,7 @@ class BlogController {
             // lo delataba el badge del subnav, y podía quedarse ahí para siempre.
             if ($acepta) {
                 self::avisarSwapDireccion((int)$swap->id, 'swap_por_validar',
-                    'Hay un swap de clase aceptado que espera validación, para el '
+                    'Hay un intercambio de clase aceptado que espera validación, para el '
                         . fecha_larga($swap->fecha_origen) . '.');
             }
         }
@@ -1925,8 +1925,8 @@ class BlogController {
             $swap->guardar();
 
             $texto = $ok
-                ? 'Se validó el swap de clase del ' . fecha_larga($swap->fecha_origen) . '. Ya es efectivo.'
-                : 'Se denegó el swap de clase del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota;
+                ? 'Se validó el intercambio de clase del ' . fecha_larga($swap->fecha_origen) . '. Ya es efectivo.'
+                : 'Se denegó el intercambio de clase del ' . fecha_larga($swap->fecha_origen) . ': ' . $nota;
             foreach ([(int)$swap->solicitante_id, (int)$swap->destinatario_id] as $destino) {
                 if ($destino) {
                     Notificacion::nueva($destino, $ok ? 'swap_validado' : 'swap_denegado', $texto,
@@ -1951,7 +1951,7 @@ class BlogController {
                 $swap->guardar();
                 Notificacion::nueva((int)$swap->destinatario_id, 'swap_cancelado',
                     ($_SESSION['blog_usuario']['nombre'] ?? 'Tu compañero')
-                        . ' retiró la propuesta de swap del ' . fecha_larga($swap->fecha_origen) . '.',
+                        . ' retiró la propuesta de intercambio del ' . fecha_larga($swap->fecha_origen) . '.',
                     (int)$swap->id, 'swap', 'horarios', 'info', '/dashboard/swaps');
             }
         }
@@ -2651,30 +2651,24 @@ class BlogController {
     }
 
     /**
-     * Qué módulo abre el directorio de cada tipo de personal.
-     *
-     * Es política de acceso del PANEL, no del dominio, y por eso vive en el controlador
-     * junto a `puedeCoordinar()` y `nivelesAlcance()` en vez de en el modelo: quien tiene
-     * el directorio de Profesores puede mirar la ficha de un profesor sin necesitar
-     * además el módulo Usuarios, que es el de administración de cuentas.
-     */
-    private const DIRECTORIO_DE_TIPO = [
-        'profesor'       => 'profesores',
-        'prefecto'       => 'prefectura',
-        'administrativo' => 'administrativos',
-        'directivo'      => 'directivos',
-    ];
-
-    /**
-     * Guard de la ficha de un colaborador, en tres pasos: sesión → **coordinar** (admin,
-     * prefecto o directivo: la ficha expone motivos de ausencia y horarios ajenos, que
-     * son datos de terceros) → tener el módulo `usuarios` **o** el directorio del tipo
-     * de la persona mirada.
+     * Guard de la ficha de un colaborador AJENO: sesión → existe → **coordinar** (admin,
+     * prefecto o directivo). La ficha expone motivos de ausencia y horarios de terceros,
+     * que es la misma frontera que separa la agenda del histórico del plantel.
      *
      * Vive extraído porque lo comparten `detalleUsuario()` y `horarioUsuarioPdf()`: el
      * PDF enseña exactamente el mismo horario ajeno que la ficha, así que tiene que
      * pedir exactamente lo mismo. Copiarlo en los dos sitios es como se desincronizan
      * dos puertas que dan al mismo cuarto.
+     *
+     * ⚠️ Hubo una tercera puerta —módulo `usuarios` **o** el directorio del tipo de la
+     * persona mirada, vía un mapa `DIRECTORIO_DE_TIPO`— que acotaba a un prefecto a las
+     * fichas de los tipos cuyo directorio tuviera asignado. Se retiró al volverse
+     * transversales los cuatro directorios (`UsuarioBlog::MODULOS_TRANSVERSALES`): con
+     * `puede('profesores')` devolviendo siempre `true`, la condición era ya un `true`
+     * constante. Dejarla escrita habría aparentado decidir algo que no podía decidir.
+     *
+     * `/dashboard/perfil` NO pasa por aquí: son los datos de uno mismo y le basta
+     * `requireAuth()`.
      *
      * Sale por `exit` en los tres cortes; devuelve el usuario si pasa.
      */
@@ -2684,31 +2678,14 @@ class BlogController {
         $u = $id > 0 ? UsuarioBlog::findConArticulos($id) : null;
         if (!$u) { header('Location: /dashboard'); exit; }
 
-        // Motivos de ausencia y horarios ajenos: la misma frontera que separa la agenda
-        // del histórico del plantel.
         if (!self::puedeCoordinar()) { header('Location: /dashboard'); exit; }
-
-        $tipos = array_filter(array_map('trim', explode(',', (string)$u->tipo_personal)));
-        $puede = self::puede('usuarios');
-        foreach ($tipos as $t) {
-            if (isset(self::DIRECTORIO_DE_TIPO[$t]) && self::puede(self::DIRECTORIO_DE_TIPO[$t])) {
-                $puede = true;
-                break;
-            }
-        }
-        if (!$puede) { header('Location: /dashboard?sinacceso=usuarios'); exit; }
 
         return $u;
     }
 
     /**
-     * Ficha interna de un colaborador: identidad, horario, ausencias, coberturas e
-     * swaps en una sola pantalla.
-     *
-     * Hasta ahora lo más parecido a una ficha era el formulario de edición, que solo
-     * abre un admin y que no dice nada de lo que esa persona hace: quien coordina tenía
-     * que cruzar a mano el módulo de horarios, la agenda de suplencias y el listado de
-     * swaps para hacerse una idea.
+     * Datos de la ficha de UNA persona: identidad, horario, ausencias, coberturas e
+     * intercambios. Devuelve el array de render, sin decidir quién puede verlo.
      *
      * **No ejecuta ni una consulta nueva.** Reutiliza `datosHorarioProfesor()` —la misma
      * fuente que "Mi horario" y su PDF, así que las tres no pueden pintar semanas
@@ -2716,28 +2693,27 @@ class BlogController {
      * `conteos($id)`, `historicoDeSuplente()`, `deProfesor()`). Las estadísticas se
      * calculan en PHP sobre esos arrays.
      *
-     * El guard de tres pasos vive en `requireFichaColaborador()`, compartido con el PDF
-     * del horario (`horarioUsuarioPdf()`).
+     * Extraído porque lo consumen las DOS puertas a esta pantalla —`detalleUsuario()`
+     * (una persona ajena) y `perfil()` (uno mismo)—, por el mismo motivo que
+     * `datosHorarioVista()`: dos vistas del mismo dato que se calculan por separado
+     * acaban divergiendo.
+     *
+     * `$niveles` acota por el alcance de una dirección de nivel; `[]` no filtra nada.
      */
-    public static function detalleUsuario(Router $router) {
-        $id = (int)($_GET['id'] ?? 0);
-        $u  = self::requireFichaColaborador($id);
-
+    private static function datosFicha(UsuarioBlog $u, array $niveles = []): array {
+        $id        = (int)$u->id;
         $tipos     = array_filter(array_map('trim', explode(',', (string)$u->tipo_personal)));
         $esDocente = in_array('profesor', $tipos, true);
-        $niveles   = self::nivelesAlcance();
 
-        // Horario: null si el usuario no existe (ya comprobado) — aquí solo interesa si
-        // tiene clases. Un administrativo entra con `tramos` vacío y la vista omite la
-        // sección en vez de pintar una rejilla en blanco.
+        // Horario: aquí solo interesa si tiene clases. Un administrativo entra con
+        // `tramos` vacío y la vista omite la sección en vez de pintar una rejilla en
+        // blanco.
         $horario = $esDocente ? self::datosHorarioProfesor($id) : null;
 
-        // Ausencias propias y coberturas hechas. Ambas acotadas por el alcance de una
-        // dirección de nivel; para un admin `$niveles` es [] y no filtra nada.
         $ausencias  = $esDocente ? Suplencia::listar(['ausente_id' => $id, 'niveles' => $niveles]) : [];
         $conteos    = $esDocente ? Suplencia::conteos($id, $niveles) : [];
         $coberturas = $esDocente ? SuplenciaHora::historicoDeSuplente($id) : [];
-        // FQN como el resto del módulo de swaps: `Swap` no está en los `use`.
+        // FQN como el resto del módulo: `Swap` no está en los `use`.
         $swaps      = $esDocente ? \Model\Swap::deProfesor($id) : [];
 
         // Resúmenes en PHP sobre lo ya cargado: `topIncumplimientos()` y
@@ -2748,7 +2724,7 @@ class BlogController {
         $porEstadoSwap = array_count_values(array_map(
             fn($sw) => (string)$sw->estado, $swaps));
 
-        $router->renderAdmin('blog/usuarios/detalle', [
+        return [
             'titulo'        => $u->nombre,
             'u'             => $u,
             'tipos'         => $tipos,
@@ -2765,7 +2741,28 @@ class BlogController {
             // discrepantes…). `profesor` se pisa con `$u`, que es el mismo registro con
             // `total_articulos` de propina.
             'horario'       => $horario,
-        ]);
+        ];
+    }
+
+    /**
+     * Ficha interna de un colaborador AJENO: identidad, horario, ausencias, coberturas
+     * e intercambios en una sola pantalla.
+     *
+     * Hasta ahora lo más parecido a una ficha era el formulario de edición, que solo
+     * abre un admin y que no dice nada de lo que esa persona hace: quien coordina tenía
+     * que cruzar a mano el módulo de horarios, la agenda de suplencias y el listado de
+     * intercambios para hacerse una idea.
+     *
+     * El guard vive en `requireFichaColaborador()`, compartido con el PDF del horario
+     * (`horarioUsuarioPdf()`). La versión sobre uno mismo es `perfil()`, que comparte
+     * plantilla y datos pero no guard.
+     */
+    public static function detalleUsuario(Router $router) {
+        $id = (int)($_GET['id'] ?? 0);
+        $u  = self::requireFichaColaborador($id);
+
+        $router->renderAdmin('blog/usuarios/detalle',
+            self::datosFicha($u, self::nivelesAlcance()) + ['esPropio' => false]);
     }
 
     // ── Editor de horario de un profesor (módulo Usuarios · solo admin) ─────────
@@ -4269,6 +4266,22 @@ class BlogController {
 
     // ── PERFIL ────────────────────────────────────────────────────────────────
 
+    /**
+     * Mi perfil = **mi propia ficha**, con los campos editables encima.
+     *
+     * Comparte plantilla (`blog/usuarios/detalle`) y datos (`datosFicha()`) con la ficha
+     * de un colaborador ajeno, así que las dos pantallas no pueden desincronizarse. Lo
+     * único que cambia es el flag `esPropio`, que añade la sección editable y cambia el
+     * título; y el guard.
+     *
+     * Guard: `requireAuth()` **a secas**, sin `puedeCoordinar()` ni módulo. Es el punto
+     * del cambio: la ficha ajena expone datos de terceros y por eso está restringida,
+     * pero el horario, las ausencias y los intercambios de uno mismo son suyos. Antes un
+     * profesor raso no podía ver esto en ningún sitio del panel.
+     *
+     * `niveles = []` a propósito: una dirección de nivel no debe verse **su propia**
+     * ficha recortada por su alcance de gestión.
+     */
     public static function perfil(Router $router) {
         $sesion  = self::requireAuth();
         $usuario = UsuarioBlog::find((int)$sesion['id']);
@@ -4341,12 +4354,22 @@ class BlogController {
 
         $guardado = isset($_GET['saved']);
 
-        $router->renderAdmin('blog/perfil', [
+        // `findConArticulos()` para que la sección de Redacción cuente igual que en la
+        // ficha ajena; si fallara, se sigue con el registro que ya tenemos.
+        $ficha = self::datosFicha(UsuarioBlog::findConArticulos((int)$sesion['id']) ?: $usuario);
+
+        // ⚠️ `$usuario` pisa a la clave `u` SOLO cuando el POST no pasó la validación:
+        // lleva lo que la persona acababa de escribir, y recargar la fila de la BD le
+        // borraría el nombre o el correo corregido justo al enseñarle el error.
+        if (!empty($alertas['error'])) $ficha['u'] = $usuario;
+
+        $router->renderAdmin('blog/usuarios/detalle', array_merge($ficha, [
             'titulo'   => 'Mi perfil',
+            'esPropio' => true,
             'usuario'  => $usuario,
             'alertas'  => $alertas,
             'guardado' => $guardado,
-        ]);
+        ]));
     }
 
     // ── MIS REVISIONES (editor) ────────────────────────────────────────────────

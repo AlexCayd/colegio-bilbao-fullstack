@@ -81,15 +81,15 @@ return [
     ],
 
     'swaps' => [
-        'titulo' => 'Swaps de clase',
+        'titulo' => 'Intercambios de clase',
         'icon'   => 'fa-right-left',
         'items'  => [
             ['q' => '¿En qué se diferencia de una suplencia?',
-             'a' => 'Una suplencia la cubre otra persona porque tú faltas. Un swap es un trato entre dos profesores: tú das su clase y esa persona da la tuya, cada uno otro día.'],
+             'a' => 'Una suplencia la cubre otra persona porque tú faltas. Un intercambio es un trato entre dos profesores: tú das su clase y esa persona da la tuya, cada uno otro día.'],
             ['q' => '¿Cuánto margen tengo para proponerlo?',
-             'a' => 'Puedes proponer un swap con clases dentro de los 7 días siguientes al día que vas a faltar.'],
+             'a' => 'Puedes proponer un intercambio con clases dentro de los 7 días siguientes al día que vas a faltar.'],
             ['q' => 'La otra persona aceptó. ¿Ya está?',
-             'a' => 'Falta el visto bueno de prefectura o dirección. Hasta entonces el swap queda como aceptado pero pendiente de validar.'],
+             'a' => 'Falta el visto bueno de prefectura o dirección. Hasta entonces el intercambio queda como aceptado pero pendiente de validar.'],
         ],
     ],
 
