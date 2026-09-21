@@ -2,18 +2,21 @@
 <?php
 $total = count($grupos ?? []);
 
-$nivelColor = [
-    'Maternal'     => '#fc6722',
-    'Kinder'       => '#f5b400',
-    'Primaria'     => '#8ac926',
-    'Secundaria'   => '#46bdc6',
-    'Bachillerato' => '#4267ac',
-];
+/* El color de cada nivel sale del modelo (Materia::NIVEL_COLOR), que es también de
+   donde lo leen el formulario de grupos y los chips de nivel de Eventos. */
+$nivelColor = \Model\Materia::NIVEL_COLOR;
+
+/* Dados de baja: `Grupo::todosConUso()` los trae todos a propósito — ver la nota de
+   aulas/index.php. */
+$bajas = 0;
+foreach ($grupos ?? [] as $g) if ((int)($g->activo ?? 1) === 0) $bajas++;
 
 $toast = null;
-if     (isset($_GET['success'])) $toast = ['t' => '¡Grupo creado!',      'm' => 'Ya puedes usarlo en los horarios.', 'i' => 'fa-layer-group',  'c' => '#34a853'];
-elseif (isset($_GET['edited']))  $toast = ['t' => '¡Grupo actualizado!', 'm' => 'Los cambios se guardaron.',         'i' => 'fa-pen',          'c' => '#4267ac'];
-elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 'El catálogo está actualizado.',     'i' => 'fa-circle-check', 'c' => '#4267ac'];
+if     (isset($_GET['success']))      $toast = ['t' => '¡Grupo creado!',       'm' => 'Ya puedes usarlo en los horarios.',             'i' => 'fa-layer-group',  'c' => '#34a853'];
+elseif (isset($_GET['edited']))       $toast = ['t' => '¡Grupo actualizado!',  'm' => 'Los cambios se guardaron.',                     'i' => 'fa-pen',          'c' => '#4267ac'];
+elseif (isset($_GET['deleted']))      $toast = ['t' => 'Grupo eliminado',      'm' => 'El catálogo está actualizado.',                 'i' => 'fa-circle-check', 'c' => '#4267ac'];
+elseif (isset($_GET['inhabilitado'])) $toast = ['t' => 'Grupo dado de baja',   'm' => 'Deja de ofrecerse, pero no se ha borrado nada.', 'i' => 'fa-power-off',    'c' => '#f5b400'];
+elseif (isset($_GET['reactivado']))   $toast = ['t' => 'Grupo reactivado',     'm' => 'Vuelve a estar disponible en los horarios.',     'i' => 'fa-rotate-left',  'c' => '#34a853'];
 ?>
 <div class="admin-layout">
 
@@ -67,6 +70,9 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                     <h2 class="admin-panel__title">
                         Todos los grupos
                         <span class="admin-panel__count"><?= $total ?></span>
+                        <?php if ($bajas): ?>
+                        <span class="cat-baja cat-baja--count"><?= $bajas ?> de baja</span>
+                        <?php endif; ?>
                     </h2>
 <?php /* La acción principal vive en la cabecera del panel sobre el que actúa, no
                              en el topbar: allí quedaba junto a la campana y el avatar, que son del
@@ -105,10 +111,14 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($grupos as $i => $g): $uso = (int)$g->total_horarios; $col = $nivelColor[$g->nivel] ?? '#94a3b8'; ?>
-                            <tr data-pager-item data-nivel="<?= s($g->nivel) ?>"<?= $i >= 12 ? ' class="is-hidden"' : '' ?>>
+                        <?php foreach ($grupos as $i => $g): $uso = (int)$g->total_horarios; $col = $nivelColor[$g->nivel] ?? '#94a3b8'; $off = (int)($g->activo ?? 1) === 0; ?>
+                            <?php $clases = trim(($i >= 12 ? 'is-hidden ' : '') . ($off ? 'is-off' : '')); ?>
+                            <tr data-pager-item data-nivel="<?= s($g->nivel) ?>"<?= $clases ? ' class="' . $clases . '"' : '' ?>>
                                 <td data-val="<?= s($g->nombre) ?>">
-                                    <div class="cat-name"><i class="fa-solid fa-layer-group"></i> <?= s($g->nombre) ?></div>
+                                    <div class="cat-name">
+                                        <i class="fa-solid fa-layer-group"></i> <?= s($g->nombre) ?>
+                                        <?php if ($off): ?><span class="cat-baja">Baja</span><?php endif; ?>
+                                    </div>
                                 </td>
                                 <td data-val="<?= s($g->nivel) ?>">
                                     <span class="cat-nivel" style="--c:<?= $col ?>;"><?= s($g->nivel) ?></span>
@@ -128,6 +138,16 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Grupo eliminado',     'm' => 
                                         <a href="/dashboard/grupos/editar?id=<?= (int)$g->id ?>" class="admin-act admin-act--edit" title="Editar grupo">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
+                                        <?php /* Baja lógica: ver la nota de aulas/index.php. */ ?>
+                                        <form method="POST" action="/dashboard/grupos/activo" class="admin-act-form">
+                                            <input type="hidden" name="tipo" value="grupos">
+                                            <input type="hidden" name="id" value="<?= (int)$g->id ?>">
+                                            <input type="hidden" name="activo" value="<?= $off ? '1' : '' ?>">
+                                            <button type="submit" class="admin-act admin-act--baja<?= $off ? ' is-off' : '' ?>"
+                                                    title="<?= $off ? 'Reactivar grupo' : 'Dar de baja (no se borra nada)' ?>">
+                                                <i class="fa-solid <?= $off ? 'fa-rotate-left' : 'fa-power-off' ?>"></i>
+                                            </button>
+                                        </form>
                                         <?php if ($uso): ?>
                                         <button type="button" class="admin-act admin-act--del" disabled
                                                 title="No se puede eliminar: <?= $uso ?> clase(s) pertenecen a este grupo">

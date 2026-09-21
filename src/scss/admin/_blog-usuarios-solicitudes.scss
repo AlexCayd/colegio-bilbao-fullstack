@@ -1,0 +1,107 @@
+/* =========================================================
+   PANEL · SOLICITUDES DE CONTRASEÑA (/dashboard/usuarios/solicitudes)
+========================================================= */
+@use '../base/mixins' as *;
+
+body[data-page="blog-usuarios-solicitudes"] {
+
+    /* ── La temporal recién generada ──
+       Se ve UNA vez y no vuelve, así que tiene que ganar la pantalla: es lo primero
+       que hay que copiar antes de tocar nada más. */
+    .spw-generada {
+        border: 2px solid #ffe4bd;
+        background: #fffaf0;
+
+        &__quien { margin: 0 0 10px; font-size: .9rem; color: #7c4a03; }
+    }
+
+    .spw-clave {
+        margin: 0 0 12px;
+        padding: 16px 20px;
+        border: 1px dashed #e0b979;
+        border-radius: 12px;
+        background: #fff;
+        /* Monoespaciada y grande: se dicta por teléfono. La temporal ya evita los
+           caracteres que se confunden (ver SolicitudPassword::generarTemporal()), pero
+           la tipografía tiene que acompañar. */
+        font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, monospace;
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        color: #0B1F3D;
+        text-align: center;
+        user-select: all;   /* un clic la selecciona entera */
+        overflow-wrap: anywhere;
+    }
+
+    .spw-estado {
+        display: inline-block;
+        padding: 3px 10px; border-radius: 100px;
+        font-size: .72rem; font-weight: 800;
+
+        &--pendiente  { background: #fff7e6; color: #7c4a03; border: 1px solid #ffe4bd; }
+        &--resuelta   { background: #eaf7ee; color: #1e6b34; border: 1px solid #bfe3ca; }
+        &--descartada { background: #eef2f7; color: #64748b; border: 1px solid #dbe3ec; }
+    }
+
+    .spw-sincuenta {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: .8rem; color: #94a3b8; font-style: italic;
+        i { color: #cbd5e1; }
+    }
+
+    .spw-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .spw-nil  { color: #cbd5e1; }
+
+    /* ── Móvil: tarjetas en vez de tabla ──
+       Cinco columnas, dos de ellas con botones, no caben en 360px ni con scroll cómodo.
+       Mismo patrón probado de `_blog-suplencias-historial.scss`.
+
+       ⚠️ Las DOS líneas de `is-hidden`/`is-filtered` son obligatorias: viven en
+       `estaticas/_blog-admin.scss`, que `app.scss` importa ANTES que `admin/`, así que
+       un `tbody tr { display:block }` escrito aquí las gana por cascada y mata la
+       paginación en silencio. */
+    @include hasta-sm {
+        .admin-table-scroll { overflow-x: visible; }
+
+        .admin-table {
+            min-width: 0;
+            font-size: .92rem;
+
+            /* clip-path y no display:none: el encabezado se pierde visualmente pero
+               sigue existiendo para los lectores de pantalla. */
+            thead { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
+
+            tbody tr {
+                display: block;
+                margin-bottom: 10px;
+                padding: 12px 14px;
+                border: 1px solid #e8eef6;
+                border-radius: 12px;
+                background: #fff;
+            }
+            tbody tr.is-hidden,
+            tbody tr.is-filtered { display: none; }
+
+            tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 14px;
+                padding: 5px 0;
+                border: 0;
+                text-align: right;
+
+                &::before {
+                    content: attr(data-label);
+                    flex-shrink: 0;
+                    font-size: .74rem; font-weight: 800; color: #94a3b8;
+                    text-transform: uppercase; letter-spacing: .04em;
+                    text-align: left;
+                }
+            }
+        }
+
+        .spw-acts { justify-content: flex-end; }
+    }
+}

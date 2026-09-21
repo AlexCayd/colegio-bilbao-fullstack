@@ -123,6 +123,9 @@ $router->get('/admisiones/contacto', [EstaticasController::class, 'contacto']);
 // Comunidad
 $router->get('/comunidad/estudiantes', [EstaticasController::class, 'estudiantes']);
 $router->get('/comunidad/familias', [EstaticasController::class, 'familias']);
+// El calendario del ciclo en papel. Solo responde si el módulo Eventos lo habilitó:
+// el interruptor es el guard, no solo la condición del botón.
+$router->get('/comunidad/familias/calendario.pdf', [EstaticasController::class, 'calendarioFamiliasPdf']);
 $router->get('/comunidad/colaboradores', [EstaticasController::class, 'colaboradores']);
 
 // Voces Bilbao — Noticias
@@ -174,6 +177,20 @@ $router->post('/logout', [BlogController::class, 'logout']);
 $router->get('/dashboard', [BlogController::class, 'home']);
 $router->get('/dashboard/redaccion', [BlogController::class, 'redaccion']);
 
+// Restablecimiento de contraseña del PANEL. No manda correo: deja una solicitud que un
+// administrador resuelve desde /dashboard/usuarios/solicitudes (ver el modelo).
+$router->get('/recuperar',  [BlogController::class, 'recuperarPassword']);
+$router->post('/recuperar', [BlogController::class, 'recuperarPassword']);
+
+// Admin — Actualizaciones (anuncios de versión). El historial lo ve cualquiera con
+// sesión; crear, publicar y borrar piden admin. Publicar dispara el modal bloqueante.
+$router->get('/dashboard/actualizaciones',           [BlogController::class, 'actualizaciones']);
+$router->get('/dashboard/actualizaciones/crear',     [BlogController::class, 'crearActualizacion']);
+$router->post('/dashboard/actualizaciones/crear',    [BlogController::class, 'crearActualizacion']);
+$router->post('/dashboard/actualizaciones/publicar', [BlogController::class, 'publicarActualizacion']);
+$router->post('/dashboard/actualizaciones/eliminar', [BlogController::class, 'eliminarActualizacion']);
+$router->post('/dashboard/actualizaciones/visto',    [BlogController::class, 'verActualizacion']);
+
 // Admin — Módulo Suplencias
 $router->get('/dashboard/suplencias', [BlogController::class, 'suplencias']);
 $router->get('/dashboard/suplencias/dashboard', [BlogController::class, 'suplenciasDashboard']);
@@ -183,6 +200,12 @@ $router->get('/dashboard/suplencias/crear', [BlogController::class, 'crearSuplen
 $router->post('/dashboard/suplencias/crear', [BlogController::class, 'crearSuplencia']);
 $router->get('/dashboard/suplencias/agendar', [BlogController::class, 'agendarSuplencia']);
 $router->post('/dashboard/suplencias/agendar', [BlogController::class, 'agendarSuplencia']);
+// Editar lo blando de una ausencia ya abierta (motivo, notas, justificante). La fecha y
+// el ausente no se tocan: las horas se fijaron leyendo el horario de esa persona ese día.
+$router->get('/dashboard/suplencias/editar', [BlogController::class, 'editarSuplencia']);
+$router->post('/dashboard/suplencias/editar', [BlogController::class, 'editarSuplencia']);
+// Cancelar ≠ eliminar: conserva el registro en estado 'cancelada' y avisa a las partes.
+$router->post('/dashboard/suplencias/cancelar', [BlogController::class, 'cancelarSuplencia']);
 $router->post('/dashboard/suplencias/justificar', [BlogController::class, 'justificarSuplencia']);
 $router->get('/dashboard/suplencias/mis-coberturas', [BlogController::class, 'misCoberturas']);
 $router->get('/dashboard/suplencias/historial', [BlogController::class, 'historialSuplencias']);
@@ -220,11 +243,16 @@ $router->post('/dashboard/articulos/like', [BlogController::class, 'likeArticulo
 // Admin — Usuarios
 $router->get('/dashboard/usuarios', [BlogController::class, 'usuarios']);
 $router->get('/dashboard/usuarios/cumpleanos', [BlogController::class, 'cumpleanos']);
+// Cola de restablecimientos pedidos desde /recuperar (admin)
+$router->get('/dashboard/usuarios/solicitudes',          [BlogController::class, 'solicitudesPassword']);
+$router->post('/dashboard/usuarios/solicitudes/resolver', [BlogController::class, 'resolverSolicitudPassword']);
 $router->get('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario']);
 $router->post('/dashboard/usuarios/crear', [BlogController::class, 'crearUsuario']);
 $router->get('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
 $router->post('/dashboard/usuarios/editar', [BlogController::class, 'editarUsuario']);
 $router->post('/dashboard/usuarios/eliminar', [BlogController::class, 'eliminarUsuario']);
+// Baja lógica: la alternativa reversible a eliminar (y la vuelta atrás del importador CSV)
+$router->post('/dashboard/usuarios/activo',   [BlogController::class, 'cambiarActivoUsuario']);
 // Ficha de lectura de un colaborador (horario + suplencias + intercambios). La abre
 // quien coordina, con el módulo `usuarios` o el directorio de su tipo; `editar` sigue
 // siendo de admin.
@@ -268,6 +296,7 @@ $router->post('/dashboard/aulas/crear',   [BlogController::class, 'crearAula']);
 $router->get('/dashboard/aulas/editar',   [BlogController::class, 'editarAula']);
 $router->post('/dashboard/aulas/editar',  [BlogController::class, 'editarAula']);
 $router->post('/dashboard/aulas/eliminar',[BlogController::class, 'eliminarAula']);
+$router->post('/dashboard/aulas/activo',  [BlogController::class, 'cambiarActivoCatalogo']);
 
 $router->get('/dashboard/grupos',          [BlogController::class, 'grupos']);
 $router->get('/dashboard/grupos/crear',    [BlogController::class, 'crearGrupo']);
@@ -275,6 +304,7 @@ $router->post('/dashboard/grupos/crear',   [BlogController::class, 'crearGrupo']
 $router->get('/dashboard/grupos/editar',   [BlogController::class, 'editarGrupo']);
 $router->post('/dashboard/grupos/editar',  [BlogController::class, 'editarGrupo']);
 $router->post('/dashboard/grupos/eliminar',[BlogController::class, 'eliminarGrupo']);
+$router->post('/dashboard/grupos/activo',  [BlogController::class, 'cambiarActivoCatalogo']);
 $router->post('/dashboard/horarios/importar',      [BlogController::class, 'importarHorarios']);
 
 // Admin — Módulo Eventos
@@ -284,6 +314,7 @@ $router->post('/dashboard/eventos/crear',   [BlogController::class, 'crearEvento
 $router->get('/dashboard/eventos/editar',   [BlogController::class, 'editarEvento']);
 $router->post('/dashboard/eventos/editar',  [BlogController::class, 'editarEvento']);
 $router->post('/dashboard/eventos/eliminar',[BlogController::class, 'eliminarEvento']);
+$router->post('/dashboard/eventos/ajustes', [BlogController::class, 'ajustesEventos']);
 
 // Admin — Categorías de artículos
 $router->get('/dashboard/categorias', [BlogController::class, 'categorias']);
@@ -356,5 +387,41 @@ $router->get('/blog/usuarios',  function() { header('Location: /dashboard/usuari
 $router->get('/blog/categorias',function() { header('Location: /dashboard/categorias', true, 301); exit; });
 $router->get('/blog/noticias',  function() { header('Location: /dashboard/noticias', true, 301); exit; });
 $router->get('/blog/dashboard', function() { header('Location: /dashboard', true, 301); exit; });
+
+/* ── Contador de visitas del sitio público ──────────────────────────────────────
+   UN solo punto de registro, aquí, y no una llamada al principio de cada método de
+   EstaticasController: son ~30 sitios y bastaría olvidarse de uno para que una página
+   no contara nunca.
+
+   ⚠️ Va DESPUÉS de declarar las rutas y ANTES de comprobarRutas(), y el orden es la
+   regla: lo que separa una visita del ruido es «¿esto es una página del sitio?», y eso
+   solo lo sabe el router. Registrando antes de declarar las rutas se contaba cualquier
+   cosa que llegara al front controller —el sondeo de Chrome DevTools a
+   `/.well-known/appspecific/com.chrome.devtools.json`, los escaneos a `/admin`,
+   `/wp-login.php`…—, todas 404 y todas por delante de la landing en «Más visitadas».
+   Si alguien vuelve a subir este bloque arriba del archivo, `$router` estará vacío y
+   existeRuta() dirá que no a todo: no se contará ni una visita.
+
+   Se descarta además todo lo que no sea la lectura de una página pública:
+   - los POST, que son envíos de formulario y no visitas;
+   - `/dashboard/*` y `/login`, que son el panel — medir el trabajo interno del claustro
+     no es el objetivo y además ensuciaría la serie;
+   - los bots, por user-agent. Es un filtro grosero a propósito: uno exhaustivo exige
+     mantener una lista, y aquí basta con que la tendencia no la marque un crawler.
+
+   `Visita::registrar()` nunca lanza (ver su docblock): una analítica rota no puede
+   tumbar el sitio. */
+(function () use ($router) {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') return;
+
+    $uri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
+    if (preg_match('#^/(dashboard|login|logout|build)(/|$)#', $uri)) return;
+    if (!$router->existeRuta($uri)) return;
+
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    if ($ua === '' || preg_match('/bot|crawl|spider|slurp|bingpreview|headless|monitor|curl|wget/i', $ua)) return;
+
+    \Model\Visita::registrar($uri);
+})();
 
 $router->comprobarRutas();

@@ -7,6 +7,9 @@ use Model\Articulo;
 use Model\Noticia;
 use Model\Testimonial;
 use Model\Evento;
+use Model\Materia;
+use Model\Ajuste;
+use Classes\Pdf;
 
 /**
  * Páginas públicas del sitio institucional.
@@ -243,11 +246,27 @@ class EstaticasController {
      *
      * @param  string $audiencia 'familias' o 'estudiantes'. Los 'interno' nunca salen del panel.
      * @return array<int, array{fecha:string, fecha_fin:?string, tipo:string, titulo:string,
-     *                          desc:string, niveles:array<int,string>, alcance:string}>
+     *                          desc:string, niveles:array<int,string>, alcance:string,
+     *                          icono:string, color:string, etiqueta:string}>
      */
     private static function eventosPublicos(string $audiencia): array {
+        return self::aplanarEventos(Evento::porAudiencia($audiencia));
+    }
+
+    /**
+     * Objetos Evento → arrays planos para el cliente y para el PDF.
+     *
+     * `icono`, `color` y `etiqueta` se resuelven **aquí** y no en el JS: el icono por
+     * defecto depende del tipo y el color tiene que coincidir con el del panel y el
+     * del papel. Replicar esas tres tablas en el cliente era la vía directa a que la
+     * web y el PDF pintaran el mismo evento de distinto color.
+     *
+     * @param  \Model\Evento[] $eventos
+     * @return array<int, array<string, mixed>>
+     */
+    private static function aplanarEventos(array $eventos): array {
         $out = [];
-        foreach (Evento::porAudiencia($audiencia) as $ev) {
+        foreach ($eventos as $ev) {
             $out[] = [
                 'fecha'    => $ev->fecha,
                 'fecha_fin'=> $ev->fecha_fin,
@@ -256,6 +275,9 @@ class EstaticasController {
                 'desc'     => $ev->descripcion ?? '',
                 'niveles'  => $ev->nivelesLista(),
                 'alcance'  => $ev->alcance(),
+                'icono'    => $ev->icono(),
+                'color'    => $ev->color(),
+                'etiqueta' => Evento::TIPO_LABEL_PUBLICO[$ev->tipo] ?? $ev->tipo,
             ];
         }
         return $out;
@@ -283,6 +305,11 @@ class EstaticasController {
      * El calendario se alimenta de los eventos reales con audiencia 'familias', que se
      * crean en el módulo Eventos del panel.
      *
+     * Se le pasan **todos** los eventos de la audiencia, no solo los del ciclo: el
+     * navegador de meses no tiene tope y un evento de julio de 2028 debe aparecer si
+     * alguien llega hasta ahí. El ciclo solo acota la vista de «curso completo» y el
+     * PDF, que sí son una ventana concreta.
+     *
      * @param  Router $router
      * @return void
      */
@@ -295,7 +322,65 @@ class EstaticasController {
             'seo_descripcion' => 'Avisos y calendario escolar del Colegio Bilbao para nuestras familias.',
             'extra_head'      => self::comunidadThree(),
             'eventosCal'      => $eventos,
+            'ciclo'           => Evento::ciclo(),
+            'mesesCiclo'      => Evento::mesesCiclo(),
+            // El botón de descarga solo existe si el módulo Eventos lo habilitó.
+            'calendarioPdf'   => Ajuste::bool(Ajuste::CALENDARIO_PDF, false),
         ]);
+    }
+
+    /**
+     * El calendario del ciclo en PDF, desde la web pública.
+     *
+     * ⚠️ **El interruptor es el guard, no una decoración del botón.** Con el ajuste
+     * apagado esta ruta redirige: si solo escondiera el enlace, la URL seguiría
+     * sirviendo el documento a cualquiera que la conociese, y el sentido del
+     * interruptor es justamente decidir si el colegio publica ya su calendario.
+     *
+     * `?niveles=` acota igual que los chips de la página, para que lo que se descarga
+     * sea lo que se está mirando. Se filtra contra `Materia::NIVELES`: es un valor de
+     * la query que acaba en el documento.
+     *
+     * @param  Router $router
+     * @return void
+     */
+    public static function calendarioFamiliasPdf(Router $router) {
+        if (!Ajuste::bool(Ajuste::CALENDARIO_PDF, false)) {
+            header('Location: /comunidad/familias');
+            exit;
+        }
+
+        $ciclo = Evento::ciclo();
+        // `?niveles[]=x` llegaría como array y `(string)` lo convertiría en el literal
+        // "Array" con un warning; se descarta lo que no sea cadena antes de trocear.
+        $crudo   = $_GET['niveles'] ?? '';
+        $niveles = array_values(array_intersect(
+            Materia::NIVELES,
+            array_filter(array_map('trim', explode(',', is_string($crudo) ? $crudo : '')))
+        ));
+
+        $eventos = self::aplanarEventos(
+            Evento::porAudienciaEnRango('familias', $ciclo['ini'], $ciclo['fin'])
+        );
+        // Un evento sin niveles es de todo el colegio: entra siempre, se filtre lo que
+        // se filtre. Los cinco marcados equivalen a ninguno (Evento::normalizarNiveles()).
+        if ($niveles && count($niveles) < count(Materia::NIVELES)) {
+            $eventos = array_values(array_filter($eventos, static function (array $e) use ($niveles) {
+                return !$e['niveles'] || array_intersect($e['niveles'], $niveles);
+            }));
+        } else {
+            $niveles = [];
+        }
+
+        ob_start();
+        $pdfCss     = Pdf::hojaCss('calendario-pdf.css');
+        $logoData   = Pdf::logo();
+        $mesesCiclo = Evento::mesesCiclo();
+        require __DIR__ . '/../views/estaticas/comunidad/calendario-pdf.php';
+        $html = ob_get_clean();
+
+        $sufijo = $niveles ? '-' . Pdf::slug(implode('-', $niveles)) : '';
+        Pdf::emitir($html, 'calendario-' . $ciclo['anio_ini'] . '-' . $ciclo['anio_fin'] . $sufijo . '.pdf', 'landscape');
     }
 
     /**

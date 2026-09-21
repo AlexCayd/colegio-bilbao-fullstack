@@ -102,6 +102,32 @@ class ActiveRecord {
     }
 
     /**
+     * Enciende o apaga la baja lógica (`activo`) de varias filas de golpe.
+     *
+     * Solo la heredan los cuatro modelos que tienen esa columna —UsuarioBlog, Aula,
+     * Grupo y Materia—, y cada uno la expone como `cambiarActivo()`. Es `protected`
+     * justamente por eso: llamarla sobre un modelo sin la columna sería un error de
+     * SQL, y así no se puede.
+     *
+     * Va por UPDATE directo y no por guardar() porque `activo` está deliberadamente
+     * FUERA de $columnasDB (ver la nota de cada modelo): es una columna con DEFAULT,
+     * que ningún formulario debe poder escribir de rebote con sincronizar($_POST).
+     *
+     * @param  array<int, mixed> $ids    Ids a cambiar; los no numéricos se descartan.
+     * @param  bool              $activo true = alta, false = baja lógica.
+     * @return int Filas realmente modificadas (las que ya estaban así no cuentan).
+     */
+    protected static function marcarActivo(array $ids, bool $activo): int {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (!$ids) return 0;
+        $v = $activo ? 1 : 0;
+        static::$db->query(
+            "UPDATE " . static::$tabla . " SET activo = {$v} WHERE id IN (" . implode(',', $ids) . ")"
+        );
+        return static::$db->affected_rows;
+    }
+
+    /**
      * Añade un mensaje de validación.
      *
      * @param  string $tipo    Categoría: 'error' o 'exito'.

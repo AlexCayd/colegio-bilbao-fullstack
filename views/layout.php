@@ -17,6 +17,7 @@
     <noscript></noscript>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?php include __DIR__ . '/templates/clarity.php'; ?>
     <title><?= isset($seo_titulo) ? s($seo_titulo) . ' | Colegio Bilbao' : 'Colegio Bilbao - ' . s($titulo) ?></title>
     <meta name="description" content="<?= s($seo_descripcion ?? $descripcion ?? 'Colegio Bilbao es una institución educativa privada en México que forma personas con criterio, carácter y vocación de servicio a través del Modelo VIDA.') ?>">
     <link rel="canonical" href="https://<?= htmlspecialchars($_SERVER['HTTP_HOST'] . strtok($_SERVER['REQUEST_URI'], '?')) ?>">

@@ -81,6 +81,13 @@ $haySupl    = $esDocente && (!empty($ausencias) || !empty($coberturas));
 $haySwaps   = $esDocente && !empty($swaps);
 $hayCont    = !empty($contenido);
 
+/* La ficha la abre cualquiera con sesión; el HISTORIAL no. Sin este flag las secciones
+   de suplencias e intercambios saldrían vacías para un profesor mirando a otro, y un
+   empty state que dice «no tiene ausencias» cuando en realidad no puedes verlas es
+   peor que no enseñar la sección: informa mal. Lo decide el servidor
+   (BlogController::puedeVerHistorial()). */
+$verHistorial = $verHistorial ?? true;
+
 // Coberturas que no se cumplieron: el dato existe desde que «no se cubrió» dejó de
 // borrar al suplente, y es justo lo que no se ve en ninguna otra pantalla por persona.
 $noCubiertas = (int)($porEstadoHora['no_cubierta'] ?? 0);
@@ -88,6 +95,12 @@ $validadas   = (int)($porEstadoHora['validada'] ?? 0);
 $agendadas   = (int)($porEstadoHora['agendada'] ?? 0);
 
 $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
+
+/* Baja lógica. Se calcula FUERA del bloque de administración porque no es un dato de
+   gestión sino de estado: la ficha es donde se viene a preguntar «¿por qué no me sale
+   como candidato a suplir?», y quien coordina sin ser admin tiene que poder
+   responderla. Antes solo lo delataba que el botón dijera «Reactivar». */
+$bajaOff = (int)($u->activo ?? 1) === 0;
 ?>
 <div class="admin-layout">
     <?php include __DIR__ . '/../_sidebar.php'; ?>
@@ -127,6 +140,37 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                         <?php if (!$tipos): ?>
                         <span class="ufi-nil">Sin tipo de personal</span>
                         <?php endif; ?>
+                        <?php /* Junto al rol y al puesto porque es de la misma naturaleza: qué
+                                 es esta persona en el panel hoy. Una cuenta de baja conserva
+                                 todo su histórico pero no entra ni sale como suplente. */ ?>
+                        <?php if ($bajaOff): ?>
+                        <span class="ufi-flag ufi-flag--off" title="No entra al panel ni sale como candidata a suplir. Conserva todo su histórico.">
+                            <i class="fa-solid fa-power-off"></i> Dada de baja
+                        </span>
+                        <?php endif; ?>
+
+                        <?php /* Los niveles suben aquí, junto al puesto: es el dato que
+                                 completa «quién es esta persona en el colegio» y hasta ahora
+                                 estaba enterrado tres secciones más abajo, en «Perfil y
+                                 accesos». La sección de abajo se conserva —ahí va con su
+                                 explicación de qué significa el vacío—, esto es el resumen.
+
+                                 ⚠️ El rótulo depende del PUESTO: en un profesor son los que
+                                 imparte, en un directivo los que gestiona. Mismo dato, dos
+                                 significados, y confundirlos hace pensar que la dirección de
+                                 Primaria da clase. */ ?>
+                        <?php if ($mostrarNiv && $nivelesU): ?>
+                            <?php foreach ($nivelesU as $n): ?>
+                            <span class="ufi-niv" style="--niv:<?= s($nivColor[$n] ?? '#94a3b8') ?>;"
+                                  title="<?= $esDirectivo ? 'Nivel que gestiona' : 'Nivel en el que imparte' ?>">
+                                <i class="fa-solid fa-layer-group"></i> <?= s($n) ?>
+                            </span>
+                            <?php endforeach; ?>
+                        <?php elseif ($mostrarNiv && $esDirectivo): ?>
+                            <span class="ufi-niv ufi-niv--todo" title="Sin niveles declarados: su alcance es el colegio entero">
+                                <i class="fa-solid fa-school"></i> Todo el colegio
+                            </span>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php if ($puedeEditar): ?>
@@ -136,12 +180,40 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                     <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-btn admin-btn--ghost admin-btn--sm">
                         <i class="fa-solid fa-pen"></i> Editar
                     </a>
+                    <?php /* Baja lógica: la alternativa REVERSIBLE a eliminar, y la vuelta
+                             atrás de lo que hace el importador CSV con quien deja de aparecer
+                             en el archivo. Bajó aquí desde el listado, donde era un icono más
+                             en una fila de cinco y no decía sobre quién actuaba; en la ficha
+                             está junto al nombre y con la palabra escrita.
+                             Nadie puede darse de baja a sí mismo: dejaría la sesión viva sobre
+                             una cuenta que ya no puede volver a entrar. Lo impone también el
+                             servidor (`cambiarActivoUsuario()`). */ ?>
+                    <?php /* Separada del grupo y con tinta propia: «Editar» abre un formulario y
+                             esto revoca el acceso en un POST inmediato. Dos botones idénticos a
+                             8px para dos acciones de ese calibre es la misma adyacencia que se
+                             evita en el topbar. No va en rojo sólido porque es reversible: el
+                             rojo es de eliminar, que además exige teclear el nombre. */ ?>
+                    <?php if ((int)$u->id !== (int)($_SESSION['blog_usuario']['id'] ?? 0)): ?>
+                    <form method="POST" action="/dashboard/usuarios/activo" class="ufi-hero__baja">
+                        <input type="hidden" name="id" value="<?= (int)$u->id ?>">
+                        <input type="hidden" name="activo" value="<?= $bajaOff ? '1' : '' ?>">
+                        <button type="submit" class="admin-btn admin-btn--ghost admin-btn--sm"
+                                title="<?= $bajaOff
+                                    ? 'Vuelve a tener acceso al panel'
+                                    : 'No entra al panel ni sale como suplente. Conserva todo su histórico.' ?>">
+                            <i class="fa-solid <?= $bajaOff ? 'fa-rotate-left' : 'fa-power-off' ?>"></i>
+                            <?= $bajaOff ? 'Reactivar' : 'Dar de baja' ?>
+                        </button>
+                    </form>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
                 <dl class="ufi-hero__meta">
                     <div><dt>Último acceso</dt><dd><?= $fmt($u->ultimo_acceso ?? null) ?></dd></div>
-                    <?php if ($esDocente): ?>
-                    <div><dt>Suplencias</dt><dd><?= $esDocente ? (int)($conteos['total'] ?? 0) : 0 ?></dd></div>
+                    <?php /* Solo con permiso de historial: sin él los dos contadores
+                             saldrían en 0 y ese 0 sería mentira, no ausencia de dato. */ ?>
+                    <?php if ($esDocente && $verHistorial): ?>
+                    <div><dt>Suplencias</dt><dd><?= (int)($conteos['total'] ?? 0) ?></dd></div>
                     <div><dt>Coberturas</dt><dd><?= count($coberturas) ?></dd></div>
                     <?php endif; ?>
                 </dl>
@@ -163,8 +235,8 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                 <?php if ($esPropio): ?><a href="#ufi-cuenta"><i class="fa-solid fa-user-pen"></i> Mi cuenta</a><?php endif; ?>
                 <a href="#ufi-perfil"><i class="fa-solid fa-id-card"></i> Perfil</a>
                 <?php if ($hayHorario): ?><a href="#ufi-horario"><i class="fa-regular fa-calendar"></i> Horario</a><?php endif; ?>
-                <?php if ($esDocente): ?><a href="#ufi-suplencias"><i class="fa-solid fa-user-clock"></i> Suplencias</a><?php endif; ?>
-                <?php if ($haySwaps): ?><a href="#ufi-swaps"><i class="fa-solid fa-right-left"></i> Intercambios</a><?php endif; ?>
+                <?php if ($esDocente && $verHistorial): ?><a href="#ufi-suplencias"><i class="fa-solid fa-user-clock"></i> Suplencias</a><?php endif; ?>
+                <?php if ($haySwaps && $verHistorial): ?><a href="#ufi-swaps"><i class="fa-solid fa-right-left"></i> Intercambios</a><?php endif; ?>
                 <?php if ($hayCont): ?><a href="#ufi-contenido"><i class="fa-regular fa-newspaper"></i> Redacción</a><?php endif; ?>
             </nav>
 
@@ -187,7 +259,7 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                         <?php if ($nivelesU): ?>
                         <div class="ufi-chips">
                             <?php foreach ($nivelesU as $n): ?>
-                            <span class="per-nivel" style="--c:<?= s($nivColor[$n] ?? '#94a3b8') ?>;"><?= s($n) ?></span>
+                            <span class="ufi-niv" style="--niv:<?= s($nivColor[$n] ?? '#94a3b8') ?>;"><?= s($n) ?></span>
                             <?php endforeach; ?>
                         </div>
                         <?php else: ?>
@@ -266,13 +338,28 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php /* Dónde está AHORA. Es lo que se viene a consultar cuando se abre la
+                          ficha de otro —¿puedo interrumpirle?— y no era visible en ninguna
+                          parte: había que leer la rejilla y calcularlo de cabeza. Lo ve
+                          todo el que abra la ficha, también quien no ve el historial: una
+                          clase en curso no es un dato sensible. */ ?>
+                <?php if (!empty($hoy)): ?>
+                    <?php
+                    $haBloques = $hoy['bloques'];
+                    $haDia     = $hoy['dia'];
+                    $haTitulo  = $esPropio ? 'Tu día de hoy' : 'Hoy';
+                    $haPropio  = $esPropio;
+                    include __DIR__ . '/../_horario-ahora.php';
+                    ?>
+                <?php endif; ?>
+
                 <?php /* El mismo partial que "Mi horario" y el módulo Horarios: si la ficha
                           montara su propia rejilla podrían acabar pintando semanas distintas. */ ?>
                 <?php $niveles = $nivelesHor; include __DIR__ . '/../horarios/_grid.php'; ?>
             </section>
             <?php endif; ?>
 
-            <?php if ($esDocente): ?>
+            <?php if ($esDocente && $verHistorial): ?>
             <!-- ── Suplencias ───────────────────────────────────────────────── -->
             <section class="admin-panel" id="ufi-suplencias">
                 <div class="admin-panel__header">
@@ -382,7 +469,7 @@ $fmt = fn($f) => $f ? date('d/m/Y', strtotime((string)$f)) : '—';
             </section>
             <?php endif; ?>
 
-            <?php if ($haySwaps): ?>
+            <?php if ($haySwaps && $verHistorial): ?>
             <!-- ── Swaps ────────────────────────────────────────────────────── -->
             <?php /* Tabla compacta y NO `.swp-card`: esa clase vive dentro del scope
                       body[data-page="blog-swaps-index"], y su partial es una superficie

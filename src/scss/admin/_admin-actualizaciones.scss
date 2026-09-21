@@ -1,0 +1,219 @@
+/* =========================================================
+   PANEL · ACTUALIZACIONES
+   - .act-gate : la puerta bloqueante (views/blog/_actualizaciones-modal.php).
+                 SIN scope de página: se interpone en cualquier pantalla del panel,
+                 igual que .hcd-modal o .hor-select.
+   - .act-*    : el historial y el formulario, esos sí bajo su data-page.
+========================================================= */
+@use '../base/mixins' as *;
+
+/* ── LA PUERTA ────────────────────────────────────────── */
+.act-gate {
+    position: fixed;
+    inset: 0;
+    /* Por encima del cajón del sidebar (200) y de .bilbao-date/.picker (210): si algo
+       quedara por encima, el usuario podría interactuar con el panel bloqueado. */
+    z-index: 400;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+    background: rgba(11, 31, 61, .72);
+    backdrop-filter: blur(3px);
+    overflow-y: auto;
+
+    &__card {
+        width: min(660px, 100%);
+        max-height: calc(100vh - 48px);
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border-radius: 22px;
+        box-shadow: 0 30px 70px -28px rgba(11, 31, 61, .7);
+        overflow: hidden;
+    }
+
+    &__head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 14px;
+        padding: 20px 24px;
+        background: linear-gradient(120deg, #374C69 0%, #4267ac 100%);
+        color: #fff;
+    }
+    &__alex   { width: 58px; height: auto; flex-shrink: 0; }
+    &__eyebrow {
+        margin: 0 0 2px;
+        font-size: .72rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .08em;
+        color: rgba(255, 255, 255, .82);
+    }
+    &__title  { margin: 0; font-size: 1.15rem; font-weight: 900; line-height: 1.2; }
+    &__contador {
+        flex-shrink: 0;
+        padding: 5px 12px;
+        border-radius: 100px;
+        background: rgba(255, 255, 255, .18);
+        font-size: .76rem; font-weight: 800;
+        white-space: nowrap;
+    }
+
+    &__body { padding: 22px 24px; overflow-y: auto; }
+
+    /* El anuncio no activo. Atributo y no clase: lo alterna el JS y así queda claro
+       en el DOM que es estado de la puerta y no del contenido. */
+    &__item[data-act-oculto] { display: none; }
+
+    &__meta {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+        margin-bottom: 8px;
+    }
+    &__ver {
+        padding: 3px 10px; border-radius: 100px;
+        background: #e8edf9; color: #4267ac;
+        font-size: .72rem; font-weight: 800;
+    }
+    &__fecha { font-size: .76rem; color: #94a3b8; font-weight: 600; }
+
+    &__h { margin: 0 0 12px; font-size: 1.3rem; font-weight: 900; color: #0B1F3D; line-height: 1.25; }
+
+    &__img {
+        display: block;
+        width: 100%; height: auto;
+        margin: 0 0 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+    }
+
+    &__texto {
+        font-size: .95rem; line-height: 1.65; color: #334155;
+        /* El cuerpo lo escribe el desarrollador y puede traer una URL larga sin espacios:
+           sin esto desbordaría la tarjeta en móvil. */
+        overflow-wrap: anywhere;
+    }
+
+    &__form { margin-top: 20px; display: flex; justify-content: flex-end; }
+    &__ok   { min-width: 180px; justify-content: center; }
+
+    &__pie {
+        display: flex; align-items: center; gap: 8px;
+        padding: 12px 24px;
+        border-top: 1px solid #f0f4f8;
+        background: #f8fafc;
+        font-size: .78rem; color: #64748b;
+        i { color: #94a3b8; }
+    }
+}
+
+@include hasta-sm {
+    .act-gate {
+        padding: 0;
+        &__card { width: 100%; max-height: 100vh; border-radius: 0; }
+        &__head { grid-template-columns: auto 1fr; padding: 16px; }
+        &__alex { width: 46px; }
+        /* El contador cae a la segunda fila: en 360px competía con el título y lo
+           partía en tres líneas. */
+        &__contador { grid-column: 2; justify-self: start; }
+        &__body { padding: 18px 16px; }
+        &__h    { font-size: 1.12rem; }
+        /* A ancho completo: es la única salida del modal, y en táctil un botón de
+           180px alineado a la derecha es un objetivo peor que uno de borde a borde. */
+        &__form { display: block; }
+        &__ok   { width: 100%; }
+    }
+}
+
+/* ── HISTORIAL Y FORMULARIO ───────────────────────────── */
+body[data-page="blog-actualizaciones-index"] {
+
+    .act-lista { display: grid; gap: 14px; }
+
+    .act-card {
+        --c: #94a3b8;
+        position: relative;
+        padding: 18px 22px 18px 26px;
+        background: #fff;
+        border: 1px solid #e8eef6;
+        border-radius: 16px;
+        box-shadow: 0 10px 26px -20px rgba(22, 32, 46, .35);
+
+        /* Barra de acento: publicada en azul, borrador en gris. Es el dato que más
+           importa de un vistazo — una publicada está bloqueando gente. */
+        &::before {
+            content: '';
+            position: absolute; left: 0; top: 0; bottom: 0;
+            width: 5px;
+            border-radius: 16px 0 0 16px;
+            background: var(--c);
+        }
+        &--publicada { --c: #4285f4; }
+        &--borrador  { --c: #cbd5e1; }
+
+        &__head {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+            margin-bottom: 8px;
+        }
+        &__titulo { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0B1F3D; }
+        &__cuerpo {
+            margin: 0;
+            font-size: .9rem; line-height: 1.6; color: #475569;
+            overflow-wrap: anywhere;
+        }
+        &__img {
+            display: block;
+            max-width: 220px; height: auto;
+            margin-top: 12px;
+            border: 1px solid #e2e8f0; border-radius: 10px;
+        }
+        &__pie {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid #f1f5f9;
+            font-size: .78rem; color: #94a3b8;
+        }
+        &__acts { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+    }
+
+    .act-estado {
+        padding: 3px 11px; border-radius: 100px;
+        background: color-mix(in srgb, var(--c) 12%, #fff);
+        color: color-mix(in srgb, var(--c) 78%, #1e293b);
+        border: 1px solid color-mix(in srgb, var(--c) 32%, #fff);
+        font-size: .72rem; font-weight: 800;
+    }
+    .act-ver {
+        padding: 3px 10px; border-radius: 100px;
+        background: #eef2f7; color: #475569;
+        font-size: .72rem; font-weight: 800;
+    }
+
+    /* Cuántos lo han acusado. Es el dato que dice si el anuncio ya llegó a todos. */
+    .act-vistas {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-weight: 700; color: #64748b;
+        i { color: #94a3b8; }
+    }
+
+    .act-vacio {
+        padding: 40px 20px;
+        text-align: center;
+        color: #94a3b8;
+        img { width: 120px; height: auto; margin-bottom: 12px; }
+    }
+
+    @include hasta-sm {
+        .act-card {
+            padding: 16px 16px 16px 20px;
+            &__acts { margin-left: 0; width: 100%; }
+        }
+    }
+}
+
+body[data-page="blog-actualizaciones-form"] {
+    .act-form__previa {
+        margin-top: 10px;
+        max-width: 260px; height: auto;
+        border: 1px solid #e2e8f0; border-radius: 10px;
+    }
+}

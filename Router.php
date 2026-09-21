@@ -100,6 +100,49 @@ class Router
     }
 
     /**
+     * Primer patrón GET que case con la URI, con sus parámetros ya extraídos.
+     *
+     * Vive aparte porque lo consultan DOS sitios —el despacho y existeRuta()— y la
+     * traducción de `{param}` a regex no puede estar escrita dos veces: la segunda copia
+     * es la que se queda sin actualizar.
+     *
+     * @param  string $url Path ya normalizado (sin barra final, salvo la raíz).
+     * @return array{fn:callable|array{0:class-string,1:string}, params:array<string,string>}|null
+     */
+    private function casarPatron(string $url): ?array
+    {
+        foreach ($this->getPatterns as $route) {
+            $regex = preg_replace('/\{([^}]+)\}/', '(?P<$1>[^/]+)', $route['url']);
+            if (preg_match('#^' . $regex . '$#', $url, $matches)) {
+                // preg_match devuelve los grupos con nombre Y su índice numérico;
+                // el filtro por clave de tipo string se queda solo con los nombrados.
+                return [
+                    'fn'     => $route['fn'],
+                    'params' => array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY),
+                ];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * ¿La URI corresponde a una página GET declarada?
+     *
+     * Es comprobarRutas() sin despachar y sin tocar $params: responde solo si hay ruta
+     * exacta o patrón que case. Lo consulta el contador de visitas de index.php, que
+     * necesita separar una página del sitio de un 404 —el sondeo de Chrome DevTools, un
+     * escaneo a /admin— ANTES de contar nada.
+     *
+     * @param string $url Path absoluto, con o sin barra final.
+     */
+    public function existeRuta(string $url): bool
+    {
+        if ($url !== '/') $url = rtrim($url, '/');
+
+        return isset($this->getRoutes[$url]) || $this->casarPatron($url) !== null;
+    }
+
+    /**
      * Resuelve la petición actual y ejecuta el controlador que le corresponda.
      *
      * Orden de resolución:
@@ -127,15 +170,10 @@ class Router
         if ($method === 'GET') {
             $fn = $this->getRoutes[$url_actual] ?? null;
             if (!$fn) {
-                foreach ($this->getPatterns as $route) {
-                    $regex = preg_replace('/\{([^}]+)\}/', '(?P<$1>[^/]+)', $route['url']);
-                    if (preg_match('#^' . $regex . '$#', $url_actual, $matches)) {
-                        $fn = $route['fn'];
-                        // preg_match devuelve los grupos con nombre Y su índice numérico;
-                        // el filtro por clave de tipo string se queda solo con los nombrados.
-                        $this->params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-                        break;
-                    }
+                $casado = $this->casarPatron($url_actual);
+                if ($casado) {
+                    $fn = $casado['fn'];
+                    $this->params = $casado['params'];
                 }
             }
         } else {

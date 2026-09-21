@@ -25,6 +25,41 @@ $activa = $suplencia->estado !== 'cancelada';
 $vencida = $fecha < date('Y-m-d');
 
 $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+/* El servidor rechazó una asignación. El JS no ofrece el botón sobre un candidato
+   bloqueado, así que llegar aquí significa que el POST vino por otra vía —una pestaña
+   con la lista de candidatos ya caducada, el botón atrás, otro coordinador que se
+   adelantó— y hay que decir por qué no se hizo en vez de recargar como si nada. */
+$toast = null;
+if (!empty($_GET['nodisponible'])) {
+    $toast = [
+        'title' => 'No se pudo asignar',
+        'msg'   => (string)$_GET['nodisponible'],
+        'icon'  => 'fa-triangle-exclamation',
+        'color' => '#e51022',
+    ];
+} elseif (isset($_GET['cancelada'])) {
+    $toast = [
+        'title' => 'Suplencia cancelada',
+        'msg'   => 'Se conserva el registro. Avisamos al profesor, a quien la cubría y a dirección.',
+        'icon'  => 'fa-ban',
+        'color' => '#f5b400',
+    ];
+} elseif (isset($_GET['editada'])) {
+    $toast = [
+        'title' => '¡Listo!',
+        'msg'   => 'Se guardaron los cambios de la suplencia.',
+        'icon'  => 'fa-circle-check',
+        'color' => '#34a853',
+    ];
+} elseif (isset($_GET['aprobado'])) {
+    $toast = [
+        'title' => 'Justificante aprobado',
+        'msg'   => 'Se revisó y el archivo se eliminó del servidor.',
+        'icon'  => 'fa-circle-check',
+        'color' => '#34a853',
+    ];
+}
 ?>
 <div class="admin-layout">
     <?php include __DIR__ . '/../_sidebar.php'; ?>
@@ -36,6 +71,12 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
                 <?php /* Con todo cubierto, "Volver" se convierte en el cierre del flujo.
                          Antes esto era una banda verde a media página; aquí está siempre
                          visible y no compite con el contenido. */ ?>
+                <?php /* Editar es la única acción de página que queda aquí, y está porque
+                         esta pantalla ES el detalle de la suplencia: es la acción sobre lo
+                         que se está mirando, no un atajo a otra sección. */ ?>
+                <?php if ($puedeAgendar): ?>
+                <a href="/dashboard/suplencias/editar?id=<?= (int)$suplencia->id ?>" class="admin-btn admin-btn--ghost"><i class="fa-solid fa-pen"></i> Editar</a>
+                <?php endif; ?>
                 <?php if ($todoCubierto && $activa): ?>
                 <a href="/dashboard/suplencias" class="admin-btn admin-btn--ok"><i class="fa-solid fa-check"></i> Finalizar</a>
                 <?php else: ?>
@@ -487,3 +528,5 @@ $diasEs = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
     <input type="hidden" name="hora_id" id="supl-asignar-hora">
     <input type="hidden" name="suplente_id" id="supl-asignar-suplente">
 </form>
+
+<?php include __DIR__ . '/../_toast.php'; ?>

@@ -187,6 +187,7 @@ $_crumbs[array_key_last($_crumbs)]['url'] = null;
         </div>
         <span class="admin-sidebar__brand-label admin-sidebar__brand-label--text">Dashboard</span>
     </div>
+
     <nav class="admin-sidebar__nav" aria-label="Navegación de administración">
 
         <!-- Volver al home de módulos -->
@@ -287,6 +288,87 @@ $_crumbs[array_key_last($_crumbs)]['url'] = null;
         <img src="/build/assets/img/alex/alex-toca.png" alt="Alex">
         <p>Tu espacio de trabajo<br>Colegio Bilbao</p>
     </div>
+
+    <?php /* ══════════ CUENTA · SOLO MÓVIL (≤1024px) ══════════
+             Por debajo del ancho en que el sidebar pasa a cajón, el topbar se queda
+             solo con la miga y el hamburger: cuatro círculos de 34px más el disparador
+             del cajón no caben en 56px de alto sin dejar la ruta en dos palabras, y la
+             miga es lo único que dice en qué pantalla estás. Campana, avatar y logout
+             bajan aquí.
+
+             ⚠️ Va AL PIE del cajón y anclado con `position:sticky`, no arriba. El cajón
+             se abre en cada navegación móvil y esto son ~96px que empujarían la lista
+             de módulos —lo frecuente— hacia abajo por algo que se usa una vez al día;
+             además arriba es la peor zona del pulgar en un panel a altura completa y
+             abajo la mejor, así que estaba justo del revés. Anclado se ve igual sin
+             desplazar, que era lo único que ganaba estando arriba.
+
+             Va en el sidebar y NO en `_topbar-avatar.php` porque son dos superficies
+             distintas: aquel pinta el cluster del topbar y este el cajón. El dato es
+             el mismo y por eso el contador se cachea en `$GLOBALS['_notifsPendientes']`
+             —la misma clave que leen `_topbar-avatar.php` y el modal de Alex de
+             `layout-admin.php`—, así que la consulta se hace UNA vez y da igual cuál de
+             los tres se incluya primero.
+
+             ⚠️ Se oculta con `display:none` fuera de móvil, así que sale duplicado en
+             el HTML de escritorio. Es a propósito: el breakpoint es de CSS y montarlo
+             en JS dejaría el cajón sin cuenta mientras el bundle no cargue, que es
+             justo el escenario contra el que existe `html.js`. */ ?>
+    <?php if (!empty($_SESSION['blog_usuario'])):
+        $_sbNombre  = $_SESSION['blog_usuario']['nombre'] ?? 'Usuario';
+        $_sbInicial = mb_strtoupper(mb_substr($_sbNombre, 0, 1, 'UTF-8'), 'UTF-8');
+        $_sbAvatar  = $_SESSION['blog_usuario']['avatar'] ?? '';
+        if (!isset($GLOBALS['_notifsPendientes'])) {
+            $GLOBALS['_notifsPendientes'] = class_exists(\Model\Notificacion::class)
+                ? \Model\Notificacion::noLeidasPorUsuario((int)$_SESSION['blog_usuario']['id'])
+                : 0;
+        }
+        $_sbNotifs = (int) $GLOBALS['_notifsPendientes'];
+    ?>
+    <div class="admin-sidebar__cuenta">
+        <a href="/dashboard/perfil" class="admin-sidebar__yo<?= _nav_active('/dashboard/perfil') ?>">
+            <span class="admin-sidebar__yo-ava">
+                <?php if ($_sbAvatar): ?>
+                    <img src="<?= htmlspecialchars($_sbAvatar) ?>" alt="">
+                <?php else: ?><?= htmlspecialchars($_sbInicial) ?><?php endif; ?>
+            </span>
+            <span class="admin-sidebar__yo-txt">
+                <span class="admin-sidebar__yo-nombre"><?= htmlspecialchars($_sbNombre) ?></span>
+                <span class="admin-sidebar__yo-sub">Ver mi perfil</span>
+            </span>
+        </a>
+        <div class="admin-sidebar__cuenta-acts">
+            <?php /* `data-notif-cta`: blog-notificaciones-index.js mueve los DOS
+                     contadores —este y el de la campana— al marcar como leída. Sin la
+                     marca actualizaba solo el del topbar, que en móvil está oculto, y
+                     el número visible se quedaba congelado. */ ?>
+            <?php /* El `title` da la unidad: sin él, el nombre accesible del enlace sale
+                     como «Avisos 3» —el badge aporta su texto— y el número queda sin
+                     decir de qué. Mismo patrón que la campana del topbar. */ ?>
+            <a href="/dashboard/notificaciones" data-notif-cta
+               title="<?= $_sbNotifs > 0 ? $_sbNotifs . ($_sbNotifs === 1 ? ' notificación' : ' notificaciones') . ' sin leer' : 'Notificaciones' ?>"
+               class="admin-sidebar__cta<?= _nav_active('/dashboard/notificaciones') ?><?= $_sbNotifs > 0 ? ' has-pend' : '' ?>">
+                <i class="fa-regular fa-bell"></i>
+                <span>Notificaciones</span>
+                <?php if ($_sbNotifs > 0): ?>
+                <span class="admin-nav__badge" data-notif-badge><?= $_sbNotifs > 99 ? '99+' : $_sbNotifs ?></span>
+                <?php endif; ?>
+            </a>
+            <?php /* POST, no enlace: cerrar sesión cambia estado del servidor.
+                     La etiqueta se oculta VISUALMENTE con clip-path (ver el SCSS) y no se
+                     borra del HTML: sin ella el <button> se quedaría sin nombre accesible.
+                     El glifo es el mismo del logout del topbar en escritorio, así que no
+                     hay nada nuevo que adivinar. */ ?>
+            <form action="/logout" method="POST">
+                <button type="submit" class="admin-sidebar__cta admin-sidebar__cta--salir"
+                        title="Cerrar sesión">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Salir</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
 </aside>
 
 

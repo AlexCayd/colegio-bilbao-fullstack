@@ -14,3 +14,18 @@
 .at-close:hover{color:#334155}
 .at-bar{position:absolute;bottom:0;left:0;height:3px;width:100%;border-radius:0 0 18px 0;transform-origin:left;animation:atBar 5s linear .5s both}
 @keyframes atBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+
+/* En pantallas muy estrechas el aviso se ancla a los dos bordes. `min-width:300px`
+   más `right:24px` necesita 324px de viewport: por debajo, el borde izquierdo se
+   sale y —al ser `fixed`— arrastra scroll horizontal a toda la página.
+   ⚠️ Seis partials de vista repiten este bloque dentro de su `body[data-page]`, que
+   gana por especificidad; mientras no se deduplique, esa regla hay que repetirla
+   también ahí (hecho en `_blog-usuarios-index.scss`). */
+@media (max-width: 420px) {
+    .at-wrap {
+        left: 12px;
+        right: 12px;
+        min-width: 0;
+        max-width: none;
+    }
+}

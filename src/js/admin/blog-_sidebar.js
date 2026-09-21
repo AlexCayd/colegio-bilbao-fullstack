@@ -85,11 +85,18 @@
             if (e.key === 'Escape' && sidebar.classList.contains('is-open')) closeMobile(true);
         });
 
-        /* Inyectar botón hamburger — en DOMContentLoaded porque
-           .admin-topbar__left aparece DESPUÉS del sidebar en el HTML */
+        /* Inyectar botón hamburger — en DOMContentLoaded porque el topbar aparece
+           DESPUÉS del sidebar en el HTML.
+
+           ⚠️ Va al FINAL de `.admin-topbar__actions`, no delante del breadcrumb.
+           Colgado de `.admin-topbar__left` —que es una columna— quedaba en una línea
+           propia ENCIMA de la miga, empujando el topbar a dos alturas y comiéndose
+           justo el ancho que la miga necesita (por eso el CSS acababa ocultándola en
+           móvil). En el extremo derecho comparte línea con ella, cae donde llega el
+           pulgar y la izquierda queda entera para decir en qué pantalla estás. */
         document.addEventListener('DOMContentLoaded', function () {
-            const topbarLeft = document.querySelector('.admin-topbar__left');
-            if (topbarLeft) {
+            const topbarActs = document.querySelector('.admin-topbar__actions');
+            if (topbarActs) {
                 const btn = document.createElement('button');
                 btn.className = 'admin-topbar__menu-btn';
                 /* `type` explícito: dentro de un <form> un <button> sin tipo envía. */
@@ -102,16 +109,17 @@
                     if (sidebar.classList.contains('is-open')) closeMobile(true);
                     else openMobile();
                 });
-                topbarLeft.insertBefore(btn, topbarLeft.firstChild);
+                topbarActs.appendChild(btn);
                 menuBtn = btn;
+            }
 
-                /* Mover el breadcrumb al topbar y ocultar el título por defecto */
-                const crumbs = document.getElementById('adminCrumbsSrc');
-                if (crumbs) {
-                    crumbs.hidden = false;
-                    topbarLeft.appendChild(crumbs);
-                    topbarLeft.classList.add('has-crumbs');
-                }
+            /* Mover el breadcrumb al topbar y ocultar el título por defecto */
+            const topbarLeft = document.querySelector('.admin-topbar__left');
+            const crumbs     = document.getElementById('adminCrumbsSrc');
+            if (topbarLeft && crumbs) {
+                crumbs.hidden = false;
+                topbarLeft.appendChild(crumbs);
+                topbarLeft.classList.add('has-crumbs');
             }
         });
 

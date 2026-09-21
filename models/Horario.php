@@ -124,24 +124,54 @@ class Horario extends ActiveRecord {
     }
 
     /**
+     * Vacía la rejilla entera.
+     *
+     * El CSV del colegio es el horario COMPLETO del plantel, no el de unos cuantos
+     * profesores, así que importarlo es un reemplazo total: quien no venga en el
+     * archivo se queda sin clases. Borrar solo a los del archivo dejaba vivas las
+     * filas de un profesor que ya no imparte —invisibles en su propio listado, pero
+     * ocupándole la hora frente a `sugerir()`— y ningún camino de la UI las
+     * alcanzaba para quitarlas.
+     *
+     * ⚠️ `suplencia_horas` y `swap_clases` NO apuntan a `horarios.id`, así que este
+     * borrado no arrastra historia: las suplencias guardan su propio
+     * (periodo, grupo, aula, materia) y sobreviven al reemplazo.
+     */
+    public static function borrarTodo(): int {
+        self::$db->query("DELETE FROM horarios");
+        return self::$db->affected_rows;
+    }
+
+    /**
      * Colores elegidos a mano, indexados por casilla: `"profesorId|dia|periodoId" => hex`.
      *
-     * Lo usa el importador CSV antes de `borrarDeProfesores()`. El archivo tiene 7
-     * columnas y ninguna es el color, así que sin esta foto una reimportación revertía
-     * en silencio cada color puesto desde el editor. Solo devuelve los no nulos: lo
-     * demás ya es automático y no hay nada que conservar.
+     * Lo usa el importador CSV antes de borrar. El archivo no trae ninguna columna de
+     * color, así que sin esta foto una reimportación revertía en silencio cada color
+     * puesto desde el editor. Solo devuelve los no nulos: lo demás ya es automático y
+     * no hay nada que conservar.
+     *
+     * Sin `$ids` devuelve los de TODA la tabla, que es lo que necesita el reemplazo
+     * completo: los ids de profesor aún no se conocen cuando el archivo los crea.
      */
-    public static function coloresDeProfesores(array $ids): array {
+    public static function coloresDeProfesores(array $ids = []): array {
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
-        if (!$ids) return [];
+        $filtro = $ids ? " AND profesor_id IN (" . implode(',', $ids) . ")" : '';
         $r = self::$db->query(
             "SELECT profesor_id, dia, periodo_id, color FROM horarios
-              WHERE color IS NOT NULL AND profesor_id IN (" . implode(',', $ids) . ")"
+              WHERE color IS NOT NULL{$filtro}"
         );
         $out = [];
         if ($r) while ($f = $r->fetch_assoc()) {
             $out[$f['profesor_id'] . '|' . $f['dia'] . '|' . $f['periodo_id']] = $f['color'];
         }
+        return $out;
+    }
+
+    /** ids de profesor que hoy tienen al menos una clase. Lo usa la previa del CSV. */
+    public static function profesoresConHorario(): array {
+        $r = self::$db->query("SELECT DISTINCT profesor_id FROM horarios");
+        $out = [];
+        if ($r) while ($f = $r->fetch_assoc()) $out[] = (int)$f['profesor_id'];
         return $out;
     }
 
@@ -201,6 +231,147 @@ class Horario extends ActiveRecord {
                 'tipo'       => $row['tipo'],
                 'materia'    => $row['tipo'] === 'guardia' ? 'Guardia' : $row['materia'],
                 'grupo'      => $row['tipo'] === 'guardia' ? $row['lugar'] : $row['grupo'],
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Ocupación REAL de una fecha concreta: el horario permanente más los intercambios
+     * ya validados de ese día.
+     *
+     * ⚠️ Un swap `validado` cambia quién da una clase **sin tocar `horarios`** — esa es
+     * justamente su razón de ser: es un cambio puntual, no un cambio de horario. Así que
+     * quien lee `horarios` a secas ve a quien cede todavía ocupado y a quien cubre
+     * todavía libre. Leyendo lo permanente, `sugerir()` daba por disponible a un
+     * profesor que sí tenía clase ese día y le encima una cobertura.
+     *
+     * Por eso hay DOS lectores y no uno:
+     *   - `ocupacionDiaDeVarios($ids, $dia)` → el horario permanente, por día de la
+     *     semana. Es lo que pintan las rejillas, y debe seguir diciendo la verdad sobre
+     *     la semana tipo.
+     *   - `ocupacionEfectivaDia($ids, $dia, $fecha)` → quién da clase ESE día. Es lo que
+     *     necesita cualquier decisión sobre una fecha (suplencias, hoy; el resto,
+     *     cuando lo pida).
+     *
+     * Cuesta UNA consulta más, no una por candidato: los swaps del día se traen de golpe
+     * y se reparten en memoria.
+     *
+     * @param  array  $profIds candidatos
+     * @param  string $dia     día de la semana ('lunes'…), para el horario permanente
+     * @param  string $fecha   fecha concreta 'Y-m-d', para los swaps
+     * @return array<int, array> profesor_id => rangos ordenados por hora
+     */
+    public static function ocupacionEfectivaDia(array $profIds, string $dia, string $fecha): array {
+        $ocupacion = self::ocupacionDiaDeVarios($profIds, $dia);
+        if (!$ocupacion) return $ocupacion;
+
+        $f = self::$db->escape_string($fecha);
+
+        /* Los dos lados del intercambio en una sola consulta. Cada fila de swap_clases
+           describe DOS movimientos —la clase que cede el solicitante y la que cede el
+           destinatario— y cada uno tiene su propia fecha, que pueden no coincidir
+           (Swap::DIAS_VENTANA permite hasta 7 días de separación). Por eso se pregunta
+           por las dos y se filtra después cuál de los dos cae en `$fecha`. */
+        $sql = "SELECT sw.fecha_origen, sw.fecha_destino,
+                       sw.solicitante_id, sw.destinatario_id,
+                       sw.horario_origen_id, sw.horario_destino_id
+                  FROM swap_clases sw
+                 WHERE sw.estado = 'validado'
+                   AND (sw.fecha_origen = '{$f}' OR sw.fecha_destino = '{$f}')";
+
+        $mueve = [];   // [ [horario_id, de, a], … ]
+        $r = self::$db->query($sql);
+        if ($r) while ($row = $r->fetch_assoc()) {
+            // Lado origen: la clase del solicitante la da el destinatario.
+            if ($row['fecha_origen'] === $fecha && $row['horario_origen_id']) {
+                $mueve[] = [(int)$row['horario_origen_id'],
+                            (int)$row['solicitante_id'], (int)$row['destinatario_id']];
+            }
+            // Lado destino: la del destinatario la da el solicitante.
+            if ($row['fecha_destino'] === $fecha && $row['horario_destino_id']) {
+                $mueve[] = [(int)$row['horario_destino_id'],
+                            (int)$row['destinatario_id'], (int)$row['solicitante_id']];
+            }
+        }
+        if (!$mueve) return $ocupacion;
+
+        // Los rangos de las clases movidas. Se consultan aparte porque quien RECIBE la
+        // clase puede no estar en $profIds —no ser candidato— y aun así hay que quitarle
+        // la suya a quien la cede.
+        $ids = array_values(array_unique(array_column($mueve, 0)));
+        $rangos = [];
+        $q = self::$db->query(
+            "SELECT h.id, p.hora_inicio, p.hora_fin FROM horarios h
+               JOIN periodos p ON p.id = h.periodo_id
+              WHERE h.id IN (" . implode(',', $ids) . ")");
+        if ($q) while ($row = $q->fetch_assoc()) {
+            $rangos[(int)$row['id']] = [$row['hora_inicio'], $row['hora_fin']];
+        }
+
+        foreach ($mueve as [$horarioId, $de, $a]) {
+            if (!isset($rangos[$horarioId])) continue;   // la clase se borró después
+            [$ini, $fin] = $rangos[$horarioId];
+
+            // Quitársela a quien la cede. Se localiza por reloj y no por periodo_id: la
+            // fila puede tener acompañantes de coteaching en el mismo periodo, y el swap
+            // mueve la clase entera.
+            if (isset($ocupacion[$de])) {
+                $ocupacion[$de] = array_values(array_filter(
+                    $ocupacion[$de],
+                    fn($o) => !($o['inicio'] === $ini && $o['fin'] === $fin)
+                ));
+            }
+            // Y dársela a quien la cubre. Solo si es candidato: a los demás no se les
+            // pregunta nada, y montarles la entrada sería trabajo tirado.
+            if (isset($ocupacion[$a])) {
+                $ocupacion[$a][] = [
+                    'periodo_id' => 0,
+                    'nivel'      => '',
+                    'etiqueta'   => '',
+                    'inicio'     => $ini,
+                    'fin'        => $fin,
+                    'tipo'       => 'clase',
+                    'materia'    => 'Intercambio',
+                    'grupo'      => null,
+                ];
+            }
+        }
+
+        // Se reordena porque los bloques añadidos van al final; bloquesLibres() y las
+        // rejillas de previsualización cuentan con el orden cronológico.
+        foreach ($ocupacion as &$lista) {
+            usort($lista, fn($a, $b) => strcmp($a['inicio'], $b['inicio']));
+        }
+        unset($lista);
+
+        return $ocupacion;
+    }
+
+    /**
+     * Qué es cada uno de esos periodos en el horario de un profesor: clase o guardia de
+     * receso, y en ese caso en qué lugar. Una sola consulta para todos los periodos.
+     *
+     * Lo usa BlogController::guardarHoras() al abrir una suplencia: las horas se marcan
+     * sobre el horario del ausente, así que su naturaleza ya está aquí y no hace falta
+     * —ni conviene— que el formulario la mande.
+     *
+     * @return array<int, array{tipo:string,lugar_id:?int}> periodo_id => …
+     */
+    public static function tipoDePeriodos(int $profId, string $dia, array $periodoIds): array {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $periodoIds))));
+        if ($ids === [] || $profId <= 0) return [];
+
+        $sql = "SELECT periodo_id, tipo, lugar_id FROM horarios
+                 WHERE profesor_id = " . (int)$profId . "
+                   AND dia = '" . self::$db->escape_string($dia) . "'
+                   AND periodo_id IN (" . implode(',', $ids) . ")";
+        $out = [];
+        $r = self::$db->query($sql);
+        if ($r) while ($row = $r->fetch_assoc()) {
+            $out[(int)$row['periodo_id']] = [
+                'tipo'     => $row['tipo'] ?: 'clase',
+                'lugar_id' => $row['lugar_id'] !== null ? (int)$row['lugar_id'] : null,
             ];
         }
         return $out;

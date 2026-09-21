@@ -305,6 +305,165 @@
     flex: 1;
 }
 
+/* ── CUENTA DENTRO DEL CAJÓN · SOLO MÓVIL ───────────────────
+   El markup vive en `views/blog/_sidebar.php` y está OCULTO por defecto: en
+   escritorio la cuenta es el cluster del topbar y duplicarla no aporta nada. Por
+   debajo de 1024px —donde el sidebar es cajón— el topbar se queda con la miga y el
+   hamburger, y esto pasa a ser la única vía a perfil, avisos y salir.
+
+   Al PIE y anclado (ver el bloque de 1024): la navegación empieza en el primer píxel
+   útil y la cuenta cae donde descansa el pulgar, sin dejar de verse sin desplazar. */
+.admin-sidebar__cuenta { display: none; }
+
+.admin-sidebar__yo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    text-decoration: none;
+    background: rgba(255, 255, 255, .05);
+    transition: background .18s ease;
+
+    &:hover { background: rgba(255, 255, 255, .1); }
+
+    /* «Estás aquí» no puede ser el mismo píxel que «tu dedo está aquí»: con hover y
+       `.active` compartiendo declaración, estar en la propia ficha era indistinguible
+       del reposo. Mismo idioma que `.admin-nav__link.active` del cajón. */
+    &.active {
+        background: rgba(125, 198, 229, .16);
+        box-shadow: inset 0 0 0 1.5px rgba(125, 198, 229, .45);
+    }
+
+    &-ava {
+        flex-shrink: 0;
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+        overflow: hidden;
+        background: linear-gradient(135deg, var(--col-bilbao), var(--col-espiritu));
+        color: #fff; font-weight: 800; font-size: .9rem;
+
+        img { width: 100%; height: 100%; object-fit: cover; }
+    }
+    /* `min-width:0` para que un nombre largo recorte en vez de empujar la tarjeta */
+    &-txt { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    &-nombre {
+        font-size: .88rem; font-weight: 700; color: #fff;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    &-sub { font-size: .7rem; color: rgba(255, 255, 255, .55); }
+}
+
+/* Avisos manda y Salir se reduce a su icono. Al 50% cada uno, el rojo ocupaba la
+   mitad de un bloque que se ve en cada navegación por algo que se usa una vez al día,
+   y el contador quedaba pegado a la palabra en medio de un botón estrecho en vez de a
+   la derecha, que es donde lo llevan todos los demás badges del cajón. */
+.admin-sidebar__cuenta-acts {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+
+    > *, form { flex: 0 0 auto; display: flex; }
+    > a       { flex: 1 1 auto; min-width: 0; }
+}
+
+.admin-sidebar__cta {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    /* Fila de navegación, no botón centrado: mismo `gap` y misma altura que
+       `.admin-nav__link`, para que el bloque entre en el ritmo vertical del cajón. */
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 42px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .07);
+    color: rgba(255, 255, 255, .82);
+    font-family: 'Outfit', sans-serif;
+    font-size: .8rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .18s ease, color .18s ease;
+
+    /* Tiene `display` propio, así que necesita su propio `&[hidden]`: es la trampa de
+       cascada que este proyecto ya pagó con `.admin-btn` en el asistente de swaps. */
+    &[hidden] { display: none; }
+
+    &:hover { background: rgba(255, 255, 255, .13); color: #fff; }
+    &.active {
+        background: rgba(125, 198, 229, .16);
+        box-shadow: inset 0 0 0 1.5px rgba(125, 198, 229, .45);
+        color: #fff;
+    }
+
+    /* Con notificaciones sin leer la fila ENTERA cambia, no solo aparece el badge:
+       en un cajón azul marino una pastilla de 18px es fácil de no ver, y esto es lo
+       único que reclama acción de todo el bloque. Ámbar y no rojo —que aquí ya
+       significa «salir»— ni azul claro —que significa «estás aquí»—, así que los tres
+       estados del bloque siguen sin confundirse. La clase la pone el servidor y la
+       mantiene `blog-notificaciones-index.js` al marcar como leída, así que la fila
+       vuelve sola a neutra cuando el contador llega a 0.
+       `#ffd98a` sobre el fondo compuesto da 8,9:1. */
+    &.has-pend {
+        background: rgba(245, 180, 0, .16);
+        color: #ffd98a;
+
+        i { color: var(--pal-ambar, #f5b400); }
+        &:hover { background: rgba(245, 180, 0, .26); color: #fff; }
+    }
+
+    /* Estar EN la bandeja Y tener pendientes: manda la POSICIÓN. En todo el cajón
+       una fila resaltada significa «estás aquí», y si puede resaltarse por un segundo
+       motivo la señal deja de ser fiable en las otras veinte. Además «hay pendientes»
+       se comprueba cerrando el cajón —estás mirando la lista— y «estás aquí» no.
+       El icono se queda ámbar y el badge sigue dando la cifra, así que el estado no
+       desaparece. (0,3,0) a propósito: que no dependa de quién se declare después. */
+    &.active.has-pend {
+        background: rgba(125, 198, 229, .16);
+        box-shadow: inset 0 0 0 1.5px rgba(125, 198, 229, .45);
+        color: #fff;
+
+        i { color: var(--pal-ambar, #f5b400); }
+    }
+
+    /* Red de recorte: «Notificaciones» + el badge dejan ~5px de holgura en un cajón
+       de 260px, y con el contador a tres cifras (`99+`) se pasa. El `<span>` no puede
+       encoger solo —su `min-content` es la palabra entera—, así que desbordaría sobre
+       el botón de Salir en vez de recortar. */
+    i { flex-shrink: 0; }
+    > span:not(.admin-nav__badge) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Salir es la única acción del cajón que te echa fuera: mismo rojo de la paleta
+       que el círculo que sustituye en el topbar, en tinte suave para no gritar. Solo
+       icono —su etiqueta se oculta a la vista pero sigue nombrando el botón para un
+       lector de pantalla—, porque ese glifo ya está aprendido del topbar. */
+    &--salir {
+        flex: 0 0 42px;
+        width: 42px;
+        padding: 0;
+        justify-content: center;
+        background: rgba(229, 16, 34, .16);
+        color: #ffb3b9;
+
+        &:hover { background: var(--pal-rojo); color: #fff; }
+
+        span {
+            position: absolute;
+            clip-path: inset(50%);
+            width: 1px; height: 1px; overflow: hidden;
+        }
+    }
+}
+
 .admin-nav__section {
     margin-bottom: 8px;
 }
@@ -584,26 +743,43 @@
     }
 }
 
-/* ── BOTÓN HAMBURGER EN TOPBAR ─────────────────────────── */
+/* ── BOTÓN HAMBURGER EN TOPBAR ───────────────────────────
+   Lo inyecta blog-_sidebar.js como ÚLTIMO hijo de `.admin-topbar__actions`, así
+   que cae en el extremo derecho y en la misma línea que el breadcrumb.
+
+   Círculo de `--tb-btn`, como la campana, el avatar y el logout: los cuatro son
+   controles del panel entero y a 36px con esquinas cuadradas se leía como un
+   elemento de otra familia. En tinta institucional sólida y no en blanco con
+   borde, porque en móvil el cajón es la ÚNICA navegación: junto a tres círculos
+   saturados, un contorno neutro parecía el control secundario de los cuatro. El
+   azul marino no está en la paleta de categorías, así que tampoco compite con el
+   azul de la campana ni con el rojo de salir: se lee como estructura. */
 .admin-topbar__menu-btn {
     display: none;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 1.5px solid #E2E8F0;
-    background: transparent;
-    color: var(--col-herencia);
+    width: var(--tb-btn);
+    height: var(--tb-btn);
+    border-radius: 50%;
+    border: none;
+    /* Tinta, no `--col-herencia` (#374C69): junto a la campana indigo y al degradado
+       del avatar eran tres azules distintos en fila, que no se lee como jerarquía
+       sino como un sistema que no cuadró. `--pal-tinta` no está en la paleta de
+       categorías, así que no compite con ninguna y se lee como estructura. */
+    background: var(--pal-tinta, #0B1F3D);
+    color: #fff;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 1rem;
     flex-shrink: 0;
-    transition: background 0.2s, border-color 0.2s;
+    box-shadow: 0 6px 16px -8px rgba(11, 31, 61, .8);
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 
     &:hover {
-        background: #F0F4F8;
-        border-color: #CBD5E0;
+        background: #1c3255;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px -10px rgba(11, 31, 61, .9);
     }
+    &:focus-visible { outline: 2px solid var(--col-bilbao); outline-offset: 2px; }
 }
 
 /* MAIN AREA */
@@ -650,70 +826,6 @@ html.no-transition * {
     html.sidebar-boot-collapsed .admin-main { margin-left: 0; }
 }
 
-/* ── RESPONSIVE MOBILE ─────────────────────────────────── */
-@media (max-width: 1024px) {
-    /* ⚠️ `html.js` es obligatorio en esta regla, y no es una precaución teórica.
-       Sacar el sidebar de pantalla solo es seguro si existe la forma de traerlo de
-       vuelta — y ese botón lo INYECTA blog-_sidebar.js, no está en el HTML. Sin la
-       guarda, un bundle que no carga dejaba el panel móvil sin navegación ninguna.
-       Con ella, sin JS el sidebar se queda en el flujo por encima del contenido: se
-       ve peor, pero se puede usar. La marca la estampa el script síncrono del <head>
-       de views/layout-admin.php, antes del primer pintado. */
-    html.js .admin-sidebar {
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 200;
-
-        &.is-open { transform: translateX(0); }
-    }
-
-    .admin-main {
-        margin-left: 0 !important;
-    }
-
-    .admin-topbar__menu-btn { display: flex; }
-
-    .admin-sidebar__collapse-btn { display: none; }
-
-    .admin-content {
-        padding: 20px 16px 40px;
-    }
-
-    .admin-topbar {
-        padding: 0 16px;
-    }
-}
-
-/* ── Topbar en pantallas estrechas ──────────────────────────
-   68px de alto y círculos de 40px con 16px de gap se comían el ancho: con el
-   breadcrumb movido al topbar por JS, el título quedaba en dos caracteres. */
-@media (max-width: 720px) {
-    .admin-topbar {
-        height: 56px;
-        padding: 0 12px;
-    }
-    .admin-topbar__actions { gap: 8px; }
-    .admin-topbar__avatar,
-    .admin-topbar__bell,
-    .admin-topbar__logout { width: 34px; height: 34px; }
-
-    /* La miga de pan es redundante en móvil —el cajón ES la navegación— y consume
-       justo el ancho que necesita el título. Se oculta y se REVIERTE la regla que
-       escondía el título cuando hay migas, o el topbar se queda sin ningún texto. */
-    .admin-crumbs { display: none; }
-    .admin-topbar__left.has-crumbs .admin-topbar__title { display: block; }
-    .admin-topbar__title {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    /* Ya no hay `.admin-btn` dentro de `.admin-topbar__actions`: las acciones bajaron a
-       la vista (cabecera del panel o pie del formulario) y ahí solo quedan campana,
-       avatar y salir. La regla que los compactaba se retiró con ellos — además estaba
-       escrita en la escala de 10px y daba 19,2px reales. */
-}
-
 /* TOP BAR */
 .admin-topbar {
     background: #fff;
@@ -757,6 +869,224 @@ html.no-transition * {
         align-items: center;
     }
 }
+
+/* El armazón de la página. Vive AQUÍ, junto al topbar y delante de los @media que lo
+   estrechan, y no 250 líneas más abajo: ahí lo ganaba la base y los tres sangrados
+   móviles —18/14, 16/12 y 14/10— no se aplicaban nunca. Se quedaban en los 32px de
+   escritorio, que en un teléfono de 360px son 64 de los ~300 disponibles. */
+.admin-content {
+    padding: 28px 32px 48px;
+    flex: 1;
+}
+
+/* ── Breadcrumb del topbar ──
+   Sube desde el final del archivo por lo mismo: a 3.000 líneas del bloque que lo
+   adapta en móvil, `flex-wrap: wrap` y `gap: 8px` le ganaban a las suyas y la miga
+   seguía pudiendo partir el topbar en dos líneas — el fallo exacto contra el que
+   avisa el comentario de ese bloque. */
+.admin-topbar__left.has-crumbs .admin-topbar__title,
+.admin-topbar__left.has-crumbs .admin-breadcrumb { display: none; }
+
+.admin-crumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.admin-crumbs__link {
+    font-size: 0.9rem;
+    font-weight: 600;
+    /* #94a3b8 daba 2,56:1 sobre blanco y no pasa AA. En móvil la miga es además el
+       único rastro de navegación hacia arriba que queda en el topbar. */
+    color: #64748B;
+    text-decoration: none;
+    transition: color .15s ease;
+
+    &:hover { color: var(--col-bilbao, #4267ac); }
+}
+.admin-crumbs__sep { font-size: 9px; color: #cbd5e1; }
+.admin-crumbs__cur { font-size: 0.9rem; font-weight: 800; color: #0B1F3D; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE DEL TOPBAR Y DEL CAJÓN
+
+   ⚠️ INVARIANTE: todo selector que se toque aquí abajo tiene que estar declarado
+   ARRIBA. Si añades uno cuya base vive más adelante en el archivo, sube la base —
+   no basta con escribir la regla responsive.
+
+   Un `@media` NO añade especificidad: con la base declarada después, todo lo que
+   ambas declaren lo gana la base, en silencio y sin aviso del compilador. En este
+   archivo pasó tres veces:
+     · `.admin-topbar` → `height:56px` y `padding:0 12px` nunca se aplicaron, así
+       que en móvil seguía midiendo los 68px de escritorio.
+     · `.admin-topbar__left` → perdía `flex-direction: row` pero conservaba
+       `align-items: center` (que la base no declara), así que la miga salía
+       centrada horizontalmente dentro de una columna en vez de a la izquierda.
+     · `.admin-content` → los tres sangrados móviles (18/14 · 16/12 · 14/10) eran
+       letra muerta y el teléfono se comía 32px por lado.
+     · `.admin-crumbs` → `flex-wrap: nowrap` perdía, o sea que la miga seguía
+       pudiendo partir el topbar en dos líneas.
+   Las cuatro bases están ahora inmediatamente encima de este comentario.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* ── RESPONSIVE MOBILE ─────────────────────────────────── */
+@media (max-width: 1024px) {
+    /* ⚠️ `html.js` es obligatorio en esta regla, y no es una precaución teórica.
+       Sacar el sidebar de pantalla solo es seguro si existe la forma de traerlo de
+       vuelta — y ese botón lo INYECTA blog-_sidebar.js, no está en el HTML. Sin la
+       guarda, un bundle que no carga dejaba el panel móvil sin navegación ninguna.
+       Con ella, sin JS el sidebar se queda en el flujo por encima del contenido: se
+       ve peor, pero se puede usar. La marca la estampa el script síncrono del <head>
+       de views/layout-admin.php, antes del primer pintado. */
+    html.js .admin-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 200;
+
+        &.is-open { transform: translateX(0); }
+    }
+
+    .admin-main {
+        margin-left: 0 !important;
+    }
+
+    /* 44px, el objetivo táctil de referencia, y no los 40 de `--tb-btn`: es el ÚNICO
+       control que queda en el topbar móvil y el que abre la única navegación que hay,
+       así que no compite con nada por el ancho y no hay razón para encogerlo. */
+    .admin-topbar__menu-btn {
+        display: flex;
+        width: 44px;
+        height: 44px;
+        font-size: 1.15rem;
+    }
+
+    .admin-sidebar__collapse-btn { display: none; }
+
+    /* ── El topbar se queda con la miga y el hamburger ──
+       Campana, avatar y logout bajan al cajón (`.admin-sidebar__cuenta`). Cinco
+       controles en 56px de alto dejaban la ruta en dos palabras, y de los cinco solo
+       uno —abrir el menú— se usa en cada pantalla; los otros tres son cuenta, que es
+       precisamente lo que un cajón sabe alojar.
+
+       ⚠️ El selector tiene que ser HIJO DIRECTO de `.admin-topbar__actions`.
+       `.admin-topbar__avatar` no es solo el avatar del topbar: los listados de
+       Usuarios y de personal reutilizan esa clase para el avatar de cada fila, así
+       que un `.admin-topbar__avatar { display:none }` a secas los borraría de las dos
+       tablas justo en el ancho en que se apilan en tarjetas. */
+    .admin-topbar__actions > .admin-topbar__bell,
+    .admin-topbar__actions > .admin-topbar__avatar,
+    .admin-topbar__actions > .admin-topbar__logout-form { display: none; }
+
+    /* Con la miga a `flex: 1`, hoy el cluster no se encoge porque su `min-width:auto`
+       lo salva. Eso es una salvaguarda implícita que deja de valer el día que entre
+       un segundo elemento aquí. */
+    .admin-topbar__actions { flex-shrink: 0; }
+
+    /* Anclada al pie del cajón: `margin-top:auto` la baja cuando la navegación es
+       corta y el `sticky` la mantiene a la vista cuando es larga.
+       ⚠️ Fondo OPACO obligatorio, o los módulos se leen a través al desplazar. Y el
+       `env()` la levanta sobre la barra de gestos del iPhone — que es justo donde
+       estaría «Salir» si no. */
+    .admin-sidebar__cuenta {
+        display: block;
+        position: sticky;
+        bottom: 0;
+        margin-top: auto;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        background: #0B1F3D;
+        border-top: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    /* ⚠️ Regresión de rotación. `sidebar-boot-collapsed` lo estampa el guard del
+       <head> leyendo `innerWidth > 1024`, así que una carga directa en móvil está
+       cubierta — pero CRUZAR el umbral después no: un iPad colapsado en horizontal
+       que gira a vertical conservaba las dos marcas, y el bloque de cuenta se pintaba
+       dentro de un cajón de 72px (avatar de 38 + nombre + dos botones desbordando).
+       Aquí solo se reseteaba el margen de `.admin-main`, no el ancho del sidebar. */
+    html.sidebar-boot-collapsed .admin-sidebar { width: 260px; }
+    .admin-sidebar--collapsed .admin-sidebar__cuenta { display: none; }
+
+    .admin-content {
+        padding: 18px 14px 36px;
+    }
+
+    .admin-topbar {
+        padding: 0 14px;
+    }
+}
+
+/* ── Topbar en pantallas estrechas ──────────────────────────
+   68px de alto y círculos de 40px con 16px de gap se comían el ancho: con el
+   breadcrumb movido al topbar por JS, el título quedaba en dos caracteres. */
+@media (max-width: 720px) {
+    .admin-topbar {
+        height: 56px;
+        padding: 0 12px;
+        gap: 10px;
+    }
+    .admin-topbar__actions { gap: 8px; }
+    /* Aquí había un `.admin-topbar__bell, .admin-topbar__logout { 34px }` que nunca
+       se aplicó (sus bases están más abajo) y que además se quedó sin sujeto: los dos
+       son `display:none` desde el bloque de 1024. Se retiró en vez de arreglarse —una
+       regla muerta sin sujeto es la que alguien revive creyendo que arregla algo.
+       `.admin-topbar__avatar` tampoco puede entrar aquí: los listados de Usuarios y de
+       personal reutilizan esa clase para el avatar de fila. */
+
+    /* La miga es el único texto del topbar móvil y compite con un disco sólido de
+       44px: a .9rem el afordance pesaba más que el dato. A ≤400 es además lo único
+       que queda, así que ahí es ganancia pura. */
+    .admin-crumbs__cur { font-size: 1rem; }
+
+    /* El contenido respira menos que el panel: a 360px, 16px por lado son 32px de los
+       que la tarjeta no dispone, y dentro todavía quedan el margen del panel y el de
+       la propia tarjeta. */
+    .admin-content { padding: 16px 12px 32px; }
+
+    /* La miga SE QUEDA. Se ocultaba porque el hamburger iba delante de ella y entre
+       los dos no cabía nada; movido al extremo derecho, la izquierda es suya entera
+       y es lo único que dice en qué pantalla estás (el título cae por `has-crumbs`,
+       como en escritorio). Se estrecha por recorte del último tramo, no por
+       envolver: con `flex-wrap` la miga empujaba el topbar a dos líneas. */
+    .admin-topbar__left {
+        flex: 1;
+        min-width: 0;
+        flex-direction: row;
+        align-items: center;
+    }
+    .admin-crumbs {
+        flex-wrap: nowrap;
+        min-width: 0;
+        gap: 6px;
+    }
+    .admin-crumbs__link { white-space: nowrap; }
+    .admin-crumbs__cur {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .admin-topbar__title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* Ya no hay `.admin-btn` dentro de `.admin-topbar__actions`: las acciones bajaron a
+       la vista (cabecera del panel o pie del formulario), y campana, avatar y salir
+       bajaron al cajón. La regla que los compactaba se retiró con ellos — además
+       estaba escrita en la escala de 10px y daba 19,2px reales. */
+}
+
+/* Por debajo de 400px la miga se reduce a la página actual. Con el topbar en un solo
+   botón le sobra ancho hasta bien abajo, así que el corte llega tarde a propósito:
+   los tramos anteriores son navegación —que el cajón ya da— y el único que no se
+   puede perder es el que dice dónde estás. */
+@media (max-width: 400px) {
+    .admin-crumbs__link,
+    .admin-crumbs__sep { display: none; }
+
+    .admin-content { padding: 14px 10px 28px; }
+}
+
 
 /* Botón de acción principal de una vista: «Nuevo artículo», «Nueva aula»…
    Vive en la cabecera del panel al que pertenece, NO en el topbar. Se llamaba
@@ -842,10 +1172,6 @@ html.no-transition * {
 }
 
 /* CONTENT AREA */
-.admin-content {
-    padding: 28px 32px 48px;
-    flex: 1;
-}
 
 /* WELCOME BANNER */
 .admin-welcome {
@@ -2717,6 +3043,16 @@ tbody tr.is-filtered { display: none; }
         color: #276749;
         > i { color: #38a169; }
     }
+
+    /* Ni error ni éxito: un estado que hay que saber antes de actuar (una suplencia
+       cancelada, un archivo que consta pero no está). Tinte suave y tinta oscura —
+       el blanco sobre el ámbar #f5b400 no llega a AA. */
+    &--warn {
+        background: #fffaf0;
+        border: 1.5px solid #ffe4bd;
+        color: #7c4a03;
+        > i { color: #b45309; }
+    }
 }
 
 .admin-alerta__list {
@@ -3120,7 +3456,11 @@ tbody tr.is-filtered { display: none; }
     height: 18px;
     padding: 0 5px;
     border-radius: 99px;
-    background: #ef4444;
+    /* `--pal-rojo` y no #ef4444: aquel daba 3,76:1 con blanco a .65rem y no pasa AA,
+       y además pintaba el MISMO número en dos rojos distintos según estuviera en el
+       cajón o en la campana del topbar (`.admin-topbar__bell-badge`, que ya usa este).
+       Por debajo de 1024px este es el único contador visible del panel. */
+    background: var(--pal-rojo);
     color: #fff;
     font-size: .65rem;
     font-weight: 800;
@@ -3717,7 +4057,12 @@ tbody tr.is-filtered { display: none; }
 /* Niveles que imparte un profesor. Van como pastillas y no como .admin-tipo-card: son
    cinco etiquetas de una palabra, y un tarjetón con icono + descripción ocuparía media
    pantalla para decir "Primaria". El color por nivel es el mismo del formulario de
-   grupos (views/blog/grupos/_form.php). */
+   grupos (views/blog/grupos/_form.php).
+
+   ⚠️ **COMPONENTE COMPARTIDO, no solo del formulario de usuarios.** Lo usa también
+   «Niveles educativos» del formulario de eventos, que tuvo un clon propio
+   (`.ev-niv__chip`) hasta que se borró: la misma pregunta se pintaba distinta en dos
+   pantallas. Tocar esto toca las dos — `usuarios/crear|editar` y `eventos/crear|editar`. */
 #niveles-group[hidden] { display: none; }
 .admin-niveles-grid {
     display: flex;
@@ -3742,28 +4087,57 @@ tbody tr.is-filtered { display: none; }
     color: #64748B;
     transition: border-color .18s ease, background .18s ease, color .18s ease;
 }
+/* ⚠️ MIDE LO MISMO MARCADO Y SIN MARCAR (16px), y no 10px que crecen a 11,5 con un
+   `scale`. Es el hueco donde aparece el ✓, así que reservarlo siempre evita que la
+   pastilla cambie de ancho al elegirla y reflúya la fila entera (§CLS). */
 .admin-nivel-check__dot {
-    width: 10px;
-    height: 10px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
     border-radius: 50%;
+    display: grid;
+    place-items: center;
     background: var(--c, #94a3b8);
     opacity: .35;
-    transition: opacity .18s ease, transform .18s ease;
+    font-size: 9px;
+    color: #fff;
+    transition: opacity .18s ease, background .18s ease;
 }
 .admin-nivel-check:hover .admin-nivel-check__box { border-color: #c7d6ea; }
+.admin-nivel-check:hover .admin-nivel-check__dot { opacity: .6; }
 .admin-nivel-check input:checked + .admin-nivel-check__box {
     border-color: var(--c, #4267ac);
     background: color-mix(in srgb, var(--c, #4267ac) 10%, #fff);
     color: #1E293B;
     font-weight: 700;
 }
+/* ⚠️ «ELEGIDO» NO PUEDE DEPENDER SOLO DEL COLOR. El borde y el velo al 10% son lo
+   único que cambiaba, y en escala de grises eso es 1.09:1 (ámbar) contra el blanco:
+   quien no distingue el tono no ve qué niveles ha marcado. El ✓ lo resuelve con la
+   forma, igual que el badge de la esquina de `.admin-tipo-card`.
+   El punto se oscurece al 70% con la tinta institucional porque el blanco sobre el
+   ámbar puro se queda en 1.84:1 y sobre el lima en 2.01:1 — un ✓ es un gráfico con
+   significado y necesita 3:1. Al 70% el peor caso da 3.33:1 y el tono se conserva. */
 .admin-nivel-check input:checked + .admin-nivel-check__box .admin-nivel-check__dot {
     opacity: 1;
-    transform: scale(1.15);
+    background: color-mix(in srgb, var(--c, #4267ac) 70%, var(--pal-tinta, #0b1f3d));
+}
+.admin-nivel-check input:checked + .admin-nivel-check__box .admin-nivel-check__dot::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    line-height: 1;
 }
 .admin-nivel-check input:focus-visible + .admin-nivel-check__box {
     outline: 2px solid var(--c, #4267ac);
     outline-offset: 2px;
+}
+
+/* ⚠️ 44px de objetivo táctil. Con `padding: 9px 15px` y 13px de texto la pastilla
+   mide ~35px, y el panel se usa desde el móvil. Afecta a los dos consumidores, que
+   es lo correcto: el problema lo tenían los dos. */
+@media (max-width: 720px) {
+    .admin-nivel-check__box { padding: 13px 16px; }
 }
 
 /* =========================================================
@@ -3872,27 +4246,6 @@ tbody tr.is-filtered { display: none; }
     .admin-nav__label, .admin-nav__home-arrow { display: none; }
 }
 
-/* ── Breadcrumb del topbar ── */
-.admin-topbar__left.has-crumbs .admin-topbar__title,
-.admin-topbar__left.has-crumbs .admin-breadcrumb { display: none; }
-
-.admin-crumbs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.admin-crumbs__link {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #94a3b8;
-    text-decoration: none;
-    transition: color .15s ease;
-
-    &:hover { color: var(--col-bilbao, #4267ac); }
-}
-.admin-crumbs__sep { font-size: 9px; color: #cbd5e1; }
-.admin-crumbs__cur { font-size: 0.9rem; font-weight: 800; color: #0B1F3D; }
 
 /* `.admin-topbar__site` se retiró: "Ver sitio público" bajó al sidebar como
    última opción de navegación (views/blog/_sidebar.php). */

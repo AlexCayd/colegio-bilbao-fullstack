@@ -1,9 +1,11 @@
 // Indice de admin - estilos migrados desde los <style> embebidos
+@forward 'admin-actualizaciones';
 @forward 'admin-catalogos';
 @forward 'admin-cumpleanos';
 @forward 'admin-datepicker';
 @forward 'admin-eventos';
 @forward 'admin-home';
+@forward 'admin-hoy';
 @forward 'admin-horario-editor';
 @forward 'admin-horarios';
 @forward 'admin-notificaciones';
@@ -18,6 +20,7 @@
 @forward 'blog-categorias-editar';
 @forward 'blog-categorias-index';
 @forward 'blog-dashboard';
+@forward 'blog-horarios-importar';
 @forward 'blog-login';
 @forward 'blog-noticias-categorias-index';
 @forward 'blog-noticias-crear';
@@ -34,3 +37,4 @@
 @forward 'blog-usuarios-detalle';
 @forward 'blog-usuarios-editar';
 @forward 'blog-usuarios-index';
+@forward 'blog-usuarios-solicitudes';

@@ -18,6 +18,12 @@ use Model\Grupo;
 use Model\Materia;
 use Model\Horario;
 use Model\Evento;
+use Model\Ajuste;
+use Model\Visita;
+use Model\Actualizacion;
+use Model\SolicitudPassword;
+use Classes\Pdf;
+use Classes\Diccionario;
 
 class BlogController {
 
@@ -187,7 +193,15 @@ class BlogController {
             } else {
                 $usuario = UsuarioBlog::findByEmail($email);
 
-                if ($usuario && password_verify($password, $usuario->password)) {
+                // ⚠️ La baja lógica se comprueba DESPUÉS de verificar la contraseña, no
+                // antes: dicho a quien no la acierta, «esa cuenta está dada de baja»
+                // convertiría el login en un verificador de qué direcciones pertenecen
+                // al claustro. Quien llega hasta aquí ya ha demostrado ser su dueño, así
+                // que merece saber por qué no entra en vez de dudar de su teclado.
+                $credencialOk = $usuario && password_verify($password, $usuario->password);
+                $dadoDeBaja   = $credencialOk && (int)($usuario->activo ?? 1) === 0;
+
+                if ($credencialOk && !$dadoDeBaja) {
                     UsuarioBlog::registrarAcceso($usuario->id);
                     $_SESSION['blog_usuario'] = [
                         'id'            => $usuario->id,
@@ -208,7 +222,12 @@ class BlogController {
                     exit;
                 }
 
-                if (!$usuario) {
+                if ($dadoDeBaja) {
+                    $errorCampo = 'email';
+                    UsuarioBlog::setAlerta('error',
+                        'Esta cuenta está dada de baja y no puede entrar al panel. '
+                        . 'Si sigues en el colegio, pídele a un administrador que la reactive.');
+                } elseif (!$usuario) {
                     $errorCampo = 'email';
                     UsuarioBlog::setAlerta('error', 'No encontramos ninguna cuenta con ese correo. ¿Está bien escrito?');
                 } else {
@@ -257,6 +276,15 @@ class BlogController {
             'sinSuplente'    => self::puedeCoordinar() ? (Suplencia::conteos()['solicitada'] ?? 0) : 0,
         ];
 
+        // La columna de hoy, solo para quien imparte: a un administrativo la tarjeta le
+        // saldría siempre vacía y le empujaría sus módulos fuera de la primera pantalla.
+        $hoy = self::imparte() ? self::bloquesDeHoy(self::datosHorarioProfesor($uid)) : null;
+
+        // Gráfica de visitas al sitio público: solo para el admin. A un profesor no le
+        // dice nada, y las cuatro series se calculan de golpe para que cambiar de rango
+        // no vaya al servidor.
+        $esAdmin = self::esAdmin();
+
         $router->renderAdmin('blog/home', [
             'titulo'        => 'Inicio',
             'modulos'       => self::modulosDisponibles(),
@@ -265,10 +293,17 @@ class BlogController {
             'cumpleanosAll' => UsuarioBlog::conCumpleanos(),
             'eventos'       => Evento::todos(),
             'pendientes'    => $pendientes,
+            'hoy'           => $hoy,
+            'visitas'       => $esAdmin ? Visita::seriesTodas() : null,
+            'visitasTop'    => $esAdmin ? Visita::topRutas(30) : [],
             // El hero lleva el mismo bosque WebGL que el login. El layout del panel no
             // carga Three.js por defecto (solo lo necesita esta vista), así que se
             // inyecta aquí igual que en login().
-            'extra_head'    => three_js_tag(),
+            // Chart.js solo si hay gráfica que pintar: cargarlo para todo el claustro
+            // sería una petición de red por usuario que nadie va a usar.
+            'extra_head'    => three_js_tag() . ($esAdmin
+                ? '<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>'
+                : ''),
         ]);
     }
 
@@ -903,9 +938,22 @@ class BlogController {
         exit;
     }
 
-    /** Crea las horas de cobertura desde arrays paralelos del POST. */
+    /**
+     * Crea las horas de cobertura desde arrays paralelos del POST.
+     *
+     * `tipo` y `lugar_id` NO llegan del formulario y no deben llegar: la rejilla marca
+     * casillas del horario del ausente, así que la naturaleza de cada hora —clase o
+     * guardia de receso, y en qué patio— ya está en `horarios` y pedírsela al cliente
+     * solo abriría la puerta a que no coincidan. Se leen aquí, de una vez para todas las
+     * horas. Sin esto toda hora nacía como 'clase' y las guardias se colaban en la cola
+     * de "¿dejó trabajo?".
+     */
     private static function guardarHoras(int $supId, array $post): int {
         $periodos = $post['periodo_id'] ?? [];
+        if (!$periodos) return 0;
+
+        $tipoDe = self::tipoHorasDeAusente($supId, array_map('intval', (array)$periodos));
+
         $n = 0;
         foreach ($periodos as $i => $pid) {
             $pid = (int)$pid;
@@ -916,11 +964,30 @@ class BlogController {
             $h->grupo_id     = (int)($post['grupo_id'][$i] ?? 0) ?: null;
             $h->aula_id      = (int)($post['aula_id'][$i] ?? 0) ?: null;
             $h->materia_id   = (int)($post['materia_id'][$i] ?? 0) ?: null;
+            $h->tipo         = $tipoDe[$pid]['tipo'] ?? 'clase';
+            $h->lugar_id     = $tipoDe[$pid]['lugar_id'] ?? null;
             $h->estado_hora  = 'pendiente';
             $h->guardar();
             $n++;
         }
         return $n;
+    }
+
+    /**
+     * Para cada periodo, qué es esa hora en el horario del profesor ausente: una clase o
+     * una guardia, y en ese caso dónde.
+     *
+     * @return array<int, array{tipo:string,lugar_id:?int}> periodo_id => …
+     */
+    private static function tipoHorasDeAusente(int $supId, array $periodoIds): array {
+        $sup = Suplencia::find($supId);
+        if (!$sup || !$sup->profesor_ausente_id) return [];
+
+        $dow = (int)date('N', strtotime($sup->fecha));
+        if ($dow < 1 || $dow > 5) return [];   // fin de semana: no hay jornada
+
+        return Horario::tipoDePeriodos(
+            (int)$sup->profesor_ausente_id, Horario::DIAS[$dow - 1], $periodoIds);
     }
 
     /**
@@ -1009,6 +1076,18 @@ class BlogController {
                         );
                     }
 
+                    // Y la dirección del nivel, que hasta ahora se enteraba de la
+                    // ausencia solo si entraba a mirar la agenda. Va después de
+                    // guardarHoras(), que es lo que le da nivel a la suplencia.
+                    self::avisarDireccion(
+                        Suplencia::nivelesDeSuplencia($nuevaId), 'suplencia_registrada',
+                        'Nueva ausencia de ' . ($suplencia->ausente_nombre
+                            ?: (UsuarioBlog::find($ausenteId)->nombre ?? 'un profesor'))
+                            . ' el ' . fecha_larga($suplencia->fecha) . '.',
+                        $nuevaId, 'suplencia', 'suplencias', 'info',
+                        '/dashboard/suplencias/agendar?id=' . $nuevaId
+                    );
+
                     header('Location: /dashboard/suplencias/agendar?id=' . $nuevaId);
                     exit;
                 }
@@ -1055,6 +1134,16 @@ class BlogController {
             (int)$suplencia->id, 'suplencia', 'suplencias', 'info',
             '/dashboard/suplencias/mis-coberturas'
         );
+
+        // Y a la dirección del nivel de ESA hora —no de toda la suplencia—: es el reparto
+        // que acaba de ocurrir, y una ausencia puede cruzar dos niveles.
+        $suplente = UsuarioBlog::find($suplenteId);
+        self::avisarDireccion(
+            array_filter([$hora->periodo_nivel]), 'cobertura_asignada',
+            ($suplente->nombre ?? 'Un profesor') . " cubrirá {$materia}{$donde} el {$cuando}.",
+            (int)$suplencia->id, 'suplencia', 'suplencias', 'info',
+            '/dashboard/suplencias/agendar?id=' . (int)$suplencia->id
+        );
     }
 
     /**
@@ -1079,6 +1168,67 @@ class BlogController {
         foreach (array_keys($destinos) as $uid) {
             Notificacion::nueva((int)$uid, $tipo, $mensaje, $refId, $refTipo, $modulo, $nivelAviso, $enlace);
         }
+    }
+
+    /**
+     * Una suplencia deja de estar en pie: avisa a TODAS las partes.
+     *
+     * "Todas" es literal y es el punto de este método: el profesor ausente, **cada
+     * suplente que ya tenía una hora asignada** y la dirección del nivel. El suplente es
+     * el que más lo necesita y el que antes se quedaba sin enterarse — tenía la cobertura
+     * apuntada y la clase desaparecía sin una palabra.
+     *
+     * Hay que llamarlo ANTES del DELETE en el caso de borrado: `suplencia_horas` cae por
+     * CASCADE y con ella la lista de a quién avisar.
+     *
+     * @param string $como 'cancelar' (se conserva el registro) | 'eliminar' (se borró)
+     */
+    private static function avisarSuplenciaAnulada(Suplencia $sup, string $como, string $motivo = ''): void {
+        $id     = (int)$sup->id;
+        $cuando = fecha_larga($sup->fecha);
+        $quien  = $sup->ausente_nombre ?: 'un profesor';
+        $porque = $motivo !== '' ? ' Motivo: ' . $motivo : '';
+        $yo     = (int)($_SESSION['blog_usuario']['id'] ?? 0);
+        $verbo  = $como === 'cancelar' ? 'canceló' : 'eliminó';
+
+        // Un registro cancelado se puede seguir abriendo; uno eliminado ya no existe, así
+        // que su aviso no debe llevar a una pantalla que responderá "no existe".
+        $enlace = $como === 'cancelar' ? '/dashboard/suplencias/agendar?id=' . $id : '';
+
+        // 1. Los suplentes que ya tenían hora asignada. Se deduplica: un mismo profesor
+        //    puede cubrir varias horas de la misma ausencia y recibiría un aviso por cada
+        //    una, y como "marcar como leída = BORRAR" tendría que cerrarlos uno a uno.
+        $avisados = [];
+        foreach (SuplenciaHora::deSuplencia($id) as $h) {
+            $sid = (int)($h->suplente_id ?? 0);
+            if (!$sid || $sid === $yo || isset($avisados[$sid])) continue;
+            $avisados[$sid] = true;
+            Notificacion::nueva(
+                $sid, 'cobertura_anulada',
+                "Ya no tienes que cubrir la clase del {$cuando}: la suplencia de {$quien} se {$verbo}.{$porque}",
+                $id, 'suplencia', 'suplencias', 'aviso',
+                '/dashboard/suplencias/mis-coberturas'
+            );
+        }
+
+        // 2. El profesor ausente, salvo que sea quien la está anulando.
+        $ausenteId = (int)$sup->profesor_ausente_id;
+        if ($ausenteId && $ausenteId !== $yo) {
+            Notificacion::nueva(
+                $ausenteId, 'suplencia_anulada',
+                "Tu ausencia del {$cuando} se {$verbo}.{$porque}",
+                $id, 'suplencia', 'suplencias', 'aviso', $enlace
+            );
+        }
+
+        // 3. La dirección del nivel. Se calcula antes de que desaparezcan las horas, que
+        //    es de donde sale el nivel (via periodos, el único camino fiable: grupo_id y
+        //    materia_id van NULL en las guardias).
+        self::avisarDireccion(
+            Suplencia::nivelesDeSuplencia($id), 'suplencia_anulada',
+            "La suplencia de {$quien} del {$cuando} se {$verbo}.{$porque}",
+            $id, 'suplencia', 'suplencias', 'aviso', $enlace
+        );
     }
 
     /**
@@ -1144,10 +1294,29 @@ class BlogController {
             if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
             $accion = $_POST['_accion'] ?? '';
             $horaId = (int)($_POST['hora_id'] ?? 0);
+
+            // ⚠️ La hora tiene que ser DE ESTA suplencia. requireAlcance() validó el
+            // `?id=`, no el `hora_id`, así que sin esto un coordinador con alcance sobre
+            // la suplencia A podía desasignar o borrar una hora de la B mandando
+            // `id=A&hora_id=<hora de B>`. Misma precaución que marcarTrabajo().
+            if ($horaId && !SuplenciaHora::esDeSuplencia($horaId, $id)) {
+                header('Location: /dashboard/suplencias/agendar?id=' . $id); exit;
+            }
+
             // Las horas se fijan al abrir la suplencia desde el horario del ausente:
             // aquí solo se asigna o se retira al suplente.
             if ($accion === 'asignar' && $horaId) {
                 $suplenteId = (int)($_POST['suplente_id'] ?? 0);
+                // El JS no pinta el botón de confirmar sobre un candidato bloqueado,
+                // pero eso es cortesía, no un guard: el POST llega igual desde una
+                // pestaña vieja, el botón atrás o un segundo coordinador trabajando a la
+                // vez sobre el mismo día. La regla se comprueba AQUÍ, contra sugerir().
+                $bloqueo = SuplenciaHora::motivoBloqueo($horaId, $suplenteId, $id);
+                if ($bloqueo !== null) {
+                    header('Location: /dashboard/suplencias/agendar?id=' . $id
+                           . '&nodisponible=' . urlencode($bloqueo));
+                    exit;
+                }
                 SuplenciaHora::asignar($horaId, $suplenteId);
                 self::avisarCoberturaAsignada($suplencia, $horaId, $suplenteId);
             } elseif ($accion === 'desasignar' && $horaId) {
@@ -1244,6 +1413,19 @@ class BlogController {
                     // archivo nuevo reinicia el ciclo de revisión.
                     Suplencia::marcarSubida($id);
                     Suplencia::recalcularEstado($id);
+
+                    // Avisar a dirección: revisar el justificante es competencia SUYA
+                    // (puedeVerJustificante() = admin o directivo), y el documento tiene
+                    // plazo — a los DIAS_DESCARGA pasa a la cola y a los DIAS_PURGA se
+                    // borra solo. Sin aviso, el reloj corría sin que nadie lo supiera.
+                    $quien = UsuarioBlog::find((int)$sup->profesor_ausente_id);
+                    self::avisarDireccion(
+                        Suplencia::nivelesDeSuplencia($id), 'justificante_subido',
+                        'Justificante de ' . ($quien->nombre ?? 'un profesor')
+                            . ' para la ausencia del ' . fecha_larga($sup->fecha) . '.',
+                        $id, 'suplencia', 'suplencias', 'info',
+                        '/dashboard/suplencias/agendar?id=' . $id
+                    );
                 }
             }
         }
@@ -1582,13 +1764,115 @@ class BlogController {
         exit;
     }
 
+    /**
+     * Editar una suplencia ya abierta.
+     *
+     * Editable: motivo, notas y justificante. **La fecha y el profesor ausente NO**, y no
+     * es una limitación de la pantalla sino del dato: las horas se fijaron leyendo el
+     * horario de ESA persona en ESE día, así que cambiar cualquiera de los dos dejaría
+     * unas horas que no corresponden a nada, con coberturas ya asignadas y notificadas
+     * sobre ellas. Para eso está cancelar y volver a abrir.
+     */
+    public static function editarSuplencia(Router $router) {
+        self::requireModulo('suplencias');
+        if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
+
+        $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+        self::requireAlcance($id);
+        $suplencia = Suplencia::encontrarConDetalle($id);
+        if (!$suplencia) { header('Location: /dashboard/suplencias?noexiste=1'); exit; }
+
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $suplencia->motivo = Suplencia::motivoDesdePost($_POST);
+            $suplencia->notas  = trim((string)($_POST['notas'] ?? ''));
+
+            $alertas = $suplencia->validar();
+            $justificante = self::subirJustificante();
+            $alertas = Suplencia::getAlertas();
+
+            if (empty($alertas['error'])) {
+                // Reemplazar el archivo se lleva el anterior: vive fuera de public/ y no
+                // lo borra ninguna FK, así que si no se quedaría huérfano para siempre.
+                if ($justificante) {
+                    $viejo = self::rutaJustificante($suplencia->justificante);
+                    if ($viejo && is_file($viejo)) @unlink($viejo);
+                    $suplencia->justificante = $justificante;
+                    Suplencia::marcarSubida($id);
+                }
+                $suplencia->guardar();
+                // Subir el comprobante puede sacarla de 'por_justificar'.
+                Suplencia::recalcularEstado($id);
+                header('Location: /dashboard/suplencias/agendar?id=' . $id . '&editada=1');
+                exit;
+            }
+        }
+
+        $router->renderAdmin('blog/suplencias/editar', [
+            'titulo'     => 'Editar suplencia',
+            'suplencia'  => $suplencia,
+            'alertas'    => $alertas,
+            // Mismo criterio que agendar: el nombre y el peso del archivo no se calculan
+            // —ni llegan al HTML— para quien no puede abrirlo.
+            'veJustif'   => self::puedeVerJustificante(),
+            'justifInfo' => self::puedeVerJustificante()
+                              ? self::infoJustificante($suplencia->justificante) : null,
+        ]);
+    }
+
+    /**
+     * Cancelar una suplencia que ya no hace falta. NO la borra: el registro se conserva
+     * con `estado = 'cancelada'` (ver Suplencia::cancelar()) y se avisa a todas las
+     * partes — al ausente, a cada suplente que ya tenía hora asignada y a la dirección.
+     */
+    public static function cancelarSuplencia(Router $router) {
+        self::requireModulo('suplencias');
+        if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /dashboard/suplencias'); exit; }
+
+        $id = (int)($_POST['id'] ?? 0);
+        self::requireAlcance($id);
+        $sup = Suplencia::encontrarConDetalle($id);
+        if (!$sup) { header('Location: /dashboard/suplencias?noexiste=1'); exit; }
+
+        $motivo = trim((string)($_POST['motivo_cancelacion'] ?? ''));
+
+        // Se avisa ANTES de cancelar, mientras las horas siguen diciendo quién cubría.
+        // Aquí no se borra nada, pero el orden se mantiene igual que en eliminar para
+        // que las dos rutas se lean igual y nadie lo invierta "porque da lo mismo".
+        self::avisarSuplenciaAnulada($sup, 'cancelar', $motivo);
+        Suplencia::cancelar($id, $motivo);
+
+        header('Location: /dashboard/suplencias/agendar?id=' . $id . '&cancelada=1');
+        exit;
+    }
+
+    /**
+     * Borrado DURO de una suplencia. Para dejar de necesitarla sin perder el registro
+     * está `cancelarSuplencia()`, que es lo que hay que usar casi siempre: esto es para
+     * la que no debería haberse abierto nunca.
+     */
     public static function eliminarSuplencia(Router $router) {
         self::requireModulo('suplencias');
         if (!self::puedeAgendar()) { header('Location: /dashboard/suplencias'); exit; }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
-            $s  = Suplencia::find($id);
-            if ($s) $s->eliminar();
+            // Faltaba: filtrar el listado por nivel no sirve de nada si por ?id= se
+            // puede borrar la suplencia de otro nivel. El resto de POST del módulo
+            // (trabajo, validar-prefectura, reabrir-hora, resolver) ya lo hacían.
+            self::requireAlcance($id);
+            $s = Suplencia::find($id);
+            if ($s) {
+                // Avisar antes del DELETE: después no queda a quién. `suplencia_horas`
+                // cae por ON DELETE CASCADE y con ella la lista de suplentes.
+                self::avisarSuplenciaAnulada($s, 'eliminar');
+                // El parte médico vive fuera de public/ y no lo borra ninguna FK: sin
+                // esto se quedaba huérfano en disco para siempre.
+                $ruta = self::rutaJustificante($s->justificante);
+                if ($ruta && is_file($ruta)) @unlink($ruta);
+                $s->eliminar();
+            }
         }
         header('Location: /dashboard/suplencias?deleted=1');
         exit;
@@ -2006,9 +2290,36 @@ class BlogController {
     public static function eventos(Router $router) {
         self::requireModulo('eventos');
         $router->renderAdmin('blog/eventos/index', [
-            'titulo'  => 'Eventos',
-            'eventos' => Evento::todos(),
+            'titulo'      => 'Eventos',
+            'eventos'     => Evento::todos(),
+            // Interruptor del botón de descarga en Comunidad › Familias. Vive aquí
+            // —y no en una pantalla de ajustes que no existe— porque lo que habilita
+            // es el calendario que se llena desde este módulo.
+            'calendarioPdf' => Ajuste::bool(Ajuste::CALENDARIO_PDF, false),
+            'ciclo'         => Evento::ciclo(),
         ]);
+    }
+
+    /**
+     * Interruptor «el calendario del ciclo se puede descargar en PDF desde la web».
+     *
+     * Mismo guard que el resto del módulo (`requireModulo('eventos')`) y no
+     * `requireAdmin()`: quien puede crear un evento con audiencia `familias` ya está
+     * publicando en esa misma página, así que exigir más aquí sería una frontera
+     * inventada. El valor vive en `ajustes`, no en una columna de `eventos`: no es
+     * propiedad de ningún evento sino del sitio.
+     */
+    public static function ajustesEventos(Router $router) {
+        self::requireModulo('eventos');
+        $ok = true;
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Una casilla desmarcada no se envía: la ausencia del campo es el "no".
+            $ok = Ajuste::guardarBool(Ajuste::CALENDARIO_PDF, !empty($_POST['calendario_pdf']));
+        }
+        // Se distingue el fallo porque el interruptor vuelve solo a su posición
+        // anterior al recargar: sin avisar, eso se lee como que el panel lo ignora.
+        header('Location: /dashboard/eventos?ajuste=' . ($ok ? '1' : '0'));
+        exit;
     }
 
     public static function crearEvento(Router $router) {
@@ -2678,9 +2989,28 @@ class BlogController {
         $u = $id > 0 ? UsuarioBlog::findConArticulos($id) : null;
         if (!$u) { header('Location: /dashboard'); exit; }
 
-        if (!self::puedeCoordinar()) { header('Location: /dashboard'); exit; }
+        /* ⚠️ Ya NO se exige puedeCoordinar(). La ficha es la guía de personal del
+           claustro —quién es, qué imparte, cuándo está en clase y dónde—, y eso lo
+           necesita cualquiera que trabaje aquí: saber si puede interrumpir a alguien
+           ahora mismo no es un dato de gestión.
 
+           Lo que sí sigue cerrado es lo que se ve DENTRO: datosFicha() entrega las
+           ausencias, sus motivos, las coberturas y los intercambios solo a quien coordina
+           o al propio interesado (ver `$puedeVerHistorial`). Los justificantes siguen
+           siendo de dirección y no pasan por aquí en ningún caso. */
         return $u;
+    }
+
+    /**
+     * ¿Quien mira puede ver el HISTORIAL de esta persona (ausencias con su motivo,
+     * coberturas e intercambios), o solo su identidad y su horario?
+     *
+     * Es la frontera que antes marcaba el guard de entrada. Al abrirse la ficha a todo el
+     * claustro hubo que bajarla un nivel: la pantalla es de todos, el historial no.
+     */
+    private static function puedeVerHistorial(int $idFicha): bool {
+        return self::puedeCoordinar()
+            || (int)($_SESSION['blog_usuario']['id'] ?? 0) === $idFicha;
     }
 
     /**
@@ -2710,11 +3040,19 @@ class BlogController {
         // blanco.
         $horario = $esDocente ? self::datosHorarioProfesor($id) : null;
 
-        $ausencias  = $esDocente ? Suplencia::listar(['ausente_id' => $id, 'niveles' => $niveles]) : [];
-        $conteos    = $esDocente ? Suplencia::conteos($id, $niveles) : [];
-        $coberturas = $esDocente ? SuplenciaHora::historicoDeSuplente($id) : [];
+        /* La ficha la abre cualquiera con sesión, pero el historial no es de todos: las
+           ausencias llevan su motivo, y las coberturas e intercambios son el registro de
+           cómo ha trabajado esta persona. Eso se queda en quien coordina y en el propio
+           interesado. Sin el flag, abrir la ficha al claustro habría publicado de paso el
+           motivo de cada baja médica. */
+        $verHistorial = self::puedeVerHistorial($id);
+        $conDatos     = $esDocente && $verHistorial;
+
+        $ausencias  = $conDatos ? Suplencia::listar(['ausente_id' => $id, 'niveles' => $niveles]) : [];
+        $conteos    = $conDatos ? Suplencia::conteos($id, $niveles) : [];
+        $coberturas = $conDatos ? SuplenciaHora::historicoDeSuplente($id) : [];
         // FQN como el resto del módulo: `Swap` no está en los `use`.
-        $swaps      = $esDocente ? \Model\Swap::deProfesor($id) : [];
+        $swaps      = $conDatos ? \Model\Swap::deProfesor($id) : [];
 
         // Resúmenes en PHP sobre lo ya cargado: `topIncumplimientos()` y
         // `contarIncumplimientos()` son del plantel entero, forma equivocada aquí y una
@@ -2737,10 +3075,17 @@ class BlogController {
             'swaps'         => $swaps,
             'porEstadoSwap' => $porEstadoSwap,
             'acotado'       => !empty($niveles),
+            // La vista lo usa para distinguir «no tiene ausencias» de «no puedes verlas»:
+            // un empty state que miente es peor que una sección ausente.
+            'verHistorial'  => $verHistorial,
             // Claves del horario (tramos, rejilla, ocupadoPorDia, totalClases,
             // discrepantes…). `profesor` se pisa con `$u`, que es el mismo registro con
             // `total_articulos` de propina.
             'horario'       => $horario,
+            // La columna de hoy con la clase en curso. Va a TODO el que abra la ficha,
+            // incluido quien no ve el historial: saber si esta persona está ahora mismo
+            // en clase es justo lo que se viene a consultar, y no es un dato sensible.
+            'hoy'           => $esDocente ? self::bloquesDeHoy($horario) : null,
         ];
     }
 
@@ -3149,14 +3494,39 @@ class BlogController {
             );
         }
 
-        // El nivel no declarado no bloquea (es opcional por diseño), pero conviene
-        // cuadrar la ficha: acota su rejilla y prioriza sus suplencias.
+        // El nivel no declarado no bloquea (es opcional por diseño), pero sí se AÑADE a
+        // su ficha: si le acabas de dar una clase de Secundaria, imparte en Secundaria, y
+        // hasta ahora eso solo lo escribía el importador CSV. Acota su rejilla y prioriza
+        // sus suplencias, así que dejarlo desfasado tiene efectos reales.
         $declarados = UsuarioBlog::nivelesDe($profId);
         if ($declarados && !in_array($nivel, $declarados, true)) {
-            $_SESSION['horario_editor'] = ['nivelAjeno' => $nivel];
+            self::anadirNivelDocente($profId, $nivel);
+            $_SESSION['horario_editor'] = ['nivelAnadido' => $nivel];
         }
         header('Location: ' . $volver . '&ok=' . $n);
         exit;
+    }
+
+    /**
+     * Añade un nivel a los declarados de un profesor, sin quitar ninguno.
+     *
+     * ⚠️ Es UNIÓN y no recálculo, a propósito. El recálculo completo desde `horarios` lo
+     * hace el importador CSV, que reemplaza la semana entera y por tanto sabe lo que hay;
+     * aquí solo se ha tocado un bloque. Recalcular desde una edición parcial borraría un
+     * nivel declarado a mano para alguien que todavía no tiene horario cargado — que es
+     * exactamente el caso que la columna vino a resolver (ver `usuarios.niveles` en
+     * CLAUDE.md: la fuente declarativa existe porque deducirlo de las clases fallaba sin
+     * horario). Para poner al día a todo el claustro está el UPDATE de database/CLAUDE.md.
+     */
+    private static function anadirNivelDocente(int $profId, string $nivel): void {
+        if (!in_array($nivel, Materia::NIVELES, true)) return;
+        $actuales = UsuarioBlog::nivelesDe($profId);
+        if (in_array($nivel, $actuales, true)) return;
+
+        // Se reordena por el orden académico y no por el de llegada: es el mismo criterio
+        // con el que los pinta la ficha y con el que los guarda el importador.
+        $union = array_values(array_intersect(Materia::NIVELES, array_merge($actuales, [$nivel])));
+        UsuarioBlog::guardarNiveles($profId, $union);
     }
 
     /**
@@ -3248,6 +3618,10 @@ class BlogController {
      *
      * `entidad` es el objeto seleccionado (UsuarioBlog | Aula | Grupo) o null; los tres
      * tienen `nombre`, que es lo único que la cabecera necesita de él.
+     *
+     * ⚠️ El selector solo lista lo ACTIVO. Un aula, un grupo o un profesor dados de baja
+     * tienen la semana vacía por definición —la importación que los apagó vació antes la
+     * rejilla—, así que ofrecerlos sería ofrecer pantallas en blanco.
      */
     private static function datosHorarioVista(string $vista, int $entidadId): array {
         if ($vista === 'aula') {
@@ -3258,7 +3632,7 @@ class BlogController {
             $titulo    = 'Horarios por grupo';
         } else {
             $vista     = 'profesor';
-            $entidades = UsuarioBlog::porTipo('profesor');
+            $entidades = UsuarioBlog::porTipo('profesor', false);
             $titulo    = 'Horarios por profesor';
         }
 
@@ -3433,6 +3807,51 @@ class BlogController {
     }
 
     /**
+     * La columna de HOY, aplanada para `views/blog/_horario-ahora.php`.
+     *
+     * Reutiliza `datosHorarioProfesor()` en vez de consultar por su cuenta: es la misma
+     * fuente que «Mi horario», su PDF y la ficha, así que las cuatro no pueden acabar
+     * pintando días distintos. Aquí solo se traduce la celda de `rejilla()` a lo que la
+     * tarjeta necesita — hora, qué es y de qué color.
+     *
+     * @return array{bloques: array, dia: string}  `dia` vacío = hoy no hay jornada
+     */
+    private static function bloquesDeHoy(?array $horario): array {
+        $dow = (int)date('N');
+        // Sábado y domingo: no hay jornada que pintar y la tarjeta lo dice.
+        if ($dow < 1 || $dow > 5 || !$horario) return ['bloques' => [], 'dia' => ''];
+
+        $dia    = Horario::DIAS[$dow - 1];
+        $celdas = $horario['rejilla'][$dia] ?? [];
+
+        $out = [];
+        foreach ($celdas as $c) {
+            if ($c['tipo'] === 'clase') {
+                $h = $c['horario'];
+                $out[] = [
+                    'ini'     => $c['inicio'],
+                    'fin'     => $c['fin'],
+                    'materia' => $h->tipo === 'guardia' ? 'Guardia' : ($h->materia ?: 'Clase'),
+                    'grupo'   => $h->tipo === 'guardia' ? ($h->lugar_nombre ?? '') : ($h->grupo_nombre ?? ''),
+                    'aula'    => $h->tipo === 'guardia' ? '' : ($h->aula_nombre ?? ''),
+                    // Mismo color que la rejilla y que el PDF: lo calcula colorMateria(),
+                    // que es la fuente única desde que había tres copias del crc32().
+                    'color'   => self::colorMateria($h->materia ?? '', $h->color ?? null)['hex'],
+                    'receso'  => false,
+                ];
+            } elseif ($c['tipo'] === 'receso') {
+                $out[] = ['ini' => $c['inicio'], 'fin' => $c['fin'], 'materia' => '',
+                          'grupo' => '', 'aula' => '', 'color' => '#f5b400', 'receso' => true];
+            } else {
+                $out[] = ['ini' => $c['inicio'], 'fin' => $c['fin'], 'materia' => '',
+                          'grupo' => '', 'aula' => '', 'color' => '#cbd5e1', 'receso' => false];
+            }
+        }
+
+        return ['bloques' => $out, 'dia' => $dia];
+    }
+
+    /**
      * "Mi horario" en PDF, para llevarlo en papel.
      *
      * Se genera en servidor con Dompdf y una plantilla propia: **no** reutiliza
@@ -3479,88 +3898,95 @@ class BlogController {
      */
     private static function emitirHorarioPdf(array $datos): void {
         // El CSS vive en src/scss como todo lo demás (aquí no vale una hoja enlazada:
-        // Dompdf no resuelve URLs del sitio). Se compila a este archivo y se inyecta.
-        $css  = @file_get_contents(__DIR__ . '/../public/build/css/horario-pdf.css') ?: '';
-        $logo = self::dataUri(__DIR__ . '/../public/build/assets/img/global/logo-bilbao-horizontal-azul.png');
-        // El @font-face se arma aquí y no en el SCSS porque necesita rutas ABSOLUTAS
-        // del disco de este servidor, que un archivo compilado no puede conocer.
-        $css  = self::cssFuentePdf() . $css;
-
+        // Dompdf no resuelve URLs del sitio). Se compila a este archivo y se inyecta,
+        // precedido de las @font-face de Outfit, que necesitan rutas absolutas de
+        // disco y por eso las arma PHP y no el SCSS.
         ob_start();
-        $pdfCss   = $css;
-        $logoData = $logo;
+        $pdfCss   = Pdf::hojaCss('horario-pdf.css');
+        $logoData = Pdf::logo();
         extract($datos);
         require __DIR__ . '/../views/blog/horarios/pdf.php';
         $html = ob_get_clean();
 
-        $opciones = new \Dompdf\Options();
-        $opciones->set('isRemoteEnabled', false);   // el logo va embebido; nada sale a la red
-        // Outfit es la tipografía del panel, así que el PDF se lee como parte del
-        // mismo producto. Dompdf necesita el TTF en disco —no sirve la hoja de Google
-        // Fonts— y `chroot` es lo que le permite leer src/fonts/ con `@font-face`.
-        $opciones->set('defaultFont', 'Outfit');
-        $opciones->set('fontDir', __DIR__ . '/../storage/fuentes-pdf');
-        $opciones->set('fontCache', __DIR__ . '/../storage/fuentes-pdf');
-        $opciones->set('chroot', [realpath(__DIR__ . '/..')]);
-        if (!is_dir($opciones->get('fontDir'))) @mkdir($opciones->get('fontDir'), 0755, true);
-        $dompdf = new \Dompdf\Dompdf($opciones);
-        $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->setPaper('A4', 'landscape');
-        $dompdf->render();
-
-        // ⚠️ `strtr($s, 'áé…', 'ae…')` NO vale aquí: con dos cadenas opera BYTE a byte, y
-        // en UTF-8 un acento ocupa dos, así que "Adrián" salía como "adriuen". La forma
-        // de array —la misma que usa `claveCatalogo()`— sustituye cadenas completas.
-        $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-',
-            strtr($datos['profesor']->nombre, [
-                'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n',
-                'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ü'=>'U','Ñ'=>'N',
-            ])));
-        $dompdf->stream('horario-' . trim($slug, '-') . '.pdf', ['Attachment' => true]);
-        exit;
-    }
-
-    /**
-     * Declaraciones `@font-face` de Outfit para el PDF.
-     *
-     * Es la tipografía del panel, así que el horario impreso se lee como parte del
-     * mismo producto y no como un volcado genérico. Dompdf necesita el TTF **en
-     * disco** (la hoja de Google Fonts no le sirve) y solo acepta rutas absolutas
-     * dentro del `chroot`, que por eso se fija en la raíz del proyecto.
-     *
-     * Si faltan los archivos devuelve '' y Dompdf cae a su fuente por defecto: el PDF
-     * sale con otra tipografía, pero sale.
-     */
-    private static function cssFuentePdf(): string {
-        $dir = realpath(__DIR__ . '/../src/fonts');
-        if ($dir === false) return '';
-        $css = '';
-        foreach ([400 => 'normal', 600 => 'normal', 700 => 'bold', 800 => 'bold'] as $peso => $estilo) {
-            $ttf = $dir . DIRECTORY_SEPARATOR . "Outfit-{$peso}.ttf";
-            if (!is_file($ttf)) continue;
-            $css .= "@font-face{font-family:'Outfit';font-style:normal;font-weight:{$peso};"
-                  . "src:url('" . str_replace('\\', '/', $ttf) . "') format('truetype');}\n";
-        }
-        return $css;
-    }
-
-    /**
-     * Un archivo local como data: URI. Dompdf con rutas relativas es frágil.
-     *
-     * ⚠️ Devuelve '' si falta la extensión **GD**: Dompdf la necesita para incrustar
-     * un PNG y sin ella lanza una excepción que se llevaba por delante el PDF entero.
-     * La plantilla ya trata el logo como opcional, así que sin GD sale sin él en vez
-     * de no salir. (Habilitar `extension=gd` en php.ini lo devuelve; `intervention/image`
-     * —los avatares y la optimización de subidas— también la necesita.)
-     */
-    private static function dataUri(string $ruta): string {
-        if (!is_file($ruta) || !extension_loaded('gd')) return '';
-        $ext  = strtolower(pathinfo($ruta, PATHINFO_EXTENSION));
-        $mime = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg'][$ext] ?? 'image/png';
-        return 'data:' . $mime . ';base64,' . base64_encode((string)file_get_contents($ruta));
+        Pdf::emitir($html, 'horario-' . Pdf::slug($datos['profesor']->nombre) . '.pdf', 'landscape');
     }
 
     // ── Importación de horarios por CSV (módulo horarios + admin) ───────────────
+    //
+    // El archivo lo exporta el sistema del colegio y es **el horario completo del
+    // plantel**, no el de unos cuantos profesores. De ahí las dos decisiones que
+    // gobiernan todo lo que sigue:
+    //
+    //   · Importar REEMPLAZA la rejilla entera (`Horario::borrarTodo()`). Quien no
+    //     venga en el archivo se queda sin clases.
+    //   · El archivo es también el censo docente y de catálogos: los profesores,
+    //     grupos, aulas y materias que no existan **se dan de alta**, y los que deje de
+    //     mencionar **se dan de baja lógica** (`activo = 0`) — nunca se borran, así que
+    //     el histórico queda intacto y volver a nombrarlos los reactiva.
+    //     Administradores, administrativos, prefectura y dirección no se tocan nunca.
+    //
+    // Formato (8 columnas, SIN cabecera):
+    //
+    //     Pablo Benlliure,L,1,B Arte,6°A Bach,Arte,LEC,1
+    //     Nancy G,L,B1,P Lectura,Prim 1°A,Biblioteca,LEC,1
+    //     Nieves,L,C1,K Esp,Kinder 1,K1,LEC,1
+    //
+    //   0 profesor   nombre de sala de maestros, SIN correo (se deriva, ver correoDocente())
+    //   1 día        L M X J V
+    //   2 periodo    N (Secundaria/Bachillerato) · B<N> (Primaria) · C<N> (Kinder)
+    //   3 materia    «<prefijo de nivel> <nombre>» — B S P K M
+    //   4 grupo      «6°A Bach», «Prim 1°A», «Kinder 1»
+    //   5 aula       opcional (puede venir vacía)
+    //   6 tipo       LEC
+    //   7 —          columna del sistema de origen; se ignora (ver parsearCsvHorarios)
+
+    /** Columnas exactas del archivo. Ni una más ni una menos: una fila corta es un error. */
+    private const CSV_COLUMNAS = 8;
+
+    /** Dominio con el que se construye el correo de un profesor dado de alta por archivo. */
+    private const CSV_DOMINIO = 'bilbao.edu.mx';
+
+    /**
+     * Contraseña con la que nacen las cuentas creadas por el archivo.
+     *
+     * ⚠️ Es la misma que siembra `database/deploy/deploy.sql`, y por el mismo motivo:
+     * el CSV no trae correos ni contraseñas, así que no hay forma de generar una
+     * distinta por persona sin un canal para comunicársela. Es una contraseña
+     * **inicial**: hay que rotarla antes de abrir el panel. La previa lo dice.
+     */
+    private const CSV_PASSWORD_INICIAL = 'password123';
+
+    /** Día del archivo → ENUM de `horarios.dia`. */
+    private const CSV_DIAS = [
+        'l' => 'lunes', 'm' => 'martes', 'x' => 'miercoles', 'j' => 'jueves', 'v' => 'viernes',
+    ];
+
+    /** Prefijo de la materia → nivel académico. Es de donde sale el nivel de la fila. */
+    private const CSV_NIVEL_MATERIA = [
+        'm' => 'Maternal', 'k' => 'Kinder', 'p' => 'Primaria',
+        's' => 'Secundaria', 'b' => 'Bachillerato',
+    ];
+
+    /**
+     * Prefijo del código de periodo → niveles cuya jornada numera.
+     *
+     * ⚠️ `B` está en los dos mapas y significa cosas distintas: en la materia es
+     * Bachillerato, en el periodo es Primaria. Por eso el nivel lo decide SIEMPRE la
+     * materia y el código de periodo solo se comprueba contra él — al revés, «B Arte»
+     * en «B3» se leería como Bachillerato y Primaria a la vez.
+     *
+     * Secundaria y Bachillerato comparten numeración desnuda porque comparten jornada.
+     * Maternal no tiene código: si aparece una fila suya, el error lo dice en vez de
+     * inventarse una letra.
+     */
+    private const CSV_NIVEL_PERIODO = [
+        ''  => ['Secundaria', 'Bachillerato'],
+        'b' => ['Primaria'],
+        'c' => ['Kinder'],
+    ];
+
+    /** Tipos de sesión conocidos de la columna 6. */
+    private const CSV_TIPOS = ['lec' => 'clase'];
 
     /** Normaliza para comparar catálogos: minúsculas, sin acentos ni espacios de sobra. */
     private static function claveCatalogo(string $v): string {
@@ -3570,225 +3996,1027 @@ class BlogController {
     }
 
     /**
-     * Lee el CSV subido y devuelve [filas, resumen]. Cada fila trae su estado
-     * ('ok' | 'aviso' | 'error') y el motivo, para pintar la vista previa antes de escribir nada.
+     * Clave canónica de un grupo, para que el archivo y el catálogo se reconozcan.
+     *
+     * El colegio escribe «Prim 1°A», «1°A Sec» y «6°A Bach»; el catálogo guarda
+     * «1A Primaria», «1A Secundaria» y «6A Bachillerato». Es el mismo grupo, y sin esta
+     * clave la importación crearía un duplicado por cada uno —dos filas para el mismo
+     * alumnado, con el horario repartido entre las dos—.
+     *
+     * La receta: fuera el nombre del nivel (venga como venga escrito), fuera el
+     * ordinal y todo lo que no sea letra o dígito. Queda el grado y la sección, que es
+     * lo único que de verdad identifica al grupo **dentro de su nivel**; el nivel va
+     * delante en la clave para que «Kinder 1» y un hipotético «1A Primaria» no choquen.
+     */
+    private static function claveGrupo(string $nombre, string $nivel): string {
+        $v = self::claveCatalogo($nombre);
+        $v = (string)preg_replace('/\b(maternal|kinder|prim|primaria|sec|secundaria|bach|bachillerato)\b/u', ' ', $v);
+        $v = (string)preg_replace('/[^a-z0-9]+/', '', str_replace(['°', 'º'], '', $v));
+        return self::claveCatalogo($nivel) . '|' . $v;
+    }
+
+    /**
+     * Correo derivado del nombre, porque el archivo no trae ninguno.
+     *
+     * «José Antonio» → `jose.antonio@bilbao.edu.mx`. Si ya está cogido se numera
+     * (`jose.antonio2@`): dos personas distintas con el mismo nombre de pila existen, y
+     * reventar el `UNIQUE uq_email` a mitad de la transacción no ayudaría a nadie.
+     *
+     * @param array<string,true> $usados Correos ya ocupados (BD + generados en esta pasada).
+     */
+    private static function correoDocente(string $nombre, array $usados): string {
+        $base = trim((string)preg_replace('/[^a-z0-9]+/', '.', self::claveCatalogo($nombre)), '.');
+        if ($base === '') $base = 'profesor';
+        $correo = $base . '@' . self::CSV_DOMINIO;
+        for ($i = 2; isset($usados[$correo]); $i++) {
+            $correo = $base . $i . '@' . self::CSV_DOMINIO;
+        }
+        return $correo;
+    }
+
+    /** Cuántos candidatos a «es la misma persona» se enseñan por nombre del archivo. */
+    private const CSV_MAX_PARECIDOS = 3;
+
+    /**
+     * ¿Hay ya alguien que se llame casi igual? Devuelve sus nombres (como mucho tres).
+     *
+     * El archivo trae el nombre de sala de maestros («Ana Lau», «Fer Uribe», «Nancy G») y
+     * la BD el nombre completo del expediente («Ana Laura Castro», «María Fernanda Uribe
+     * Barrios», «Nancy González de la Rosa»). **No se fusionan solos**: «Fernanda So»
+     * encaja igual de bien con dos personas distintas, y elegir mal le da a alguien el
+     * horario de otra. Pero callarlo deja dos cuentas para la misma persona sin que nadie
+     * lo note, y en el claustro real eso es la norma y no la excepción.
+     *
+     * ⚠️ La comparación es **token a token, por prefijo y en orden**, no un
+     * `str_starts_with` sobre la cadena entera. Con la cadena entera «Ana Lau» no casaba
+     * con «Ana Laura Castro» (el espacio cae donde «Laura» sigue teniendo letras), y
+     * justo esos —nombre de pila abreviado + apellido abreviado— son la mayoría de los
+     * casos reales. Se permite saltar tokens del nombre largo, que es lo que hace falta
+     * para que «Fer Uribe» encuentre a «María Fernanda Uribe Barrios».
+     *
+     * Lo que NO caza, y es deliberado: los apodos que no son prefijo («Gaby» de
+     * «Gabriela», «Malena» de «María Elena»). Salen como alta limpia; cazarlos pediría
+     * distancia de edición, que empieza a proponer parecidos falsos y convierte el aviso
+     * en ruido.
+     *
+     * @return string[] nombres de los candidatos, el más corto primero
+     */
+    private static function docentesParecidos(string $nombre, array $existentes): array {
+        $n = self::claveCatalogo($nombre);
+        if ($n === '') return [];
+
+        $out = [];
+        foreach ($existentes as $u) {
+            $e = self::claveCatalogo((string)$u->nombre);
+            if ($e === $n) continue;                     // ese ya casó por nombre exacto
+            if (self::nombresCompatibles($n, $e)) $out[] = (string)$u->nombre;
+        }
+        usort($out, fn($a, $b) => mb_strlen($a) <=> mb_strlen($b));
+        return array_slice($out, 0, self::CSV_MAX_PARECIDOS);
+    }
+
+    /**
+     * ¿Pueden estos dos nombres ser de la misma persona?
+     *
+     * Token a token, **por prefijo y en orden**, saltando tokens del nombre largo. Con
+     * la cadena entera «Ana Lau» no casaba con «Ana Laura Castro» (el espacio cae donde
+     * «Laura» sigue teniendo letras), y ese patrón —pila abreviada + apellido
+     * abreviado— es la mayoría del claustro real. Se prueba en los dos sentidos porque
+     * cualquiera de los dos puede ser el corto.
+     *
+     * Lo usan dos cosas distintas: proponer parecidos (`docentesParecidos()`) y
+     * desconfiar de un casado por correo (`resolverDocente()`). Es la misma pregunta,
+     * así que es la misma función: dos recetas se desincronizan.
+     *
+     * @param string $a,$b ya normalizados con `claveCatalogo()`
+     */
+    private static function nombresCompatibles(string $a, string $b): bool {
+        $ta = array_values(array_filter(explode(' ', $a)));
+        $tb = array_values(array_filter(explode(' ', $b)));
+        if (!$ta || !$tb) return false;
+
+        $encaja = function (array $cortos, array $largos): bool {
+            $i = 0;
+            foreach ($largos as $l) {
+                if ($i < count($cortos) && str_starts_with($l, $cortos[$i])) $i++;
+            }
+            return $i === count($cortos);
+        };
+        return $encaja($ta, $tb) || $encaja($tb, $ta);
+    }
+
+    /**
+     * El diccionario del claustro indexado por **todas** sus grafías.
+     *
+     * `Classes\Diccionario` devuelve el dato crudo y la normalización la pone aquí, con
+     * la misma `claveCatalogo()` que el resto de catálogos: dos recetas distintas se
+     * desincronizarían, y la primera vez que lo hicieran sería un profesor recibiendo el
+     * horario de otro.
+     *
+     * Las tres grafías apuntan a la MISMA entrada porque el archivo de horarios puede
+     * traer cualquiera de ellas. Si dos personas comparten una grafía —«Fernanda» como
+     * versión corta de una y versión larga de otra— gana la primera y la segunda no
+     * pisa: un alias ambiguo no puede decidir a quién se le carga el horario, y lo que
+     * hace entonces el importador es lo de siempre (tratarlo como nombre a secas y, si
+     * no casa con ninguna cuenta, avisar de los parecidos).
+     *
+     * @return array<string, array> clave normalizada → entrada del diccionario
+     */
+    private static function indiceDiccionario(): array {
+        $out = [];
+        foreach (Diccionario::entradas() as $e) {
+            foreach (['corta', 'larga', 'real'] as $campo) {
+                $k = self::claveCatalogo((string)$e[$campo]);
+                if ($k !== '' && !isset($out[$k])) $out[$k] = $e;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * A quién se refiere este nombre del archivo de horarios.
+     *
+     * Es el punto que evita que importar duplique el claustro entero. El CSV trae el
+     * nombre de sala de maestros («Gaby») y la base de datos el del expediente
+     * («Gabriela Sánchez»); sin traducción, cada carga creaba una cuenta nueva por cada
+     * persona cuyo nombre corto no coincidía — 38 de 39 con el archivo real.
+     *
+     * Se prueba en este orden, del identificador más fuerte al más débil:
+     *
+     *   1. **El nombre tal cual**, si ya hay una cuenta que se llama así.
+     *   2. **El correo del diccionario**, que es el identificador único de verdad.
+     *   3. **Las otras grafías del diccionario** (larga y real) contra el nombre.
+     *   4. Nada casa → **cuenta nueva**, con el nombre y el correo del diccionario si
+     *      está, y con el nombre del archivo y un correo derivado si no.
+     *
+     * ⚠️ Lo que devuelve en `clave` es la clave de la **persona de destino**, no la del
+     * texto del archivo. Todo lo que viene después —los choques de horario, quién viene
+     * en el archivo y quién se inhabilita, y la resolución de ids al escribir— se apoya
+     * en esa clave, así que traducir aquí basta para que «Gaby» y «Gabriela Sánchez»
+     * sean la misma persona en todas partes, incluido el choque de dos clases a la vez.
+     *
+     * ⚠️ El correo generado depende de los ya usados, así que `$correosUsados` se toca
+     * por referencia: dos altas distintas no pueden salir con el mismo correo y reventar
+     * el `UNIQUE` a mitad de la transacción.
+     *
+     * @param array<string,object> $profesores clave de nombre → usuario
+     * @param array<string,object> $porCorreo  clave de correo → usuario
+     * @param array<string,array>  $dic        índice del diccionario
+     * @param object[]             $usuarios   claustro entero, para los parecidos
+     * @return array{clave:string,nombre:string,id:int,email:string,email_dic:string,via:string,por:string,dic:bool,parecido:string[]}
+     */
+    private static function resolverDocente(
+        string $nombre, array $profesores, array $porCorreo, array $dic, array $usuarios, array &$correosUsados
+    ): array {
+        $k = self::claveCatalogo($nombre);
+        $e = $dic[$k] ?? null;
+
+        // ⚠️ `email_dic` viaja también cuando la persona YA tiene cuenta, y se resuelve
+        // antes que nada por eso: es el único dato que permite ver que el correo de la
+        // ficha y el del diccionario no son el mismo. Antes solo sobrevivía en las
+        // altas, así que la discrepancia no llegaba a saberse nunca.
+        $correoDic = $e ? self::claveCatalogo((string)$e['email']) : '';
+        $casado = function (object $u, string $via, string $por, bool $dudoso = false) use ($correoDic) {
+            return ['clave' => self::claveCatalogo((string)$u->nombre), 'nombre' => (string)$u->nombre,
+                    'id' => (int)$u->id, 'email' => (string)$u->email, 'email_dic' => $correoDic,
+                    'via' => $via, 'por' => $por, 'dudoso' => $dudoso,
+                    'dic' => $via === 'diccionario', 'parecido' => []];
+        };
+
+        // 1. El archivo escribe el nombre con el que ya está dada de alta.
+        if (isset($profesores[$k])) return $casado($profesores[$k], 'directo', 'nombre');
+
+        if ($e) {
+            // 2. Por correo: es el identificador fuerte. Va antes que el nombre porque
+            //    un correo no se repite y un nombre sí puede parecerse a varios.
+            $kc = self::claveCatalogo((string)$e['email']);
+            if ($kc !== '' && isset($porCorreo[$kc])) {
+                // ⚠️ …pero un identificador fuerte con un dato malo es peor que uno
+                // débil. Si el diccionario se equivoca de correo, el horario de esta
+                // persona se escribe ENTERO en la cuenta de otra y la suya se inhabilita
+                // por no aparecer — en silencio y sin nada que lo delate. Se comprueba
+                // que la cuenta a la que lleva el correo se llame como alguna de las
+                // grafías; si no, se casa igual (el correo manda) pero marcado para que
+                // la previa lo enseñe y alguien decida.
+                $u = $porCorreo[$kc];
+                $cuenta = self::claveCatalogo((string)$u->nombre);
+                $suena = false;
+                foreach (['larga', 'real', 'corta'] as $campo) {
+                    $g = self::claveCatalogo((string)$e[$campo]);
+                    if ($g !== '' && ($g === $cuenta || self::nombresCompatibles($g, $cuenta))) { $suena = true; break; }
+                }
+                return $casado($u, 'diccionario', 'correo', !$suena);
+            }
+
+            // 3. Por cualquiera de las otras grafías.
+            foreach (['larga', 'real', 'corta'] as $campo) {
+                $kn = self::claveCatalogo((string)$e[$campo]);
+                if ($kn !== '' && isset($profesores[$kn])) return $casado($profesores[$kn], 'diccionario', 'nombre');
+            }
+        }
+
+        // 4. Alta. Con diccionario se crea con el nombre legible y el correo
+        //    institucional de verdad; sin él, con lo que traiga el archivo.
+        $nombreAlta = $e && $e['nombre'] !== '' ? (string)$e['nombre'] : $nombre;
+        $correo     = $e ? self::claveCatalogo((string)$e['email']) : '';
+        // Un correo del diccionario ya ocupado solo puede ser de otra cuenta que no
+        // hemos casado: derivar uno propio es preferible a reventar el UNIQUE.
+        if ($correo === '' || isset($correosUsados[$correo])) $correo = self::correoDocente($nombreAlta, $correosUsados);
+        $correosUsados[self::claveCatalogo($correo)] = true;
+
+        return [
+            'clave'  => self::claveCatalogo($nombreAlta),
+            'nombre' => $nombreAlta,
+            'id'     => 0,
+            'email'  => $correo,
+            'email_dic' => $correoDic,
+            'via'    => 'nuevo',
+            'por'    => '',
+            'dudoso' => false,
+            'dic'    => (bool)$e,
+            // Los parecidos solo tienen sentido en un alta: si ya casó, no hay nada que
+            // decidir. Se comparan las DOS grafías —la del archivo y la del diccionario—
+            // porque cualquiera de las dos puede ser la que se parezca a una cuenta.
+            'parecido' => $e && $nombreAlta !== $nombre
+                ? array_values(array_unique(array_merge(
+                    self::docentesParecidos($nombre, $usuarios),
+                    self::docentesParecidos($nombreAlta, $usuarios)
+                  )))
+                : self::docentesParecidos($nombre, $usuarios),
+        ];
+    }
+
+    /**
+     * ¿Hay que corregirle el correo a esta persona? Devuelve el nuevo, o `''`.
+     *
+     * El diccionario es la fuente de verdad de cómo se llama y cómo se escribe cada
+     * quien, así que cuando su correo y el de la ficha no coinciden manda el del
+     * diccionario. Pero **el correo es el usuario con el que se entra al panel**
+     * (`login()` autentica por `findByEmail`), así que no se toca a la ligera: se
+     * exigen tres cosas y cualquier duda deja la ficha como está.
+     *
+     *   1. Que el diccionario traiga correo y no sea el que ya tiene.
+     *   2. Que sea un correo **válido**. La hoja de cálculo no valida nada, y una celda
+     *      con el hipervínculo en vez del texto, o un `mailto:`, entrarían tal cual.
+     *   3. Que **no sea el de otra cuenta**. `usuarios.email` es `UNIQUE`, así que un
+     *      correo mal capturado en el Excel no puede reventar el UPDATE a mitad de la
+     *      transacción — y además significa que el diccionario está mal, que es un
+     *      hallazgo por derecho propio: por eso se recoge en `$conflictos` en vez de
+     *      descartarse en silencio.
+     *
+     * @param array                $r          lo que devolvió `resolverDocente()`
+     * @param array<string,object> $porCorreo  clave de correo → usuario
+     * @param array                $conflictos se le añaden los correos ya ocupados
+     */
+    private static function correoACorregir(array $r, array $porCorreo, array &$conflictos): string {
+        $nuevo = self::claveCatalogo((string)($r['email_dic'] ?? ''));
+        if ($nuevo === '' || $nuevo === self::claveCatalogo((string)$r['email'])) return '';
+
+        if (!filter_var($nuevo, FILTER_VALIDATE_EMAIL)) {
+            $conflictos[] = ['nombre' => (string)$r['nombre'], 'correo' => $nuevo, 'de' => ''];
+            return '';
+        }
+        // Si ese correo ya es de alguien, es de OTRA persona: si fuera de esta misma,
+        // `resolverDocente()` habría casado por correo y no habría discrepancia.
+        if (isset($porCorreo[$nuevo])) {
+            $conflictos[] = ['nombre' => (string)$r['nombre'], 'correo' => $nuevo,
+                             'de' => (string)$porCorreo[$nuevo]->nombre];
+            return '';
+        }
+        return $nuevo;
+    }
+
+    /**
+     * Lee el CSV subido y devuelve `[filas, resumen, plan]`.
+     *
+     * `plan` es lo que la confirmación hará con los catálogos, con las mismas cuatro
+     * claves (`profesores|grupos|aulas|materias`) en los cuatro apartados:
+     * `['altas' => …, 'match' => …, 'apagar' => …, 'encender' => …]`.
+     * `match` es lo que el archivo RECONOCE y no toca —la mitad del resultado que la
+     * previa no enseñaba—, `apagar` lo que deja de mencionar y `encender` lo que vuelve
+     * a nombrar tras una baja. **Nada se borra**: son cambios de `activo`.
+     *
+     * A las personas las casa `resolverDocente()` con el diccionario del claustro, que
+     * es lo que impide que «Gaby» se convierta en una segunda cuenta de «Gabriela
+     * Sánchez». Los `alias` de cada registro son las grafías con las que el archivo lo
+     * escribe cuando no coinciden con el nombre de la ficha.
+     *
+     * No escribe nada: resuelve cuanto puede contra los catálogos actuales, apunta lo
+     * que habría que crear y deja cada fila con su estado ('ok' | 'aviso' | 'error') y
+     * su motivo para que la vista previa lo enseñe antes de confirmar.
+     *
+     * Lo que NO se resuelve aquí son los ids de lo que todavía no existe: un grupo que
+     * el archivo estrena no tiene id hasta que se confirma. Por eso cada fila viaja con
+     * las **claves** de catálogo (`k_grupo`, `k_aula`, `k_materia`, `k_profesor`) y es
+     * `importarHorarios()` quien las convierte en ids, ya dentro de la transacción y
+     * después de dar de alta lo que faltaba. Los periodos son la excepción: la jornada
+     * no se crea nunca desde un archivo, así que su id se resuelve ya —y hace falta,
+     * porque los choques se comprueban por reloj.
      */
     private static function parsearCsvHorarios(string $ruta): array {
-        $cabeceraEsperada = ['profesor_email', 'dia', 'nivel', 'periodo', 'materia', 'grupo', 'aula'];
+        $contenido = @file_get_contents($ruta);
+        if ($contenido === false) return [[], ['error' => 'No se pudo leer el archivo.'], []];
+        $contenido = self::csvAUtf8($contenido);
 
-        // Índices de catálogo por nombre normalizado
-        $profesores = [];
-        foreach (UsuarioBlog::todosParaImportar() as $u) $profesores[self::claveCatalogo($u->email)] = $u;
-
-        // La jornada es por nivel, así que "3" o "3ª hora" ya no identifican un periodo:
-        // la clave lleva el nivel delante. Sin eso, la 3ª de Primaria y la de Secundaria
-        // se pisaban en el índice y ganaba la última cargada.
-        $periodos = [];
-        foreach (Periodo::todos() as $p) {
-            $niv = self::claveCatalogo($p->nivel);
-            $periodos[$niv . '|' . self::claveCatalogo($p->etiqueta)]      = $p;
-            $periodos[$niv . '|' . self::claveCatalogo((string)$p->orden)] = $p;   // "3" además de "3ª hora"
+        // ── Índices de catálogo ──────────────────────────────────────────────────
+        $usuarios = UsuarioBlog::todosParaImportar();
+        $profesores = [];            // clave de nombre  → Usuario
+        $porCorreo  = [];            // clave de correo  → Usuario
+        $correosUsados = [];
+        foreach ($usuarios as $u) {
+            $profesores[self::claveCatalogo((string)$u->nombre)] = $u;
+            $kc = self::claveCatalogo((string)$u->email);
+            $porCorreo[$kc] = $u;
+            $correosUsados[$kc] = true;
         }
-        // Mismo problema con las materias: `materias` tiene UNIQUE (nombre, nivel), así
-        // que «Arte» existe en Kinder y en Primaria y el índice por nombre las mezclaba.
-        $materias = [];
-        foreach (Materia::todas() as $m) $materias[self::claveCatalogo($m->nivel) . '|' . self::claveCatalogo($m->nombre)] = $m;
+
+        // El diccionario del claustro: es lo que traduce «Gaby» a la cuenta de
+        // «Gabriela Sánchez» en vez de crear una segunda. Si no se puede leer, el
+        // índice sale vacío y el importador se comporta como antes de que existiera.
+        $dic = self::indiceDiccionario();
+        // Nombre del archivo → a quién resuelve. Se calcula una vez por nombre
+        // distinto y no una por fila: son ~40 personas y ~880 filas.
+        $resueltos    = [];
+        $porClave     = [];
+
+        // La jornada es por nivel: 'Primaria' => [Periodo lectivo 1, 2, …]. El código
+        // del archivo numera HORAS DE CLASE, no posiciones de la jornada: «4» es la 4ª
+        // hora de Secundaria (orden 5), porque el orden 4 es un receso. Por eso el
+        // índice se construye sobre los periodos lectivos y no sobre `orden`.
+        $jornada = Periodo::porNivel(true);
+
+        // ⚠️ Los tres van con `true` (incluir dados de baja). Es lo que permite que un
+        // grupo apagado en la carga anterior se REACTIVE al volver a aparecer, en vez de
+        // que el importador lo dé por inexistente e intente crearlo otra vez — cosa que
+        // además reventaría el `UNIQUE uq_grupo` a mitad de la transacción.
         $grupos = [];
-        foreach (Grupo::todos() as $g)   $grupos[self::claveCatalogo($g->nombre)] = $g;
+        foreach (Grupo::todos(true) as $g) $grupos[self::claveGrupo((string)$g->nombre, (string)$g->nivel)] = $g;
         $aulas = [];
-        foreach (Aula::todas() as $a)    $aulas[self::claveCatalogo($a->nombre)] = $a;
-
-        $nivelesValidos = [];
-        foreach (Materia::NIVELES as $niv) $nivelesValidos[self::claveCatalogo($niv)] = $niv;
-
-        $fh = fopen($ruta, 'r');
-        if (!$fh) return [[], ['error' => 'No se pudo leer el archivo.']];
-
-        // BOM de Excel
-        $primerBloque = fgets($fh);
-        if ($primerBloque !== false && str_starts_with($primerBloque, "\xEF\xBB\xBF")) {
-            $primerBloque = substr($primerBloque, 3);
-        }
-        rewind($fh);
-        if ($primerBloque !== false) { fgets($fh); }
-
-        $cabecera = array_map(fn($c) => self::claveCatalogo((string)$c), str_getcsv(trim((string)$primerBloque)));
-        if (array_slice($cabecera, 0, 7) !== $cabeceraEsperada) {
-            fclose($fh);
-            return [[], ['error' => 'La cabecera debe ser exactamente: ' . implode(',', $cabeceraEsperada)]];
+        foreach (Aula::todas(true) as $a) $aulas[self::claveCatalogo((string)$a->nombre)] = $a;
+        $materias = [];
+        foreach (Materia::todas(true) as $m) {
+            $materias[self::claveCatalogo((string)$m->nivel) . '|' . self::claveCatalogo((string)$m->nombre)] = $m;
         }
 
-        // Ocupación acumulada del archivo, por reloj. Ya no basta con la clave
-        // profesor|dia|periodo: dos periodos distintos de niveles distintos pueden ser
-        // la misma hora, y ahí el duplicado exacto no aparece pero el choque sí existe.
-        $filas  = [];
-        $ocupa  = ['prof' => [], 'aula' => [], 'grupo' => []];   // tipo → clave → [[ini,fin,linea]]
-        $n = 1;
+        // ── Altas pendientes: lo que el archivo estrena ──────────────────────────
+        $altas = ['profesores' => [], 'grupos' => [], 'aulas' => [], 'materias' => []];
 
-        while (($col = fgetcsv($fh)) !== false) {
-            $n++;
-            if ($col === [null] || (count($col) === 1 && trim((string)$col[0]) === '')) continue;
+        $filas   = [];
+        $n       = 0;
+        $primera = true;
+        foreach (preg_split('/\R/u', $contenido) as $linea) {
+            $n++;                                  // número de línea FÍSICA: es lo que se enseña
+            if (trim($linea) === '') continue;
 
-            $email   = trim((string)($col[0] ?? ''));
-            $dia     = self::claveCatalogo((string)($col[1] ?? ''));
-            $nivel   = trim((string)($col[2] ?? ''));
-            $periodo = trim((string)($col[3] ?? ''));
-            $materia = trim((string)($col[4] ?? ''));
-            $grupo   = trim((string)($col[5] ?? ''));
-            $aula    = trim((string)($col[6] ?? ''));
+            // El cuarto argumento («sin carácter de escape») va explícito por dos
+            // razones: PHP 8.5 deprecia omitirlo, y el escape por defecto es `\`, que
+            // en un CSV RFC-4180 no significa nada. Con él, `"Dulce\","Laura"` se lee
+            // como UN campo corrupto (`Dulce\",Laura"`) en vez de como dos.
+            $col = str_getcsv($linea, ',', '"', '');
+
+            // Del formato viejo (7 columnas con cabecera) se avisa explícitamente: un
+            // «faltan columnas» a secas mandaba a revisar el archivo equivocado. Se
+            // mira la primera línea CON CONTENIDO, no la línea 1: un archivo que
+            // empiece con un salto en blanco sigue siendo el formato viejo.
+            $esPrimera = $primera;
+            $primera   = false;
+            if ($esPrimera && self::claveCatalogo((string)($col[0] ?? '')) === 'profesor_email') {
+                return [[], ['error' =>
+                    'Ese es el formato antiguo (7 columnas con cabecera «profesor_email,…»). '
+                    . 'El nuevo son 8 columnas y SIN cabecera: profesor,día,periodo,materia,grupo,aula,tipo,—. '
+                    . 'Descarga la plantilla para ver un ejemplo.'], []];
+            }
 
             $fila = [
-                'linea' => $n, 'email' => $email, 'dia' => $dia, 'nivel' => $nivel, 'periodo' => $periodo,
-                'materia' => $materia, 'grupo' => $grupo, 'aula' => $aula,
-                'estado' => 'ok', 'motivo' => '',
-                'profesor_id' => 0, 'periodo_id' => 0, 'materia_id' => 0, 'grupo_id' => 0, 'aula_id' => 0,
+                'linea'    => $n,
+                'profesor' => trim((string)($col[0] ?? '')),
+                'dia_csv'  => trim((string)($col[1] ?? '')),
+                'periodo'  => trim((string)($col[2] ?? '')),
+                'materia'  => '',
+                'grupo'    => trim((string)($col[4] ?? '')),
+                'aula'     => trim((string)($col[5] ?? '')),
+                'nivel'    => '',
+                'dia'      => '',
+                'hora'     => '',
+                'estado'   => 'ok',
+                'motivo'   => '',
+                'periodo_id' => 0,
+                'k_profesor' => '', 'k_grupo' => '', 'k_aula' => '', 'k_materia' => '',
+                'division'   => 0,
+                'rol_docente' => 'titular',
+                // A quién resuelve el nombre del archivo: la cuenta de destino (`0` si
+                // hay que crearla), cómo se llama de verdad y por qué camino se supo.
+                'profesor_id'    => 0,
+                'profesor_final' => '',
+                'via_profesor'   => '',
             ];
             $marcar = function (string $estado, string $motivo) use (&$fila) {
-                // Un error nunca lo degrada un aviso posterior
-                if ($fila['estado'] === 'error') return;
+                if ($fila['estado'] === 'error') return;   // un aviso posterior no degrada un error
                 $fila['estado'] = $estado;
                 $fila['motivo'] = $motivo;
             };
 
-            $prof = $profesores[self::claveCatalogo($email)] ?? null;
-            if (!$prof)      $marcar('error', "No existe un colaborador con el correo «{$email}».");
-            else             $fila['profesor_id'] = (int)$prof->id;
-
-            if (!in_array($dia, Horario::DIAS, true)) {
-                $marcar('error', "Día inválido «{$dia}»: usa " . implode(', ', Horario::DIAS) . '.');
+            if (count($col) !== self::CSV_COLUMNAS) {
+                $marcar('error', 'La fila tiene ' . count($col) . ' columnas y deben ser ' . self::CSV_COLUMNAS . '.');
             }
 
-            // El grupo se resuelve primero porque de él se deduce el nivel, y el nivel
-            // decide en qué jornada cae el periodo. grupo y aula son opcionales
-            // (las FK admiten NULL).
-            $gr = $grupo !== '' ? ($grupos[self::claveCatalogo($grupo)] ?? null) : null;
-            if ($grupo !== '' && !$gr) $marcar('error', "No existe el grupo «{$grupo}».");
-            elseif ($gr)               $fila['grupo_id'] = (int)$gr->id;
-
-            // El nivel decide a qué jornada pertenece «3ª hora». Lo normal es dejarlo
-            // vacío y deducirlo del grupo; solo hace falta escribirlo en una clase sin
-            // grupo asignado.
-            $nivelResuelto = null;
-            if ($nivel !== '') {
-                $nivelResuelto = $nivelesValidos[self::claveCatalogo($nivel)] ?? null;
-                if (!$nivelResuelto) {
-                    $marcar('error', "Nivel inválido «{$nivel}»: usa " . implode(', ', Materia::NIVELES) . '.');
-                } elseif ($gr && $gr->nivel !== $nivelResuelto) {
-                    $marcar('error', "El nivel «{$nivelResuelto}» no cuadra con el grupo «{$gr->nombre}», que es de {$gr->nivel}.");
-                }
-            } elseif ($gr) {
-                $nivelResuelto = $gr->nivel;
+            // ── Profesor ─────────────────────────────────────────────────────────
+            //
+            // ⚠️ Se resuelve AQUÍ, en la primera pasada, y no más tarde: de
+            // `k_profesor` cuelga la detección de choques, y esa clave tiene que ser
+            // ya la de la PERSONA. Si el archivo trae «Gaby» a primera hora y
+            // «Gabriela Sánchez» a la misma hora, eso es la misma profesora en dos
+            // clases a la vez; con la clave sin traducir pasaría por dos personas.
+            if ($fila['profesor'] === '') {
+                $marcar('error', 'Falta el nombre del profesor.');
             } else {
-                $marcar('error', 'Sin grupo no se puede saber a qué jornada pertenece: rellena la columna «nivel».');
+                $kCsv = self::claveCatalogo($fila['profesor']);
+                $resueltos[$kCsv] ??= self::resolverDocente($fila['profesor'], $profesores, $porCorreo, $dic, $usuarios, $correosUsados);
+                $r = $resueltos[$kCsv];
+                // `??=`: dos grafías del archivo pueden resolver a la MISMA alta («Gaby» y
+                // «Gabriela Sánchez Montes de Oca» si todavía no tiene cuenta). Manda la
+                // primera resolución, que es la que se quedó con el correo del diccionario;
+                // la segunda ya lo encontró ocupado y derivó uno del nombre.
+                $porClave[$r['clave']] ??= $r;
+
+                $fila['k_profesor']     = $r['clave'];
+                $fila['profesor_id']    = $r['id'];
+                $fila['profesor_final'] = $r['nombre'];
+                $fila['via_profesor']   = $r['via'];
             }
-            $fila['nivel'] = $nivelResuelto ?: $nivel;
 
-            $per = $nivelResuelto ? ($periodos[self::claveCatalogo($nivelResuelto) . '|' . self::claveCatalogo($periodo)] ?? null) : null;
-            if ($nivelResuelto && !$per)          $marcar('error', "No existe el periodo «{$periodo}» en la jornada de {$nivelResuelto}.");
-            elseif ($per && (int)$per->es_receso === 1) $marcar('error', "«{$per->etiqueta}» es un receso de {$per->nivel}: no admite clase.");
-            elseif ($per)                         $fila['periodo_id'] = (int)$per->id;
+            // ── Día ──────────────────────────────────────────────────────────────
+            $fila['dia'] = self::CSV_DIAS[self::claveCatalogo($fila['dia_csv'])] ?? '';
+            if ($fila['dia'] === '') {
+                $marcar('error', "Día inválido «{$fila['dia_csv']}»: usa " . implode(' ', array_map('strtoupper', array_keys(self::CSV_DIAS))) . '.');
+            }
 
-            if ($materia === '') {
+            // ── Materia (y con ella el NIVEL de la fila) ─────────────────────────
+            $matCruda = trim((string)($col[3] ?? ''));
+            if ($matCruda === '') {
                 $marcar('error', 'Falta la materia.');
-            } elseif ($nivelResuelto) {
-                $claveMat = self::claveCatalogo($nivelResuelto) . '|' . self::claveCatalogo($materia);
-                if (!isset($materias[$claveMat])) $marcar('error', "No existe la materia «{$materia}» en {$nivelResuelto}.");
-                else $fila['materia_id'] = (int)$materias[$claveMat]->id;
+            } elseif (!preg_match('/^(\pL)\s+(\S.*)$/u', $matCruda, $mm)) {
+                $marcar('error', "La materia «{$matCruda}» no lleva prefijo de nivel (ej. «P Español 2»).");
+            } else {
+                $nivel = self::CSV_NIVEL_MATERIA[self::claveCatalogo($mm[1])] ?? null;
+                if (!$nivel) {
+                    $marcar('error', "Prefijo de nivel «{$mm[1]}» desconocido en «{$matCruda}»: usa "
+                        . implode(' ', array_map('strtoupper', array_keys(self::CSV_NIVEL_MATERIA))) . '.');
+                } else {
+                    $fila['nivel']   = $nivel;
+                    $fila['materia'] = trim($mm[2]);
+                    $fila['k_materia'] = self::claveCatalogo($nivel) . '|' . self::claveCatalogo($fila['materia']);
+                }
             }
 
-            // El aula va la última: es el dato menos determinante, y si va antes su error
-            // tapa el de nivel/periodo/materia, que es el que hay que corregir primero.
-            if ($aula !== '') {
-                if (!isset($aulas[self::claveCatalogo($aula)])) $marcar('error', "No existe el aula «{$aula}».");
-                else $fila['aula_id'] = (int)$aulas[self::claveCatalogo($aula)]->id;
-            }
+            // ── Periodo: el código numera HORAS DE CLASE de la jornada de su nivel ──
+            if ($fila['nivel'] !== '') {
+                if (!preg_match('/^([A-Za-z]?)(\d{1,2})$/', $fila['periodo'], $pm)) {
+                    $marcar('error', "Periodo «{$fila['periodo']}» ilegible: se espera 3, B3 o C3.");
+                } else {
+                    $pref = self::claveCatalogo($pm[1]);
+                    $permitidos = self::CSV_NIVEL_PERIODO[$pref] ?? null;
+                    if ($permitidos === null) {
+                        $marcar('error', "Prefijo de periodo «{$pm[1]}» desconocido: usa N (Secundaria/Bachillerato), B (Primaria) o C (Kinder).");
+                    } elseif (!in_array($fila['nivel'], $permitidos, true)) {
+                        $esperado = array_search([$fila['nivel']], self::CSV_NIVEL_PERIODO, true);
+                        $marcar('error', "«{$fila['periodo']}» numera la jornada de " . implode('/', $permitidos)
+                            . ", pero la materia es de {$fila['nivel']}"
+                            . ($esperado !== false ? " (sería «" . strtoupper((string)$esperado) . $pm[2] . "»)." : '.'));
+                    } else {
+                        $horas = $jornada[$fila['nivel']] ?? [];
+                        $per   = $horas[(int)$pm[2] - 1] ?? null;
+                        if (!$per) {
+                            $marcar('error', "La jornada de {$fila['nivel']} tiene " . count($horas)
+                                . " horas de clase, así que «{$fila['periodo']}» no existe.");
+                        } else {
+                            $fila['periodo_id'] = (int)$per->id;
 
-            // Choques POR RELOJ. La BD ya no puede garantizarlos: sus tres UNIQUE son por
-            // periodo_id y dos periodos distintos pueden ser la misma hora.
-            if ($fila['estado'] !== 'error' && $per) {
-                $ini = $per->hora_inicio; $fin = $per->hora_fin;
-                $buscar = function (string $tipo, $id) use (&$ocupa, $dia, $ini, $fin) {
-                    foreach ($ocupa[$tipo][$dia . '|' . $id] ?? [] as $x) {
-                        if (Periodo::solapan($ini, $fin, $x[0], $x[1])) return $x;
+                            $fila['ini']        = (string)$per->hora_inicio;
+                            $fila['fin']        = (string)$per->hora_fin;
+                            $fila['hora']       = substr($per->hora_inicio, 0, 5) . '–' . substr($per->hora_fin, 0, 5);
+                        }
                     }
-                    return null;
-                };
-                $rango = substr($ini, 0, 5) . '–' . substr($fin, 0, 5);
-
-                if ($ch = $buscar('prof', $fila['profesor_id'])) {
-                    $marcar('error', "Ese profesor ya tiene clase de {$ch[2]} (línea {$ch[3]}), que se pisa con {$rango}.");
-                } elseif ($fila['grupo_id'] && ($ch = $buscar('grupo', $fila['grupo_id']))) {
-                    // Antes no se validaba: el UNIQUE (dia, periodo_id, grupo_id) reventaba
-                    // la transacción con un error ilegible en vez de avisar en la previa.
-                    $marcar('error', "Ese grupo ya tiene clase de {$ch[2]} (línea {$ch[3]}), que se pisa con {$rango}.");
-                } elseif ($fila['aula_id'] && ($ch = $buscar('aula', $fila['aula_id']))) {
-                    $marcar('aviso', "El aula ya está ocupada de {$ch[2]} (línea {$ch[3]}).");
-                }
-
-                if ($fila['estado'] !== 'error') {
-                    $marca = [$ini, $fin, $rango, $n];
-                    $ocupa['prof'][$dia . '|' . $fila['profesor_id']][] = $marca;
-                    if ($fila['grupo_id']) $ocupa['grupo'][$dia . '|' . $fila['grupo_id']][] = $marca;
-                    if ($fila['aula_id'])  $ocupa['aula'][$dia . '|' . $fila['aula_id']][]   = $marca;
                 }
             }
+
+            // ── Grupo. La equivalencia de nombres la hace claveGrupo() ───────────
+            if ($fila['grupo'] === '') {
+                $marcar('error', 'Falta el grupo.');
+            } elseif ($fila['nivel'] !== '') {
+                $fila['k_grupo'] = self::claveGrupo($fila['grupo'], $fila['nivel']);
+            }
+
+            // ── Aula: opcional (la FK admite NULL) ───────────────────────────────
+            if ($fila['aula'] !== '') {
+                $fila['k_aula'] = self::claveCatalogo($fila['aula']);
+            }
+
+            // ── Tipo de sesión. Solo conocemos LEC; lo demás entra como clase y avisa ──
+            $tipo = self::claveCatalogo((string)($col[6] ?? ''));
+            if ($tipo !== '' && !isset(self::CSV_TIPOS[$tipo])) {
+                $marcar('aviso', "Tipo de sesión «{$col[6]}» desconocido: se importa como clase normal.");
+            }
+            // La columna 7 del archivo va siempre a 1 y el sistema de origen no
+            // documenta qué es. No se lee: inventarle un significado (¿duración?
+            // ¿división?) sería peor que ignorarla, y la división real se deduce
+            // más abajo de las materias que coinciden en la misma casilla.
 
             $filas[] = $fila;
         }
-        fclose($fh);
 
-        $errores   = 0;
-        $avisos    = 0;
-        // ── Choques contra el horario YA CARGADO ─────────────────────────────────
-        // El archivo solo reemplaza a los profesores que aparecen en él, así que un
-        // grupo o un aula pueden chocar con la clase de un profesor ajeno. Eso no lo ve
-        // ninguna comprobación en memoria y antes reventaba la transacción al insertar,
-        // con un "Duplicate entry 'lunes-41-5'" que no dice nada a quien lo lee.
-        $delArchivo = [];
-        foreach ($filas as $f) if ($f['estado'] !== 'error') $delArchivo[(int)$f['profesor_id']] = true;
+        if (!$filas) return [[], ['error' => 'El archivo no tiene filas de datos.'], []];
 
-        foreach ($filas as &$f) {
-            if ($f['estado'] === 'error' || !$f['periodo_id']) continue;
-            $per = Periodo::find((int)$f['periodo_id']);
-            if (!$per) continue;
+        // ── Materia dividida y coteaching ────────────────────────────────────────
+        self::resolverDivisiones($filas);
+        $avisosCoteaching = self::resolverCoteaching($filas);
 
-            $externos = array_filter(
-                Horario::choques($f['dia'], $per->hora_inicio, $per->hora_fin, [
-                    'grupo_id' => $f['grupo_id'] ?: null,
-                    'aula_id'  => $f['aula_id']  ?: null,
-                ]),
-                // A los profesores del archivo se les borra el horario antes de insertar:
-                // chocar con lo que van a dejar de tener no es un choque.
-                fn($c) => !isset($delArchivo[$c['profesor_id']])
-            );
-            foreach ($externos as $c) {
-                $quien = $c['profesor'] ?: 'otro profesor';
-                if ($c['dimension'] === 'grupo') {
-                    $f['estado'] = 'error';
-                    $f['motivo'] = "El grupo ya tiene clase de {$c['rango']} con {$quien}, que no viene en este archivo.";
-                    break;
+        // ── Choques por RELOJ ────────────────────────────────────────────────────
+        self::marcarChoquesCsv($filas);
+
+        // ── Nombres de grupo que chocarían contra `uq_grupo` ─────────────────────
+        self::marcarGruposAmbiguos($filas, $grupos);
+
+        // ── Qué cataloga el archivo, y qué parte de eso hay que crear ────────────
+        //
+        // ⚠️ Esta pasada va DESPUÉS de marcar los choques, no dentro del bucle de
+        // lectura. Recogiéndolas al vuelo, una fila que más tarde resultaba ser un
+        // choque —y que por tanto no se importa— dejaba igualmente su grupo o su aula
+        // en la lista de altas: se creaban filas de catálogo que después no usaba
+        // ninguna clase.
+        //
+        // Se cuenta también el TOTAL de cada catálogo que el archivo menciona, no solo
+        // lo que falta. Sin ese denominador la previa enseñaba «Grupos 4» sobre un
+        // archivo con 22, y se lee como que el importador solo entendió cuatro.
+        //
+        // Y se recoge también lo que el archivo RECONOCE, no solo lo que estrena:
+        // «ya existe» es la mitad del resultado y la pantalla no la enseñaba. Sin ella
+        // no hay forma de distinguir un archivo que encajó con el colegio de uno que va
+        // a duplicarlo entero, que es justo lo que el diccionario vino a evitar.
+        $vistos = ['profesores' => [], 'grupos' => [], 'aulas' => [], 'materias' => []];
+        $match  = ['profesores' => [], 'grupos' => [], 'aulas' => [], 'materias' => []];
+        $nivelesDe   = [];
+        $conflictos  = [];        // correos del diccionario que ya son de otra cuenta
+        foreach ($filas as $f) {
+            if ($f['estado'] === 'error') continue;
+
+            if ($f['k_profesor'] !== '') {
+                $k = $f['k_profesor'];
+                $r = $porClave[$k] ?? null;
+                $vistos['profesores'][$k] = true;
+                if ($f['nivel'] !== '') $nivelesDe[$k][$f['nivel']] = true;
+
+                if ($r && $r['id'] > 0) {
+                    // Ya tiene cuenta. Se guarda CÓMO la escribe el archivo: si no
+                    // coincide con su nombre, esa equivalencia es exactamente lo que el
+                    // diccionario aporta y hay que poder revisarla antes de confirmar.
+                    $match['profesores'][$k] ??= [
+                        'id' => $r['id'], 'nombre' => $r['nombre'], 'email' => $r['email'],
+                        'email_nuevo' => self::correoACorregir($r, $porCorreo, $conflictos),
+                        'via' => $r['via'], 'por' => $r['por'], 'dudoso' => false,
+                        'alias' => [], 'clases' => 0,
+                    ];
+                    if (self::claveCatalogo($f['profesor']) !== $k) $match['profesores'][$k]['alias'][$f['profesor']] = true;
+                    $match['profesores'][$k]['clases']++;
+
+                    // ⚠️ `dudoso` se lee de la resolución de ESTA fila y NO se queda con
+                    // la primera, porque dos nombres distintos del archivo pueden
+                    // resolver a la misma cuenta: uno legítimo y otro por un correo mal
+                    // escrito en el diccionario. `$porClave` conserva la primera —que es
+                    // lo correcto para el nombre y el correo del alta—, así que mirar
+                    // solo ahí perdía justo el caso que hay que enseñar.
+                    $rf = $resueltos[self::claveCatalogo($f['profesor'])] ?? null;
+                    if (!empty($rf['dudoso'])) $match['profesores'][$k]['dudoso'] = true;
+                } else {
+                    // El correo generado depende de los ya generados, así que recorrer en
+                    // orden de aparición lo hace reproducible entre importaciones.
+                    $altas['profesores'][$k] ??= [
+                        'nombre'   => $r['nombre']   ?? $f['profesor'],
+                        'email'    => $r['email']    ?? '',
+                        'alias'    => [],
+                        'dic'      => (bool)($r['dic'] ?? false),
+                        'niveles'  => [],
+                        'clases'   => 0,
+                        'parecido' => $r['parecido'] ?? [],
+                    ];
+                    if (self::claveCatalogo($f['profesor']) !== $k) $altas['profesores'][$k]['alias'][$f['profesor']] = true;
+                    $altas['profesores'][$k]['clases']++;
                 }
-                if ($f['estado'] === 'ok') {
-                    $f['estado'] = 'aviso';
-                    $f['motivo'] = "El aula ya está ocupada de {$c['rango']} por {$quien}.";
+            }
+
+            foreach ([
+                ['grupos',   'k_grupo',   $grupos,   $f['grupo'],   ['nombre' => $f['grupo'],   'nivel' => $f['nivel']]],
+                ['aulas',    'k_aula',    $aulas,    $f['aula'],    ['nombre' => $f['aula']]],
+                ['materias', 'k_materia', $materias, $f['materia'], ['nombre' => $f['materia'], 'nivel' => $f['nivel']]],
+            ] as [$tipo, $campo, $catalogo, $comoLoEscribe, $datos]) {
+                $k = $f[$campo];
+                if ($k === '') continue;
+                $vistos[$tipo][$k] = true;
+                if (isset($catalogo[$k])) {
+                    $fila2 = $catalogo[$k];
+                    $match[$tipo][$k] ??= [
+                        'id' => (int)$fila2->id, 'nombre' => (string)$fila2->nombre,
+                        'nivel' => $fila2->nivel ?? null, 'alias' => [], 'clases' => 0,
+                    ];
+                    // `Prim 1°A` reconocido como `1A Primaria` es un acierto de
+                    // `claveGrupo()`, y enseñarlo es lo que deja comprobar que no se
+                    // está fundiendo lo que no debe.
+                    if (self::claveCatalogo($comoLoEscribe) !== self::claveCatalogo($match[$tipo][$k]['nombre'])) {
+                        $match[$tipo][$k]['alias'][$comoLoEscribe] = true;
+                    }
+                    $match[$tipo][$k]['clases']++;
+                    continue;
+                }
+                $altas[$tipo][$k] ??= $datos + ['clases' => 0];
+                $altas[$tipo][$k]['clases']++;
+            }
+        }
+
+        // Los alias se han ido acumulando como CLAVES de un mapa, que es lo que los
+        // deduplica sin recorrer nada; a la vista van como lista, que es lo que sabe
+        // pintar. Se hace aquí, una vez, y no dentro del bucle de filas.
+        $aplanarAlias = function (array &$conjunto): void {
+            foreach ($conjunto as &$porTipo) {
+                foreach ($porTipo as &$item) {
+                    if (isset($item['alias'])) $item['alias'] = array_keys($item['alias']);
+                }
+                unset($item);
+            }
+            unset($porTipo);
+        };
+        $aplanarAlias($match);
+        $aplanarAlias($altas);
+
+        // Niveles declarados de cada docente: salen del archivo, que es ahora la fuente.
+        // Acotan el eje de su rejilla y priorizan a los candidatos de las suplencias.
+        foreach ($nivelesDe as $k => $set) {
+            $lista = array_values(array_intersect(Materia::NIVELES, array_keys($set)));
+            if (isset($altas['profesores'][$k])) $altas['profesores'][$k]['niveles'] = $lista;
+        }
+
+        // ── Bajas y reactivaciones: el archivo manda, pero no destruye ───────────
+        //
+        // El CSV es el censo, así que lo que deja de mencionar deja de ofrecerse: si no,
+        // cada carga deja sedimento y a los tres cursos el desplegable de grupos tiene
+        // el doble de opciones que el colegio.
+        //
+        // ⚠️ Pero se APAGA (`activo = 0`), no se borra. Esto era un DELETE y tenía dos
+        // problemas que la baja lógica resuelve de un golpe:
+        //
+        //   · Las FK de `suplencia_horas` son ON DELETE SET NULL, así que borrar el aula
+        //     de una cobertura de marzo no daba error: le vaciaba el dato al histórico en
+        //     silencio. Había que ir salvando una por una las filas citadas («retenidas»)
+        //     y volver a comprobarlo al confirmar, por si entremedias prefectura agendaba
+        //     una suplencia sobre algo que la previa dio por prescindible. Nada de eso
+        //     hace falta ya: apagar no toca ni una fila de lo ya ocurrido.
+        //   · Un export incompleto —al que le falta un nivel, o que se generó a medias—
+        //     destruía catálogo que cuesta meses reconstruir. Ahora basta con volver a
+        //     subir el archivo bueno: lo que reaparece se enciende solo.
+        //
+        // Los PROFESORES entran aquí ahora, con dos salvedades que no se negocian: una
+        // cuenta no se BORRA nunca (arrastraría sus suplencias, sus intercambios, sus
+        // artículos y sus notificaciones), y el archivo es el censo DOCENTE, así que
+        // administradores, administrativos, prefectura y dirección quedan fuera de esta
+        // poda — lo decide `esDocenteDelCenso()`.
+        $apagar   = ['profesores' => [], 'grupos' => [], 'aulas' => [], 'materias' => []];
+        $encender = ['profesores' => [], 'grupos' => [], 'aulas' => [], 'materias' => []];
+
+        foreach ([['grupos', $grupos], ['aulas', $aulas], ['materias', $materias]] as [$tipo, $catalogo]) {
+            foreach ($catalogo as $k => $fila) {
+                $activo = (int)($fila->activo ?? 1) === 1;
+                $item   = ['id' => (int)$fila->id, 'nombre' => (string)$fila->nombre, 'nivel' => $fila->nivel ?? null];
+                if (isset($vistos[$tipo][$k])) {
+                    if (!$activo) $encender[$tipo][$k] = $item;   // vuelve al archivo
+                } elseif ($activo) {
+                    $apagar[$tipo][$k] = $item;                   // el archivo ya no lo nombra
                 }
             }
         }
-        unset($f);
 
-        $profesIds = [];
+        foreach ($profesores as $k => $u) {
+            $activo = (int)($u->activo ?? 1) === 1;
+            $item   = ['id' => (int)$u->id, 'nombre' => (string)$u->nombre, 'nivel' => null];
+            if (isset($vistos['profesores'][$k])) {
+                if (!$activo) $encender['profesores'][$k] = $item;
+            } elseif ($activo && self::esDocenteDelCenso($u)) {
+                $apagar['profesores'][$k] = $item;
+            }
+        }
+
+        $catalogos = [];
+        foreach ($vistos as $tipo => $set) {
+            $catalogos[$tipo] = [
+                'archivo'  => count($set),
+                'match'    => count($match[$tipo]),
+                'nuevos'   => count($altas[$tipo]),
+                'apagar'   => count($apagar[$tipo]),
+                'encender' => count($encender[$tipo]),
+            ];
+        }
+
+        // ── Resumen ──────────────────────────────────────────────────────────────
+        $errores = 0; $avisos = 0; $divididas = 0;
+        $casillasDivididas = [];
         foreach ($filas as $f) {
             if ($f['estado'] === 'error') { $errores++; continue; }
             if ($f['estado'] === 'aviso') $avisos++;
-            $profesIds[$f['profesor_id']] = true;
+            if ($f['division'] > 0) {
+                $divididas++;
+                $casillasDivididas[$f['dia'] . '|' . $f['periodo_id'] . '|' . $f['k_grupo']] = true;
+            }
         }
+        $profesIds = $vistos['profesores'];
+
+        // ── A quién afecta quedarse fuera del archivo ────────────────────────────
+        //
+        // Son DOS consecuencias distintas y antes se enseñaban en dos sitios: «pierde
+        // su horario» (tiene clases hoy y el archivo no lo trae) y «se da de baja» (es
+        // docente del censo y el archivo no lo trae). No coinciden —un prefecto con
+        // clases pierde la rejilla y conserva el acceso; un profesor sin horario
+        // cargado se da de baja sin perder nada— así que van en UNA lista con la
+        // etiqueta de lo que le pasa a cada uno. Dos paneles para el mismo grupo de
+        // gente obligaban a cotejar nombres a mano para saber quién estaba en los dos.
+        $conHorario = array_flip(array_map('intval', Horario::profesoresConHorario()));
+        $fuera = [];
+        foreach ($usuarios as $u) {
+            $k = self::claveCatalogo((string)$u->nombre);
+            if (isset($profesIds[$k])) continue;              // sí viene en el archivo
+            $pierdeHorario = isset($conHorario[(int)$u->id]);
+            $seDaDeBaja    = isset($apagar['profesores'][$k]);
+            if (!$pierdeHorario && !$seDaDeBaja) continue;    // no le pasa nada
+            $fuera[] = [
+                'nombre'  => (string)$u->nombre,
+                'horario' => $pierdeHorario,
+                'baja'    => $seDaDeBaja,
+            ];
+        }
+        // `claveCatalogo()` y no `strcoll()`: el orden tiene que ser el mismo en
+        // cualquier máquina, y aquí ya hay una normalización sin acentos a mano.
+        usort($fuera, fn($a, $b) => strcmp(self::claveCatalogo($a['nombre']), self::claveCatalogo($b['nombre'])));
+
+        // ── Qué hizo el diccionario ──────────────────────────────────────────────
+        // Se cuenta cuántas personas casaron **gracias a él** y cuántos nombres del
+        // archivo no figuran. Lo segundo es el aviso útil: un nombre que el diccionario
+        // no conoce acaba en cuenta nueva, así que o falta en el diccionario o el
+        // archivo lo escribe de una forma que nadie más usa.
+        $viaDic = 0;
+        foreach ($match['profesores'] as $m) if ($m['via'] === 'diccionario') $viaDic++;
+        $sinDic = [];
+        foreach ($altas['profesores'] as $p) {
+            if (!$p['dic']) $sinDic[] = (string)$p['nombre'];
+        }
+        sort($sinDic);
+
+        // Los correos que la confirmación va a corregir, ya filtrados por
+        // `correoACorregir()`. Van en el plan y no solo en el resumen porque
+        // `escribirImportacion()` los ejecuta.
+        $correos = [];
+        $dudosos = [];
+        foreach ($match['profesores'] as $m) {
+            if (!empty($m['dudoso'])) {
+                // El archivo escribe un nombre, el diccionario le da un correo, y ese
+                // correo es de una cuenta que se llama de otra forma. Es el fallo más
+                // caro de esta herramienta y el único que no se ve venir.
+                // `alias` ya viene aplanado a lista por `$aplanarAlias()`, más arriba.
+                $dudosos[] = ['cuenta' => (string)$m['nombre'], 'correo' => (string)$m['email'],
+                              'archivo' => implode(' · ', (array)($m['alias'] ?: [])),
+                              'clases' => (int)$m['clases']];
+            }
+            if (($m['email_nuevo'] ?? '') === '') continue;
+            $correos[] = ['id' => (int)$m['id'], 'nombre' => (string)$m['nombre'],
+                          'antes' => (string)$m['email'], 'despues' => (string)$m['email_nuevo']];
+        }
+        usort($correos, fn($a, $b) => strcmp(self::claveCatalogo($a['nombre']), self::claveCatalogo($b['nombre'])));
 
         return [$filas, [
-            'total'      => count($filas),
-            'errores'    => $errores,
-            'avisos'     => $avisos,
-            'profesores' => count($profesIds),
-        ]];
+            'total'       => count($filas),
+            'errores'     => $errores,
+            'avisos'      => $avisos,
+            'profesores'  => count($profesIds),
+            'divididas'   => $divididas,
+            'casillas_divididas' => count($casillasDivididas),
+            'coteaching'  => $avisosCoteaching,
+            'fuera'       => $fuera,
+            'catalogos'   => $catalogos,
+            'password'    => self::CSV_PASSWORD_INICIAL,
+            'diccionario' => Diccionario::estado() + ['traducidos' => $viaDic, 'sin_entrada' => $sinDic],
+            'correos_conflicto' => $conflictos,
+            'casados_dudosos'   => $dudosos,
+        ], ['altas' => $altas, 'match' => $match, 'correos' => $correos,
+            'apagar' => $apagar, 'encender' => $encender]];
+    }
+
+    /**
+     * ¿A esta persona la alcanza el censo docente del archivo?
+     *
+     * Solo a quien es **únicamente** profesor. Quedan fuera:
+     *
+     *   · los `administrador`, por la regla de siempre del importador;
+     *   · quien además es `administrativo` —su puesto no depende de dar clase, así que
+     *     desaparecer del horario no significa que se haya ido del colegio—;
+     *   · `prefecto` y `directivo`, que son tipos excluyentes y nunca aparecen en un
+     *     horario, así que aplicarles esta regla los apagaría a todos en la primera
+     *     importación.
+     *
+     * @param object $u Fila de UsuarioBlog::todosParaImportar() (trae `rol` y `tipo_personal`).
+     */
+    private static function esDocenteDelCenso(object $u): bool {
+        if ((string)($u->rol ?? '') === 'administrador') return false;
+        $tipos = array_filter(array_map('trim', explode(',', (string)($u->tipo_personal ?? ''))));
+        if (!in_array('profesor', $tipos, true)) return false;
+        return !array_intersect($tipos, ['administrativo', 'prefecto', 'directivo']);
+    }
+
+    /**
+     * Deja el contenido del CSV en UTF-8 venga como venga.
+     *
+     * El archivo del colegio sale de Excel en Windows-1252, así que «Español» llega
+     * como bytes sueltos: sin esto, `claveCatalogo()` no casaba ni una materia con
+     * acento y el importador rechazaba media Primaria por «no existe la materia». Se
+     * decide por validez, no por confianza: si ya es UTF-8 válido se deja intacto
+     * —convertir dos veces rompe lo que estaba bien—, y si no, se traduce desde
+     * Windows-1252, que es el superconjunto de Latin-1 que usa Excel.
+     */
+    private static function csvAUtf8(string $s): string {
+        if (str_starts_with($s, "\xEF\xBB\xBF")) $s = substr($s, 3);   // BOM de Excel
+        if (mb_check_encoding($s, 'UTF-8')) return $s;
+        return (string)mb_convert_encoding($s, 'UTF-8', 'Windows-1252');
+    }
+
+    /**
+     * Reparte `division` cuando un grupo tiene varias materias a la misma hora.
+     *
+     * Es el caso «materia dividida» que el esquema ya contempla: 1ºA de Secundaria
+     * tiene Arte y Música a la vez y el alumnado se reparte. En el archivo se ve como
+     * dos filas del mismo (día, periodo, grupo) con materias distintas, y sin este
+     * paso la comprobación de choques las rechazaría como «ese grupo ya tiene clase»
+     * —eran 65 filas del horario real, todas legítimas—.
+     *
+     * `division` 0 significa «la clase es para todo el grupo», así que solo se numera
+     * cuando de verdad hay más de una materia. El orden es el de aparición en el
+     * archivo, que es estable entre importaciones del mismo fichero.
+     */
+    private static function resolverDivisiones(array &$filas): void {
+        $casillas = [];
+        foreach ($filas as $i => $f) {
+            if ($f['estado'] === 'error' || !$f['periodo_id'] || $f['k_grupo'] === '') continue;
+            $casillas[$f['dia'] . '|' . $f['periodo_id'] . '|' . $f['k_grupo']][] = $i;
+        }
+        foreach ($casillas as $indices) {
+            $orden = [];
+            foreach ($indices as $i) {
+                $m = $filas[$i]['k_materia'];
+                if ($m !== '' && !isset($orden[$m])) $orden[$m] = count($orden) + 1;
+            }
+            if (count($orden) < 2) continue;              // una sola materia → sin dividir
+            foreach ($indices as $i) {
+                $filas[$i]['division'] = $orden[$filas[$i]['k_materia']] ?? 0;
+            }
+        }
+    }
+
+    /**
+     * Marca titular y acompañantes cuando varios profesores comparten la misma clase.
+     *
+     * Una clase con dos docentes son N filas en `horarios`, una por persona, con el
+     * mismo (día, periodo, grupo, materia, división) y `rol_docente` distinguiéndolas.
+     * Que cada uno tenga su fila es lo que hace que su horario, su disponibilidad y sus
+     * suplencias funcionen sin ningún caso especial.
+     *
+     * El titular es el primero que aparece en el archivo. Pasado el tope de
+     * acompañantes la fila es un error y no un recorte silencioso: si el archivo mete
+     * cuatro docentes en una clase, o el tope se queda corto o el archivo está mal, y
+     * las dos cosas hay que verlas.
+     *
+     * @return int cuántas clases llevan más de un docente (para el resumen).
+     */
+    private static function resolverCoteaching(array &$filas): int {
+        $bloques = [];
+        foreach ($filas as $i => $f) {
+            if ($f['estado'] === 'error' || !$f['periodo_id'] || $f['k_materia'] === '') continue;
+            $bloques[implode('|', [$f['dia'], $f['periodo_id'], $f['k_grupo'], $f['k_materia'], $f['division']])][] = $i;
+        }
+        $conVarios = 0;
+        foreach ($bloques as $indices) {
+            if (count($indices) < 2) continue;
+            $conVarios++;
+            foreach ($indices as $pos => $i) {
+                if ($pos === 0) continue;
+                if ($pos > self::MAX_ACOMPANANTES) {
+                    $filas[$i]['estado'] = 'error';
+                    $filas[$i]['motivo'] = 'Esa clase ya tiene titular y ' . self::MAX_ACOMPANANTES
+                        . ' acompañantes, que es el máximo.';
+                    continue;
+                }
+                $filas[$i]['rol_docente'] = 'acompanante';
+                if ($filas[$i]['estado'] === 'ok') {
+                    $filas[$i]['motivo'] = 'Acompaña a ' . $filas[$indices[0]]['profesor'] . ' en esta clase.';
+                }
+            }
+        }
+        return $conVarios;
+    }
+
+    /**
+     * Choques POR RELOJ dentro del archivo: profesor, grupo y aula.
+     *
+     * Por reloj y no por `periodo_id` porque la jornada es por nivel: la 3ª hora de
+     * Primaria y la 3ª de Secundaria son periodos distintos que se pisan en el tiempo,
+     * y un profesor que da clase en los dos niveles no puede estar en las dos.
+     *
+     * Tres convivencias son legítimas y no se reportan:
+     *   · clase conjunta  mismo profesor, misma hora y materia, dos grupos (6ºA+6ºB)
+     *   · coteaching      mismo grupo, misma hora y materia, dos profesores
+     *   · materia dividida mismo grupo y hora, materias distintas (ya con `division`)
+     *
+     * El aula es **aviso** y no error: el patio o el salón de usos múltiples reciben a
+     * dos grupos a la vez sin que eso sea un fallo del archivo.
+     *
+     * No hay comprobación contra el horario ya cargado, y es deliberado: importar
+     * reemplaza la rejilla entera, así que no queda nada con lo que chocar.
+     */
+    private static function marcarChoquesCsv(array &$filas): void {
+        $ocupa = ['prof' => [], 'grupo' => [], 'aula' => []];
+
+        foreach ($filas as $i => $f) {
+            if ($f['estado'] === 'error' || !$f['periodo_id']) continue;
+
+            $buscar = function (string $tipo, string $id, bool $mismaMateria) use (&$ocupa, $f) {
+                foreach ($ocupa[$tipo][$f['dia'] . '|' . $id] ?? [] as $x) {
+                    // Mismo bloque real: misma casilla de reloj y, donde toca, misma materia
+                    if ($x['periodo_id'] === $f['periodo_id'] && (!$mismaMateria || $x['k_materia'] === $f['k_materia'])) continue;
+                    if (Periodo::solapan($f['ini'], $f['fin'], $x['ini'], $x['fin'])) return $x;
+                }
+                return null;
+            };
+            $marca = ['ini' => $f['ini'], 'fin' => $f['fin'], 'hora' => $f['hora'],
+                      'periodo_id' => $f['periodo_id'], 'k_materia' => $f['k_materia'],
+                      'linea' => $f['linea'], 'materia' => $f['materia']];
+
+            if ($f['k_profesor'] !== '' && ($ch = $buscar('prof', $f['k_profesor'], true))) {
+                $filas[$i]['estado'] = 'error';
+                $filas[$i]['motivo'] = "{$f['profesor']} ya da {$ch['materia']} de {$ch['hora']} (línea {$ch['linea']}), que se pisa con {$f['hora']}.";
+                continue;
+            }
+            if ($f['k_grupo'] !== '' && ($ch = $buscar('grupo', $f['k_grupo'], false))) {
+                $filas[$i]['estado'] = 'error';
+                $filas[$i]['motivo'] = "El grupo {$f['grupo']} ya tiene {$ch['materia']} de {$ch['hora']} (línea {$ch['linea']}), que se pisa con {$f['hora']}.";
+                continue;
+            }
+            if ($f['k_aula'] !== '' && ($ch = $buscar('aula', $f['k_aula'], true)) && $filas[$i]['estado'] === 'ok') {
+                $filas[$i]['estado'] = 'aviso';
+                $filas[$i]['motivo'] = "El aula {$f['aula']} ya está ocupada de {$ch['hora']} (línea {$ch['linea']}).";
+            }
+
+            $ocupa['prof'][$f['dia'] . '|' . $f['k_profesor']][] = $marca;
+            if ($f['k_grupo'] !== '') $ocupa['grupo'][$f['dia'] . '|' . $f['k_grupo']][] = $marca;
+            if ($f['k_aula']  !== '') $ocupa['aula'][$f['dia'] . '|' . $f['k_aula']][]   = $marca;
+        }
+    }
+
+    /**
+     * Grupos que el archivo estrenaría con un nombre ya ocupado por otro nivel.
+     *
+     * `grupos` tiene `UNIQUE (nombre)` a secas, pero la clave con la que el importador
+     * los reconoce es `nivel|nombre` (`claveGrupo()`). Los dos criterios no coinciden, y
+     * cuando se separan el INSERT de la confirmación moría con un **`Duplicate entry`
+     * de MySQL en crudo, a mitad de la transacción**: se perdía la importación entera y
+     * el mensaje no decía qué fila del archivo lo había provocado.
+     *
+     * Pasa cuando el nivel que el archivo deduce de la materia no es el del grupo que
+     * nombra —un prefijo de materia equivocado basta: «K Esp» en el grupo «Maternal»
+     * pide un grupo de Kinder llamado «Maternal», y ese nombre ya es del de Maternal—.
+     *
+     * Aquí es un **error de fila**: se omite esa clase, se dice por qué y el resto del
+     * archivo entra. Reutilizar el grupo existente sería peor que no importar la fila,
+     * porque metería a un grupo de Kinder las clases de otro nivel sin decirlo.
+     *
+     * No hace falta para aulas (su clave ES el nombre) ni para materias (su UNIQUE ya
+     * es `(nombre, nivel)`, lo mismo que su clave).
+     *
+     * @param array<string,object> $grupos catálogo actual, indexado por `claveGrupo()`
+     */
+    private static function marcarGruposAmbiguos(array &$filas, array $grupos): void {
+        // Nombre normalizado → nivel de quien ya lo tiene. Se arranca con la BD y se va
+        // ampliando con los grupos que el propio archivo estrena: dos filas del archivo
+        // pidiendo el mismo nombre en dos niveles chocarían igual entre ellas.
+        $duenno = [];
+        foreach ($grupos as $g) $duenno[self::claveCatalogo((string)$g->nombre)] = (string)$g->nivel;
+
+        foreach ($filas as $i => $f) {
+            if ($f['estado'] === 'error' || $f['k_grupo'] === '' || $f['nivel'] === '') continue;
+            if (isset($grupos[$f['k_grupo']])) continue;          // el grupo exacto ya existe
+
+            $kn  = self::claveCatalogo($f['grupo']);
+            $ya  = $duenno[$kn] ?? null;
+            if ($ya === null) { $duenno[$kn] = $f['nivel']; continue; }
+            if (self::claveCatalogo($ya) === self::claveCatalogo($f['nivel'])) continue;
+
+            $filas[$i]['estado'] = 'error';
+            $filas[$i]['motivo'] = "El grupo «{$f['grupo']}» ya existe en {$ya} y aquí la materia lo sitúa en "
+                . "{$f['nivel']}. Dos grupos no pueden llamarse igual: revisa el prefijo de la materia "
+                . "«{$f['materia']}» o renombra el grupo.";
+        }
     }
 
     // ── CATÁLOGOS ACADÉMICOS · AULAS Y GRUPOS ─────────────────────────────────
@@ -3943,8 +5171,50 @@ class BlogController {
     }
 
     /**
+     * Interruptor de baja lógica de un aula o un grupo, desde su listado.
+     *
+     * Es la vuelta atrás de lo que hace la importación: un archivo incompleto puede
+     * apagar un aula que sí existe, y sin este botón la única forma de encenderla otra
+     * vez sería volver a subir un CSV que la mencione. Vive aquí y no en el formulario
+     * de edición porque es una acción de fila, no una propiedad que se rellena.
+     *
+     * A diferencia de eliminar, NO comprueba dependencias: apagar no rompe nada — deja
+     * de ofrecerse para lo nuevo y ya está.
+     */
+    public static function cambiarActivoCatalogo(Router $router) {
+        $tipo = ($_POST['tipo'] ?? '') === 'grupos' ? 'grupos' : 'aulas';
+        self::requireEscritura($tipo);
+
+        $modelo  = $tipo === 'grupos' ? Grupo::class : Aula::class;
+        $destino = '/dashboard/' . $tipo;
+        $id      = (int)($_POST['id'] ?? 0);
+        if (!$id || !$modelo::find($id)) { header("Location: {$destino}"); exit; }
+
+        $activo = !empty($_POST['activo']);
+        $modelo::cambiarActivo([$id], $activo);
+        header("Location: {$destino}?" . ($activo ? 'reactivado=1' : 'inhabilitado=1'));
+        exit;
+    }
+
+    /**
      * Carga de horarios por CSV. Dos pasos: subir → vista previa → confirmar.
-     * El archivo reemplaza el horario completo de los profesores que aparecen en él.
+     *
+     * ⚠️ Pide `requireAdmin()` además del módulo. Confirmar hace cuatro cosas:
+     *
+     *   1. Da de alta a los profesores, grupos, aulas y materias que el archivo
+     *      estrena, y reactiva los que vuelve a nombrar tras una baja.
+     *   2. Vacía la rejilla ENTERA (`Horario::borrarTodo()`), no solo la de los
+     *      profesores del archivo: el CSV es el horario completo del plantel. **Este
+     *      es el único paso irreversible**, y por eso la casilla lo nombra a él.
+     *   3. Inserta las filas válidas y avisa por la campana a cada profesor.
+     *   4. Da de BAJA LÓGICA (`activo = 0`) lo que el archivo ya no menciona. No borra
+     *      nada: el histórico queda intacto y volver a subir un archivo que lo nombre
+     *      lo enciende otra vez. Administradores, administrativos, prefectura y
+     *      dirección quedan fuera de esa poda.
+     *
+     * Todo va en una transacción: si falla una fila no se escribe ninguna. Y la vista
+     * previa enseña las consecuencias —altas, bajas, quién se queda sin horario, qué
+     * filas se omiten— antes de que haya un botón que pulsar.
      */
     public static function importarHorarios(Router $router) {
         self::requireModulo('horarios');
@@ -3955,21 +5225,17 @@ class BlogController {
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="horarios-plantilla.csv"');
             echo "\xEF\xBB\xBF";
-            echo "profesor_email,dia,nivel,periodo,materia,grupo,aula\n";
-            $prof = UsuarioBlog::porTipo('profesor');
-            $ej   = $prof[0]->email ?? 'nombre.apellido@bilbao.edu.mx';
-            $g    = Grupo::todos();
-            $g1   = $g[0]->nombre ?? '1A Primaria';
-            $g2   = $g[1]->nombre ?? '2A Primaria';
-            // `nivel` se deja vacío cuando hay grupo: se deduce de él. Solo hace falta
-            // escribirlo en una clase sin grupo, donde no hay de dónde sacar la jornada.
-            echo "{$ej},lunes,,1,Matemáticas,{$g1},A-101\n";
-            echo "{$ej},lunes,,2,Matemáticas,{$g2},A-101\n";
+            // Sin cabecera, igual que el archivo real: la primera línea ya es una clase.
+            // Las tres de ejemplo cubren las tres numeraciones de jornada que existen.
+            echo "Pablo Benlliure,L,1,B Arte,6°A Bach,Arte,LEC,1\n";
+            echo "Nancy G,L,B1,P Lectura,Prim 1°A,Biblioteca,LEC,1\n";
+            echo "Nieves,L,C1,K Esp,Kinder 1,K1,LEC,1\n";
             exit;
         }
 
         $filas    = $_SESSION['horarios_import']['filas'] ?? [];
         $resumen  = $_SESSION['horarios_import']['resumen'] ?? [];
+        $plan     = $_SESSION['horarios_import']['plan'] ?? [];
         $alertas  = [];
         $guardado = 0;
 
@@ -3983,79 +5249,54 @@ class BlogController {
             }
 
             if ($accion === 'confirmar') {
-                $filas = $_SESSION['horarios_import']['filas'] ?? [];
+                $filas   = $_SESSION['horarios_import']['filas'] ?? [];
+                $plan    = $_SESSION['horarios_import']['plan'] ?? [];
                 $validas = array_values(array_filter($filas, fn($f) => $f['estado'] !== 'error'));
-                if (!$validas) {
+
+                // El guard real de la casilla «entiendo que reemplaza el horario
+                // completo»: el `required` del formulario es solo la ayuda.
+                if (empty($_POST['confirmo'])) {
+                    $alertas['error'][] = 'Marca la casilla de confirmación: la importación reemplaza el horario de todo el colegio.';
+                } elseif (!$validas) {
                     $alertas['error'][] = 'No hay ninguna fila válida que importar.';
                 } else {
-                    $db = UsuarioBlog::getDB();
-                    $db->begin_transaction();
                     try {
-                        // ⚠️ El CSV tiene 7 columnas y ninguna es el color, pero
-                        // borrarDeProfesores() se lleva el horario completo: sin esta
-                        // foto, reimportar revertía en silencio todo color elegido a
-                        // mano en el editor. Es el único dato que el archivo no sabe
-                        // expresar, así que conservarlo no compite con él.
-                        $colores = Horario::coloresDeProfesores(array_column($validas, 'profesor_id'));
-
-                        Horario::borrarDeProfesores(array_column($validas, 'profesor_id'));
-                        foreach ($validas as $f) {
-                            // ActiveRecord no tiene __construct: `new Horario([...])`
-                            // devolvía un objeto vacío y el INSERT moría con
-                            // "Column 'dia' cannot be null". Los valores se cargan con
-                            // sincronizar(), que es la puerta que sí existe.
-                            $clave = $f['profesor_id'] . '|' . $f['dia'] . '|' . $f['periodo_id'];
-                            $h = new Horario();
-                            $h->sincronizar([
-                                'dia'         => $f['dia'],
-                                'periodo_id'  => $f['periodo_id'],
-                                'profesor_id' => $f['profesor_id'],
-                                'grupo_id'    => $f['grupo_id'] ?: null,
-                                'aula_id'     => $f['aula_id'] ?: null,
-                                'materia_id'  => $f['materia_id'] ?: null,
-                                'color'       => $colores[$clave] ?? null,
-                            ]);
-                            $h->guardar();
-                            $guardado++;
-                        }
-                        $db->commit();
-
-                        // El horario es suyo: cada profesor afectado se entera por su campana
-                        foreach (array_unique(array_column($validas, 'profesor_id')) as $pid) {
-                            Notificacion::nueva(
-                                (int)$pid,
-                                'horario_actualizado',
-                                'Tu horario se actualizó tras una importación. Revísalo por si algo no cuadra.',
-                                null, null, 'horarios', 'aviso',
-                                '/dashboard/horarios/mi-horario'
-                            );
-                        }
-
+                        $guardado = self::escribirImportacion($validas, $plan);
                         unset($_SESSION['horarios_import']);
                         header('Location: /dashboard/horarios/importar?ok=' . $guardado);
                         exit;
                     } catch (\Throwable $e) {
-                        $db->rollback();
-                        $alertas['error'][] = 'No se pudo importar: ' . $e->getMessage();
+                        $alertas['error'][] = 'No se pudo importar (no se ha escrito nada): ' . $e->getMessage();
                     }
                 }
             }
 
             if ($accion === 'previsualizar') {
+                // ⚠️ El diccionario se guarda PRIMERO, no después: si se sube junto al
+                // horario es precisamente para que el horario se lea contra él. Al revés
+                // la previa hablaría del diccionario viejo y la siguiente carga saldría
+                // distinta sin que nada lo explicara.
+                $dicSubido = self::guardarDiccionarioSubido($alertas);
+
                 $archivo = $_FILES['csv'] ?? null;
-                if (!$archivo || ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-                    $alertas['error'][] = 'Elige un archivo CSV.';
+                $hayHorario = $archivo && ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
+
+                if (!$hayHorario) {
+                    // Actualizar solo la tabla de nombres es una tarea legítima por sí
+                    // sola, y obligar a elegir además un horario para poder hacerla
+                    // llevaba a cargar uno cualquiera «para que dejara pasar».
+                    if (!$dicSubido && empty($alertas['error'])) {
+                        $alertas['error'][] = 'Elige el CSV del horario, el del diccionario, o los dos.';
+                    }
                 } elseif ($archivo['size'] > 2 * 1024 * 1024) {
-                    $alertas['error'][] = 'El archivo supera los 2 MB.';
+                    $alertas['error'][] = 'El archivo del horario supera los 2 MB.';
                 } else {
-                    [$filas, $resumen] = self::parsearCsvHorarios($archivo['tmp_name']);
+                    [$filas, $resumen, $plan] = self::parsearCsvHorarios($archivo['tmp_name']);
                     if (!empty($resumen['error'])) {
                         $alertas['error'][] = $resumen['error'];
-                        $filas = []; $resumen = [];
-                    } elseif (!$filas) {
-                        $alertas['error'][] = 'El archivo no tiene filas de datos.';
+                        $filas = []; $resumen = []; $plan = [];
                     } else {
-                        $_SESSION['horarios_import'] = ['filas' => $filas, 'resumen' => $resumen];
+                        $_SESSION['horarios_import'] = ['filas' => $filas, 'resumen' => $resumen, 'plan' => $plan];
                     }
                 }
             }
@@ -4065,9 +5306,268 @@ class BlogController {
             'titulo'    => 'Importar horarios',
             'filas'     => $filas,
             'resumen'   => $resumen,
+            'plan'      => $plan,
             'alertas'   => $alertas,
             'importado' => (int)($_GET['ok'] ?? 0),
+            // El paso 1 también lo necesita —dice con qué se va a cotejar el archivo—, y
+            // ahí todavía no hay `$resumen`. Va como dato propio para que la vista no
+            // tenga que preguntarle nada al modelo.
+            'diccionario' => Diccionario::estado(),
         ]);
+    }
+
+    /** Tope del diccionario subido. Son ~40 filas de texto: 1 MB sobra de lejos. */
+    private const DIC_MAX_MB = 1;
+
+    /**
+     * Guarda el diccionario que venga en el POST. Devuelve `true` si se escribió.
+     *
+     * ⚠️ Se **valida antes de mover**, con el propio lector (`Diccionario::comprobar()`)
+     * y exigiendo cabecera: un archivo que no se entiende no puede pisar al que
+     * funciona, y sin cabecera cualquier CSV de cuatro columnas —una lista de aulas, un
+     * export de otra cosa— se leería como si fuera el claustro. La siguiente
+     * importación duplicaría el colegio entero sin que nadie hubiera visto un error.
+     *
+     * Sobrescribe siempre el mismo archivo en vez de acumular versiones: con la regla
+     * de «gana el más reciente», un historial de subidas sería un montón de candidatos
+     * compitiendo por fecha. El suelo al que se vuelve es la copia de `diccionario/`,
+     * que está versionada.
+     *
+     * @param array $alertas se le añaden los errores y el aviso de éxito
+     */
+    private static function guardarDiccionarioSubido(array &$alertas): bool {
+        $f = $_FILES['diccionario'] ?? null;
+        if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return false;
+
+        if (($f['error'] ?? 0) !== UPLOAD_ERR_OK) {
+            $alertas['error'][] = 'No se pudo subir el diccionario (error ' . (int)$f['error'] . ').';
+            return false;
+        }
+        if (($f['size'] ?? 0) > self::DIC_MAX_MB * 1024 * 1024) {
+            $alertas['error'][] = 'El diccionario supera ' . self::DIC_MAX_MB . ' MB.';
+            return false;
+        }
+
+        // ⚠️ Solo CSV, y no por comodidad: el destino se llama `claustro.csv` y el
+        // lector decide por extensión. Un `.xlsx` guardado con ese nombre iría al
+        // lector de CSV y saldría ilegible, o peor, como una fila de basura.
+        // Desde Excel es «Guardar como → CSV UTF-8», que es lo que dice la pantalla.
+        $ext = strtolower((string)pathinfo((string)$f['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'csv') {
+            $alertas['error'][] = 'El diccionario tiene que ser un CSV. En Excel: Guardar como → CSV UTF-8.';
+            return false;
+        }
+        [$entradas, $error] = Diccionario::comprobar((string)$f['tmp_name'], $ext, true);
+        if ($error !== null || !$entradas) {
+            $alertas['error'][] = 'El diccionario no se guardó: ' . ($error ?: 'no tiene ninguna fila con nombres.');
+            return false;
+        }
+
+        $destino = Diccionario::DESTINO;
+        if (!is_dir(dirname($destino))) @mkdir(dirname($destino), 0775, true);
+        if (!@move_uploaded_file((string)$f['tmp_name'], $destino)) {
+            // En un arnés de pruebas el archivo no viene de una subida real.
+            if (!@copy((string)$f['tmp_name'], $destino)) {
+                $alertas['error'][] = 'No se pudo escribir en «storage/diccionario/». Revisa los permisos de la carpeta.';
+                return false;
+            }
+        }
+
+        Diccionario::olvidar();
+        $alertas['exito'][] = 'Diccionario actualizado: ' . count($entradas) . ' personas.';
+        return true;
+    }
+
+    /**
+     * Escribe la importación ya validada. Todo o nada.
+     *
+     * El orden importa y no es arbitrario: primero los catálogos, porque las filas
+     * viajan con **claves** de catálogo y no con ids —un grupo que el archivo estrena
+     * no tiene id hasta este momento—; después el borrado; y al final los INSERT.
+     *
+     * Los colores se fotografían ANTES de borrar: el archivo no trae ninguna columna
+     * de color, así que sin esa foto reimportar revertía en silencio cada color
+     * elegido a mano en el editor. Es el único dato que el CSV no sabe expresar.
+     *
+     * Las BAJAS LÓGICAS van al final, después de insertar la rejilla nueva: así se
+     * apaga sobre el estado definitivo y no sobre uno intermedio.
+     *
+     * @param array $validas Filas sin error, tal y como las dejó parsearCsvHorarios().
+     * @param array $plan    `['altas' => …, 'apagar' => …, 'encender' => …]`. `match` no
+     *                       se lee aquí: es lo que el archivo reconoce y no hay que tocar.
+     * @return int filas insertadas en `horarios`.
+     */
+    private static function escribirImportacion(array $validas, array $plan): int {
+        $altas    = $plan['altas']    ?? [];
+        $apagar   = $plan['apagar']   ?? [];
+        $encender = $plan['encender'] ?? [];
+
+        $db = UsuarioBlog::getDB();
+        $db->begin_transaction();
+        try {
+            // ── 1. Altas de catálogo ─────────────────────────────────────────────
+            // Los tres catálogos, con los dados de baja incluidos: lo que reaparece se
+            // reconoce y se reactiva más abajo, en vez de intentar crearlo otra vez
+            // contra su UNIQUE.
+            $profesores = [];
+            $vivos      = [];
+            foreach (UsuarioBlog::todosParaImportar() as $u) {
+                $profesores[self::claveCatalogo((string)$u->nombre)] = (int)$u->id;
+                $vivos[(int)$u->id] = true;
+            }
+            $grupos = [];
+            foreach (Grupo::todos(true) as $g) $grupos[self::claveGrupo((string)$g->nombre, (string)$g->nivel)] = (int)$g->id;
+            $aulas = [];
+            foreach (Aula::todas(true) as $a) $aulas[self::claveCatalogo((string)$a->nombre)] = (int)$a->id;
+            $materias = [];
+            foreach (Materia::todas(true) as $m) {
+                $materias[self::claveCatalogo((string)$m->nivel) . '|' . self::claveCatalogo((string)$m->nombre)] = (int)$m->id;
+            }
+
+            foreach ($altas['grupos'] ?? [] as $k => $g) {
+                if (isset($grupos[$k])) continue;
+                $nuevo = new Grupo();
+                $nuevo->sincronizar(['nombre' => $g['nombre'], 'nivel' => $g['nivel']]);
+                $r = $nuevo->guardar();
+                $grupos[$k] = (int)($r['id'] ?? 0);
+            }
+            foreach ($altas['aulas'] ?? [] as $k => $a) {
+                if (isset($aulas[$k])) continue;
+                $nuevo = new Aula();
+                $nuevo->sincronizar(['nombre' => $a['nombre']]);
+                $r = $nuevo->guardar();
+                $aulas[$k] = (int)($r['id'] ?? 0);
+            }
+            foreach ($altas['materias'] ?? [] as $k => $m) {
+                if (isset($materias[$k])) continue;
+                $nuevo = new Materia();
+                $nuevo->sincronizar(['nombre' => $m['nombre'], 'nivel' => $m['nivel']]);
+                $r = $nuevo->guardar();
+                $materias[$k] = (int)($r['id'] ?? 0);
+            }
+            $creados = [];
+            foreach ($altas['profesores'] ?? [] as $k => $p) {
+                if (isset($profesores[$k])) continue;
+                $id = UsuarioBlog::altaDocente($p['nombre'], $p['email'], self::CSV_PASSWORD_INICIAL, $p['niveles'] ?? []);
+                if ($id <= 0) throw new \RuntimeException("No se pudo dar de alta a «{$p['nombre']}».");
+                $profesores[$k] = $id;
+                $creados[$id]   = true;
+            }
+
+            // ── 2. Foto de los colores y borrado total ───────────────────────────
+            // `coloresDeProfesores()` sin argumentos devuelve los de toda la tabla, que
+            // es lo que hace falta aquí: el reemplazo es completo.
+            $colores = Horario::coloresDeProfesores();
+            Horario::borrarTodo();
+
+            // ── 3. Inserción ─────────────────────────────────────────────────────
+            $n = 0;
+            $idDe = [];                 // clave de persona → id, para el paso 4
+            foreach ($validas as $f) {
+                // El id resuelto en la previa manda sobre la clave de nombre: si entre
+                // revisar el archivo y confirmar alguien renombró a esa persona en
+                // Usuarios, su clave ya no casaría y la importación abortaría entera por
+                // un cambio que no tiene nada que ver. Se comprueba que la cuenta siga
+                // existiendo, que es lo único que el id no garantiza por sí solo.
+                $profesorId = (int)($f['profesor_id'] ?? 0);
+                if ($profesorId > 0 && !isset($vivos[$profesorId])) $profesorId = 0;
+                if ($profesorId <= 0) $profesorId = $profesores[$f['k_profesor']] ?? 0;
+                if ($profesorId <= 0) throw new \RuntimeException("Línea {$f['linea']}: no se resolvió al profesor «{$f['profesor']}».");
+                $idDe[$f['k_profesor']] = $profesorId;
+                $grupoId   = $f['k_grupo']   !== '' ? ($grupos[$f['k_grupo']]     ?? 0) : 0;
+                $aulaId    = $f['k_aula']    !== '' ? ($aulas[$f['k_aula']]       ?? 0) : 0;
+                $materiaId = $f['k_materia'] !== '' ? ($materias[$f['k_materia']] ?? 0) : 0;
+
+                $h = new Horario();
+                $h->sincronizar([
+                    'dia'         => $f['dia'],
+                    'periodo_id'  => $f['periodo_id'],
+                    'profesor_id' => $profesorId,
+                    'tipo'        => 'clase',
+                    'grupo_id'    => $grupoId   ?: null,
+                    'aula_id'     => $aulaId    ?: null,
+                    'materia_id'  => $materiaId ?: null,
+                    'rol_docente' => $f['rol_docente'],
+                    'division'    => (int)$f['division'],
+                    'color'       => $colores[$profesorId . '|' . $f['dia'] . '|' . $f['periodo_id']] ?? null,
+                ]);
+                $h->guardar();
+                $n++;
+            }
+
+            // ── 4. Niveles declarados de los docentes que ya existían ────────────
+            // Para los nuevos ya los fijó altaDocente(). El archivo es la fuente
+            // declarativa del nivel de un profesor, así que se recalcula en cada carga.
+            // `$idDe` y no el índice por nombre: es el mismo id con el que se acaba de
+            // escribir cada clase, así que los niveles no pueden acabar en otra cuenta.
+            $nivelesDe = [];
+            foreach ($validas as $f) {
+                if ($f['nivel'] === '') continue;
+                $nivelesDe[$idDe[$f['k_profesor']] ?? 0][$f['nivel']] = true;
+            }
+            foreach ($nivelesDe as $pid => $set) {
+                if ($pid <= 0 || isset($creados[$pid])) continue;
+                UsuarioBlog::guardarNiveles((int)$pid, array_keys($set));
+            }
+
+            // ── 4b. Correos que el diccionario corrige ───────────────────────────
+            // Los recién creados no entran: `altaDocente()` ya les puso el correo del
+            // diccionario. `guardarEmail()` revalida la unicidad DENTRO de la
+            // transacción —el plan se calculó minutos antes y viaja en sesión— y
+            // devuelve `false` en vez de dejar reventar el UNIQUE: una cuenta que se
+            // salta no puede tumbar la importación del horario de todo el colegio.
+            foreach ($plan['correos'] ?? [] as $c) {
+                $pid = (int)($c['id'] ?? 0);
+                if ($pid <= 0 || isset($creados[$pid]) || !isset($vivos[$pid])) continue;
+                UsuarioBlog::guardarEmail($pid, (string)$c['despues']);
+            }
+
+            // ── 5. Bajas lógicas y reactivaciones ────────────────────────────────
+            // Lo que el archivo ya no menciona se apaga (`activo = 0`) y lo que vuelve
+            // a nombrar se enciende, para que el catálogo ofrecible sea el del colegio
+            // y no el sedimento de todas las cargas anteriores.
+            //
+            // ⚠️ Nada se borra, y por eso este bloque ya no necesita la salvaguarda que
+            // tenía (`usosEnSuplencias()` + recomprobación anti-TOCTOU al confirmar):
+            // apagar una fila no toca ni un registro del histórico, así que da igual lo
+            // que prefectura haya agendado entre la previa y este momento.
+            //
+            // Va DESPUÉS de insertar la rejilla nueva para decidir sobre el estado
+            // definitivo, y ENCENDER va antes que APAGAR: son conjuntos disjuntos por
+            // construcción (una clave está en el archivo o no lo está), pero el orden
+            // deja la intención clara si alguien los cruza alguna vez.
+            foreach ([
+                ['profesores', UsuarioBlog::class],
+                ['grupos',     Grupo::class],
+                ['aulas',      Aula::class],
+                ['materias',   Materia::class],
+            ] as [$tipo, $modelo]) {
+                $modelo::cambiarActivo(array_column($encender[$tipo] ?? [], 'id'), true);
+                $modelo::cambiarActivo(array_column($apagar[$tipo]   ?? [], 'id'), false);
+            }
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
+
+        // ⚠️ Las notificaciones van FUERA del try, no solo fuera de la transacción.
+        // Dentro, una que fallara entraba en el `catch`, hacía un `rollback()` que a
+        // estas alturas ya no deshace nada y relanzaba — y el llamador le decía al
+        // admin «no se ha escrito nada» sobre una importación completada. Avisar es
+        // accesorio; escribir el horario, no.
+        foreach (array_keys($nivelesDe) as $pid) {
+            if ($pid <= 0) continue;
+            Notificacion::nueva(
+                (int)$pid,
+                'horario_actualizado',
+                'Tu horario se actualizó tras una importación. Revísalo por si algo no cuadra.',
+                null, null, 'horarios', 'aviso',
+                '/dashboard/horarios/mi-horario'
+            );
+        }
+        return $n;
     }
 
     /**
@@ -4147,6 +5647,51 @@ class BlogController {
         ]);
     }
 
+    /**
+     * Restaura en `$usuario` los campos que quien guarda NO puede tocar, copiándolos de
+     * la fila que hay en base de datos.
+     *
+     * ⚠️ Esto cierra una escalada de privilegios real. `ActiveRecord::sincronizar()`
+     * asigna **cualquier** clave del POST que exista como propiedad, y `modulos` y
+     * `puede_suplir` están en `$columnasDB`, así que se persisten. Hasta ahora solo `rol`
+     * se blindaba a mano en perfil(): un POST a /dashboard/perfil con
+     * `modulos=usuarios,horarios,suplencias` se guardaba tal cual y surtía efecto en el
+     * siguiente login. El formulario no pinta esos campos, pero eso es un guard de vista,
+     * no de servidor.
+     *
+     * El `nombre` entra en la misma lista por otra razón: no es un dato personal sino la
+     * identidad con la que el resto del claustro reconoce a esta persona en horarios,
+     * suplencias e intercambios. Lo cambia un administrador.
+     *
+     * @param UsuarioBlog $usuario objeto ya sincronizado con el POST
+     * @param int         $id      su id, para releer la fila original
+     */
+    private static function blindarCamposPrivilegiados(UsuarioBlog $usuario, int $id): void {
+        if (($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador') return;
+
+        $orig = UsuarioBlog::find($id);
+        if (!$orig) return;
+
+        $usuario->rol          = $orig->rol;
+        $usuario->nombre       = $orig->nombre;
+        $usuario->modulos      = $orig->modulos;
+        $usuario->puede_suplir = $orig->puede_suplir;
+    }
+
+    /**
+     * ¿La confirmación de contraseña casa con la contraseña?
+     *
+     * Se comprobaba **solo en el cliente** (blog-perfil.js), así que un POST sin JS
+     * guardaba lo que viniera en `password` y el usuario se quedaba fuera de su cuenta
+     * con una contraseña que no era la que creía haber escrito.
+     */
+    private static function passwordConfirmada(array $post): bool {
+        $p = (string)($post['password'] ?? '');
+        if ($p === '') return true;                 // no se está cambiando
+        if (!array_key_exists('password_confirm', $post)) return true;  // formulario sin campo
+        return $p === (string)$post['password_confirm'];
+    }
+
     public static function editarUsuario(Router $router) {
         $sesion = self::requireAuth();
         $esEditor = ($sesion['rol'] ?? '') === 'usuario';
@@ -4180,12 +5725,21 @@ class BlogController {
 
             // Editores no pueden cambiar su rol ni sus atributos de personal
             if ($esEditor) {
-                $usuario->rol = 'usuario';
+                // El formulario no pinta esos campos para un editor, pero el POST puede
+                // traerlos igual: `rol` ya se forzaba, y `nombre`, `modulos` y
+                // `puede_suplir` viajaban sin que nadie los mirara.
+                self::blindarCamposPrivilegiados($usuario, $id);
             } else {
                 $usuario->puede_suplir = self::resolverPuedeSuplir($_POST);
             }
 
+            // Después de validarEdicion(), no antes: esa función arranca vaciando
+            // static::$alertas, así que un aviso puesto antes se perdería en silencio.
             $alertas = $usuario->validarEdicion();
+            if (!self::passwordConfirmada($_POST)) {
+                UsuarioBlog::setAlerta('error', 'Las contraseñas no coinciden');
+                $alertas = UsuarioBlog::getAlertas();
+            }
 
             if (empty($alertas['error'])) {
 
@@ -4264,6 +5818,37 @@ class BlogController {
         exit;
     }
 
+    /**
+     * Da de baja o reactiva una cuenta, desde el listado de Usuarios.
+     *
+     * Es la alternativa **reversible** a eliminar, y la vuelta atrás de lo que hace la
+     * importación de horarios con quien deja de aparecer en el archivo: la persona no
+     * entra al panel ni sale como candidata a suplir, pero conserva sus suplencias, sus
+     * intercambios, sus artículos y sus notificaciones.
+     *
+     * ⚠️ Nadie puede darse de baja a sí mismo: dejaría la sesión viva sobre una cuenta
+     * que ya no puede volver a entrar, y si fuera el único admin el panel se queda sin
+     * quien lo revierta.
+     */
+    public static function cambiarActivoUsuario(Router $router) {
+        $sesion = self::requireAuth();
+        self::requireAdmin();
+
+        $id      = (int)($_POST['id'] ?? 0);
+        $activo  = !empty($_POST['activo']);
+        $usuario = $id ? UsuarioBlog::find($id) : null;
+
+        if (!$usuario) { header('Location: /dashboard/usuarios'); exit; }
+        if (!$activo && $id === (int)$sesion['id']) {
+            header('Location: /dashboard/usuarios?nobaja=propia');
+            exit;
+        }
+
+        UsuarioBlog::cambiarActivo([$id], $activo);
+        header('Location: /dashboard/usuarios?' . ($activo ? 'reactivado=1' : 'inhabilitado=1'));
+        exit;
+    }
+
     // ── PERFIL ────────────────────────────────────────────────────────────────
 
     /**
@@ -4297,10 +5882,17 @@ class BlogController {
             $passwordOriginal = $usuario->password;
             $usuario->sincronizar($_POST);
 
-            // Rol no cambia desde el perfil
+            // Rol, nombre, módulos y puede_suplir no se tocan desde el perfil. Antes solo
+            // se blindaba `rol`, y como `modulos` y `puede_suplir` están en $columnasDB un
+            // POST manipulado se concedía módulos a sí mismo. Ver el docblock del guard.
             $usuario->rol = $sesion['rol'];
+            self::blindarCamposPrivilegiados($usuario, (int)$sesion['id']);
 
             $alertas = $usuario->validarPerfil();
+            if (!self::passwordConfirmada($_POST)) {
+                UsuarioBlog::setAlerta('error', 'Las contraseñas no coinciden');
+                $alertas = UsuarioBlog::getAlertas();
+            }
 
             if (empty($alertas['error'])) {
                 if ($usuario->existeEmail()) {
@@ -4342,6 +5934,12 @@ class BlogController {
 
                         if (empty($alertas['error'])) {
                             $usuario->guardar();
+                            // El cumpleaños va aparte: el ORM base envuelve todo en
+                            // comillas y no sabe escribir NULL real, así que vaciar el
+                            // campo tiene que pasar por aquí. Crear y editar usuario ya lo
+                            // hacían; el perfil no, y por eso el campo no existía aquí.
+                            UsuarioBlog::guardarFechaNacimiento(
+                                (int)$sesion['id'], $_POST['fecha_nacimiento'] ?? null);
                             $_SESSION['blog_usuario']['nombre'] = $usuario->nombre;
                             $_SESSION['blog_usuario']['avatar'] = $usuario->avatar ?? '';
                             header('Location: /dashboard/perfil?saved=1');
@@ -4996,6 +6594,283 @@ class BlogController {
             $db->query("DELETE FROM testimoniales WHERE id={$id}");
         }
         header('Location: /dashboard/testimoniales?rechazado=1');
+        exit;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // MÓDULO ACTUALIZACIONES (anuncios de versión)
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Historial de novedades. Lo ve cualquiera con sesión —es el registro de lo que ha
+     * cambiado en su herramienta de trabajo—; publicar es otra cosa y pide admin.
+     */
+    public static function actualizaciones(Router $router) {
+        $sesion = self::requireAuth();
+        $esAdmin = self::esAdmin();
+
+        $router->renderAdmin('blog/actualizaciones/index', [
+            'titulo'   => 'Actualizaciones',
+            'lista'    => $esAdmin ? Actualizacion::todas() : Actualizacion::publicadas(),
+            'esAdmin'  => $esAdmin,
+            'total'    => $esAdmin ? Actualizacion::totalUsuarios() : 0,
+        ]);
+    }
+
+    /** Alta y edición comparten formulario: la única diferencia es si hay `?id=`. */
+    public static function crearActualizacion(Router $router) {
+        self::requireAuth();
+        self::requireAdmin();
+
+        $id  = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+        $act = $id ? Actualizacion::encontrar($id) : new Actualizacion();
+        if (!$act) { header('Location: /dashboard/actualizaciones'); exit; }
+
+        $alertas = [];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $act->sincronizar($_POST);
+            if (!$id) $act->creado_por = (int)$_SESSION['blog_usuario']['id'];
+            // El estado no se elige en el formulario: se guarda como borrador y se publica
+            // con su propio botón. Publicar bloquea a todo el claustro, así que no puede
+            // ser un `<select>` que se marca sin querer.
+            $act->estado = $act->estado === 'publicada' ? 'publicada' : 'borrador';
+
+            $alertas = $act->validar();
+
+            if (empty($alertas['error'])) {
+                $img = self::subirImagenActualizacion();
+                if ($img) $act->imagen = $img;
+                $r = $act->guardar();
+                if ($r['resultado']) {
+                    header('Location: /dashboard/actualizaciones?' . ($id ? 'editada=1' : 'creada=1'));
+                    exit;
+                }
+                Actualizacion::setAlerta('error', 'No se pudo guardar el anuncio. Intenta de nuevo.');
+                $alertas = Actualizacion::getAlertas();
+            }
+        }
+
+        $router->renderAdmin('blog/actualizaciones/form', [
+            'titulo'  => $id ? 'Editar actualización' : 'Nueva actualización',
+            'act'     => $act,
+            'esNuevo' => !$id,
+            'alertas' => $alertas,
+        ]);
+    }
+
+    /** Imagen opcional del anuncio (una captura de la novedad). */
+    private static function subirImagenActualizacion(): ?string {
+        if (!isset($_FILES['imagen']) || $_FILES['imagen']['error'] !== UPLOAD_ERR_OK) return null;
+
+        $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) return null;
+        if ($_FILES['imagen']['size'] > 4 * 1024 * 1024) return null;
+
+        $dir = __DIR__ . '/../public/build/assets/actualizaciones/';
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $nombre = uniqid('act_', true) . '.' . $ext;
+        if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $dir . $nombre)) return null;
+
+        return '/build/assets/actualizaciones/' . $nombre;
+    }
+
+    /** Publicar / despublicar. Publicar es lo que dispara el modal bloqueante. */
+    public static function publicarActualizacion(Router $router) {
+        self::requireAuth();
+        self::requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /dashboard/actualizaciones'); exit; }
+
+        $id = (int)($_POST['id'] ?? 0);
+        $volver = 'publicada=1';
+        if (!empty($_POST['despublicar'])) {
+            Actualizacion::despublicar($id);
+            $volver = 'despublicada=1';
+        } else {
+            Actualizacion::publicar($id);
+        }
+        header('Location: /dashboard/actualizaciones?' . $volver);
+        exit;
+    }
+
+    public static function eliminarActualizacion(Router $router) {
+        self::requireAuth();
+        self::requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $act = Actualizacion::encontrar((int)($_POST['id'] ?? 0));
+            if ($act) {
+                // La imagen vive en public/ y no la borra ninguna FK.
+                if ($act->imagen) {
+                    $f = __DIR__ . '/../public' . $act->imagen;
+                    if (is_file($f)) @unlink($f);
+                }
+                $act->eliminar();
+            }
+        }
+        header('Location: /dashboard/actualizaciones?eliminada=1');
+        exit;
+    }
+
+    /**
+     * Acuse de recibo del modal bloqueante.
+     *
+     * Devuelve al usuario a donde estaba: el modal se interpone en CUALQUIER pantalla, así
+     * que mandarlo siempre al home le costaría volver a navegar. `$_POST['volver']` se
+     * valida como ruta interna del panel — sin eso sería un redirect abierto.
+     */
+    public static function verActualizacion(Router $router) {
+        $sesion = self::requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /dashboard'); exit; }
+
+        Actualizacion::marcarVista((int)($_POST['id'] ?? 0), (int)$sesion['id']);
+
+        $volver = (string)($_POST['volver'] ?? '');
+        if ($volver === '' || !preg_match('#^/dashboard(/|$|\?)#', $volver)) $volver = '/dashboard';
+        header('Location: ' . $volver);
+        exit;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // RESTABLECIMIENTO DE CONTRASEÑA
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Formulario público: nombre, correo y confirmación del correo.
+     *
+     * ⚠️ **La respuesta es siempre la misma**, exista o no el correo. Un mensaje distinto
+     * convertiría esta pantalla en un verificador de qué direcciones pertenecen al
+     * claustro, que es justo lo que no puede ofrecer una pantalla sin autenticar.
+     */
+    public static function recuperarPassword(Router $router) {
+        $alertas = [];
+        $enviado = isset($_GET['enviado']);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $sol = new SolicitudPassword();
+            $sol->nombre = trim((string)($_POST['nombre'] ?? ''));
+            $sol->email  = trim((string)($_POST['email'] ?? ''));
+            $confirm     = trim((string)($_POST['email_confirm'] ?? ''));
+
+            $alertas = $sol->validar();
+
+            // La confirmación se compara EN SERVIDOR: si solo la valida el JS, un envío
+            // sin JS deja una solicitud con el correo mal escrito y nadie la puede casar
+            // con ninguna cuenta.
+            if (strcasecmp($sol->email, $confirm) !== 0) {
+                SolicitudPassword::setAlerta('error', 'Los dos correos no coinciden');
+                $alertas = SolicitudPassword::getAlertas();
+            }
+
+            if (empty($alertas['error'])) {
+                if (!SolicitudPassword::demasiadasRecientes($sol->email)) {
+                    // Si el correo existe se enlaza la cuenta, y si no la solicitud se
+                    // guarda igual: al admin le sirve para detectar a quien se equivoca de
+                    // dirección, y el usuario recibe la misma respuesta en los dos casos.
+                    $u = UsuarioBlog::findByEmail($sol->email);
+                    $sol->usuario_id = $u ? (int)$u->id : null;
+                    $sol->ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                    $sol->guardar();
+
+                    foreach (UsuarioBlog::administradores() as $adminId) {
+                        Notificacion::nueva(
+                            $adminId, 'password_solicitada',
+                            $sol->nombre . ' pidió restablecer su contraseña.',
+                            (int)$sol->id, 'solicitud_password', 'usuarios', 'aviso',
+                            '/dashboard/usuarios/solicitudes'
+                        );
+                    }
+                }
+                // Se redirige igual aunque se haya frenado por límite: decir "demasiadas
+                // solicitudes" también confirmaría que el correo es real.
+                header('Location: /recuperar?enviado=1');
+                exit;
+            }
+        }
+
+        $router->renderAdmin('blog/recuperar', [
+            'titulo'     => 'Recuperar contraseña',
+            'alertas'    => $alertas,
+            'enviado'    => $enviado,
+            'extra_head' => three_js_tag(),
+        ]);
+    }
+
+    /** Cola de solicitudes (admin). */
+    public static function solicitudesPassword(Router $router) {
+        self::requireAuth();
+        self::requireModulo('usuarios');
+        self::requireAdmin();
+
+        $router->renderAdmin('blog/usuarios/solicitudes', [
+            'titulo'   => 'Solicitudes de contraseña',
+            'lista'    => SolicitudPassword::todas(),
+            // La temporal recién generada viaja por sesión y NO por query string: una URL
+            // con la contraseña dentro acaba en el historial del navegador y en los logs
+            // del servidor. Se consume y se borra al pintarla.
+            'generada' => self::consumirPasswordGenerada(),
+        ]);
+    }
+
+    /** Saca de la sesión la contraseña temporal recién generada y la borra. */
+    private static function consumirPasswordGenerada(): ?array {
+        $g = $_SESSION['password_generada'] ?? null;
+        unset($_SESSION['password_generada']);
+        return $g;
+    }
+
+    /**
+     * Resolver una solicitud: generar contraseña temporal, o descartarla.
+     *
+     * La temporal se muestra UNA sola vez, en la recarga siguiente. No se guarda en claro
+     * en ningún sitio: lo que queda en base de datos es el hash, como cualquier otra.
+     */
+    public static function resolverSolicitudPassword(Router $router) {
+        $sesion = self::requireAuth();
+        self::requireModulo('usuarios');
+        self::requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /dashboard/usuarios/solicitudes'); exit; }
+
+        $id  = (int)($_POST['id'] ?? 0);
+        $sol = SolicitudPassword::encontrar($id);
+        if (!$sol || $sol->estado !== 'pendiente') {
+            header('Location: /dashboard/usuarios/solicitudes'); exit;
+        }
+
+        if (!empty($_POST['descartar'])) {
+            SolicitudPassword::resolver($id, (int)$sesion['id'], 'descartada');
+            header('Location: /dashboard/usuarios/solicitudes?descartada=1');
+            exit;
+        }
+
+        // Sin cuenta enlazada no hay contraseña que cambiar: la solicitud se cierra como
+        // descartada y el admin ya sabe, por la propia fila, que el correo no existe.
+        if (!$sol->usuario_id) {
+            SolicitudPassword::resolver($id, (int)$sesion['id'], 'descartada');
+            header('Location: /dashboard/usuarios/solicitudes?sincuenta=1');
+            exit;
+        }
+
+        $u = UsuarioBlog::find((int)$sol->usuario_id);
+        if (!$u) { header('Location: /dashboard/usuarios/solicitudes'); exit; }
+
+        $temporal = SolicitudPassword::generarTemporal();
+        $u->password = password_hash($temporal, PASSWORD_BCRYPT);
+        $u->guardar();
+
+        SolicitudPassword::resolver($id, (int)$sesion['id'], 'resuelta');
+
+        Notificacion::nueva(
+            (int)$u->id, 'password_restablecida',
+            'Se restableció tu contraseña. Entra con la temporal que te dieron y cámbiala desde tu perfil.',
+            null, null, 'usuarios', 'aviso', '/dashboard/perfil'
+        );
+
+        $_SESSION['password_generada'] = [
+            'nombre' => $u->nombre,
+            'email'  => $u->email,
+            'clave'  => $temporal,
+        ];
+        header('Location: /dashboard/usuarios/solicitudes?resuelta=1');
         exit;
     }
 }

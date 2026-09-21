@@ -69,7 +69,28 @@ body[data-page="blog-usuarios-detalle"] {
 
         /* La acción sobre esta persona, junto a esta persona. Bajó del topbar, donde
            quedaba en la barra del panel entero, al lado de la campana y el avatar. */
-        &__acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        /* El <form> de la baja lógica es un hijo más: sin `display:flex` propio el
+           bloque le daría al botón su propia línea. Y va SEPARADO por un filete: a
+           8px de «Editar» y con el mismo aspecto, una acción que revoca el acceso en
+           un POST inmediato se pulsa por inercia. */
+        &__acts {
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;
+            form { display: flex; }
+        }
+        &__baja {
+            margin-left: 6px;
+            padding-left: 12px;
+            border-left: 1px solid #e6edf5;
+
+            /* Tinta distinta para que no se lea como un segundo «Editar». Misma
+               familia que `.ufi-flag--off`, que es como esta vista dice «apagado». */
+            .admin-btn {
+                color: #b42318;
+                border-color: #f3c7c2;
+
+                &:hover { background: #fdeef0; border-color: #e8a9a2; color: #8f1c13; }
+            }
+        }
 
         /* Los metadatos van a la derecha y en columna: son cifras de apoyo, no el
            encabezado. En móvil pasan a fila para no comerse el alto. */
@@ -91,6 +112,29 @@ body[data-page="blog-usuarios-detalle"] {
         &--admin { background: #e8edf9; color: #4267ac; }
     }
     .ufi-nil { font-size: .76rem; color: #94a3b8; }
+
+    /* Pastilla de nivel académico, con el color del nivel.
+       ⚠️ Esta vista usaba `.per-nivel`, que vive dentro de
+       `body[data-page="blog-personal-index"]` en `admin/_admin-personal.scss` — o sea que
+       en la ficha NUNCA se aplicaba y los niveles salían como texto suelto. Se define
+       aquí, con la misma fórmula de color-mix, y la usan tanto el hero como la sección
+       «Perfil y accesos». */
+    .ufi-niv {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 999px;
+        background: color-mix(in srgb, var(--niv, #94a3b8) 14%, #fff);
+        color: color-mix(in srgb, var(--niv, #94a3b8) 72%, #1e293b);
+        border: 1px solid color-mix(in srgb, var(--niv, #94a3b8) 35%, #fff);
+        font-size: .73rem; font-weight: 700; white-space: nowrap;
+
+        i { font-size: .68rem; opacity: .8; }
+
+        /* Dirección general: sin niveles declarados su alcance es el colegio entero, que
+           es MÁS, no menos. Va en neutro para no aparentar un sexto nivel. */
+        &--todo {
+            background: #eef2f7; color: #475569; border-color: #dbe3ec;
+        }
+    }
 
     /* Aviso de alcance: un listado filtrado que no dice que lo está se lee como el
        dato completo del colegio. */
@@ -251,6 +295,21 @@ body[data-page="blog-usuarios-detalle"] {
         &__pw {
             position: relative;
             .admin-form__input { padding-right: 44px; }
+        }
+
+        /* Dato que esta persona no puede cambiar (hoy: su nombre, que lo pone un
+           administrador). Deliberadamente NO es un `<input disabled>`: un campo apagado
+           sin explicación se lee como un fallo de la página, mientras que un dato con
+           candado se lee como lo que es. La razón va en el `__hint` de al lado. */
+        &__fijo {
+            display: flex; align-items: center; gap: 8px;
+            margin: 0;
+            padding: 11px 14px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            background: #f8fafc;
+            font-size: .92rem; font-weight: 600; color: #475569;
+            i { font-size: .8rem; color: #94a3b8; }
         }
     }
     /* Medidor de fortaleza. Vino de `_blog-perfil.scss`, que desapareció con la vista:

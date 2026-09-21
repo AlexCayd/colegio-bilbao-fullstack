@@ -1,12 +1,19 @@
 <?php $paginaVista = 'blog-aulas-index'; ?>
 <?php
 $total = count($aulas ?? []);
+/* Dadas de baja: `Aula::todasConUso()` las trae todas a propósito — es aquí donde se
+   ven y donde se vuelven a encender, y un catálogo que esconde sus bajas no deja
+   deshacer lo que hizo una importación con un archivo incompleto. */
+$bajas = 0;
+foreach ($aulas ?? [] as $a) if ((int)($a->activo ?? 1) === 0) $bajas++;
 
 // Feedback post-acción (mismo patrón de query params + toast de Alex del resto del panel)
 $toast = null;
-if     (isset($_GET['success'])) $toast = ['t' => '¡Aula creada!',     'm' => 'Ya puedes usarla en los horarios.', 'i' => 'fa-door-open',    'c' => '#34a853'];
-elseif (isset($_GET['edited']))  $toast = ['t' => '¡Aula actualizada!', 'm' => 'Los cambios se guardaron.',         'i' => 'fa-pen',          'c' => '#4267ac'];
-elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => 'El catálogo está actualizado.',     'i' => 'fa-circle-check', 'c' => '#4267ac'];
+if     (isset($_GET['success']))       $toast = ['t' => '¡Aula creada!',      'm' => 'Ya puedes usarla en los horarios.',            'i' => 'fa-door-open',    'c' => '#34a853'];
+elseif (isset($_GET['edited']))        $toast = ['t' => '¡Aula actualizada!', 'm' => 'Los cambios se guardaron.',                    'i' => 'fa-pen',          'c' => '#4267ac'];
+elseif (isset($_GET['deleted']))       $toast = ['t' => 'Aula eliminada',     'm' => 'El catálogo está actualizado.',                'i' => 'fa-circle-check', 'c' => '#4267ac'];
+elseif (isset($_GET['inhabilitado']))  $toast = ['t' => 'Aula dada de baja',  'm' => 'Deja de ofrecerse, pero no se ha borrado nada.','i' => 'fa-power-off',   'c' => '#f5b400'];
+elseif (isset($_GET['reactivado']))    $toast = ['t' => 'Aula reactivada',    'm' => 'Vuelve a estar disponible en los horarios.',    'i' => 'fa-rotate-left',  'c' => '#34a853'];
 ?>
 <div class="admin-layout">
 
@@ -41,6 +48,9 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                     <h2 class="admin-panel__title">
                         Todas las aulas
                         <span class="admin-panel__count"><?= $total ?></span>
+                        <?php if ($bajas): ?>
+                        <span class="cat-baja cat-baja--count"><?= $bajas ?> de baja</span>
+                        <?php endif; ?>
                     </h2>
 <?php /* La acción principal vive en la cabecera del panel sobre el que actúa, no
                              en el topbar: allí quedaba junto a la campana y el avatar, que son del
@@ -79,10 +89,14 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($aulas as $i => $a): $uso = (int)$a->total_horarios; ?>
-                            <tr data-pager-item<?= $i >= 12 ? ' class="is-hidden"' : '' ?>>
+                        <?php foreach ($aulas as $i => $a): $uso = (int)$a->total_horarios; $off = (int)($a->activo ?? 1) === 0; ?>
+                            <?php $clases = trim(($i >= 12 ? 'is-hidden ' : '') . ($off ? 'is-off' : '')); ?>
+                            <tr data-pager-item<?= $clases ? ' class="' . $clases . '"' : '' ?>>
                                 <td data-val="<?= s($a->nombre) ?>">
-                                    <div class="cat-name"><i class="fa-solid fa-door-open"></i> <?= s($a->nombre) ?></div>
+                                    <div class="cat-name">
+                                        <i class="fa-solid fa-door-open"></i> <?= s($a->nombre) ?>
+                                        <?php if ($off): ?><span class="cat-baja">Baja</span><?php endif; ?>
+                                    </div>
                                 </td>
                                 <td data-val="<?= $uso ?>">
                                     <?php if ($uso): ?>
@@ -101,6 +115,19 @@ elseif (isset($_GET['deleted'])) $toast = ['t' => 'Aula eliminada',     'm' => '
                                         <a href="/dashboard/aulas/editar?id=<?= (int)$a->id ?>" class="admin-act admin-act--edit" title="Editar aula">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
+                                        <?php /* Baja lógica: la alternativa reversible a eliminar, y la
+                                                 vuelta atrás de lo que hace el importador CSV con un aula
+                                                 que el archivo deja de mencionar. No comprueba usos —
+                                                 apagar no rompe nada—, así que está siempre disponible. */ ?>
+                                        <form method="POST" action="/dashboard/aulas/activo" class="admin-act-form">
+                                            <input type="hidden" name="tipo" value="aulas">
+                                            <input type="hidden" name="id" value="<?= (int)$a->id ?>">
+                                            <input type="hidden" name="activo" value="<?= $off ? '1' : '' ?>">
+                                            <button type="submit" class="admin-act admin-act--baja<?= $off ? ' is-off' : '' ?>"
+                                                    title="<?= $off ? 'Reactivar aula' : 'Dar de baja (no se borra nada)' ?>">
+                                                <i class="fa-solid <?= $off ? 'fa-rotate-left' : 'fa-power-off' ?>"></i>
+                                            </button>
+                                        </form>
                                         <?php /* Con clases asignadas el borrado rompería el horario: se ofrece deshabilitado */ ?>
                                         <?php if ($uso): ?>
                                         <button type="button" class="admin-act admin-act--del" disabled

@@ -72,14 +72,27 @@ class SuplenciaHora extends ActiveRecord {
      */
     public const DESCANSO_MIN = 40;
 
-    /** Persistencia con NULL real. */
+    /**
+     * Persistencia con NULL real.
+     *
+     * ⚠️ `tipo` y `lugar_id` van en la lista aunque los formularios no los manden: los
+     * declara $columnasDB desde el principio y esta función los ignoraba, así que TODA
+     * hora nacía como `tipo='clase'` y `lugar_nombre` salía siempre vacío. Eso rompía
+     * dos cosas: pendientesTrabajo() filtra `tipo <> 'guardia'` y colaba las guardias en
+     * la cola de "¿dejó trabajo?" —en el patio no hay trabajo que dejar—, y una guardia
+     * suplida no decía dónde. Los rellena guardarHoras() desde el horario del ausente.
+     */
     public function guardar() {
         $db   = self::$db;
-        $cols = ['suplencia_id', 'periodo_id', 'grupo_id', 'aula_id', 'materia_id', 'suplente_id', 'estado_hora', 'validado_en'];
+        $cols = ['suplencia_id', 'periodo_id', 'grupo_id', 'aula_id', 'materia_id',
+                 'tipo', 'lugar_id', 'suplente_id', 'estado_hora', 'validado_en'];
+        // La columna es NOT NULL con DEFAULT 'clase': dejarla vacía escribiría '' y el
+        // ENUM lo guardaría como cadena vacía, que no casa con ninguna de las dos ramas.
+        if (empty($this->tipo)) $this->tipo = 'clase';
         $sql  = [];
         foreach ($cols as $c) {
             $v = $this->$c;
-            if ($v === null || $v === '' || (in_array($c, ['grupo_id', 'aula_id', 'materia_id', 'suplente_id'], true) && (int)$v === 0)) {
+            if ($v === null || $v === '' || (in_array($c, ['grupo_id', 'aula_id', 'materia_id', 'lugar_id', 'suplente_id'], true) && (int)$v === 0)) {
                 $sql[$c] = 'NULL';
             } else {
                 $sql[$c] = "'" . $db->escape_string($v) . "'";
@@ -274,7 +287,76 @@ class SuplenciaHora extends ActiveRecord {
         return array_map(fn($r) => (int)$r->id, static::consultarSQL($sql));
     }
 
-    /** Asigna un suplente a una hora (pasa a 'agendada'). */
+    /**
+     * ¿Esa hora pertenece a esa suplencia? Guard de pertenencia para todo POST que
+     * reciba `hora_id` y `id` por separado: el guard de alcance valida la suplencia, no
+     * la hora, y sin esto se puede tocar la hora de otra mandando el par cruzado.
+     */
+    public static function esDeSuplencia(int $horaId, int $suplenciaId): bool {
+        $horaId = (int)$horaId; $suplenciaId = (int)$suplenciaId;
+        if ($horaId <= 0 || $suplenciaId <= 0) return false;
+        $r = self::$db->query(
+            "SELECT 1 FROM suplencia_horas WHERE id = {$horaId} AND suplencia_id = {$suplenciaId} LIMIT 1");
+        return (bool)($r && $r->num_rows);
+    }
+
+    /**
+     * ¿Hay alguna razón para NO asignarle esta hora a este suplente?
+     * Devuelve `null` si se puede, o el texto del impedimento.
+     *
+     * ⚠️ Es el guard de SERVIDOR de la asignación, y existe porque no había ninguno: la
+     * regla «no tiene clase a esa hora» vivía solo en blog-suplencias-agendar.js, que se
+     * limita a no pintar el botón de confirmar. Cualquier POST que no viniera de ese
+     * botón —una pestaña vieja, el botón atrás, un reenvío de formulario, dos
+     * coordinadores a la vez— escribía sin que nadie mirase.
+     *
+     * No reimplementa las reglas: pregunta a sugerir(), que es la única fuente de verdad.
+     * Cuesta lo mismo que pintar la lista de candidatos, y se paga una vez por
+     * asignación.
+     *
+     * Comprueba además que la hora pertenezca a la suplencia del POST cuando se le pasa
+     * `$suplenciaId`. Es la misma precaución que marcarTrabajo(): requireAlcance() valida
+     * la SUPLENCIA, no la hora, así que sin esto un coordinador con alcance sobre A podía
+     * tocar una hora de B mandando `id=A&hora_id=<hora de B>`.
+     */
+    public static function motivoBloqueo(int $horaId, int $suplenteId, int $suplenciaId = 0): ?string {
+        $horaId = (int)$horaId; $suplenteId = (int)$suplenteId; $suplenciaId = (int)$suplenciaId;
+        if ($suplenteId <= 0) return 'No se indicó a quién asignar la cobertura.';
+
+        $sql = "SELECT sh.periodo_id, sh.suplencia_id, sup.fecha, sup.estado,
+                       sup.profesor_ausente_id
+                  FROM suplencia_horas sh
+                  JOIN suplencias sup ON sup.id = sh.suplencia_id
+                 WHERE sh.id = {$horaId} LIMIT 1";
+        $r = self::$db->query($sql);
+        $h = $r ? $r->fetch_assoc() : null;
+        if (!$h) return 'Esa hora ya no existe.';
+
+        if ($suplenciaId > 0 && (int)$h['suplencia_id'] !== $suplenciaId) {
+            return 'Esa hora no pertenece a esta suplencia.';
+        }
+        if ($h['estado'] === 'cancelada') {
+            return 'La suplencia está cancelada: ya no hay nada que cubrir.';
+        }
+
+        foreach (self::sugerir($h['fecha'], (int)$h['periodo_id'], (int)$h['profesor_ausente_id']) as $c) {
+            if ((int)$c['id'] !== $suplenteId) continue;
+            return $c['elegible'] ? null : ($c['motivo'] ?: 'No cumple las reglas de suplencia.');
+        }
+
+        // No está en la lista: o no es profesor, o tiene puede_suplir = 0, o es el propio
+        // ausente. sugerir() ya los descartó antes de evaluarlos, así que no hay motivo
+        // que copiar y hay que decirlo en genérico.
+        return 'Esa persona no puede cubrir suplencias.';
+    }
+
+    /**
+     * Asigna un suplente a una hora (pasa a 'agendada').
+     *
+     * ⚠️ NO valida: escribe. Quien llame tiene que haber pasado antes por
+     * motivoBloqueo(), que es donde vive la regla. Se mantienen separados para que el
+     * llamador pueda DECIR por qué no se pudo en vez de tragarse un `false` mudo.
+     */
     public static function asignar(int $horaId, int $suplenteId): bool {
         $horaId = (int)$horaId; $suplenteId = (int)$suplenteId;
         $ok = self::$db->query("UPDATE suplencia_horas SET suplente_id={$suplenteId}, estado_hora='agendada', validado_en=NULL WHERE id={$horaId} LIMIT 1");
@@ -544,12 +626,18 @@ class SuplenciaHora extends ActiveRecord {
      * Primaria y la 3ª de Secundaria son periodos distintos que se pisan en el reloj.
      * Todo se resuelve por solapamiento de hora_inicio/hora_fin.
      *
-     * Reglas: excluir al ausente / con clase solapada / con otra suplencia solapada;
-     * conservar DESCANSO_MIN minutos libres; equidad (MARGEN_EQUIDAD sobre el mínimo).
+     * Reglas: excluir al ausente / a quien ya faltó ese día / con clase solapada / con
+     * otra suplencia solapada; conservar DESCANSO_MIN minutos libres; equidad
+     * (MARGEN_EQUIDAD sobre el mínimo).
      * `puede_suplir = 0` ya lo filtra UsuarioBlog::candidatosSuplencia().
      *
-     * Cuesta 6 consultas fijas, no 6+N: la ocupación de todo el claustro se resuelve de
-     * una vez con Horario::ocupacionDiaDeVarios().
+     * ⚠️ La ocupación sale de Horario::ocupacionEfectivaDia() y NO de
+     * ocupacionDiaDeVarios(): los intercambios validados cambian quién da clase ese día
+     * concreto sin tocar `horarios`, así que leyendo solo lo permanente se daba por
+     * libre a quien había aceptado cubrir la clase de otro.
+     *
+     * Cuesta 8 consultas fijas, no 8+N: la ocupación de todo el claustro se resuelve de
+     * una vez, y los swaps del día también.
      *
      * @return array Lista ordenada con: id, nombre, avatar, elegible(bool), motivo,
      *               aviso, aviso_tipo, horas_libres, coberturas
@@ -588,8 +676,25 @@ class SuplenciaHora extends ActiveRecord {
             $asignadasDia[(int)$row['suplente_id']][] = ['inicio' => $row['hora_inicio'], 'fin' => $row['hora_fin']];
         }
 
+        /* Quien ya avisó de que falta ese día NO puede cubrir a nadie, y se bloquea el
+           DÍA ENTERO: si alguien no viene el lunes, no viene a ninguna hora del lunes,
+           aunque la hora a cubrir caiga fuera de las que él declaró ausentes. Antes solo
+           se excluía al ausente de ESTA suplencia (el `$ausenteId` de abajo), así que un
+           profesor con otra ausencia registrada el mismo día seguía saliendo sugerido.
+           `cancelada` no cuenta: esa ausencia ya no existe y vuelve a estar disponible. */
+        $ausentesDia = [];
+        $r = $db->query("
+            SELECT DISTINCT profesor_ausente_id
+              FROM suplencias
+             WHERE fecha = '{$fechaSafe}'
+               AND estado <> 'cancelada'
+               AND profesor_ausente_id IS NOT NULL");
+        if ($r) while ($row = $r->fetch_assoc()) $ausentesDia[(int)$row['profesor_ausente_id']] = true;
+
         $candidatos = UsuarioBlog::candidatosSuplencia();
-        $ocupacion  = Horario::ocupacionDiaDeVarios(array_column($candidatos, 'id'), $dia);
+        // Efectiva y no permanente: los intercambios validados mueven clases ese día
+        // concreto sin tocar `horarios`. Ver Horario::ocupacionEfectivaDia().
+        $ocupacion  = Horario::ocupacionEfectivaDia(array_column($candidatos, 'id'), $dia, $fecha);
 
         $lista = [];
         foreach ($candidatos as $c) {
@@ -628,7 +733,12 @@ class SuplenciaHora extends ActiveRecord {
             $libres  = max(0, $jornada - $ocupado);
 
             $motivo = null;
-            if (self::chocaCon($clases, $hIni, $hFin)) {
+            // Va PRIMERO: es la explicación más útil de las que concurren. A quien falta
+            // ese día le sobra con saber eso; que además tenga clase a esa hora (la que
+            // precisamente no va a dar) no le dice nada a quien reparte.
+            if (isset($ausentesDia[$cid])) {
+                $motivo = 'Tiene una ausencia registrada ese día';
+            } elseif (self::chocaCon($clases, $hIni, $hFin)) {
                 // Una guardia de receso ocupa igual que una clase, pero decir "tiene
                 // clase" cuando está vigilando el patio confunde a quien reparte.
                 $enGuardia = false;

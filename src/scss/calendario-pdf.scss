@@ -1,0 +1,318 @@
+// ── Calendario del ciclo escolar en PDF (Comunidad › Familias) ───────────────
+//
+// Se compila a public/build/css/calendario-pdf.css y el controlador lo inyecta con
+// file_get_contents(): Dompdf no resuelve URLs del sitio, así que una hoja enlazada
+// no le llegaría. El CSS sigue viviendo en src/ como todo lo demás.
+//
+// ⚠️ Sin guion bajo en el nombre del archivo, o dart-sass lo trata como partial y no
+// lo emite. Es la misma regla que horario-pdf.scss.
+//
+// ⚠️ Dompdf NO soporta flexbox, grid, custom properties ni position:absolute dentro
+// de tabla. Todo esto es CSS 2.1 a propósito, y por eso la plantilla se maqueta con
+// tablas anidadas. Los colores de evento van inline desde PHP (Evento::TIPO_COLOR),
+// que es la misma fuente que el panel y la web.
+//
+// Las `@font-face` de Outfit NO están aquí: las arma Classes\Pdf::fuenteCss() y las
+// antepone, porque necesitan rutas absolutas del disco que un archivo compilado no
+// puede conocer.
+
+$azul:      #1f5a94;
+$tinta:     #12233d;
+// ⚠️ #6b7f99 se quedaba en 4.1:1 sobre blanco, y todo lo que lleva este gris va a
+// 6.8-7,5pt: es la letra más pequeña del documento y encima impresa, donde no hay
+// zoom que la rescate. #5a6d85 sube a 5.3:1 sin dejar de ser un tono secundario.
+$gris:      #5a6d85;
+$linea:     #d8e2ee;
+$fondo-sec: #f2f6fb;
+
+@page {
+    size: A4 landscape;
+    margin: 9mm;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;   // la misma del panel y del horario impreso
+    font-size: 8pt;
+    color: $tinta;
+}
+
+// ── Encabezado ───────────────────────────────────────────────────────────────
+// Tabla y no flex: es el único layout de tres columnas que Dompdf reparte bien.
+.cp-head {
+    width: 100%;
+    border-bottom: 1.6pt solid $azul;
+    padding-bottom: 3mm;
+    margin-bottom: 4mm;
+
+    &__marca { width: 38mm; vertical-align: middle; }
+    &__logo  { width: 36mm; }
+
+    // Respaldo cuando falta GD y Dompdf no puede incrustar el PNG.
+    &__wordmark {
+        font-size: 13pt;
+        font-weight: 800;
+        color: $azul;
+    }
+
+    &__tit {
+        vertical-align: middle;
+        text-align: center;
+
+        h1 { font-size: 15pt; font-weight: 800; color: $azul; margin: 0; }
+        p  { font-size: 9.5pt; font-weight: 600; color: $gris; margin: 1mm 0 0; }
+    }
+
+    &__meta {
+        width: 48mm;
+        vertical-align: middle;
+        text-align: right;
+    }
+}
+
+.cp-tag {
+    display: block;
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: $azul;
+    background: $fondo-sec;
+    border: 0.5pt solid $linea;
+    border-radius: 2mm;
+    padding: 1mm 2mm;
+    margin-bottom: 1.2mm;
+}
+
+.cp-fecha { font-size: 6.8pt; color: $gris; }
+
+// Aviso de ciclo sin eventos. Vive DENTRO de la celda derecha del encabezado, bajo
+// «Generado el …», y no bajo la rejilla.
+//
+// ⚠️ **Debajo de la rejilla no queda ni un milímetro.** Medido con Dompdf: la rejilla
+// de doce meses más el pie llenan la primera página exacta —un espaciador de 2 mm ya
+// la parte en dos—, así que un párrafo de 9 pt ahí abajo condena el documento a una
+// segunda página que solo lleva el pie. La leyenda del caso normal cabe únicamente
+// porque allí el pie no está en esa página: se va a la última, detrás del detalle mes
+// a mes, que abre con `page-break-before`.
+// En cambio esta celda del encabezado SÍ tiene hueco: su alto lo fija el logo, que es
+// más alto que las dos líneas que lleva. El aviso entra gratis.
+.cp-vacio {
+    display: block;
+    margin-top: 1.2mm;
+    font-size: 6.8pt;
+    font-weight: 700;
+    color: $azul;
+}
+
+// ⚠️ Y ni siquiera esa línea de 6,8 pt entra gratis: medido, la desborda por ~2,4 mm
+// (con el aviso oculto el documento vuelve a una página). El hueco se le quita al aire
+// decorativo del encabezado y del pie, que nadie compara entre dos documentos. Reclama
+// ~5 mm para gastar 2,4: el margen sobrante es a propósito, porque el alto del logo y
+// de la tipografía puede cambiar y aquí el error se paga con una página entera en
+// blanco. La clase la pone la plantilla en el <body> cuando no hay eventos.
+.cp-sin-eventos {
+    .cp-head { margin-bottom: 1mm; }
+    .cp-pie  { margin-top: 2mm; }
+}
+
+// ── Rejilla de doce meses ────────────────────────────────────────────────────
+// Tres filas de cuatro: es lo que convierte el documento en un calendario de pared
+// y no en un listado. `table-layout: fixed` reparte las cuatro columnas por igual;
+// sin él, el mes con el nombre más largo se lleva el ancho.
+.cp-anio {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 2mm;
+
+    &__celda {
+        width: 25%;
+        vertical-align: top;
+    }
+}
+
+.cp-mes {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border: 0.5pt solid $linea;
+
+    &__tit {
+        font-size: 8.5pt;
+        font-weight: 800;
+        color: #fff;
+        background: $azul;
+        padding: 1.2mm 0;
+        text-align: center;
+
+        // ⚠️ El año va en un color más claro y NO con `opacity`: Dompdf no aplica
+        // opacidad al texto de forma fiable, así que el atenuado o no se veía o se
+        // veía entero. El color sí lo respeta siempre.
+        span { font-weight: 500; color: #cadff2; }
+    }
+
+    &__dow {
+        font-size: 6pt;
+        font-weight: 700;
+        color: $gris;
+        background: $fondo-sec;
+        text-align: center;
+        padding: 0.8mm 0;
+        border-bottom: 0.5pt solid $linea;
+    }
+
+    // Todas las casillas miden lo mismo. Un día con evento no es "más día" que uno
+    // sin él: es la misma retícula regular del horario impreso.
+    //
+    // ⚠️ **5,2mm es el techo, y está MEDIDO, no estimado.** 4,6mm dejaba casi un
+    // tercio de folio en blanco bajo la rejilla —que es justo lo que hace de esto un
+    // calendario de pared—, pero pasarse rompe la portada: a 5,4mm la última fila de
+    // meses se va a una segunda página y el documento deja de verse de un vistazo.
+    //
+    // Se comprobó renderizando la portada con Dompdf a varias alturas y contra cinco
+    // ciclos seguidos (2026-27 … 2030-31), porque cuántas semanas ocupa cada mes
+    // cambia de un año a otro y este PDF se regenera solo cada agosto: 5,2mm cabe en
+    // los cinco, 5,4mm falla en tres. Al tocar esta medida —o el alto de la cabecera,
+    // la leyenda o el `border-spacing` de .cp-anio— hay que volver a medirlo.
+    &__d {
+        width: 14.28%;
+        height: 5.2mm;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 6.8pt;
+        color: $tinta;
+        border: 0.25pt solid $linea;
+
+        &--off { color: transparent; background: #fbfcfe; }
+
+        // Día con evento: fondo del color del tipo, texto blanco.
+        &--ev {
+            color: #fff;
+            font-weight: 800;
+        }
+
+        // ⚠️ Los tres claros de la paleta (ámbar, cyan y lima) necesitan tinta
+        // oscura: el blanco sobre #f5b400 no llega a AA y en papel es peor. La
+        // clase la decide PHP por luminancia; invertirla deja media paleta
+        // ilegible impresa. Es la misma regla de la rejilla de horarios.
+        &--claro { color: #16202e; }
+
+        &--hoy { box-shadow: none; border: 1pt solid $azul; font-weight: 800; }
+    }
+}
+
+// ── Leyenda ──────────────────────────────────────────────────────────────────
+.cp-leyenda {
+    width: 100%;
+    margin-top: 3mm;
+    border-top: 0.5pt solid $linea;
+    padding-top: 2mm;
+
+    &__item {
+        font-size: 7pt;
+        font-weight: 600;
+        color: $gris;
+        text-align: center;
+    }
+
+    &__punto {
+        display: inline-block;
+        width: 2.4mm;
+        height: 2.4mm;
+        border-radius: 1.2mm;
+        margin-right: 1mm;
+    }
+
+    // El icono por defecto del tipo. `font-family: FontAwesome` es obligatorio: el
+    // carácter viene del área de uso privado y con Outfit saldría como caja vacía.
+    &__ico {
+        font-family: 'FontAwesome';
+        font-size: 8pt;
+        margin-right: 1.2mm;
+    }
+}
+
+// ── Detalle mes a mes ────────────────────────────────────────────────────────
+// La rejilla dice CUÁNDO, esto dice QUÉ: en un cuadro de mes no cabe el título de
+// un evento. Empieza en página nueva para que la portada quede limpia.
+.cp-detalle {
+    page-break-before: always;
+
+    &__tit {
+        font-size: 13pt;
+        font-weight: 800;
+        color: $azul;
+        border-bottom: 1.2pt solid $azul;
+        padding-bottom: 2mm;
+        margin-bottom: 3mm;
+    }
+}
+
+.cp-mesdet {
+    width: 100%;
+    margin-bottom: 2.5mm;
+    // Un mes no debe partirse entre dos páginas si cabe entero.
+    page-break-inside: avoid;
+
+    &__nombre {
+        width: 30mm;
+        vertical-align: top;
+        font-size: 9pt;
+        font-weight: 800;
+        color: $azul;
+        padding: 1.5mm 2mm 1.5mm 0;
+        border-right: 0.8pt solid $linea;
+
+        span { display: block; font-size: 7pt; font-weight: 500; color: $gris; }
+    }
+
+    &__cuerpo {
+        vertical-align: top;
+        padding-left: 3mm;
+    }
+}
+
+.cp-ev {
+    width: 100%;
+    margin-bottom: 1.2mm;
+    page-break-inside: avoid;
+
+    &__dia {
+        width: 12mm;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 8pt;
+        font-weight: 800;
+        color: #fff;
+        border-radius: 1.5mm;
+        padding: 1.2mm 0.5mm;
+    }
+
+    // ⚠️ `font-family: FontAwesome` no es opcional: el glifo vive en el área de uso
+    // privado y con Outfit saldría como caja vacía. La columna solo existe si el TTF
+    // está en disco (la plantilla se la salta si no), así que no deja hueco muerto.
+    &__ico {
+        width: 7mm;
+        text-align: center;
+        vertical-align: middle;
+        font-family: 'FontAwesome';
+        font-size: 9pt;
+        padding-left: 2.5mm;
+    }
+
+    &__txt {
+        vertical-align: middle;
+        padding-left: 2.5mm;
+    }
+
+    &__tit  { display: block; font-size: 8.5pt; font-weight: 700; }
+    &__meta { display: block; font-size: 6.8pt; font-weight: 600; color: $gris; }
+    &__desc { display: block; font-size: 7pt; color: $gris; margin-top: 0.4mm; }
+}
+
+.cp-pie {
+    margin-top: 4mm;
+    padding-top: 2mm;
+    border-top: 0.5pt solid $linea;
+    font-size: 6.5pt;
+    color: $gris;
+    text-align: center;
+}

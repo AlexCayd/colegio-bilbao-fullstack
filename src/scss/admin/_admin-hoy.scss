@@ -1,0 +1,281 @@
+/* =========================================================
+   PANEL · «AHORA / SIGUE» + COLUMNA DE HOY  (.hoy)
+   y GRÁFICA DE VISITAS (.vis)
+
+   SIN scope de página: `.hoy` lo incluyen el home y la ficha del colaborador, así que
+   encerrarlo en un `body[data-page]` lo apagaría en una de las dos. Mismo criterio que
+   `.hcd-modal` o `.hor-select`.
+========================================================= */
+@use '../base/mixins' as *;
+
+/* ── COLUMNA DE HOY ───────────────────────────────────── */
+.hoy {
+    margin-bottom: 22px;
+    padding: 18px 22px;
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px -24px rgba(22, 32, 46, .5);
+
+    &__head {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        margin-bottom: 14px;
+    }
+    &__titulo {
+        margin: 0;
+        display: flex; align-items: center; gap: 8px;
+        font-size: .95rem; font-weight: 800; color: #0B1F3D;
+        i { color: #4267ac; }
+    }
+    /* Reloj en tabular-nums: sin eso los dígitos bailan de ancho cada minuto y el
+       bloque entero tiembla. */
+    &__reloj {
+        font-variant-numeric: tabular-nums;
+        font-size: .95rem; font-weight: 800; color: #64748b;
+    }
+
+    &__vacio {
+        display: flex; align-items: center; gap: 10px;
+        margin: 0;
+        padding: 18px;
+        border-radius: 12px;
+        background: #f8fafc;
+        color: #94a3b8; font-size: .9rem;
+        i { color: #cbd5e1; }
+    }
+
+    /* ── El foco: en curso + siguiente ── */
+    &__foco {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 14px;
+        margin-bottom: 16px;
+
+        &[hidden] { display: none; }
+    }
+
+    &__ahora,
+    &__sigue {
+        --c: #94a3b8;
+        position: relative;
+        padding: 14px 16px 14px 20px;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--c) 7%, #fff);
+        border: 1px solid color-mix(in srgb, var(--c) 22%, #fff);
+
+        /* Con `display` propio necesitan su `&[hidden]`: `[hidden]{display:none}` vive en
+           base/_normalize.scss y app.scss importa `base` ANTES que `admin`, así que la
+           misma especificidad se resuelve por orden y ganaría el de aquí. */
+        &[hidden] { display: none; }
+
+        &::before {
+            content: '';
+            position: absolute; left: 0; top: 10px; bottom: 10px;
+            width: 4px; border-radius: 4px;
+            background: var(--c);
+        }
+    }
+
+    &__etiqueta {
+        display: inline-block;
+        margin-bottom: 6px;
+        padding: 2px 9px; border-radius: 100px;
+        background: color-mix(in srgb, var(--c) 18%, #fff);
+        color: color-mix(in srgb, var(--c) 76%, #1e293b);
+        font-size: .66rem; font-weight: 900;
+        text-transform: uppercase; letter-spacing: .07em;
+
+        &--sigue { background: #eef2f7; color: #64748b; }
+    }
+
+    &__clase {
+        margin: 0 0 2px;
+        font-size: 1.08rem; font-weight: 800; color: #0B1F3D; line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+    &__meta { margin: 0; font-size: .8rem; color: #64748b; overflow-wrap: anywhere; }
+
+    &__barra {
+        height: 6px;
+        margin: 10px 0 5px;
+        border-radius: 100px;
+        background: color-mix(in srgb, var(--c) 16%, #fff);
+        overflow: hidden;
+
+        span {
+            display: block; height: 100%; width: 0;
+            border-radius: 100px;
+            background: var(--c);
+            transition: width .5s linear;
+        }
+    }
+    &__restan {
+        margin: 0;
+        font-size: .76rem; font-weight: 700;
+        color: color-mix(in srgb, var(--c) 72%, #1e293b);
+        font-variant-numeric: tabular-nums;
+    }
+
+    &__fin {
+        grid-column: 1 / -1;
+        display: flex; align-items: center; gap: 9px;
+        margin: 0;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: #f0fdf4; border: 1px solid #bbf7d0;
+        color: #166534; font-size: .88rem; font-weight: 600;
+
+        &[hidden] { display: none; }
+        i { color: #22c55e; }
+    }
+
+    /* ── La columna del día ── */
+    &__lista {
+        list-style: none;
+        margin: 0; padding: 0;
+        display: grid; gap: 4px;
+    }
+
+    &__fila {
+        --c: #94a3b8;
+        display: grid;
+        grid-template-columns: 52px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        transition: background .2s ease, opacity .2s ease;
+
+        &--libre  { .hoy__mat { color: #cbd5e1; font-weight: 600; } }
+        &--receso { background: #fffaf0; }
+
+        /* La clase en curso: la única que se resalta, y con el color de su materia. */
+        &.is-now {
+            background: color-mix(in srgb, var(--c) 10%, #fff);
+            border-color: color-mix(in srgb, var(--c) 30%, #fff);
+        }
+        /* Lo que ya pasó se atenúa: la columna se lee de arriba abajo y sin esto hay que
+           buscar a ojo dónde está uno. No se oculta — el día entero sigue siendo el dato. */
+        &.is-pasada { opacity: .45; }
+    }
+
+    &__hora,
+    &__fin-h {
+        font-size: .78rem; font-weight: 700; color: #94a3b8;
+        font-variant-numeric: tabular-nums;
+    }
+    &__fin-h { color: #cbd5e1; }
+
+    &__cuerpo { min-width: 0; display: grid; }
+    &__mat {
+        font-size: .9rem; font-weight: 700; color: #0B1F3D;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    &__sec {
+        font-size: .76rem; color: #94a3b8;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+}
+
+@include hasta-sm {
+    .hoy {
+        padding: 16px;
+        /* Una columna: lado a lado, «Ahora» y «Después» quedaban en ~150px y el nombre
+           de la materia se partía en tres líneas. */
+        &__foco { grid-template-columns: 1fr; }
+        /* La hora de fin se va: con 360px de ancho competía con el nombre de la materia,
+           y el inicio más el resaltado de "ahora" bastan para ubicarse. */
+        &__fila  { grid-template-columns: 46px 1fr; gap: 10px; }
+        &__fin-h { display: none; }
+    }
+}
+
+/* ── GRÁFICA DE VISITAS ───────────────────────────────── */
+.vis {
+    margin-bottom: 22px;
+    padding: 18px 22px;
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px -24px rgba(22, 32, 46, .5);
+
+    &__head {
+        display: flex; flex-wrap: wrap; align-items: flex-start;
+        justify-content: space-between; gap: 12px;
+        margin-bottom: 14px;
+    }
+    &__sub {
+        margin: 2px 0 0;
+        font-size: .8rem; color: #94a3b8;
+        a { color: #4267ac; }
+    }
+
+    &__rangos {
+        display: flex; flex-wrap: wrap; gap: 4px;
+        padding: 3px;
+        border-radius: 100px;
+        background: #f1f5f9;
+    }
+    &__rango {
+        padding: 6px 14px;
+        border: 0; border-radius: 100px;
+        background: transparent;
+        color: #64748b; font-size: .8rem; font-weight: 700;
+        cursor: pointer;
+        transition: background .2s ease, color .2s ease;
+
+        &:hover { color: #0B1F3D; }
+        &.is-on { background: #fff; color: #4267ac; box-shadow: 0 2px 6px -2px rgba(22, 32, 46, .3); }
+        &:focus-visible { outline: 2px solid #4267ac; outline-offset: 2px; }
+    }
+
+    &__cifras { display: flex; flex-wrap: wrap; gap: 28px; margin-bottom: 14px; }
+    &__cifra  { display: grid; }
+    &__n      { font-size: 1.6rem; font-weight: 900; color: #0B1F3D; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    &__l      { font-size: .74rem; color: #94a3b8; font-weight: 600; }
+
+    /* Alto fijo: Chart.js con maintainAspectRatio:false necesita que lo ponga el
+       contenedor, o el canvas colapsa a 0 y no se ve nada. */
+    &__chart { position: relative; height: 240px; }
+
+    &__sinchart {
+        margin: 0; padding: 20px;
+        text-align: center; color: #94a3b8; font-size: .85rem;
+        &[hidden] { display: none; }
+    }
+
+    &__top { margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f5f9; }
+    &__top-t {
+        margin: 0 0 8px;
+        font-size: .72rem; font-weight: 800; color: #94a3b8;
+        text-transform: uppercase; letter-spacing: .05em;
+    }
+    &__top-list {
+        list-style: none; margin: 0; padding: 0;
+        display: grid; gap: 4px;
+
+        li {
+            display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+            font-size: .84rem;
+        }
+    }
+    &__top-ruta {
+        min-width: 0;
+        color: #475569;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    &__top-n { flex-shrink: 0; font-weight: 800; color: #0B1F3D; font-variant-numeric: tabular-nums; }
+}
+
+@include hasta-sm {
+    .vis {
+        padding: 16px;
+        &__head   { flex-direction: column; }
+        &__rangos { width: 100%; justify-content: space-between; }
+        &__rango  { flex: 1; text-align: center; padding: 8px 6px; }
+        &__cifras { gap: 20px; }
+        &__n      { font-size: 1.35rem; }
+        &__chart  { height: 200px; }
+    }
+}

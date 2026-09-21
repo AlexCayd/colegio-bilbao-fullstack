@@ -52,20 +52,12 @@ $usos = $usos ?? null;
                 <?php /* Nivel como tabs (radios estilizados), mismo componente visual que el
                          filtro del listado. El orden de los grupos ya no se configura: se
                          deduce del nivel y, dentro de él, del nombre alfabéticamente. */ ?>
-                <?php
-                $nivelColorForm = [
-                    'Maternal'     => '#fc6722',
-                    'Kinder'       => '#f5b400',
-                    'Primaria'     => '#8ac926',
-                    'Secundaria'   => '#46bdc6',
-                    'Bachillerato' => '#4267ac',
-                ];
-                ?>
                 <div class="admin-form__group">
                     <label class="admin-form__label">Nivel académico</label>
                     <div class="cat-tabs cat-tabs--radio">
+                        <?php /* El color de cada nivel vive en Materia::NIVEL_COLOR. */ ?>
                         <?php foreach (\Model\Grupo::NIVELES as $n): ?>
-                        <label class="cat-tab" style="--c:<?= $nivelColorForm[$n] ?? '#94a3b8' ?>;">
+                        <label class="cat-tab" style="--c:<?= s(\Model\Materia::colorNivel($n)) ?>;">
                             <input type="radio" name="nivel" value="<?= s($n) ?>" <?= $grupo->nivel === $n ? 'checked' : '' ?> required>
                             <span><?= s($n) ?></span>
                         </label>

@@ -48,11 +48,9 @@ $TIPOS = [
 ];
 // Niveles en los que imparte. Cada nivel tiene su propia jornada (entra, sale y
 // descansa a su hora), así que declararlos acota su rejilla y ordena a los candidatos
-// a suplencia. El color es el mismo que usa el formulario de grupos.
-$NIVEL_COLOR = [
-    'Maternal' => '#fc6722', 'Kinder' => '#f5b400', 'Primaria' => '#8ac926',
-    'Secundaria' => '#46bdc6', 'Bachillerato' => '#4267ac',
-];
+// a suplencia. El color sale de `Materia::NIVEL_COLOR` — fuente única, la misma que
+// pintan las tabs de Grupos y los chips de Eventos; estuvo copiada a mano aquí.
+$NIVEL_COLOR = \Model\Materia::NIVEL_COLOR;
 $nivelesSel = $nivelesSel ?? [];
 $EXCLUYENTES = \Model\UsuarioBlog::TIPOS_EXCLUYENTES;
 ?>

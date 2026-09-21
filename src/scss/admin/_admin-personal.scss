@@ -3,6 +3,8 @@
    Profesores / Prefectura / Administrativos / Directivos
    comparten views/blog/personal/index.php
 ========================================================= */
+@use '../base/mixins' as *;
+
 body[data-page="blog-personal-index"] {
 
     /* ── Resumen ── */
@@ -15,7 +17,7 @@ body[data-page="blog-personal-index"] {
         box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
 
         &__n { font-size: 1.7rem; font-weight: 900; color: #0b1f3d; line-height: 1; }
-        &__l { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; }
+        &__l { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748B; }
 
         &--ok .per-stat__n { color: #15803d; }
     }
@@ -77,7 +79,7 @@ body[data-page="blog-personal-index"] {
             background: transparent;
             border-style: dashed;
             border-color: #cbd5e1;
-            color: #94a3b8;
+            color: #64748B;
             font-weight: 600;
         }
     }
@@ -88,7 +90,93 @@ body[data-page="blog-personal-index"] {
         img { width: 100%; height: 100%; object-fit: cover; }
     }
     .per-mail { color: var(--text-gray, #4a5568); font-size: .875rem; word-break: break-all; }
-    .per-nil  { font-size: .78rem; color: #94a3b8; }
+    .per-nil  { font-size: .78rem; color: #64748B; }
 
-    .per-empty { padding: 28px 20px; text-align: center; color: #94a3b8; font-size: .88rem; }
+    .per-empty { padding: 28px 20px; text-align: center; color: #64748B; font-size: .88rem; }
+
+    /* ── Móvil: tarjetas en vez de tabla ──
+       `.per-table` pedía `min-width: 780px`, así que en 360px había que arrastrar más de
+       dos pantallas para llegar a la columna de acciones — y es la tabla que más se
+       consulta desde el teléfono. Mismo patrón probado de `_blog-suplencias-historial.scss`
+       y `mis-coberturas`.
+
+       ⚠️ Las DOS líneas de `is-hidden`/`is-filtered` son OBLIGATORIAS. Viven en
+       `estaticas/_blog-admin.scss`, que `app.scss` importa ANTES que `admin/`: misma
+       especificidad, capa posterior. Sin repetirlas aquí, el `tbody tr { display:block }`
+       de abajo las gana por cascada y mata la paginación Y el buscador en silencio.
+
+       ⚠️ `<thead>` se oculta con `clip-path` y no con `display:none`: así se pierde
+       visualmente pero sigue existiendo para los lectores de pantalla. Se pierde el
+       afordance de ordenar y se asume — el servidor ya devuelve por nombre. */
+    /* `hasta-md` y no `hasta-sm`: con `min-width: 780px`, entre 721 y ~812px había
+       arrastre horizontal real. Se alinea además con el listado de Usuarios, que es
+       la otra tabla de personas del panel: dos listados de lo mismo no pueden
+       comportarse distinto en la misma tablet. */
+    @include hasta-md {
+        .per-table-wrap { overflow-x: visible; }
+
+        .per-table {
+            min-width: 0;
+            /* `.admin-table` hereda .88rem; apilado hay sitio de sobra y a ese tamaño
+               el correo se lee mal. Se sube aquí y no en el root, que afectaría también
+               al sitio público. */
+            font-size: .92rem;
+
+            thead {
+                position: absolute;
+                clip-path: inset(50%);
+                width: 1px; height: 1px; overflow: hidden;
+            }
+
+            tbody tr {
+                display: block;
+                margin-bottom: 10px;
+                padding: 12px 14px;
+                border: 1px solid #e8eef6;
+                border-radius: 12px;
+                background: #fff;
+            }
+            tbody tr.is-hidden,
+            tbody tr.is-filtered { display: none; }
+
+            tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 14px;
+                padding: 5px 0;
+                border: 0;
+                text-align: right;
+
+                /* #64748B y no #94a3b8: aquel da 2,56:1 sobre blanco y no pasa AA a
+                   .74rem, y esta etiqueta es lo único que dice qué es cada dato de la
+                   tarjeta. Peso 700 para no competir con el nombre, que va a 800. */
+                &::before {
+                    content: attr(data-label);
+                    flex-shrink: 0;
+                    font-size: .74rem; font-weight: 700; color: #64748B;
+                    text-transform: uppercase; letter-spacing: .04em;
+                    text-align: left;
+                }
+            }
+
+            /* El colaborador es la cabecera de la tarjeta, no una fila más: sin etiqueta,
+               a ancho completo y con el avatar delante. */
+            tbody td:first-child {
+                display: block;
+                padding-bottom: 10px;
+                margin-bottom: 4px;
+                border-bottom: 1px solid #f1f5f9;
+                text-align: left;
+                &::before { content: none; }
+            }
+
+            /* Los chips y las acciones se alinean a la derecha, con su etiqueta a la
+               izquierda: si envuelven, lo hacen sin descolgarse de la fila. */
+            .per-nivel,
+            .admin-badge { margin-left: 2px; }
+            .admin-table__actions { justify-content: flex-end; flex-wrap: wrap; }
+            .per-mail { word-break: break-all; }
+        }
+    }
 }

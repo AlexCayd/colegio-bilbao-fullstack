@@ -58,13 +58,18 @@ $vista = 'profesor';
                     reciben a dos grupos a la vez—, así que no se bloquea: confírmalo tú.
                 </p>
             </div>
-            <?php elseif (!empty($flash['nivelAjeno'])): ?>
+            <?php /* Antes esto decía «no consta entre sus niveles declarados» y mandaba a
+                     añadirlo a mano en otra pantalla. Ahora el propio guardado lo añade:
+                     si le acabas de dar una clase de ese nivel, lo imparte. El aviso se
+                     queda porque el cambio no es obvio —toca un campo que no está en esta
+                     pantalla— y porque acota su rejilla y prioriza sus suplencias. */ ?>
+            <?php elseif (!empty($flash['nivelAnadido'])): ?>
             <div class="hed-alertas hed-alertas--info">
                 <p class="hed-alertas__t"><i class="fa-solid fa-circle-info"></i> Guardado</p>
                 <ul><li>
-                    <strong><?= s($flash['nivelAjeno']) ?></strong> no consta entre sus niveles declarados.
-                    No impide nada, pero acota su rejilla y prioriza sus suplencias:
-                    <a href="/dashboard/usuarios/editar?id=<?= (int)$profesor->id ?>">añádelo a su ficha</a>.
+                    Se añadió <strong><?= s($flash['nivelAnadido']) ?></strong> a sus niveles declarados,
+                    que no lo incluían. Acota su rejilla y prioriza sus suplencias; puedes revisarlo
+                    en <a href="/dashboard/usuarios/detalle?id=<?= (int)$profesor->id ?>">su ficha</a>.
                 </li></ul>
             </div>
             <?php elseif (isset($_GET['ok'])): ?>

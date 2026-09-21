@@ -289,6 +289,56 @@ body[data-page="blog-login"] {
         &:active { transform: translateY(0); }
     }
 
+    /* Va ENTRE el CTA y la salida al sitio público, y sin línea separadora: es una
+       alternativa al login —lo que haces cuando no puedes entrar—, no una salida. */
+    .admin-form__olvide {
+        margin: 14px 0 0;
+        text-align: center;
+        font-size: .82rem;
+
+        a {
+            color: rgba(255, 255, 255, .72);
+            text-decoration: none;
+            font-weight: 600;
+            &:hover { color: #7DC6E5; text-decoration: underline; }
+            &:focus-visible { outline: 2px solid #7DC6E5; outline-offset: 3px; border-radius: 4px; }
+        }
+    }
+
+    /* Acuse de la solicitud enviada. En verde tenue sobre el fondo oscuro: la base de
+       .admin-alerta está pensada para fondo blanco y aquí no se lee. */
+    .admin-login-ok {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin: 4px 0 18px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: rgba(52, 168, 83, .16);
+        border: 1px solid rgba(154, 230, 180, .45);
+        color: #c6f0d4;
+        font-size: .86rem;
+        line-height: 1.55;
+        text-align: left;
+
+        i { flex-shrink: 0; margin-top: 2px; color: #8ee0a8; }
+    }
+
+    /* Aviso de "los correos no coinciden" bajo el segundo campo. Lo escribe
+       admin-recuperar.js; nace `hidden`, así que necesita su `&[hidden]` porque tiene
+       `display` propio. */
+    .admin-form__msg {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 6px 0 0;
+        font-size: .78rem;
+        color: #ffc9c9;
+
+        &[hidden] { display: none; }
+        &.is-ok { color: #8ee0a8; }
+    }
+
     /* Separado del CTA por una línea: es una salida, no una alternativa al login */
     .admin-form__back {
         display: flex;

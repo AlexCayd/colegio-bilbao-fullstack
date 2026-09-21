@@ -23,6 +23,11 @@ class UsuarioBlog extends ActiveRecord {
     public $modulos;         // CSV de módulos para rol 'usuario' (admin = todos)
     public $fecha_nacimiento;// DATE — para el calendario de cumpleaños
     public $avatar;
+    // Baja lógica. 0 = ya no está en el colegio: no entra al panel, no sale como
+    // candidato a suplir ni en los buscadores, pero conserva TODO su histórico.
+    // ⚠️ Fuera de $columnasDB a propósito: solo lo escribe cambiarActivo(), así que un
+    // POST a /dashboard/perfil no puede reactivar una cuenta dada de baja.
+    public $activo = 1;
     public $ultimo_acceso;   // read-only desde BD (DEFAULT CURRENT_TIMESTAMP)
     public $creado_en;       // read-only desde BD
     public $total_articulos  = 0;
@@ -134,11 +139,27 @@ class UsuarioBlog extends ActiveRecord {
      */
     public const MODULOS_TRANSVERSALES = [
         'soporte', 'profesores', 'prefectura', 'administrativos', 'directivos',
+        // El historial de novedades del panel es de todo el que lo usa. Publicar sí pide
+        // admin, pero eso es el guard de la acción y no del módulo.
+        'actualizaciones',
     ];
 
     /** Todo lo que puede aparecer en el panel: asignables + transversales. */
     public static function modulosTodos(): array {
         return array_merge(self::MODULOS_ASIGNABLES, self::MODULOS_TRANSVERSALES);
+    }
+
+    /**
+     * Ids de todas las cuentas de administrador.
+     *
+     * Devuelve ids y no objetos porque su destino es Notificacion::nueva(), que escribe
+     * una fila por usuario — el mismo criterio que direccionesDeNiveles().
+     */
+    public static function administradores(): array {
+        $out = [];
+        $r = self::$db->query("SELECT id FROM " . static::$tabla . " WHERE rol = 'administrador'");
+        if ($r) while ($row = $r->fetch_assoc()) $out[] = (int)$row['id'];
+        return $out;
     }
 
     /**
@@ -401,9 +422,13 @@ class UsuarioBlog extends ActiveRecord {
         if ($q === '') return [];
         $safe   = self::$db->escape_string($q);
         $limite = max(1, min(20, $limite));
+        // `activo = 1`: una cuenta dada de baja no puede ser la ausente de una
+        // suplencia nueva ni la contraparte de nada. Su histórico sigue intacto —esto
+        // filtra el autocompletado, no las consultas que leen lo ya ocurrido—.
         $query = "SELECT id, nombre, email, avatar
                   FROM " . static::$tabla . "
-                  WHERE nombre LIKE '%{$safe}%' OR email LIKE '%{$safe}%'
+                  WHERE activo = 1
+                    AND (nombre LIKE '%{$safe}%' OR email LIKE '%{$safe}%')
                   ORDER BY nombre ASC
                   LIMIT {$limite}";
         $r = self::$db->query($query);
@@ -437,7 +462,8 @@ class UsuarioBlog extends ActiveRecord {
         $excl   = $excluir > 0 ? " AND id <> " . (int)$excluir : '';
         $query = "SELECT id, nombre, email, avatar
                   FROM " . static::$tabla . "
-                  WHERE FIND_IN_SET('profesor', tipo_personal)
+                  WHERE activo = 1
+                    AND FIND_IN_SET('profesor', tipo_personal)
                     AND (nombre LIKE '%{$safe}%' OR email LIKE '%{$safe}%')
                     {$excl}
                   ORDER BY nombre ASC
@@ -588,7 +614,8 @@ class UsuarioBlog extends ActiveRecord {
         $r = self::$db->query("
             SELECT id, nombre, avatar, tipo_personal, niveles, puede_suplir
             FROM usuarios
-            WHERE puede_suplir = 1
+            WHERE activo = 1
+              AND puede_suplir = 1
               AND FIND_IN_SET('profesor', tipo_personal)
             ORDER BY nombre ASC
         ");
@@ -600,18 +627,131 @@ class UsuarioBlog extends ActiveRecord {
     /**
      * Índice ligero id/nombre/email de todo el claustro, para resolver el CSV de horarios.
      * No se filtra por tipo_personal: el archivo puede traer a quien todavía no lo tenga puesto.
+     *
+     * Trae también `tipo_personal`, que la previa del CSV necesita para no proponer como
+     * alta a alguien que ya existe con otro puesto, y `activo`: una cuenta dada de baja
+     * que vuelva a aparecer en el archivo se REACTIVA, no se duplica.
+     *
+     * ⚠️ Sin filtrar por `activo`, y tiene que ser así: si aquí no salieran las bajas,
+     * el importador no las reconocería por nombre y le crearía una cuenta nueva a quien
+     * vuelve — que es exactamente el duplicado que la baja lógica viene a evitar.
      */
     public static function todosParaImportar(): array {
-        return static::consultarSQL("SELECT id, nombre, email FROM usuarios ORDER BY nombre ASC");
+        return static::consultarSQL(
+            "SELECT id, nombre, email, rol, tipo_personal, activo FROM usuarios ORDER BY nombre ASC"
+        );
     }
 
-    /** Usuarios cuyo tipo_personal incluye el tipo indicado (para directorios y suplencias). */
-    public static function porTipo(string $tipo): array {
-        $safe = self::$db->escape_string($tipo);
+    /**
+     * Da de baja (o vuelve a dar de alta) estas cuentas.
+     *
+     * Es lo que hace la importación con los profesores que el archivo deja de nombrar.
+     * NO se borran nunca: la cuenta arrastraría sus suplencias, sus intercambios, sus
+     * artículos y sus notificaciones. Lo que se apaga es el acceso y la disponibilidad;
+     * todo lo que esa persona hizo sigue donde estaba.
+     *
+     * @return int filas realmente cambiadas.
+     */
+    public static function cambiarActivo(array $ids, bool $activo): int {
+        return self::marcarActivo($ids, $activo);
+    }
+
+    /**
+     * Alta de un docente desde la importación de horarios.
+     *
+     * El CSV del colegio trae el nombre con el que se conoce al profesor en la sala de
+     * maestros («Nancy G», «Fer Uribe») y **ningún correo**: el importador lo deriva y
+     * lo pasa aquí ya resuelto. Los módulos salen de `MODULOS_SUGERIDOS['profesor']`,
+     * que es lo mismo que marcaría el formulario, así que un alta por archivo y un alta
+     * a mano dan el mismo usuario.
+     *
+     * ⚠️ No pasa por `validar()` a propósito: aquel exige confirmación de contraseña y
+     * emite alertas para una pantalla que aquí no existe. Las dos puertas de
+     * normalización que sí importan —`tipo_personal` y `niveles`— se aplican igual, vía
+     * `guardarAtributos()`, y el importador ya ha validado nombre y correo.
+     *
+     * @param string[] $niveles Niveles que imparte según el archivo (SET; vacío = NULL).
+     * @return int id del usuario creado, o 0 si el INSERT falló.
+     */
+    public static function altaDocente(string $nombre, string $email, string $passwordPlano, array $niveles = []): int {
+        $u = new self();
+        $u->sincronizar([
+            'nombre'       => trim($nombre),
+            'email'        => trim(mb_strtolower($email, 'UTF-8')),
+            'password'     => password_hash($passwordPlano, PASSWORD_BCRYPT),
+            'rol'          => 'usuario',
+            'puede_suplir' => 1,
+            'modulos'      => implode(',', self::MODULOS_SUGERIDOS['profesor']),
+            'avatar'       => '',
+        ]);
+        $r  = $u->guardar();
+        $id = (int)($r['id'] ?? 0);
+        if ($id <= 0) return 0;
+
+        // El orden de Materia::NIVELES manda: es el vocabulario del SET en la BD.
+        $niveles = array_values(array_intersect(Materia::NIVELES, $niveles));
+        self::guardarAtributos($id, null, 'profesor', $niveles ? implode(',', $niveles) : null);
+        return $id;
+    }
+
+    /**
+     * Fija los niveles que imparte un docente ya existente, sin tocar nada más.
+     * La importación los recalcula desde el archivo, que es la fuente declarativa.
+     */
+    public static function guardarNiveles(int $id, array $niveles): void {
+        $id = (int)$id;
+        if ($id <= 0) return;
+        $niveles = array_values(array_intersect(Materia::NIVELES, $niveles));
+        $sql = $niveles ? "'" . self::$db->escape_string(implode(',', $niveles)) . "'" : 'NULL';
+        self::$db->query("UPDATE " . static::$tabla . " SET niveles = {$sql} WHERE id = {$id} LIMIT 1");
+    }
+
+    /**
+     * Corrige el correo de una cuenta ya existente. **No** pasa por `guardar()`.
+     *
+     * `guardar()` reescribe TODAS las columnas de `$columnasDB` con lo que tenga el
+     * objeto en memoria, así que para tocar una sola columna haría falta cargar el
+     * usuario entero y confiar en que nadie lo haya modificado entretanto. Es el mismo
+     * motivo por el que existen `guardarNiveles()` y `guardarFechaNacimiento()`.
+     *
+     * ⚠️ **El correo es el usuario con el que se entra al panel** (`findByEmail()`), y
+     * `usuarios.email` es `UNIQUE`. La comprobación de que sigue libre se hace **aquí
+     * dentro**, no solo en quien llama: la importación decide en la previa y escribe
+     * minutos después, y en ese hueco un admin puede haber usado ese correo desde
+     * `/dashboard/usuarios/editar`. Devolver `false` en vez de dejar reventar el UPDATE
+     * permite saltarse esa cuenta sin abortar la importación entera.
+     *
+     * @return bool `true` si se escribió; `false` si el correo no vale o ya es de otro.
+     */
+    public static function guardarEmail(int $id, string $email): bool {
+        $id    = (int)$id;
+        $email = trim(mb_strtolower($email, 'UTF-8'));
+        if ($id <= 0 || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
+
+        $safe = self::$db->escape_string($email);
+        $ya = self::$db->query(
+            "SELECT id FROM " . static::$tabla . " WHERE email = '{$safe}' AND id != {$id} LIMIT 1"
+        );
+        if ($ya && $ya->num_rows > 0) return false;
+
+        self::$db->query("UPDATE " . static::$tabla . " SET email = '{$safe}' WHERE id = {$id} LIMIT 1");
+        return true;
+    }
+
+    /**
+     * Usuarios cuyo tipo_personal incluye el tipo indicado (para directorios y suplencias).
+     *
+     * Por defecto incluye las bajas, que es lo que quieren los directorios: son la guía
+     * de personal y ahí una cuenta apagada se pinta con su chip «Baja» —es justo donde
+     * se ve y se revierte—. Quien monta un selector de «elige a alguien» pasa `false`.
+     */
+    public static function porTipo(string $tipo, bool $incluirInactivos = true): array {
+        $safe   = self::$db->escape_string($tipo);
+        $filtro = $incluirInactivos ? '' : ' AND u.activo = 1';
         $query = "SELECT u.*, COUNT(a.id) AS total_articulos
                   FROM usuarios u
                   LEFT JOIN articulos a ON a.autor_id = u.id
-                  WHERE FIND_IN_SET('{$safe}', u.tipo_personal)
+                  WHERE FIND_IN_SET('{$safe}', u.tipo_personal){$filtro}
                   GROUP BY u.id
                   ORDER BY u.nombre ASC";
         return static::consultarSQL($query);

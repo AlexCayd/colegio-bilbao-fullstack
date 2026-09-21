@@ -167,7 +167,13 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
                     <table class="supl-table" id="suplTable" data-table data-table-per="12" data-table-noun="suplencias">
                         <thead>
                             <tr>
-                                <th data-sort="date">Fecha</th>
+                                <?php /* El SQL ya devuelve `fecha DESC, id DESC` (lo más reciente
+                                         primero), pero admin-table.js no aplica orden inicial ni
+                                         marcaba ninguna columna, así que la tabla PARECÍA sin
+                                         ordenar. El aria-sort lo declara para lectores de pantalla
+                                         y le da al JS el estado de partida, para que el primer clic
+                                         invierta en vez de reordenar a lo mismo. */ ?>
+                                <th data-sort="date" aria-sort="descending" class="is-desc">Fecha</th>
                                 <th data-sort="text">Profesor ausente</th>
                                 <th data-sort="text">Origen</th>
                                 <th data-sort="num">Cobertura</th>
@@ -237,6 +243,7 @@ $pendientes = (int)($conteos['solicitada'] ?? 0) + (int)($conteos['agendada'] ??
                                     <div class="supl-actions">
                                         <a href="/dashboard/suplencias/agendar?id=<?= (int)$s->id ?>" class="admin-act admin-act--edit" title="Ver / agendar"><i class="fa-solid fa-user-gear"></i></a>
                                         <?php if ($puedeAgendar): ?>
+                                        <a href="/dashboard/suplencias/editar?id=<?= (int)$s->id ?>" class="admin-act admin-act--horario" title="Editar o cancelar"><i class="fa-solid fa-pen"></i></a>
                                         <button type="button" class="admin-act admin-act--del" title="Eliminar"
                                                 onclick="suplEliminar(<?= (int)$s->id ?>, '<?= htmlspecialchars(addslashes($s->ausente_nombre ?: 'esta suplencia')) ?>')">
                                             <i class="fa-solid fa-trash"></i>

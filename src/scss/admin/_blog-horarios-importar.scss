@@ -1,0 +1,1509 @@
+@use '../base/mixins' as *;
+
+/* =========================================================
+   IMPORTAR HORARIOS (CSV) — `views/blog/horarios/importar.php`
+
+   Dos pantallas en un archivo: subir y previa. La previa es un ASISTENTE, por lo mismo
+   que el alta de swap (`_blog-swaps.scss`): volcaba de golpe el impacto, las cifras, la
+   tabla de catálogo, doce listas de nombres y las 878 filas del archivo sin paginar, así
+   que lo irreversible se leía al mismo peso que lo anecdótico.
+
+   ⚠️ NADA SE BORRA, y el color lo dice: el verbo de esta pantalla es INHABILITAR
+   (`activo = 0`), que es reversible. Por eso lo que se apaga va en ÁMBAR y no en rojo —
+   el rojo aquí queda solo para los errores del archivo y para el botón que reescribe el
+   horario—, y el glifo es `fa-power-off`, no una papelera. Pintarlo como destrucción
+   mentiría hacia el otro lado, que es lo que hacía la versión anterior.
+
+   ── LEYENDA DE COLOR. Es un sistema, no una colección de tintes ──────────────────
+   Hay CUATRO verbos y forman UN SOLO EJE: lo que el archivo hace con un registro de
+   catálogo. Se pintan siempre los cuatro, siempre en este orden, y en las cinco
+   superficies que los repiten (tarjetas de veredicto, lista de impacto, píldoras de la
+   tabla, encabezados de lista y recap final). Un eje ordenado y siempre completo se
+   aprende de una vez; cuatro colores sueltos, no.
+
+     turquesa #0e6b76 / tinte #dcf2f5 → RECONOCE   `--match` `--ok` `--dicc`
+     verde    #15803d / tinte #e8f7ee → CREA       `--new`   `--mas`
+     ámbar    #8a5000 / tinte #fdeccb → INHABILITA `--warn`  `--off`
+     azul     #1e5aa8 / tinte #ddebfb → REACTIVA   `--reac`
+
+   Fuera del eje, y por eso NO se aplican nunca a un registro de catálogo:
+     morado   → riesgo de duplicado de PERSONA (`.hoi-dup`) y «materia dividida»
+     rojo     → fila con error y el botón que reescribe el horario
+     azul #4267ac → cromo del asistente (barra, pasos) y `.hoi-nota` informativa
+
+   ⚠️ Tres reglas que hay que respetar al añadir algo:
+   1. **La cifra dominante va en TINTA**, no en verde. El verde significa «se crea»; si
+      la tarjeta hero lo usa, deja de significarlo. La jerarquía la da el tamaño.
+   2. **Lo que no es un verbo no toma un color del eje.** «sin diccionario» es calidad
+      del dato (el correo es inventado), no una baja: va como chip de ausencia, con
+      contorno discontinuo. Iba en ámbar y se leía como que a esa persona se le daba
+      de baja, dentro del bloque que la está CREANDO.
+   3. **El tinte de una tarjeta no puede bajar de ~95% de luminancia.** `.admin-main`
+      pinta el panel sobre **#f0f4f8**, que ya está al 90%: un tinte «de verdad» aterriza
+      justo en ese valor y la tarjeta deja de leerse como tarjeta — se hunde en la
+      página. Por eso los cuatro tintes del eje (#f6fcfd · #f6fcf8 · #fffaf1 · #f5faff)
+      son casi blancos y quien carga con la distinción es el **tono**, ayudado por el
+      borde y por la tinta de la cifra. En este panel la superficie con más presencia no
+      es la teñida: es el **blanco** (1,11 contra el fondo, más que cualquier tinte).
+
+   Salió de `_admin-horarios.scss`, que llevaba cuatro pantallas en un solo archivo.
+========================================================= */
+body[data-page="blog-horarios-importar"] {
+
+    /* Chip «solo admin» junto al título del topbar */
+    .hoi-super {
+        display: inline-flex; align-items: center; gap: 5px;
+        margin-left: 10px; padding: 3px 10px;
+        border-radius: 999px;
+        background: #fff1f1; border: 1px solid #ffd0d0; color: #c8102e;
+        font-size: .66rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+        vertical-align: middle;
+    }
+
+    /* El margen lo llevaba un `style=` inline dentro de la vista. En `src/` no hay nada inline. */
+    .admin-alerta { margin-bottom: 16px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       PASO 1 · Subir el archivo
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Aviso de que la carga sustituye, no añade. SOLO en el paso 1: en la previa lo
+       releva el paso «Qué pasará», que dice lo mismo con las cifras reales. Dos bloques
+       de alarma seguidos se anulan entre ellos y el que acaba sin leerse es justo el que
+       trae los datos. */
+    .hoi-aviso {
+        display: flex; align-items: center; gap: 18px;
+        margin-bottom: 20px;
+        padding: 16px 22px 18px 14px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #fff8ec, #fff4f2);
+        border: 1.5px solid #ffd9a1;
+
+        &__alex { width: 78px; height: auto; flex-shrink: 0; }
+        &__body { flex: 1; min-width: 0; }
+        &__t {
+            margin: 0 0 8px;
+            font-size: 1rem; font-weight: 900; color: #7a4a05; line-height: 1.3;
+        }
+        /* Tres hechos, no siete líneas de prosa corrida que nadie termina. */
+        &__list {
+            list-style: none; margin: 0; padding: 0;
+            display: flex; flex-direction: column; gap: 6px;
+            font-size: .84rem; line-height: 1.5; color: #8a5a12;
+
+            li { position: relative; padding-left: 18px; }
+            li::before {
+                content: '\f054';
+                font-family: 'Font Awesome 6 Free'; font-weight: 900;
+                position: absolute; left: 0; top: 2px;
+                font-size: .6rem; color: #d49216;
+            }
+            strong { color: #7a4a05; }
+            em { font-style: italic; }
+        }
+
+        @include hasta-sm {
+            gap: 14px; padding: 14px 16px 16px;
+            align-items: flex-start;
+            &__alex { width: 54px; }
+            &__t { font-size: .94rem; }
+        }
+    }
+
+    .hoi-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;
+        @media (max-width: 1000px) { grid-template-columns: 1fr; }
+    }
+
+    .hoi-help { font-size: .86rem; color: var(--text-gray, #4a5568); margin-bottom: 12px; line-height: 1.55; }
+    .hoi-code {
+        background: #0b1f3d; color: #d7e6fb; border-radius: 12px;
+        padding: 14px 16px; font-size: .76rem; line-height: 1.7;
+        font-family: 'Cascadia Code', 'Consolas', monospace;
+        overflow-x: auto; white-space: pre; margin-bottom: 14px;
+    }
+    .hoi-rules {
+        list-style: none; display: flex; flex-direction: column; gap: 7px; margin: 0 0 14px;
+        font-size: .84rem; color: var(--text-gray, #4a5568); line-height: 1.5;
+
+        li::before { content: '·'; color: #4267ac; font-weight: 900; margin-right: 8px; }
+        code { background: #eef3fb; color: #22417e; border-radius: 5px; padding: 1px 6px; font-size: .78rem; }
+    }
+
+    /* Referencia plegada: no hace falta para elegir un archivo, y desplegada dejaba el
+       panel del formato al doble de alto que el de subida. */
+    .hoi-detalle {
+        border-top: 1px solid #f1f5f9; padding-top: 12px;
+
+        > summary {
+            cursor: pointer; list-style: none;
+            display: flex; align-items: center; gap: 8px;
+            min-height: 34px;
+            font-size: .82rem; font-weight: 700; color: #4267ac;
+
+            &::-webkit-details-marker { display: none; }
+            &::before {
+                content: '\f054';
+                font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: .64rem;
+                transition: transform .18s ease;
+            }
+            &:hover { color: #2e4b8a; }
+            &:focus-visible { outline: 2px solid #4267ac; outline-offset: 3px; border-radius: 6px; }
+        }
+        &[open] > summary::before { transform: rotate(90deg); }
+        &[open] > summary { margin-bottom: 10px; }
+        .hoi-help:last-child { margin-bottom: 0; }
+
+        /* Salvedad del verbo, no otro verbo: en caja baja y en gris para que no compita
+           con las versalitas del `<summary>`. Mismo tratamiento que `.hoi-bloc__meta`,
+           que hace exactamente el mismo papel un nivel más arriba. */
+        &__meta {
+            font-size: .72rem; font-weight: 600;
+            letter-spacing: 0; text-transform: none; color: #64748b;
+        }
+    }
+
+    .hoi-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+    /* Rótulo de cada zona de subida. Con DOS en el mismo formulario —horario y
+       diccionario— la caja punteada ya no se explica sola: las dos se ven iguales y solo
+       el texto de dentro las distingue, que es justo lo que cambia al elegir archivo. */
+    .hoi-campo__t {
+        display: flex; align-items: baseline; gap: 8px;
+        margin-bottom: 7px;
+        font-size: .78rem; font-weight: 800; color: #0b1f3d;
+        > i { color: #94a3b8; font-size: .72rem; }
+        em {
+            font-style: normal; font-weight: 600; font-size: .7rem;
+            color: #64748b; text-transform: uppercase; letter-spacing: .03em;
+        }
+    }
+    /* ⚠️ 20px y no 14: `.admin-form__group` ya trae `margin-bottom: 14px` y los márgenes
+       de dos hermanos en flujo normal COLAPSAN al mayor de los dos, así que un
+       `margin-top: 14px` —que es lo que había— no separaba absolutamente nada. Y hace
+       falta separarlas: son dos cajas de trazo discontinuo idénticas, y a 14px se leen
+       como una sola zona partida en vez de como dos campos independientes (uno de ellos
+       opcional). */
+    .admin-form__group + .admin-form__group { margin-top: 20px; }
+
+    /* ── El diccionario del claustro, en el paso 1 ─────────────
+       Con qué se va a cotejar el archivo. Va en TURQUESA, que es el color que esta
+       pantalla reserva para «reconocido» (el mismo de `--match`, `--ok` y los chips de
+       diccionario del paso 2): el verde ya significa «se crea» y el ámbar «se apaga».
+       Cuando falta se vuelve ámbar — es un aviso, no un error: se puede importar igual,
+       solo que cada nombre que no coincida abrirá una cuenta nueva. */
+    .hoi-dicc {
+        display: flex; align-items: flex-start; gap: 13px;
+        margin-bottom: 16px; padding: 14px 16px;
+        border: 1px solid #bfe6ea; border-radius: 14px;
+        background: linear-gradient(180deg, #f2fbfc, #ffffff);
+
+        &__ico {
+            flex-shrink: 0;
+            width: 36px; height: 36px; border-radius: 11px;
+            display: grid; place-items: center;
+            background: #dcf2f5; color: #0e6b76; font-size: .95rem;
+        }
+        &__body { min-width: 0; flex: 1; }
+        &__t { margin: 0; font-size: .9rem; font-weight: 800; color: #0a5560; line-height: 1.35; }
+        &__d {
+            margin: 4px 0 0; font-size: .82rem; line-height: 1.5; color: #35606a;
+            code { background: #dcf2f5; color: #0a5560; border-radius: 5px; padding: 1px 6px; font-size: .76rem; }
+            + .hoi-dicc__d { margin-top: 6px; }
+        }
+
+        &--falta {
+            border-color: #ffdfae;
+            background: linear-gradient(180deg, #fffaf1, #ffffff);
+            .hoi-dicc__ico { background: #fdeccb; color: #a15c00; }
+            .hoi-dicc__t   { color: #7a4a05; }
+            .hoi-dicc__d   { color: #79613c; code { background: #fdeccb; color: #7a4a05; } }
+        }
+
+        @include hasta-sm {
+            padding: 12px 13px; gap: 11px;
+            &__ico { width: 30px; height: 30px; border-radius: 9px; font-size: .82rem; }
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PASO 2 · El veredicto, fuera del asistente
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Van SOBRE la barra de progreso y no dentro de un paso: son las cifras con las que
+       se decide y tienen que verse en los cinco. La dominante es la que va escrita en el
+       botón; «filas leídas» es su denominador, no otra tarjeta. */
+    .hoi-summary {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr 1fr;
+        gap: 14px; margin-bottom: 18px;
+
+        /* ⚠️ A 3 columnas, NO a 2. Las tres tarjetas pequeñas son los tres verbos
+           —reconoce · crea · inhabilita— y solo significan algo leídas juntas: «17 se
+           crean» se lee igual en un archivo que encaja y en uno que va a duplicar medio
+           claustro. A dos columnas quedaban 2 + 1 huérfana en la fila de abajo, que es
+           exactamente la lectura que hay que impedir. El hero se sale a fila propia. */
+        @include hasta-xl { grid-template-columns: repeat(3, 1fr); }
+        @include hasta-xs { grid-template-columns: 1fr; }
+    }
+    .hoi-stat {
+        background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+        padding: 16px 18px; display: flex; flex-direction: column; gap: 3px;
+
+        &__n   { font-size: 1.6rem; font-weight: 900; color: #0b1f3d; line-height: 1; font-variant-numeric: tabular-nums; }
+        &__l   { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; }
+        &__sub { font-size: .74rem; color: #64748b; line-height: 1.35; margin-top: 2px; }
+
+        /* Los errores ya no tienen tarjeta —eran cinco peleándose una fila— y viven en el
+           denominador del hero, que es donde significan algo. Lo que NO podían perder es
+           la señal: en el gris del subtítulo se leían al mismo peso que «filas leídas», y
+           son la única cifra de esta barra que pide volver a tocar el archivo.
+           6,58:1 sobre blanco. */
+        &__alert {
+            color: #b42318; font-weight: 700;
+            > i { margin-right: 5px; font-size: .68rem; }
+        }
+
+        &--hero {
+            padding: 18px 22px;
+            /* ⚠️ BLANCO, y la superficie propia la da el filete azul. Estuvo teñido con
+               `linear-gradient(135deg,#eef4fc,#fbfdff)` para que no quedara «como el
+               hueco de la fila», y el efecto fue el contrario: #eef4fc está al **89,9%**
+               de luminancia y `.admin-main` al **90,0%** — la misma. La tarjeta
+               dominante de la pantalla desaparecía dentro del fondo mientras las tres
+               pequeñas (≈96%) se levantaban sobre él, o sea la jerarquía justo del revés.
+               Aquí el blanco NO es el hueco: es la superficie más alta que hay (1,11
+               contra el fondo) y la que usan `.hoi-panel` y `.admin-panel`.
+               El filete va en el azul del cromo del asistente (#4267ac, el mismo de la
+               barra y del paso actual) y no en un color del eje: dice «esto no es un
+               cuarto verbo, es la acción de la que los otros tres son consecuencia».
+               `box-shadow: inset` y no `border-left`, para no descuadrar el relleno. */
+            background: #fff;
+            border-color: #dbe5f2;
+            box-shadow: inset 4px 0 0 #4267ac;
+
+            /* ⚠️ La cifra dominante va en TINTA. Estuvo en verde, que en esta pantalla
+               significa «se crea» y lo lleva la tarjeta de al lado: teñir también la
+               dominante le quitaba su único significado. La jerarquía la da el tamaño
+               (2.6rem contra 1.6rem) y el contraste de la tinta (16:1), que no gastan
+               ningún color del eje. */
+            .hoi-stat__n { font-size: 2.6rem; }
+            .hoi-stat__l { font-size: .78rem; color: #40556f; }
+
+            /* Fila entera: es la cifra de cabecera, no una tarjeta igual a las otras tres. */
+            @include hasta-xl { grid-column: 1 / -1; }
+            @include hasta-sm { padding: 15px 16px; .hoi-stat__n { font-size: 2.15rem; } }
+        }
+
+        /* Entre 521 y 720 las tres columnas dejan ~150px por tarjeta: con el relleno de
+           18px, «SE INHABILITAN» (la etiqueta más larga) se partía en dos líneas y las
+           tres tarjetas dejaban de leerse como una fila. Se recupera del relleno, que a
+           ese ancho no está comprando nada.
+           ⚠️ Vía `:not(--hero)` y no a secas: `.hoi-stat` y `.hoi-stat--hero` tienen la
+           MISMA especificidad, así que una regla general escrita después le pisaría al
+           hero su propio relleno. */
+        @include hasta-sm {
+            &:not(.hoi-stat--hero) {
+                padding: 13px 12px;
+                .hoi-stat__n { font-size: 1.45rem; }
+                .hoi-stat__l { letter-spacing: .02em; }
+            }
+        }
+
+        /* Las variantes solo se aplican cuando la cifra NO es cero (lo decide la vista):
+           un «0 se inhabilitan» en ámbar grita por no decir nada.
+           Un color por verbo, y ninguno repetido — ver la leyenda de la cabecera.
+
+           ⚠️ Tiñen la SUPERFICIE, no solo el número, y con los mismos tintes exactos que
+           `.hoi-recap__i--*` del último paso. Son los mismos cuatro verbos en las dos
+           pantallas, y tenerlos con dos tratamientos distintos obligaba a reaprender el
+           código de color a mitad del recorrido. Tinte suave + tinta oscura, nunca fondo
+           sólido: el blanco sobre el ámbar #f5b400 no llega a AA. */
+        &--match { background: #f6fcfd; border-color: #bfe6ea;
+                   .hoi-stat__n { color: #0e6b76; }              /* turquesa: reconoce */
+                   .hoi-stat__l { color: #3b7078; } }
+        &--new   { background: #f6fcf8; border-color: #d6ecdd;
+                   .hoi-stat__n { color: #15803d; }              /* verde: crea */
+                   .hoi-stat__l { color: #47705a; } }
+        &--warn  { background: #fffaf1; border-color: #ffdfae;
+                   .hoi-stat__n { color: #b45309; }              /* ámbar: inhabilita */
+                   .hoi-stat__l { color: #7a6242; } }
+
+        /* En una sola columna cada verbo pasa a FILA: número a la izquierda, etiqueta y
+           denominador a la derecha. Apiladas en vertical, las cuatro tarjetas medían ~340px
+           y empujaban el paso activo —lo que se ha venido a leer— fuera de la pantalla. */
+        @include hasta-xs {
+            &:not(.hoi-stat--hero) {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                align-items: baseline;
+                column-gap: 13px; row-gap: 1px;
+                padding: 13px 15px;
+
+                /* Columna explícita en los tres: con `grid-column` auto en el número, la
+                   colocación depende del orden de las dos pasadas del algoritmo (fila
+                   definida primero, columna definida después) y eso es lotería. */
+                .hoi-stat__n   { grid-column: 1; grid-row: 1 / span 2; font-size: 1.45rem; }
+                .hoi-stat__l   { grid-column: 2; grid-row: 1; }
+                .hoi-stat__sub { grid-column: 2; grid-row: 2; margin-top: 0; }
+            }
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PASO 2 · El asistente
+       ═══════════════════════════════════════════════════════════ */
+
+    .hoi-wiz {
+        display: grid;
+        /* `minmax(0, 1fr)` obligatorio: con un `1fr` a secas la columna no puede
+           encogerse por debajo del ancho de su contenido y la tabla de 9 columnas
+           (`min-width: 680px`) desbordaría la rejilla en portátiles. */
+        grid-template-columns: 264px minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* ── Acompañamiento ───────────────────────────────────────── */
+    .hoi-wiz__aside {
+        position: sticky;
+        top: 88px;                          /* 68px de topbar sticky + aire */
+        display: flex; flex-direction: column; gap: 16px;
+        min-width: 0;
+    }
+
+    /* Alex no decora: dice en cada paso lo que el título no puede sin alargarse. */
+    .hoi-wiz__alex {
+        background: #fff;
+        border: 1px solid #e6edf5;
+        border-radius: 18px;
+        padding: 16px 18px 18px;
+        box-shadow: 0 1px 3px rgba(11, 31, 61, .05);
+        text-align: center;
+
+        &-img {
+            /* Alto fijo: las posturas no miden lo mismo y sin esto la tarjeta daba un
+               salto al cambiar de paso. */
+            height: 116px;
+            display: grid; place-items: center;
+            margin-bottom: 10px;
+
+            img {
+                max-height: 116px; width: auto;
+                /* ⚠️ `img` es `display:block` por el reset global, así que necesita su
+                   propio `&[hidden]`: `[hidden]{display:none}` vive en
+                   `base/_normalize.scss`, capa anterior y misma especificidad. Sin esta
+                   línea se verían las cinco posturas apiladas a la vez. */
+                &[hidden] { display: none; }
+            }
+        }
+    }
+    .hoi-wiz__dice {
+        margin: 0;
+        font-size: .82rem; line-height: 1.5; color: #5b708c;
+        text-align: left;
+        /* Burbuja de diálogo: el pico la ata a Alex, si no se lee como un pie de foto. */
+        position: relative;
+        padding: 11px 13px;
+        background: #f5f9ff;
+        border: 1px solid #dbe7f5;
+        border-radius: 13px;
+
+        &::before {
+            content: '';
+            position: absolute; top: -7px; left: 26px;
+            width: 12px; height: 12px;
+            background: #f5f9ff;
+            border-left: 1px solid #dbe7f5;
+            border-top: 1px solid #dbe7f5;
+            transform: rotate(45deg);
+        }
+    }
+
+    /* Índice del recorrido. ⚠️ Navegable en los DOS sentidos, a diferencia del de swaps:
+       allí cada paso recoge un dato que el siguiente necesita y saltar adelante se
+       saltaría un requisito; aquí todos son de lectura y el único freno es la casilla
+       del último. Por eso son <button> y no <li> decorativos. */
+    .hoi-wiz__pasos {
+        list-style: none;
+        margin: 0; padding: 0;
+        background: #fff;
+        border: 1px solid #e6edf5;
+        border-radius: 18px;
+        overflow: hidden;
+
+        > li + li { border-top: 1px solid #f1f5f9; }
+    }
+    .hoi-wiz__paso {
+        width: 100%;
+        /* ⚠️ `center`, no `flex-start`. El círculo mide 24px fijos y la columna de texto
+           ~31,5px (dos líneas: .8rem con el `line-height` heredado del `<button>` + .71rem
+           × 1.3). Alineado al inicio, el círculo no quedaba centrado ni con la primera
+           línea ni con el bloque: su mitad inferior caía en el hueco entre las dos.
+           `-val` lleva `nowrap`, así que el ítem SIEMPRE mide dos líneas exactas y el
+           centrado es estable — no hay caso en que el texto crezca y el círculo se vaya
+           al medio de un párrafo. */
+        display: flex; align-items: center; gap: 11px;
+        padding: 11px 15px;
+        border: none; background: none; text-align: left;
+        font-family: inherit; color: #94a3b8; cursor: pointer;
+        transition: background .15s ease;
+
+        &:hover { background: #f8fafc; }
+        &:focus-visible { outline: 2px solid #4267ac; outline-offset: -2px; }
+
+        &-n {
+            flex-shrink: 0;
+            width: 24px; height: 24px; border-radius: 50%;
+            display: grid; place-items: center;
+            background: #eef2f7; color: #94a3b8;
+            font-size: .72rem; font-weight: 800;
+            transition: background .15s ease, color .15s ease;
+        }
+        &-txt   { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        &-corto { font-size: .8rem; font-weight: 700; }
+        /* De qué va el paso, recortado a una línea: el índice es un mapa, no un resumen. */
+        &-val {
+            font-size: .71rem; line-height: 1.3; color: #94a3b8;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        &.is-actual {
+            background: #f5f9ff;
+            color: #0B1F3D;
+            .hoi-wiz__paso-n { background: linear-gradient(135deg, #4267ac, #2e4b8a); color: #fff; }
+        }
+        /* «Visto», NO «hecho»: aquí no se resuelve nada, se revisa. Un check verde
+           prometería que el paso está completado, y lo único que dice es que se abrió. */
+        &.is-visto {
+            color: #475569;
+            .hoi-wiz__paso-n {
+                background: #dbeafe; color: #1e40af;
+                font-size: 0;
+                &::after {
+                    content: '\f06e';
+                    font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: .6rem;
+                    /* ⚠️ Sin esto el glifo se descentra dentro del círculo: `place-items`
+                       centra la CAJA del pseudoelemento, y la caja de línea de Font
+                       Awesome trae su propio alto con el hueco del descendente debajo,
+                       así que el ojo quedaba un par de píxeles alto. */
+                    line-height: 1; display: block;
+                }
+            }
+        }
+    }
+
+    /* ── Columna del paso activo ──────────────────────────────── */
+    .hoi-wiz__main { min-width: 0; }
+
+    .hoi-wiz__bar {
+        margin-bottom: 14px;
+
+        &-txt {
+            display: flex; justify-content: space-between; align-items: baseline;
+            gap: 12px; margin-bottom: 6px;
+            font-size: .76rem; color: #64748b;
+            strong { color: #0B1F3D; font-weight: 800; }
+        }
+        &-riel { height: 5px; border-radius: 999px; background: #e8eef6; overflow: hidden; }
+        &-fill {
+            display: block; height: 100%;
+            background: linear-gradient(90deg, #4267ac, #2e4b8a);
+            border-radius: 999px;
+            transition: width .3s ease;
+        }
+    }
+
+    /* El paso. ⚠️ Tiene `display` propio ⇒ SU PROPIO `&[hidden]`, o el `flex` gana a
+       `[hidden]{display:none}` de `base/_normalize.scss` (misma especificidad, capa
+       anterior) y se verían los cinco a la vez. */
+    .hoi-panel {
+        display: flex; flex-direction: column;
+        background: #fff;
+        border: 1px solid #e6edf5;
+        border-radius: 18px;
+        box-shadow: 0 1px 3px rgba(11, 31, 61, .05);
+        overflow: clip;
+
+        &[hidden] { display: none; }
+
+        /* El panel es enfocable (`tabindex="-1"`) porque el módulo le manda el foco al
+           cambiar de paso. Con ratón no debe verse nada —`:focus-visible` no casa tras un
+           clic—; con teclado sí, y es la confirmación de que el salto ocurrió. */
+        &:focus { outline: none; }
+        &:focus-visible { outline: 2px solid #4267ac; outline-offset: 2px; }
+
+        &__head {
+            padding: 18px 24px 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        &__title {
+            margin: 0 0 3px;
+            font-size: 1.05rem; font-weight: 800; color: #0B1F3D; line-height: 1.3;
+        }
+        &__sub  { margin: 0; font-size: .82rem; color: #64748B; line-height: 1.45; }
+        &__body { padding: 18px 24px 22px; }
+        /* La tabla trae su propio scroll lateral y su paginador: sin el padding lateral
+           el scroll arranca pegado al borde del panel, que es donde se espera. */
+        &__body--tabla { padding: 18px 0 8px; > * { margin-left: 24px; margin-right: 24px; } }
+    }
+
+    /* ── Las consecuencias ────────────────────────────────────── */
+    .hoi-impacto {
+        list-style: none; margin: 0 0 24px; padding: 0;
+        display: flex; flex-direction: column; gap: 10px;
+
+        &__i {
+            display: flex; align-items: flex-start; gap: 13px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid #eef2f7; background: #fafcff;
+        }
+        &__ico {
+            flex-shrink: 0; width: 34px; height: 34px;
+            border-radius: 11px; display: grid; place-items: center;
+            background: #e8eef6; color: #64748b; font-size: .84rem;
+        }
+        /* ⚠️ `__t` y `__d` son <p>, NO flex: llevan `<strong>` dentro y en un contenedor
+           flex cada trozo de texto suelto se convierte en un ítem anónimo — la frase se
+           rompería en cachos. */
+        &__t {
+            margin: 0; font-size: .92rem; font-weight: 800; line-height: 1.35; color: #0b1f3d;
+        }
+        &__d {
+            margin: 4px 0 0; font-size: .82rem; line-height: 1.5; color: #5b708c;
+            strong { color: #334155; }
+            code { background: #eef3fb; color: #22417e; border-radius: 5px; padding: 1px 6px; font-size: .76rem; }
+        }
+
+        /* Un color por verbo, y la gravedad tiene que verse sin leer. */
+        &__i--alta { border-color: #d6ecdd; background: #f6fcf8;
+            .hoi-impacto__ico { background: #e8f7ee; color: #15803d; } }
+        /* ⚠️ ÁMBAR, no rojo: inhabilitar es reversible —el propio archivo lo deshace— y
+           pintarlo como destrucción sería mentir. El rojo de esta pantalla es solo para
+           los errores del archivo y para el botón que reescribe el horario. */
+        &__i--baja { border-color: #ffdfae; background: #fffaf1;
+            .hoi-impacto__ico { background: #fdeccb; color: #a15c00; }
+            .hoi-impacto__t   { color: #7a4a05; } }
+        &__i--reac { border-color: #cfe4fb; background: #f5faff;
+            .hoi-impacto__ico { background: #ddebfb; color: #1e5aa8; } }
+        /* Lo que el archivo RECONOCE: el turquesa de `.hoi-dicc`, que es el único color
+           de esta pantalla que significa «no cambia nada, solo se ha identificado». */
+        &__i--match { border-color: #bfe6ea; background: #f6fcfd;
+            .hoi-impacto__ico { background: #dcf2f5; color: #0e6b76; }
+            .hoi-impacto__t   { color: #0a5560; } }
+        &__i--nada { .hoi-impacto__t { color: #475569; font-weight: 700; } }
+
+        /* La consecuencia que no se deduce de ninguna cifra: un NIVEL ENTERO fuera. Es la
+           frase más grave de la pantalla, así que no puede ir de gris junto al resto.
+           ⚠️ `display: block`, no flex, por lo mismo que `__t`/`__d`. */
+        &__alerta {
+            display: block; margin: 8px 0 0;
+            padding: 8px 12px; border-radius: 10px;
+            background: #fbe7e7; border-left: 3px solid #b42318;
+            font-size: .82rem; line-height: 1.45; color: #7a2020;
+
+            > i { color: #b42318; margin-right: 7px; }
+            strong { color: #911c12; }
+        }
+    }
+
+    /* Encabezado de sección dentro de un paso */
+    .hoi-sub {
+        margin: 0 0 10px;
+        font-size: .74rem; font-weight: 800;
+        letter-spacing: .05em; text-transform: uppercase; color: #64748b;
+    }
+
+    /* ── Tabla-resumen del catálogo ───────────────────────────── */
+    .hoi-cat {
+        width: 100%;
+        font-size: .86rem;
+        /* ⚠️ `.admin-table` trae `min-width: 680px` (fuerza scroll-x antes que comprimir
+           columnas). Seis columnas de dos palabras no lo necesitan, y con él la última
+           quedaba fuera del panel en cuanto se estrechaba. El `.admin-table-scroll` de la
+           vista sigue ahí como red: `.admin-panel` es `overflow: clip`, así que una tabla
+           sin envoltorio no scrollea — se RECORTA. */
+        min-width: 0;
+
+        th, td { padding: 9px 12px; }
+        thead th {
+            font-size: .68rem; font-weight: 800;
+            letter-spacing: .04em; text-transform: uppercase; color: #64748b;
+            /* `.admin-table th` es `nowrap` para no partir el indicador de orden; aquí no
+               hay ordenamiento y sí seis encabezados de dos palabras. */
+            white-space: normal;
+        }
+        &__t {
+            font-weight: 700; color: #0b1f3d; white-space: nowrap;
+            > i { color: #94a3b8; margin-right: 7px; width: 15px; text-align: center; }
+        }
+        &__n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+        /* ⚠️ La sexta columna («Ya existen») añadió ~95px de ancho mínimo, y esta tabla NO
+           se apila en tarjetas: la lectura entera es comparar «En el archivo» con «Ya
+           existen» en la misma fila, y apilando desaparece justo esa comparación. Se
+           queda con scroll-x —que es cero regresión— pero se le quita todo el aire
+           prescindible para que en un móvil normal quepa sin arrastrar. */
+        @include hasta-sm {
+            font-size: .8rem;
+            th, td { padding: 8px 7px; }
+            thead th { font-size: .64rem; letter-spacing: .02em; }
+            .hoi-delta { min-width: 28px; padding: 2px 6px; }
+        }
+    }
+
+    /* El signo va DENTRO del número, no en la cabecera: la misma columna lleva «+4» y
+       «—», y leer el signo es más rápido que cotejar con el encabezado. */
+    .hoi-delta {
+        display: inline-block; min-width: 38px;
+        padding: 2px 8px; border-radius: 7px;
+        /* La celda es `text-align: right`; dentro de la píldora el número va centrado, o
+           «+4» y «12» bailan contra el borde derecho de su propia caja. */
+        text-align: center;
+        font-weight: 800; font-variant-numeric: tabular-nums;
+        /* #94a3b8 daba 2,56:1 sobre blanco. El guion es el valor «ninguno», no un adorno. */
+        background: #f1f5f9; color: #64748b;
+
+        &--ok   { background: #dcf2f5; color: #0a5560; }   /* turquesa: ya existe, no se toca */
+        &--mas  { background: #e8f7ee; color: #15803d; }
+        &--off  { background: #fdeccb; color: #8a5000; }   /* ámbar: inhabilitar, no borrar */
+        &--reac { background: #ddebfb; color: #1e5aa8; }
+    }
+
+    /* Nota explicativa. Azul informativo y no el gris de las listas: en esta pantalla el
+       ámbar y el rojo ya significan «cuidado», y esto dice justo lo contrario. */
+    .hoi-nota {
+        display: grid; grid-template-columns: auto 1fr;
+        gap: 11px; align-items: start;
+        margin: 16px 0 0; padding: 12px 15px;
+        border-radius: 12px;
+        background: #f2f8fd; border: 1px solid #dfeaf6;
+        font-size: .82rem; line-height: 1.55; color: #46617f;
+
+        &[hidden] { display: none; }      /* display propio ⇒ su propio [hidden] */
+        > i { color: #4267ac; font-size: .9rem; margin-top: 3px; }
+        strong { color: #0b1f3d; }
+        code {
+            background: #e3edfa; color: #22417e; border-radius: 5px;
+            padding: 1px 6px; font-size: .78rem;
+        }
+
+        &--warn {
+            background: #fffaf1; border-color: #ffdfae; color: #7a4a05;
+            > i { color: #d49216; }
+            strong { color: #7a4a05; }
+            code { background: #fdeccb; color: #8a5000; }
+        }
+        &--bad {
+            background: #fdf3f3; border-color: #f3cfcf; color: #7a2020;
+            > i { color: #b42318; }
+            strong { color: #911c12; }
+        }
+    }
+
+    /* ── Un bloque cerrado por catálogo ───────────────────────── */
+    /* El sujeto se dice UNA vez, en el título, y de él cuelgan los verbos. Antes eran
+       encabezados hermanos al mismo nivel donde «Grupos» se repetía tres veces. */
+    .hoi-bloc {
+        &__t {
+            display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+            margin: 0 0 4px;
+            font-size: .98rem; font-weight: 800; color: #0b1f3d;
+            > i { color: #94a3b8; font-size: .88rem; }
+
+            /* ⚠️ Solo en el paso «Personal», donde el bloque ES el verbo («Ya tienen
+               cuenta», «Cuentas nuevas», «No vienen en el archivo», «Vuelven al
+               claustro»). En «Catálogo» el título es el SUJETO —Grupos, Aulas, Materias—
+               y los verbos cuelgan de él en sus propios encabezados: pintarlo allí
+               afirmaría que el catálogo entero se crea o se apaga.
+               Se tiñe el ICONO, no el título: el eje de color se reconoce igual y la
+               jerarquía tipográfica de la pila de bloques se queda intacta. */
+            &--ok   > i { color: #0e6b76; }
+            &--mas  > i { color: #15803d; }
+            &--off  > i { color: #a15c00; }
+            &--reac > i { color: #1e5aa8; }
+        }
+        /* El puente con la tabla del paso anterior: la misma cifra, sin repetir la fila. */
+        &__meta { font-size: .76rem; font-weight: 600; color: #64748b; }
+    }
+    /* ⚠️ Escrito a mano y NO como `& + &` dentro del bloque: `&` expande el selector
+       padre ENTERO, scope de página incluido, y saldría
+       `.hoi-bloc + body[data-page=…] .hoi-bloc`, que no puede casar nunca. */
+    .hoi-bloc + .hoi-bloc { margin-top: 22px; padding-top: 20px; border-top: 1px solid #eef2f7; }
+    /* El primer verbo va pegado a su sujeto, no a 18px como si fuera otro bloque. */
+    .hoi-bloc__t + .hoi-lista__t { margin-top: 10px; }
+
+    .hoi-lista__t {
+        display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+        margin: 18px 0 8px; font-size: .74rem; font-weight: 800;
+        letter-spacing: .04em; text-transform: uppercase; color: #64748b;
+
+        span { padding: 1px 8px; border-radius: 999px; background: #eef2f7; color: #475569; font-size: .7rem; }
+        > i { font-size: .8rem; }
+
+        &--mas  { color: #15803d; > i { color: #15803d; } span { background: #e8f7ee; color: #15803d; } }
+        &--off  { color: #8a5000; > i { color: #a15c00; } span { background: #fdeccb; color: #8a5000; } }
+        &--reac { color: #1e5aa8; > i { color: #1e5aa8; } span { background: #ddebfb; color: #1e5aa8; } }
+    }
+
+    /* ── «Ya existen», plegado dentro de su bloque ─────────────
+       Es el único verbo que nace cerrado: son hasta 69 nombres que ya están bien y sobre
+       los que no hay nada que decidir, a diferencia de las altas y las bajas. El
+       `<summary>` se disfraza de `.hoi-lista__t` para que los cuatro verbos de un bloque
+       se lean como hermanos y no como un control de otra familia. */
+    .hoi-detalle--ok {
+        border-top: 0; padding-top: 0;
+
+        > summary {
+            margin: 18px 0 0;
+            /* ⚠️ `baseline` + `wrap`, no el `center`/nowrap que hereda de `.hoi-detalle`.
+               Es lo que lo hace hermano de verdad de `.hoi-lista__t`: allí la píldora de
+               cifra se alinea por la base del texto, y con `center` esta bailaba respecto
+               a las otras tres del mismo bloque. Sin `wrap`, además, la salvedad («12 con
+               otro nombre») no podía caer a una segunda línea y se comprimía contra el
+               verbo en cuanto el panel se estrechaba. */
+            align-items: baseline; flex-wrap: wrap;
+            font-size: .74rem; font-weight: 800;
+            letter-spacing: .04em; text-transform: uppercase;
+            color: #0a5560;                                     /* 8,4:1 sobre blanco */
+            strong { padding: 1px 8px; border-radius: 999px; background: #dcf2f5; color: #0a5560; font-size: .7rem; }
+            &:hover { color: #0e6b76; }
+            &:focus-visible { outline: 2px solid #0e6b76; }
+        }
+        &[open] > summary { margin-bottom: 8px; }
+    }
+    .hoi-bloc__t + .hoi-detalle--ok > summary { margin-top: 10px; }
+
+    .hoi-lista {
+        list-style: none; margin: 0; padding: 0;
+
+        /* Nombre suelto: rejilla densa y SIN scroll. Varias listas con scroll propio en
+           la misma pantalla son varias trampas de rueda, y lo que hay dentro es justo lo
+           que hay que revisar antes de confirmar: esconderlo va contra la pantalla.
+           ⚠️ En rejilla la cebra `:nth-child(odd)` pinta una columna entera sí y otra no,
+           que se lee como una selección: el fondo va en TODOS los `li`. */
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 4px;
+        &[hidden] { display: none; }      /* display propio ⇒ su propio [hidden] */
+
+        /* ⚠️ TODAS las tarjetas miden lo mismo, y es un requisito de lectura, no de
+           estética. En una rejilla `stretch`, un nombre de tres líneas —«Conservación de
+           la energía y sus interacciones con la materia»— estiraba TODA su fila y dejaba
+           a los vecinos con un palmo de aire muerto debajo: se leía como si esos
+           registros fueran de otra clase que los demás. Y `__meta`, con
+           `margin-left:auto` dentro de un flex que envuelve, se caía a una línea propia
+           en cuanto el nombre no cabía, sumando alto otra vez.
+           Con rejilla de dos columnas el nivel ya no puede empujar al nombre, y el
+           recorte a dos líneas cubre 92 de las 95 materias reales (mediana: 10
+           caracteres). Para las tres que no, el markup pone el nombre entero en `title`. */
+        li {
+            display: flex; align-items: center; gap: 9px;
+            /* `nowrap` + alto FIJO. Los dos juntos, porque por separado no bastan: sin
+               `nowrap` el nivel se cae a una segunda línea, y con `min-height` un nombre
+               de dos líneas seguiría midiendo más que sus vecinos. */
+            flex-wrap: nowrap;
+            height: 52px; padding: 7px 11px; border-radius: 9px;
+            background: #f8fafc;
+            font-size: .82rem; line-height: 1.35;
+        }
+        code { background: #eef3fb; color: #22417e; border-radius: 5px; padding: 1px 6px; font-size: .74rem; }
+        &__n {
+            font-weight: 700; color: #0b1f3d;
+            flex: 1 1 auto; min-width: 0;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        &__meta  { flex-shrink: 0; margin-left: auto; font-size: .74rem; color: #64748b; white-space: nowrap; }
+        &__chips { flex-shrink: 0; margin-left: auto; display: flex; gap: 5px; }
+
+        /* Los profesores llevan correo, niveles y nº de clases: una línea ancha por
+           persona, así que van a una columna, con la barra de scroll a la vista — es el
+           único aviso honesto de que hay más y, a diferencia de un degradado, no miente
+           al llegar al final. */
+        &--prof {
+            grid-template-columns: 1fr;
+            gap: 0;
+            max-height: 360px; overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+
+            &::-webkit-scrollbar { width: 10px; }
+            &::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 99px; }
+            &::-webkit-scrollbar-thumb {
+                background: #cbd5e1; border-radius: 99px;
+                border: 2px solid #f1f5f9; background-clip: padding-box;
+            }
+
+            /* ⚠️ Recupera el alto flexible: aquí cada fila lleva nombre, correo, chip y
+               contador, y son cuatro piezas de anchos muy distintos. A 52px con `nowrap`
+               un correo largo aplastaba a los demás hasta la ilegibilidad. Lo que allí
+               es homogeneidad, aquí sería un recorte. */
+            li {
+                background: transparent; border-radius: 0;
+                height: auto; min-height: 44px; flex-wrap: wrap; row-gap: 2px;
+            }
+            li:nth-child(odd) { background: #f8fafc; }
+        }
+
+        /* Lo que se APAGA. ⚠️ Sin tachado: un `line-through` distingue cuando lo tachado
+           convive con lo que no, y aquí la lista entera se apaga —ya lo dicen el
+           encabezado y el fondo—; estorbaría justo en la tarea de esta pantalla, que es
+           LEER los nombres uno a uno para ver si alguno no debería estar ahí. */
+        &--off li            { background: #fffaf1; }
+        &--off .hoi-lista__n { color: #7a4a05; }
+
+        &--reac li            { background: #f5faff; }
+        &--reac .hoi-lista__n { color: #1e5aa8; }
+
+        /* Lo reconocido. Fondo muy tenue a propósito: es lo que está bien y no hay que
+           revisar uno a uno, a diferencia de las altas y las bajas. */
+        &--ok li            { background: #f6fcfd; }
+        &--ok .hoi-lista__n { color: #0a5560; }
+
+        /* Personas fuera del archivo: columnas más anchas, porque cada una lleva sus
+           chips («pierde horario», «se inhabilita») y pueden ser dos. */
+        &--fuera {
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            li { height: auto; min-height: 52px; flex-wrap: wrap; row-gap: 3px; }
+        }
+
+        /* Los correos: nombre arriba y la pareja antes → después debajo, que es una
+           línea larga y no cabe al lado. Columnas anchas por el mismo motivo. */
+        &--correo {
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            li {
+                height: auto; min-height: 56px;
+                flex-direction: column; align-items: flex-start;
+                justify-content: center; gap: 3px;
+            }
+            .hoi-lista__n { flex: 0 0 auto; -webkit-line-clamp: 1; }
+        }
+
+        /* Nivel que desaparece ENTERO del archivo: repetido en cada fila, es lo que
+           convierte 34 nombres sueltos en «se va Maternal». */
+        &__meta--fuera {
+            padding: 1px 7px; border-radius: 999px;
+            background: #fbe0e0; color: #911c12; font-weight: 700;
+        }
+    }
+
+    /* ── Correo antes → después ───────────────────────────────
+       El cambio se lee como una pareja, no como dos datos sueltos: lo que hay que poder
+       comprobar de un vistazo es si el de la derecha es el correcto. El de la izquierda
+       va atenuado y tachado —aquí SÍ, porque convive con el que se queda, que es
+       exactamente cuando un tachado distingue algo— y el de la derecha en turquesa, que
+       en esta pantalla significa «esto es lo que el diccionario dice». */
+    .hoi-correo {
+        display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+        font-size: .74rem; min-width: 0;
+
+        code {
+            border-radius: 5px; padding: 1px 6px;
+            font-size: .72rem; word-break: break-all;
+        }
+        > i { color: #94a3b8; font-size: .62rem; flex-shrink: 0; }
+
+        /* ⚠️ #5b6878 y no el #64748b de partida: sobre #f1f5f9 aquel daba 4,34:1 y este
+           correo hay que poder LEERLO —es la mitad izquierda de la comprobación, no un
+           adorno—. Atenuado sí; ilegible no. 5,19:1. */
+        &__antes   { background: #f1f5f9; color: #5b6878; text-decoration: line-through; }
+        &__despues { background: #dcf2f5; color: #0a5560; font-weight: 700; }
+        &__choque  { background: #fdeccb; color: #7a4a05; }
+        &__de      { color: #8a5000; font-weight: 600; }
+    }
+
+    /* Qué le pasa a cada persona. Son dos consecuencias que NO coinciden —un prefecto con
+       clases pierde la rejilla y conserva el acceso—, así que cada quien lleva la suya. */
+    .hoi-mini {
+        /* `inline-block` y no el `inline` por defecto: el chip también se cita dentro de
+           un `.hoi-help` corrido («las marcadas con [diccionario] vienen con otro
+           nombre»), y en contexto inline el relleno vertical no cuenta para la caja de
+           línea — el fondo se comía el renglón de arriba. En los `li` flex da igual: ahí
+           se blockifica de todos modos. */
+        display: inline-block; vertical-align: middle;
+        padding: 1px 8px; border-radius: 999px;
+        font-size: .66rem; font-weight: 700; white-space: nowrap;
+
+        &--hor  { background: #e8eef6; color: #475569; }
+        &--off  { background: #fdeccb; color: #8a5000; }   /* ámbar: SE INHABILITA, y solo eso */
+        &--dicc { background: #dcf2f5; color: #0a5560; }   /* turquesa: lo reconoció el diccionario */
+
+        /* ⚠️ «sin diccionario» NO es un verbo del eje: es calidad del dato (el correo de
+           esa cuenta nueva es inventado a partir del nombre del archivo). Llevaba `--off`,
+           o sea el ámbar de «se inhabilita», dentro del bloque «Cuentas nuevas» — se leía
+           como que a esa persona se le está dando de baja, justo lo contrario de lo que
+           pasa. Contorno discontinuo = el negativo del chip turquesa de al lado: ausencia
+           de dato, que es lo que de verdad dice. 7,6:1 sobre blanco. */
+        &--sindic {
+            background: #fff; border: 1px dashed #cbd5e1; color: #475569;
+            padding: 0 7px;                 /* el borde ya aporta 1px por lado */
+        }
+    }
+
+    /* Cómo lo escribe el ARCHIVO cuando no coincide con el catálogo: «1A Primaria ←
+       Prim 1°A», «Gabriela Sánchez ← Gaby». La flecha apunta al dato bueno, que es el
+       de la izquierda; en la tabla de filas va al revés (del archivo a la persona) y
+       por eso el icono lo pone el markup y no esta regla. */
+    .hoi-alias {
+        display: inline-flex; align-items: baseline; gap: 5px;
+        font-size: .74rem; color: #0e6b76;
+        > i { font-size: .62rem; opacity: .75; }
+    }
+
+    /* ── Posibles duplicados de persona ───────────────────────── */
+    /* Lo primero del paso: es lo único que hay que arreglar ANTES de importar. */
+    .hoi-dup {
+        display: flex; align-items: flex-start; gap: 13px;
+        margin-bottom: 20px; padding: 14px 16px;
+        border-radius: 14px;
+        background: #fdf6ff; border: 1px solid #e6cdf0;
+
+        &__ico {
+            flex-shrink: 0; width: 34px; height: 34px;
+            border-radius: 11px; display: grid; place-items: center;
+            background: var(--pal-morado, #aa2296); color: #fff; font-size: .84rem;
+        }
+        &__body { min-width: 0; flex: 1; }
+        &__t { margin: 0; font-size: .9rem; font-weight: 800; color: #5d2170; line-height: 1.35;
+               strong { color: #7a2a96; } }
+        &__d { margin: 4px 0 0; font-size: .82rem; line-height: 1.5; color: #6b3b7a;
+               em { font-style: italic; } }
+        &__list {
+            list-style: none; margin: 10px 0 0; padding: 0;
+            display: flex; flex-direction: column; gap: 4px;
+            font-size: .8rem;
+
+            li {
+                padding: 6px 11px; border-radius: 9px;
+                background: #fbeeff; color: #6b3b7a;
+                strong { color: #5d2170; }
+            }
+        }
+        /* El «≈» no es decoración: dice «se parece a». A #b98fc7 daba 2,6:1. */
+        &__eq { color: #8a4da0; margin: 0 4px; font-weight: 700; }
+
+        /* Contexto de la fila sin competir con los nombres, que son el dato. */
+        &__meta { margin-left: auto; font-size: .72rem; color: #8a5a7a; white-space: nowrap; }
+
+        /* El único ROJO de esta familia, y no es exageración: si nadie lo mira, el
+           horario de una persona acaba escrito entero en la cuenta de otra. Los otros
+           dos avisos de aquí piden atención; este pide parar. */
+        &--grave {
+            background: #fdf3f3; border-color: #f3cfcf;
+            .hoi-dup__ico  { background: var(--pal-rojo, #e51022); color: #fff; }
+            .hoi-dup__t    { color: #7a2020; strong { color: #911c12; } }
+            .hoi-dup__d    { color: #7d5252; }
+            .hoi-dup__list li { background: #fbe9e9; color: #7d5252;
+                                strong { color: #911c12; }
+                                code { background: #fff; color: #911c12; border-radius: 5px;
+                                       padding: 1px 6px; font-size: .72rem; } }
+            .hoi-dup__eq   { color: #b42318; }
+            /* #9a6a6a daba 3,86:1 sobre el #fbe9e9 del `li`. El «N clases» es el dato que
+               dice cuánto horario se iría a la cuenta equivocada: no puede ser el texto
+               que no se lee de la tarjeta más grave de la pantalla. 4,62:1. */
+            .hoi-dup__meta { color: #8a5f5f; }
+        }
+
+        /* Nombres que el diccionario no conoce. Ámbar y no morado: el morado es «puede
+           que sean la misma persona, decide tú» y esto es «esto va a crear una cuenta».
+           Son dos avisos distintos y pueden salir los dos a la vez. */
+        &--dicc {
+            background: #fffaf1; border-color: #ffdfae;
+            .hoi-dup__ico { background: var(--pal-ambar, #f5b400); color: var(--pal-tinta, #0b1f3d); }
+            .hoi-dup__t   { color: #7a4a05; strong { color: #a15c00; } }
+            .hoi-dup__d   { color: #79613c;
+                            code { background: #fdeccb; color: #7a4a05; border-radius: 5px; padding: 1px 6px; font-size: .76rem; } }
+            .hoi-dup__list li { background: #fdf3e2; color: #79613c; strong { color: #7a4a05; } }
+        }
+    }
+
+    .hoi-vacio {
+        display: flex; align-items: center; gap: 10px;
+        margin: 0; padding: 18px 20px;
+        border-radius: 14px; background: #f6fcf8; border: 1px solid #d6ecdd;
+        font-size: .86rem; color: #15803d;
+        > i { font-size: 1rem; }
+        &[hidden] { display: none; }      /* display propio ⇒ su propio [hidden] */
+
+        /* «No hay resultados» NO es una buena noticia: es el estado de una búsqueda que
+           no encontró nada. En verde se leería como una comprobación superada. */
+        &--nada {
+            margin: 14px 0 0;
+            background: #f8fafc; border-color: #e2e8f0; color: #475569;
+            /* La lupa no es decoración: es lo único que dice que la tabla está vacía
+               PORQUE se ha buscado. A #94a3b8 daba 2,45:1 sobre su propio fondo. */
+            > i { color: #64748b; }
+        }
+    }
+
+    /* ── Tabla de filas ───────────────────────────────────────── */
+    /* ⚠️ DOS filas fijas, no «las que salgan». La barra lleva tres cosas de anchos muy
+       distintos —buscador, hasta cuatro pills y la cuenta— y en `flex-wrap` libre el
+       reparto lo decide el ancho disponible: a 1024px con el sidebar abierto quedan
+       ~650px útiles, las cuatro pills miden ~620 y la cuenta ~105, así que caía a una
+       TERCERA fila ella sola y la barra se comía 124px antes de la tabla. Peor aún, el
+       buscador (tope 420px) se quedaba solo en la primera con 230px de vacío al lado.
+       Con `flex-basis: 100%` en las pills el reparto es el mismo a cualquier ancho:
+         fila 1 → buscador + cuenta (a la derecha, que es donde se lee un «12 de 878»)
+         fila 2 → las pills
+       y la cuenta va ANTES en el DOM por eso mismo, no por orden de importancia. */
+    .hoi-barra {
+        display: flex; align-items: center;
+        gap: 10px 16px; flex-wrap: wrap;
+        margin-bottom: 14px;
+
+        /* La cuenta de lo filtrado cierra la fila del buscador: es consecuencia de los
+           controles, no otro control. Sin ella, filtrar 878 filas a 12 deja un paginador
+           que dice «1 / 1» y ninguna pista de que la cifra grande de arriba ya no
+           describe lo que se está viendo. */
+        &__cuenta {
+            margin: 0 0 0 auto;
+            font-size: .78rem; font-weight: 700; color: #4267ac;
+            white-space: nowrap;
+            &[hidden] { display: none; }
+
+            /* Por debajo de 520 el buscador se quedaría en ~200px para hacerle sitio, y
+               ahí el marcador de posición ya no cabe. La cuenta baja a su propia línea. */
+            @include hasta-xs { margin-left: 0; flex-basis: 100%; }
+        }
+    }
+
+    /* ── Buscador ─────────────────────────────────────────────
+       Es el control que de verdad hace revisable un archivo de 878 filas: ordenar
+       agrupa, pero no responde «¿salen todas las de Gaby?». Va primero y ancho, no
+       apretado en una esquina. */
+    .hoi-buscar {
+        position: relative;
+        display: flex; align-items: center;
+        flex: 1 1 260px; max-width: 420px;
+
+        > i {
+            position: absolute; left: 14px;
+            color: #94a3b8; font-size: .8rem; pointer-events: none;
+        }
+        &__input {
+            width: 100%; min-height: 44px;
+            padding: 8px 38px 8px 38px;
+            border: 1.5px solid #e2e8f0; border-radius: 999px; background: #fff;
+            font-family: inherit; font-size: .84rem; color: #0b1f3d;
+            transition: border-color .15s ease, box-shadow .15s ease;
+
+            &::placeholder { color: #94a3b8; }
+            &:hover  { border-color: #cbd5e1; }
+            &:focus  { outline: none; border-color: #4267ac; box-shadow: 0 0 0 3px rgba(66,103,172,.14); }
+            /* La «x» nativa de Chrome se solapa con la nuestra, que además es la única
+               que existe en Firefox. */
+            &::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+        }
+        &__x {
+            position: absolute; right: 8px;
+            width: 26px; height: 26px; border: none; border-radius: 50%;
+            display: grid; place-items: center;
+            background: #eef2f7; color: #475569; font-size: .68rem; cursor: pointer;
+            &:hover { background: #e2e8f0; color: #0b1f3d; }
+            &:focus-visible { outline: 2px solid #4267ac; outline-offset: 2px; }
+            &[hidden] { display: none; }   /* display propio ⇒ su propio [hidden] */
+        }
+    }
+
+    /* ── Pills que filtran ────────────────────────────────────
+       Las mismas etiquetas que llevan las celdas, aquí arriba y pulsables. Antes eran
+       una leyenda —un texto que explicaba unos chips que no hacían nada—, y lo primero
+       que uno intenta al ver «acompaña» en una fila es pulsarlo para ver las demás.
+       ⚠️ Son TOGGLE, no tabs: volver a pulsar la activa quita el filtro. Y solo una a la
+       vez, porque componerlas («acompaña Y dividida») da cero filas casi siempre, y un
+       filtro que no devuelve nada se lee como roto. */
+    .hoi-pills {
+        /* `1 1 100%`: fila propia siempre (ver el comentario de `.hoi-barra`). Envuelven
+           dentro de ella si no caben, que es lo que pasa por debajo de ~600px. */
+        flex: 1 1 100%;
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+
+    .hoi-pill {
+        display: inline-flex; align-items: center; gap: 7px;
+        min-height: 44px; padding: 6px 14px;
+        border: 1.5px solid #e2e8f0; border-radius: 999px; background: #fff;
+        font-family: inherit; font-size: .8rem; font-weight: 700;
+        color: var(--text-gray, #4a5568); cursor: pointer;
+        transition: border-color .15s ease, background-color .15s ease;
+
+        > i { font-size: .74rem; color: #94a3b8; }
+        &__n {
+            padding: 1px 7px; border-radius: 999px;
+            background: #eef2f7; color: #475569;
+            font-size: .7rem; font-variant-numeric: tabular-nums;
+        }
+        .hoi-tag { margin-left: 0; }
+
+        &:hover { border-color: #cbd5e1; background: #f8fafc; }
+        &:focus-visible { outline: 2px solid #4267ac; outline-offset: 2px; }
+
+        /* Activa: el azul del CROMO del asistente, el mismo del paso actual y de la
+           barra de progreso — «esto está puesto» es estado de interfaz, no una categoría
+           del dato, así que no gasta ningún color del eje. Lo que sí conserva su color es
+           la etiqueta de dentro (`.hoi-tag`), que es la que dice qué se está filtrando.
+           La única excepción es `--bad`, que se tiñe de rojo porque ahí el estado y la
+           gravedad son lo mismo. */
+        &.is-on { border-color: #b9c8e0; background: #f1f5fc; color: #22417e;
+                  > i { color: #4267ac; }
+                  .hoi-pill__n { background: #dbe7f7; color: #22417e; } }
+
+        &--bad {
+            > i { color: #d68b8b; }
+            &.is-on { border-color: #f1b9b9; background: #fff6f6; color: #b42318;
+                      > i { color: #b42318; }
+                      .hoi-pill__n { background: #fdeef0; color: #b42318; } }
+        }
+    }
+
+    .hoi-table {
+        font-size: .82rem;
+        th { padding: 10px 14px; }
+        /* 16px de padding vertical × 25 filas por página siguen siendo mucho scroll. */
+        td { padding: 9px 14px; vertical-align: top; }
+        .hoi-row__n { color: #64748b; font-variant-numeric: tabular-nums; }
+    }
+    .hoi-row--error { background: #fef6f6; }
+    .hoi-row--aviso { background: #fffcf3; }
+    /* El hover global de `.admin-table` pinta el `<td>`, que tapa el fondo del `<tr>`:
+       pasar el ratón por una fila con problema le borraba el tinte justo al señalarla.
+       Hace falta ganar a `.admin-table tbody tr:hover td` (0,2,3). */
+    .hoi-row--error:hover > td { background: #fbe6e6; }
+    .hoi-row--aviso:hover > td { background: #fdf5e0; }
+    /* Antes #cbd5e1 (1,5:1): el guion de «sin dato» era invisible, y este mismo span
+       envuelve el periodo en crudo cuando la hora no se pudo resolver — o sea, dato. */
+    .hoi-nil { color: #64748b; }
+
+    .hoi-chip {
+        display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+        padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700;
+
+        &--ok    { background: #e8f7ee; color: #15803d; }
+        &--aviso { background: #fff7e6; color: #b45309; }
+        &--error { background: #fdeef0; color: #b42318; }
+    }
+    .hoi-motivo { display: block; margin-top: 4px; font-size: .74rem; color: #64748b; line-height: 1.4; max-width: 300px; }
+
+    /* Lecturas del importador, no datos del archivo: se distinguen del texto de la celda
+       en vez de mezclarse con él. */
+    .hoi-tag {
+        display: inline-block; margin-left: 6px; padding: 1px 7px;
+        border-radius: 999px; font-size: .66rem; font-weight: 700; white-space: nowrap;
+        vertical-align: middle;
+
+        &--acomp { background: #eef3fb; color: #22417e; }
+        &--div   { background: #f4ecfa; color: #7a2a96; }
+        &--new   { background: #e8f7ee; color: #15803d; }   /* esa fila abre cuenta nueva */
+    }
+
+    /* Nivel de la clase, dentro de la celda de materia. Sale del prefijo de la materia,
+       así que es un atributo suyo y no una columna: separado obligaba a leer dos celdas
+       para situar una clase. Neutro a propósito — no es un verbo del eje de color. */
+    .hoi-nivel {
+        margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+        /* #64748b sobre #f1f5f9 daba 4,34:1 — se queda a cuatro centésimas de AA, y a
+           .66rem es el texto más pequeño de la tabla. #5b6878 sube a 5,19 sin cambiar
+           de familia ni dejar de ser el gris neutro que esta etiqueta necesita. */
+        background: #f1f5f9; color: #5b6878;
+        font-size: .66rem; font-weight: 700; white-space: nowrap; vertical-align: middle;
+    }
+
+    /* Día y hora en una celda: son la misma pregunta —cuándo— y partida en dos obligaba
+       a cruzar dos columnas. El día en negrita porque es lo que agrupa al escanear. */
+    .hoi-row__cuando {
+        white-space: nowrap; font-variant-numeric: tabular-nums;
+        .hoi-row__dia { font-weight: 700; color: #0b1f3d; margin-right: 6px; }
+    }
+    .hoi-row__prof { font-weight: 600; }
+    /* Una materia larga no puede empujar a Grupo y Aula fuera del viewport. */
+    .hoi-row__mat { display: inline-block; max-width: 230px; overflow: hidden;
+                    text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+
+    /* ── Paso 5 · tres bloques, no una lista de cifras ────────
+       Eran seis tarjetas iguales en fila —clases escritas, catálogos y personas al mismo
+       peso— y un aviso suelto: no se distinguía la acción de su efecto colateral, ni
+       mucho menos qué pedía una decisión. Ahora cada bloque responde una pregunta
+       distinta, va numerado y en este orden: qué hago · qué le pasa al catálogo · qué
+       debería mirar antes. */
+    .hoi-panel__body--cierre { display: flex; flex-direction: column; gap: 4px; }
+
+    .hoi-cierre {
+        &__t {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin: 0 0 12px;
+            font-size: .95rem; font-weight: 800; color: #0b1f3d;
+        }
+        /* El número no es decoración: dice que hay un orden de lectura y cuántos quedan.
+           Mismo círculo de 24px que el índice del asistente, por coherencia. */
+        &__n {
+            flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+            display: grid; place-items: center;
+            background: #eef2f7; color: #475569;
+            font-size: .72rem; font-weight: 800;
+        }
+
+        /* ⚠️ Los tres bloques no piden lo mismo: 1 y 2 AFIRMAN (esto se escribe, así
+           queda el catálogo) y 3 PIDE (revisa esto antes de confirmar). Con los tres
+           círculos en el mismo gris, el orden 1·2·3 se leía pero no cuál de los tres
+           era el que reclamaba algo — que es justo la pregunta de este paso.
+           El relleno es el MISMO del paso actual del índice (`.hoi-wiz__paso-n.is-actual`):
+           azul de cromo, no un color del eje, así que no afirma nada sobre el catálogo.
+           Se marca siempre, también cuando no hay hallazgos: «mira y no hay nada» es
+           una revisión igual, y un distintivo que aparece y desaparece deja de ser una
+           señal de sección para convertirse en otra alarma más.
+           ⚠️ `.hoi-cierre__n` escrito entero y NO como `&__n`: dentro de `&--accion`,
+           `&` vuelve a expandir el scope de página y saldría
+           `… .hoi-cierre--accion body[data-page=…] .hoi-cierre__n`. Misma trampa que
+           documenta `.hoi-bloc + .hoi-bloc`. */
+        &--accion .hoi-cierre__n {
+            background: linear-gradient(135deg, #4267ac, #2e4b8a);
+            color: #fff;
+        }
+        &__meta { margin-left: auto; font-size: .76rem; font-weight: 600; color: #64748b; }
+        &__body { padding-left: 34px; }   /* alineado con el título, no con el número */
+
+        &__grande {
+            margin: 0 0 6px; font-size: 1.05rem; color: #334155;
+            strong { font-size: 1.9rem; font-weight: 900; color: #0b1f3d;
+                     line-height: 1; margin-right: 6px; font-variant-numeric: tabular-nums; }
+        }
+        &__d { margin: 0; font-size: .84rem; line-height: 1.55; color: var(--text-gray, #4a5568);
+               strong { color: #7a2020; } }
+
+        @include hasta-sm {
+            &__body { padding-left: 0; }
+            &__meta { margin-left: 0; flex-basis: 100%; }
+        }
+    }
+    /* ⚠️ Escrito a mano y NO como `& + &` dentro del bloque, exactamente por lo mismo
+       que `.hoi-bloc + .hoi-bloc`: `&` expande el selector padre ENTERO, scope de página
+       incluido, y salía `… .hoi-cierre + body[data-page=…] .hoi-cierre`, que pide que un
+       `<body>` sea hermano de un `<section>` — o sea, que no casa nunca.
+       Y no era cosmético: los tres bloques de «Confirmar» se quedaban sin separación
+       ninguna (solo los 4px de `gap` del contenedor) y sin el filete que los corta, así
+       que «lo que se escribe», «cómo quedan los catálogos» y «revisa esto» se leían como
+       un solo muro. Era LA razón de que el paso resultara ambiguo. */
+    .hoi-cierre + .hoi-cierre { margin-top: 18px; padding-top: 18px; border-top: 1px solid #eef2f7; }
+
+    /* ── Hallazgos ────────────────────────────────────────────
+       Lo que hay que mirar antes de confirmar estaba repartido por cuatro pasos, y este
+       último los ponía al mismo nivel que las cifras. Cada uno dice su número, la
+       consecuencia en una frase y lleva al paso donde se ve.
+       ⚠️ El rojo se reserva a lo que se pierde o se hace mal; lo demás va en ámbar, que
+       en esta pantalla significa reversible. Pintarlos todos igual devolvería el
+       problema que venían a resolver. */
+    .hoi-hallazgos { list-style: none; margin: 0; padding: 0;
+                     display: flex; flex-direction: column; gap: 8px; }
+
+    .hoi-hallazgo {
+        display: flex; align-items: flex-start; gap: 12px;
+        padding: 12px 14px; border-radius: 13px;
+        background: #fffaf1; border: 1px solid #ffdfae;
+
+        &__ico {
+            flex-shrink: 0; width: 30px; height: 30px; border-radius: 9px;
+            display: grid; place-items: center;
+            background: #fdeccb; color: #a15c00; font-size: .8rem;
+        }
+        &__body { min-width: 0; flex: 1; }
+        &__t { margin: 0; font-size: .86rem; font-weight: 700; color: #7a4a05; line-height: 1.4;
+               strong { font-size: 1rem; font-weight: 900; font-variant-numeric: tabular-nums; } }
+        &__d { margin: 3px 0 0; font-size: .8rem; line-height: 1.5; color: #79613c; }
+
+        /* «Ver» y no «Ir al paso 3»: el número del paso no significa nada desde aquí, y
+           el índice del asistente ya marca a dónde se llega. */
+        &__ir {
+            flex-shrink: 0; align-self: center;
+            display: inline-flex; align-items: center; gap: 6px;
+            /* 40px: sigue siendo la acción secundaria de la fila (el hallazgo es lo que
+               hay que leer), pero 34 se queda corto para un dedo. El mínimo legal AA son
+               24; el estándar real del proyecto, 44 — aquí se cede a 40 porque compite
+               por el alto con un texto de dos líneas. */
+            min-height: 40px; padding: 6px 13px;
+            border: 1.5px solid #e6cfa5; border-radius: 999px; background: #fff;
+            font-family: inherit; font-size: .76rem; font-weight: 700; color: #7a4a05;
+            cursor: pointer;
+            > i { font-size: .66rem; }
+            &:hover { background: #fffaf1; border-color: #d4b276; }
+            &:focus-visible { outline: 2px solid #a15c00; outline-offset: 2px; }
+            &[hidden] { display: none; }   /* display propio ⇒ su propio [hidden] */
+        }
+
+        &--grave {
+            background: #fdf3f3; border-color: #f3cfcf;
+            .hoi-hallazgo__ico { background: #fbe0e0; color: #b42318; }
+            .hoi-hallazgo__t   { color: #7a2020; }
+            .hoi-hallazgo__d   { color: #7d5252; }
+            .hoi-hallazgo__ir  { border-color: #edc2c2; color: #911c12;
+                                 &:hover { background: #fdf3f3; border-color: #dfa0a0; }
+                                 &:focus-visible { outline-color: #b42318; } }
+        }
+
+        @include hasta-sm {
+            flex-wrap: wrap;
+            &__ir { align-self: flex-start; margin-left: 42px; }
+        }
+    }
+
+    .hoi-recap {
+        list-style: none; margin: 0; padding: 0;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;
+
+        &__i {
+            display: flex; align-items: baseline; gap: 12px;
+            padding: 14px 16px; border-radius: 14px;
+            background: #f8fafc; border: 1px solid #eef2f7;
+        }
+        &__n {
+            flex-shrink: 0;
+            font-size: 1.5rem; font-weight: 900; line-height: 1;
+            color: #0b1f3d; font-variant-numeric: tabular-nums;
+        }
+        &__l {
+            font-size: .78rem; font-weight: 700; line-height: 1.35; color: #334155;
+            em { display: block; font-style: normal; font-weight: 500; font-size: .72rem; color: #64748b; margin-top: 2px; }
+        }
+
+        &__i--ok   { background: #f6fcfd; border-color: #bfe6ea; .hoi-recap__n { color: #0e6b76; } }
+        &__i--new  { background: #f6fcf8; border-color: #d6ecdd; .hoi-recap__n { color: #15803d; } }
+        &__i--off  { background: #fffaf1; border-color: #ffdfae; .hoi-recap__n { color: #a15c00; } }
+        &__i--reac { background: #f5faff; border-color: #cfe4fb; .hoi-recap__n { color: #1e5aa8; } }
+        &__i--warn { background: #fffaf1; border-color: #ffdfae; .hoi-recap__n { color: #a15c00; } }
+    }
+
+    /* La casilla es el freno de mano de una acción que reescribe el horario del colegio,
+       así que no puede ser el pie de foto del botón: ocupa su propia caja con entidad. */
+    .hoi-confirm {
+        display: flex; align-items: flex-start; gap: 12px;
+        /* ⚠️ El mismo aire que hay ENTRE los tres bloques (18px + los 4 de `gap`). Con
+           los 4px que tenía quedaba más pegada al bloque 3 que los bloques entre sí, así
+           que se leía como el pie de «Revisa esto antes de confirmar» y no como el freno
+           de mano de la pantalla, que es lo que es. No colapsan márgenes: el contenedor
+           (`.hoi-panel__body--cierre`) es flex. */
+        margin-top: 18px; padding: 14px 16px;
+        border-radius: 16px;
+        background: #fdf7f7; border: 1.5px solid #ecd6d6;
+        font-size: .84rem; line-height: 1.5; color: #5b4141;
+        cursor: pointer;
+        transition: border-color .18s ease, background-color .18s ease;
+
+        input {
+            width: 19px; height: 19px; margin-top: 2px;
+            flex-shrink: 0; accent-color: #b42318; cursor: pointer;
+        }
+        strong { color: #911c12; }
+        /* Armado. Estado extra, no portante: sin `:has()` la caja se queda en su color
+           base y la casilla hace exactamente lo mismo. */
+        &:has(input:checked) { border-color: #e08d8d; background: #fff1f1; }
+        &:focus-within { outline: 2px solid #b42318; outline-offset: 3px; }
+    }
+
+    /* ── Navegación ───────────────────────────────────────────── */
+    .hoi-wiz__nav {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap;
+        margin-top: 16px;
+
+        &-btns { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    }
+    /* Qué falta, ANTES de pulsar. El botón nunca sale deshabilitado: uno muerto sin
+       explicación es indistinguible de uno roto. */
+    .hoi-wiz__hint {
+        display: flex; align-items: center; gap: 8px;
+        margin: 0; padding: 9px 14px;
+        border-radius: 11px;
+        background: #fffaf0; border: 1px solid #ffe4bd;
+        color: #8a5a1f; font-size: .8rem; font-weight: 600;
+
+        &::before {
+            content: '\f06a';
+            font-family: 'Font Awesome 6 Free'; font-weight: 900;
+            color: #e0a800; font-size: .78rem;
+        }
+        &[hidden] { display: none; }      /* display propio ⇒ su propio [hidden] */
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       Arranque y degradación
+       ═══════════════════════════════════════════════════════════ */
+
+    /* ⚠️ El servidor NO emite `hidden` en los paneles ni en los botones de recorrido: sin
+       JS se pintan los cinco seguidos y se llega a «Reemplazar», que es lo que hace falta
+       en una pantalla que solo abre un admin y que reescribe el horario del colegio.
+       Quien los pliega ANTES del primer pintado es esta regla —`html.js` lo estampa el
+       `<head>` síncrono de `layout-admin.php`, la misma excepción del anti-salto del
+       sidebar—, así que no hay flash de los cinco paneles. En cuanto el módulo monta
+       añade `.is-wiz` y a partir de ahí manda `hidden`, como en el resto del panel. */
+    html.js & .hoi-wiz:not(.is-wiz) {
+        .hoi-panel:not(.is-activo) { display: none; }
+        [data-hoi-atras], [data-hoi-enviar] { display: none; }
+    }
+
+    /* Sin JS no hay recorrido que llevar, así que sus mandos sobran: el índice no se
+       puede pulsar y «Siguiente» no lleva a ningún sitio. Lo que queda es la página
+       entera apilada, con su pie de confirmación. */
+    html:not(.js) & {
+        .hoi-wiz { grid-template-columns: 1fr; }
+        .hoi-wiz__aside,
+        .hoi-wiz__bar,
+        [data-hoi-siguiente] { display: none; }
+        .hoi-panel + .hoi-panel { margin-top: 18px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       Responsive
+       ═══════════════════════════════════════════════════════════ */
+
+    @include hasta-lg {
+        /* El índice deja de ser una columna y pasa a una tira sobre el paso: a este ancho
+           264px de aside dejan la tabla de nueve columnas sin sitio. */
+        .hoi-wiz { grid-template-columns: 1fr; gap: 16px; }
+        .hoi-wiz__aside {
+            position: static;
+            flex-direction: row; align-items: flex-start; gap: 14px;
+        }
+        .hoi-wiz__alex {
+            flex: 0 0 210px;
+            display: flex; align-items: center; gap: 12px;
+            text-align: left; padding: 12px 14px;
+
+            &-img { height: 62px; margin-bottom: 0; flex-shrink: 0;
+                    img { max-height: 62px; } }
+        }
+        .hoi-wiz__dice::before { display: none; }
+        .hoi-wiz__pasos { flex: 1 1 0; min-width: 0; }
+    }
+
+    @include hasta-md {
+        /* El índice entero se va: con el paso activo, la barra «Paso N de M» y los
+           botones ya se sabe dónde se está, y aquí la pantalla es el recurso escaso. */
+        .hoi-wiz__pasos { display: none; }
+        .hoi-wiz__alex  { flex: 1 1 auto; }
+    }
+
+    @include hasta-sm {
+        .hoi-wiz__aside { display: none; }   /* Alex también: el paso necesita el ancho */
+        .hoi-panel__head { padding: 14px 16px 12px; }
+        .hoi-panel__body { padding: 14px 16px 18px; }
+        .hoi-panel__body--tabla { padding: 14px 0 8px; > * { margin-left: 16px; margin-right: 16px; } }
+
+        .hoi-impacto__i { padding: 12px 13px; gap: 11px; }
+        .hoi-recap { grid-template-columns: 1fr; }
+        .hoi-confirm { font-size: .82rem; }
+
+        /* `column`, no `column-reverse`: el orden de foco tiene que seguir al visual. */
+        .hoi-wiz__nav { flex-direction: column; align-items: stretch; }
+        .hoi-wiz__nav-btns {
+            flex-direction: column-reverse;   /* la acción principal, arriba y al pulgar */
+            align-items: stretch;
+            margin-left: 0;
+            .admin-btn { width: 100%; min-height: 44px; }
+        }
+        .hoi-actions .admin-btn { width: 100%; }
+    }
+}

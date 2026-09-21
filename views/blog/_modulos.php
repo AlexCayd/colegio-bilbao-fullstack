@@ -159,6 +159,10 @@ if (!function_exists('blog_modulos_catalogo')) {
 
             'redaccion'       => ['nombre' => 'Redacción',       'desc' => 'Blog, noticias y contenido editorial del colegio.',   'icon' => 'fa-pen-nib',         'url' => '/dashboard/redaccion'],
             'soporte'         => ['nombre' => 'Soporte técnico', 'desc' => '¿Algo no funciona? Escríbenos y te ayudamos.',        'icon' => 'fa-life-ring',       'url' => '/dashboard/soporte'],
+            // Transversal como Soporte: el historial de lo que ha cambiado en el panel es
+            // de todo el que lo usa. Publicar sí pide admin, pero eso es el guard de la
+            // acción, no del módulo.
+            'actualizaciones' => ['nombre' => 'Actualizaciones', 'desc' => 'Novedades y cambios recientes del panel.',            'icon' => 'fa-wand-magic-sparkles', 'url' => '/dashboard/actualizaciones'],
         ];
     }
 
@@ -171,7 +175,7 @@ if (!function_exists('blog_modulos_catalogo')) {
             ['label' => 'Personal y accesos',  'icon' => 'fa-users',          'claves' => ['usuarios', 'profesores', 'prefectura', 'administrativos', 'directivos']],
             ['label' => 'Operación académica', 'icon' => 'fa-graduation-cap', 'claves' => ['eventos', 'horarios', 'aulas', 'grupos', 'suplencias', 'swaps']],
             ['label' => 'Contenido',           'icon' => 'fa-pen-nib',        'claves' => ['redaccion']],
-            ['label' => 'Ayuda',               'icon' => 'fa-life-ring',      'claves' => ['soporte']],
+            ['label' => 'Ayuda',               'icon' => 'fa-life-ring',      'claves' => ['soporte', 'actualizaciones']],
         ];
     }
 
@@ -206,6 +210,11 @@ if (!function_exists('blog_modulos_catalogo')) {
                 ['label' => 'Todos los usuarios', 'icon' => 'fa-users',        'url' => '/dashboard/usuarios'],
                 ['label' => 'Nuevo usuario',      'icon' => 'fa-user-plus',    'url' => '/dashboard/usuarios/crear',      'ver' => $esAdmin],
                 ['label' => 'Cumpleaños',         'icon' => 'fa-cake-candles', 'url' => '/dashboard/usuarios/cumpleanos'],
+                // Quien no puede entrar está esperando a que alguien mire esto, así que
+                // el badge no es decorativo. Igual que los de Suplencias, el COUNT solo
+                // se paga si la opción se va a ver.
+                ['label' => 'Solicitudes de contraseña', 'icon' => 'fa-key', 'url' => '/dashboard/usuarios/solicitudes', 'ver' => $esAdmin,
+                 'badge' => $esAdmin ? \Model\SolicitudPassword::contarPendientes() : 0],
             ],
 
             /* Dos públicos que no se solapan:

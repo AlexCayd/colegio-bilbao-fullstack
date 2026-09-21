@@ -56,6 +56,31 @@ $alcance = $alcance ?? [];
                      entrar, que es lo que se viene a hacer cuando no hay nada que responder.
                      Quien coordina también abre intercambios, pero el suyo no es una propuesta:
                      designa a los dos profesores y nace ya validado. */ ?>
+            <?php /* Alex explica el módulo. No es decoración: lo que confunde de un
+                     intercambio no es el concepto —dos profesores se cambian una clase—
+                     sino que «aceptado» TODAVÍA NO ES EFECTIVO. Ese aviso solo existía
+                     dentro de cada tarjeta ya aceptada, o sea que se leía después de
+                     haberlo necesitado. Aquí va antes de tocar nada. */ ?>
+            <section class="swp-intro">
+                <img src="/build/assets/img/alex/alex-dice.png" alt="" class="swp-intro__alex">
+                <div>
+                    <p class="swp-intro__t">Un intercambio cambia UNA clase, no tu horario</p>
+                    <p class="swp-intro__p">
+                        Tú no das una clase concreta un día concreto y otro profesor la cubre; a cambio,
+                        cubres tú una suya. Tu horario permanente no se toca.
+                        <strong>Hasta que dirección o prefectura lo validen, el cambio no vale:</strong>
+                        si te lo aceptan pero nadie lo valida, tienes que ir a tu clase.
+                    </p>
+                    <p class="swp-intro__pasos">
+                        <span class="swp-intro__paso"><i class="fa-solid fa-paper-plane"></i> Lo propones</span>
+                        <span class="swp-intro__sep"><i class="fa-solid fa-chevron-right"></i></span>
+                        <span class="swp-intro__paso"><i class="fa-solid fa-handshake"></i> El compañero acepta</span>
+                        <span class="swp-intro__sep"><i class="fa-solid fa-chevron-right"></i></span>
+                        <span class="swp-intro__paso"><i class="fa-solid fa-gavel"></i> Se valida y ya es efectivo</span>
+                    </p>
+                </div>
+            </section>
+
             <?php if ($imparte || $coordina): ?>
             <div class="swp-barra">
                 <a href="/dashboard/swaps/crear" class="admin-new-btn">

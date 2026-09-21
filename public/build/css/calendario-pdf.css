@@ -1,0 +1,262 @@
+@page {
+  size: A4 landscape;
+  margin: 9mm;
+}
+body {
+  font-family: "Outfit", sans-serif;
+  font-size: 8pt;
+  color: #12233d;
+}
+
+.cp-head {
+  width: 100%;
+  border-bottom: 1.6pt solid #1f5a94;
+  padding-bottom: 3mm;
+  margin-bottom: 4mm;
+}
+.cp-head__marca {
+  width: 38mm;
+  vertical-align: middle;
+}
+.cp-head__logo {
+  width: 36mm;
+}
+.cp-head__wordmark {
+  font-size: 13pt;
+  font-weight: 800;
+  color: #1f5a94;
+}
+.cp-head__tit {
+  vertical-align: middle;
+  text-align: center;
+}
+.cp-head__tit h1 {
+  font-size: 15pt;
+  font-weight: 800;
+  color: #1f5a94;
+  margin: 0;
+}
+.cp-head__tit p {
+  font-size: 9.5pt;
+  font-weight: 600;
+  color: #5a6d85;
+  margin: 1mm 0 0;
+}
+.cp-head__meta {
+  width: 48mm;
+  vertical-align: middle;
+  text-align: right;
+}
+
+.cp-tag {
+  display: block;
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #1f5a94;
+  background: #f2f6fb;
+  border: 0.5pt solid #d8e2ee;
+  border-radius: 2mm;
+  padding: 1mm 2mm;
+  margin-bottom: 1.2mm;
+}
+
+.cp-fecha {
+  font-size: 6.8pt;
+  color: #5a6d85;
+}
+
+.cp-vacio {
+  display: block;
+  margin-top: 1.2mm;
+  font-size: 6.8pt;
+  font-weight: 700;
+  color: #1f5a94;
+}
+
+.cp-sin-eventos .cp-head {
+  margin-bottom: 1mm;
+}
+.cp-sin-eventos .cp-pie {
+  margin-top: 2mm;
+}
+
+.cp-anio {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 2mm;
+}
+.cp-anio__celda {
+  width: 25%;
+  vertical-align: top;
+}
+
+.cp-mes {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border: 0.5pt solid #d8e2ee;
+}
+.cp-mes__tit {
+  font-size: 8.5pt;
+  font-weight: 800;
+  color: #fff;
+  background: #1f5a94;
+  padding: 1.2mm 0;
+  text-align: center;
+}
+.cp-mes__tit span {
+  font-weight: 500;
+  color: #cadff2;
+}
+.cp-mes__dow {
+  font-size: 6pt;
+  font-weight: 700;
+  color: #5a6d85;
+  background: #f2f6fb;
+  text-align: center;
+  padding: 0.8mm 0;
+  border-bottom: 0.5pt solid #d8e2ee;
+}
+.cp-mes__d {
+  width: 14.28%;
+  height: 5.2mm;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 6.8pt;
+  color: #12233d;
+  border: 0.25pt solid #d8e2ee;
+}
+.cp-mes__d--off {
+  color: transparent;
+  background: #fbfcfe;
+}
+.cp-mes__d--ev {
+  color: #fff;
+  font-weight: 800;
+}
+.cp-mes__d--claro {
+  color: #16202e;
+}
+.cp-mes__d--hoy {
+  box-shadow: none;
+  border: 1pt solid #1f5a94;
+  font-weight: 800;
+}
+
+.cp-leyenda {
+  width: 100%;
+  margin-top: 3mm;
+  border-top: 0.5pt solid #d8e2ee;
+  padding-top: 2mm;
+}
+.cp-leyenda__item {
+  font-size: 7pt;
+  font-weight: 600;
+  color: #5a6d85;
+  text-align: center;
+}
+.cp-leyenda__punto {
+  display: inline-block;
+  width: 2.4mm;
+  height: 2.4mm;
+  border-radius: 1.2mm;
+  margin-right: 1mm;
+}
+.cp-leyenda__ico {
+  font-family: "FontAwesome";
+  font-size: 8pt;
+  margin-right: 1.2mm;
+}
+
+.cp-detalle {
+  page-break-before: always;
+}
+.cp-detalle__tit {
+  font-size: 13pt;
+  font-weight: 800;
+  color: #1f5a94;
+  border-bottom: 1.2pt solid #1f5a94;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+}
+
+.cp-mesdet {
+  width: 100%;
+  margin-bottom: 2.5mm;
+  page-break-inside: avoid;
+}
+.cp-mesdet__nombre {
+  width: 30mm;
+  vertical-align: top;
+  font-size: 9pt;
+  font-weight: 800;
+  color: #1f5a94;
+  padding: 1.5mm 2mm 1.5mm 0;
+  border-right: 0.8pt solid #d8e2ee;
+}
+.cp-mesdet__nombre span {
+  display: block;
+  font-size: 7pt;
+  font-weight: 500;
+  color: #5a6d85;
+}
+.cp-mesdet__cuerpo {
+  vertical-align: top;
+  padding-left: 3mm;
+}
+
+.cp-ev {
+  width: 100%;
+  margin-bottom: 1.2mm;
+  page-break-inside: avoid;
+}
+.cp-ev__dia {
+  width: 12mm;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 8pt;
+  font-weight: 800;
+  color: #fff;
+  border-radius: 1.5mm;
+  padding: 1.2mm 0.5mm;
+}
+.cp-ev__ico {
+  width: 7mm;
+  text-align: center;
+  vertical-align: middle;
+  font-family: "FontAwesome";
+  font-size: 9pt;
+  padding-left: 2.5mm;
+}
+.cp-ev__txt {
+  vertical-align: middle;
+  padding-left: 2.5mm;
+}
+.cp-ev__tit {
+  display: block;
+  font-size: 8.5pt;
+  font-weight: 700;
+}
+.cp-ev__meta {
+  display: block;
+  font-size: 6.8pt;
+  font-weight: 600;
+  color: #5a6d85;
+}
+.cp-ev__desc {
+  display: block;
+  font-size: 7pt;
+  color: #5a6d85;
+  margin-top: 0.4mm;
+}
+
+.cp-pie {
+  margin-top: 4mm;
+  padding-top: 2mm;
+  border-top: 0.5pt solid #d8e2ee;
+  font-size: 6.5pt;
+  color: #5a6d85;
+  text-align: center;
+}
+/*# sourceMappingURL=calendario-pdf.css.map */

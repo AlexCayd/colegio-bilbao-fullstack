@@ -293,24 +293,52 @@ class Suplencia extends ActiveRecord {
      * YA unen `suplencia_horas`: un segundo JOIN multiplicaría filas y el
      * `COUNT(sh.id) AS total_horas` contaría de más. El EXISTS no aporta ni una fila.
      *
+     * Hay DOS caminos al nivel y los dos cuentan, en OR:
+     *
+     *   1. **Las horas**, vía `periodos.nivel`. Es el nivel de las clases que hay que
+     *      cubrir, y el único fiable para eso (`grupo_id` y `materia_id` van NULL en las
+     *      guardias de receso, así que filtrar por `grupos.nivel` las perdería).
+     *   2. **El profesor ausente**, vía sus `niveles` declarados. Una dirección gestiona
+     *      personas, no solo franjas horarias: la ausencia de un profesor de Primaria le
+     *      compete aunque ese día faltara a una hora que el horario no sabe ubicar, y es
+     *      lo que hace que la segmentación siga al claustro y no solo al calendario.
+     *
      * @param string[] $niveles         [] o los cinco = sin filtro
      * @param string   $alias           alias de `suplencias` en la consulta
      * @param bool     $incluirSinNivel true deja pasar la suplencia que todavía no
-     *        tiene horas. En la AGENDA y la COLA hay que ponerlo: una ausencia recién
-     *        abierta no tiene nivel y se volvería invisible justo para quien debe
-     *        agendarla. En las ESTADÍSTICAS va a false — sin horas no aporta a nadie.
+     *        tiene horas NI ausente con niveles. En la AGENDA y la COLA hay que ponerlo:
+     *        una ausencia recién abierta se volvería invisible justo para quien debe
+     *        agendarla. En las ESTADÍSTICAS va a false — sin nivel no aporta a nadie.
      */
     public static function sqlNivel(array $niveles, string $alias = 'sup', bool $incluirSinNivel = false): string {
         $ok = array_values(array_intersect(Materia::NIVELES, $niveles));
         if (!$ok || count($ok) === count(Materia::NIVELES)) return '';
         $in = implode(',', array_map(fn($n) => "'" . self::$db->escape_string($n) . "'", $ok));
 
-        $p = "EXISTS (SELECT 1 FROM suplencia_horas shn
-                        JOIN periodos pn ON pn.id = shn.periodo_id
-                       WHERE shn.suplencia_id = {$alias}.id AND pn.nivel IN ({$in}))";
+        // Por las horas de la suplencia.
+        $porHora = "EXISTS (SELECT 1 FROM suplencia_horas shn
+                              JOIN periodos pn ON pn.id = shn.periodo_id
+                             WHERE shn.suplencia_id = {$alias}.id AND pn.nivel IN ({$in}))";
+
+        // Por los niveles declarados del ausente. Va como EXISTS sobre `usuarios` y no
+        // leyendo un alias: sqlNivel() lo llaman también porEstado() y resumenDiario(),
+        // que consultan `FROM suplencias` a secas, sin el JOIN al ausente de selectBase().
+        $orNivel = implode(' OR ', array_map(
+            fn($n) => "FIND_IN_SET('" . self::$db->escape_string($n) . "', un.niveles)", $ok));
+        $porAusente = "EXISTS (SELECT 1 FROM usuarios un
+                                WHERE un.id = {$alias}.profesor_ausente_id AND ({$orNivel}))";
+
+        $p = "({$porHora} OR {$porAusente})";
+
         if ($incluirSinNivel) {
-            $p = "({$p} OR NOT EXISTS (SELECT 1 FROM suplencia_horas shx
-                                        WHERE shx.suplencia_id = {$alias}.id))";
+            // "Sin nivel" es no tener NINGUNO de los dos caminos resueltos: ni horas, ni
+            // un ausente que declare niveles. Con uno de los dos, la suplencia ya tiene
+            // dueño y no debe colarse en el alcance de las demás direcciones.
+            $p = "({$p} OR (NOT EXISTS (SELECT 1 FROM suplencia_horas shx
+                                         WHERE shx.suplencia_id = {$alias}.id)
+                            AND NOT EXISTS (SELECT 1 FROM usuarios ux
+                                             WHERE ux.id = {$alias}.profesor_ausente_id
+                                               AND ux.niveles IS NOT NULL AND ux.niveles <> '')))";
         }
         return " AND {$p}";
     }
@@ -413,11 +441,19 @@ class Suplencia extends ActiveRecord {
      * Con `$usuarioId` se ciñe a las suplencias de esa persona (como ausente o
      * como suplente): a un profesor no le sirve —ni le corresponde— el total del
      * claustro sobre unas tarjetas que encabezan una lista ya filtrada.
+     *
+     * ⚠️ Cuenta las suplencias **sin nivel todavía** (`$incluirSinNivel = true`), porque
+     * encabeza una lista que también las muestra. `listar()` y `resumenDiario()` ya lo
+     * hacían y esto no: a una dirección de nivel, una ausencia recién abierta por
+     * prefectura —sin horas, y por tanto sin nivel— salía en la tabla y en el calendario
+     * pero no en las tarjetas, que decían una cifra menor que las filas de debajo.
+     * Las estadísticas del tablero llaman a `porEstado()` directamente y siguen
+     * excluyéndolas, que ahí es lo correcto: no aportan a ningún nivel.
      */
     public static function conteos(int $usuarioId = 0, array $niveles = []): array {
         $out = ['total' => 0];
         foreach (self::ESTADOS as $e) $out[$e] = 0;
-        foreach (self::porEstado($usuarioId, $niveles) as $estado => $n) {
+        foreach (self::porEstado($usuarioId, $niveles, true) as $estado => $n) {
             $out[$estado] = $n;
             $out['total'] += $n;
         }
@@ -451,12 +487,49 @@ class Suplencia extends ActiveRecord {
         $db->query("UPDATE suplencias SET estado='" . $db->escape_string($nuevo) . "' WHERE id={$id} LIMIT 1");
     }
 
+    /**
+     * Cancela una suplencia que ya no hace falta, sin borrarla.
+     *
+     * El estado `cancelada` existía en el ENUM y en ESTADO_LABEL desde el principio y
+     * **ningún código lo escribía nunca**: era inalcanzable, y lo único que había era el
+     * borrado duro. Perder el registro no es lo mismo que cerrarlo — una ausencia que se
+     * anuló ocurrió, y el histórico tiene que poder distinguirla de una que nunca existió.
+     *
+     * Las horas se conservan tal cual. Lo que se libera lo libera el propio estado:
+     * `sugerir()` deja de contar como ausente a quien la abrió (`estado <> 'cancelada'`),
+     * `motivoBloqueo()` rechaza asignar sobre ella, y `recalcularEstado()` ya respetaba
+     * este estado y no lo pisa.
+     *
+     * El motivo se acumula en `notas` en lugar de sobrescribir el motivo de la ausencia:
+     * son dos preguntas distintas —por qué faltaba y por qué ya no— y machacar la primera
+     * dejaría el histórico contando una cosa por otra.
+     */
+    public static function cancelar(int $id, string $motivo = ''): bool {
+        $id = (int)$id;
+        if ($id <= 0) return false;
+        $s = self::find($id);
+        if (!$s || $s->estado === 'cancelada') return false;
+
+        $db     = self::$db;
+        $motivo = trim($motivo);
+        $sets   = ["estado = 'cancelada'"];
+
+        if ($motivo !== '') {
+            $previo = trim((string)$s->notas);
+            $linea  = 'Cancelada el ' . date('d/m/Y') . ': ' . $motivo;
+            $sets[] = "notas = '" . $db->escape_string($previo === '' ? $linea : $previo . "\n" . $linea) . "'";
+        }
+
+        return (bool)$db->query(
+            "UPDATE " . static::$tabla . " SET " . implode(', ', $sets) . " WHERE id = {$id} LIMIT 1");
+    }
+
     // ── Agregados para el dashboard (admin) ─────────────────────────────────────
     /**
      * Conteo por estado. `conteos()` es lo mismo más el total, así que se deriva de aquí
      * en lugar de repetir el GROUP BY en dos consultas.
      */
-    public static function porEstado(int $usuarioId = 0, array $niveles = []): array {
+    public static function porEstado(int $usuarioId = 0, array $niveles = [], bool $incluirSinNivel = false): array {
         $out = [];
         $where = '';
         if ($usuarioId > 0) {
@@ -467,7 +540,7 @@ class Suplencia extends ActiveRecord {
             $where = " AND (sup.profesor_ausente_id = {$uid}"
                    . " OR sup.id IN (SELECT suplencia_id FROM suplencia_horas WHERE suplente_id = {$uid}))";
         }
-        $where .= self::sqlNivel($niveles, 'sup');
+        $where .= self::sqlNivel($niveles, 'sup', $incluirSinNivel);
         $r = self::$db->query("SELECT sup.estado, COUNT(*) n FROM suplencias sup WHERE 1=1{$where} GROUP BY sup.estado");
         if ($r) while ($row = $r->fetch_assoc()) $out[$row['estado']] = (int)$row['n'];
         return $out;

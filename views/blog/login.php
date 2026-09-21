@@ -85,6 +85,14 @@
 
         </form>
 
+        <?php /* Hasta ahora, quien olvidaba su contraseña no tenía ninguna salida desde
+                 aquí: había que saber a quién escribirle. El flujo de /olvide del sitio
+                 público NO sirve — es de las cuentas de familias (Model\Usuario) y la
+                 tabla del panel ni siquiera tiene columna `token`. */ ?>
+        <p class="admin-form__olvide">
+            <a href="/recuperar">¿Olvidaste tu contraseña?</a>
+        </p>
+
         <p class="admin-form__back">
             <i class="fa-solid fa-arrow-left"></i>
             <a href="/">Volver al sitio público</a>

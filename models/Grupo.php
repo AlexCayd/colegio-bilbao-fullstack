@@ -3,11 +3,19 @@ namespace Model;
 
 class Grupo extends ActiveRecord {
     protected static $tabla      = 'grupos';
+    /**
+     * ⚠️ `activo` NO entra aquí a propósito. Es una columna con DEFAULT 1 que solo
+     * escribe cambiarActivo(): el ORM base envuelve todo en comillas y no sabe escribir
+     * un TINYINT nulo, y dejándola fuera ningún `sincronizar($_POST)` puede reactivar
+     * un grupo desde el formulario.
+     */
     protected static $columnasDB = ['id', 'nombre', 'nivel'];
 
     public $id;
     public $nombre;
     public $nivel;
+    /** Baja lógica: 0 = el archivo ya no lo menciona. Ver database.sql. */
+    public $activo;
 
     /** Alias de conteo (no es columna: hay que declararlo o crearObjeto() lo descarta). */
     public $total_horarios;
@@ -19,17 +27,22 @@ class Grupo extends ActiveRecord {
      * Todos en secuencia académica (Maternal → Bachillerato) y, dentro de cada
      * nivel, alfabéticamente. Antes había una columna `orden` que había que
      * mantener a mano; el orden se deduce ya del nivel + el nombre.
+     *
+     * ⚠️ Por defecto SOLO los activos, que es lo que necesita quien monta un selector:
+     * un grupo dado de baja no debe poder recibir una clase nueva. El importador —que
+     * tiene que reconocer lo inactivo para reactivarlo— pasa `true`.
      */
-    public static function todos(): array {
+    public static function todos(bool $incluirInactivos = false): array {
+        $filtro = $incluirInactivos ? '' : 'WHERE activo = 1 ';
         return static::consultarSQL(
-            "SELECT * FROM grupos ORDER BY " . Materia::ordenNivel() . ", nombre ASC"
+            "SELECT * FROM grupos {$filtro}ORDER BY " . Materia::ordenNivel() . ", nombre ASC"
         );
     }
 
     /** Agrupados por nivel para pintar <optgroup>: ['Primaria' => Grupo[], …]. */
-    public static function porNivel(): array {
+    public static function porNivel(bool $incluirInactivos = false): array {
         $out = [];
-        foreach (self::todos() as $g) {
+        foreach (self::todos($incluirInactivos) as $g) {
             $out[$g->nivel][] = $g;
         }
         return $out;
@@ -54,6 +67,15 @@ class Grupo extends ActiveRecord {
             'horarios'   => $n("SELECT COUNT(*) n FROM horarios WHERE grupo_id = {$id}"),
             'suplencias' => $n("SELECT COUNT(*) n FROM suplencia_horas WHERE grupo_id = {$id}"),
         ];
+    }
+
+    /**
+     * Da de baja (o vuelve a dar de alta) estos grupos. Ver Aula::cambiarActivo().
+     *
+     * @return int filas realmente cambiadas.
+     */
+    public static function cambiarActivo(array $ids, bool $activo): int {
+        return self::marcarActivo($ids, $activo);
     }
 
     public function validar() {

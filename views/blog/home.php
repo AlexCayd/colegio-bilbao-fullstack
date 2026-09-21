@@ -161,6 +161,25 @@ $legendLabel = \Model\Evento::TIPO_LABEL;
 
             </div>
 
+            <?php /* «Ahora / Sigue» + la columna de hoy. Va justo DEBAJO del hero y
+                     ANTES de los módulos: es lo más perecedero de la pantalla —en diez
+                     minutos dice otra cosa— y las tarjetas de módulo siguen ahí todo el
+                     curso. Solo para quien imparte; el controlador manda `null` al resto.
+                     La hora la lleva el cliente (admin-horario-ahora.js). */ ?>
+            <?php if (!empty($hoy)): ?>
+                <?php
+                $haBloques = $hoy['bloques'];
+                $haDia     = $hoy['dia'];
+                $haTitulo  = 'Tu día de hoy';
+                $haPropio  = true;
+                include __DIR__ . '/_horario-ahora.php';
+                ?>
+            <?php endif; ?>
+
+            <?php /* Visitas al sitio público. Solo admin: el controlador manda `null` a
+                     todos los demás, y con él tampoco se carga Chart.js. */ ?>
+            <?php if (!empty($visitas)): include __DIR__ . '/_visitas.php'; endif; ?>
+
             <!-- MÓDULOS, agrupados por categoría -->
             <?php if (empty($gruposVisibles)): ?>
                 <p class="mh-section-label"><i class="fa-solid fa-grip"></i> Tus módulos</p>

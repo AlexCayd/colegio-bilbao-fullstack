@@ -9,6 +9,10 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS actualizacion_vistas;
+DROP TABLE IF EXISTS actualizaciones;
+DROP TABLE IF EXISTS solicitudes_password;
+DROP TABLE IF EXISTS visitas;
 DROP TABLE IF EXISTS swap_clases;
 DROP TABLE IF EXISTS suplencia_horas;
 DROP TABLE IF EXISTS suplencias;
@@ -19,6 +23,7 @@ DROP TABLE IF EXISTS aulas;
 DROP TABLE IF EXISTS grupos;
 DROP TABLE IF EXISTS materias;
 DROP TABLE IF EXISTS eventos;
+DROP TABLE IF EXISTS ajustes;
 DROP TABLE IF EXISTS notificaciones;
 DROP TABLE IF EXISTS articulo_tags;
 DROP TABLE IF EXISTS articulos;
@@ -52,8 +57,22 @@ CREATE TABLE usuarios (
     niveles          SET('Maternal','Kinder','Primaria','Secundaria','Bachillerato') NULL,
     puede_suplir     TINYINT(1)    NOT NULL DEFAULT 1, -- 0 = "No puede suplir a otros profesores"
     modulos          VARCHAR(255)  NULL,          -- CSV de módulos para rol 'usuario' (ej. 'redaccion,suplencias')
-    fecha_nacimiento DATE          NULL,          -- para el calendario interno de cumpleaños
+    -- Para el calendario interno de cumpleaños. El DEFAULT es un marcador, no un dato:
+    -- una cuenta nueva nace con él y su dueño lo corrige desde /dashboard/perfil. Se
+    -- prefiere a NULL porque el calendario tiene entonces una fila por persona desde el
+    -- primer día, y un 1 de enero de 2000 repetido se lee como "sin capturar" a simple
+    -- vista. Sigue admitiendo NULL: guardar el campo vacío lo pone a NULL de verdad
+    -- (UsuarioBlog::guardarFechaNacimiento(), que el ORM base no sabe hacer).
+    fecha_nacimiento DATE          NULL DEFAULT '2000-01-01',
     avatar           VARCHAR(255)  NULL,
+    -- Baja lógica. 0 = la persona ya no está en el colegio: no entra al panel, no sale
+    -- como candidata a suplir ni en los buscadores, pero CONSERVA su histórico entero
+    -- (suplencias, intercambios, artículos, notificaciones). Es lo que la importación
+    -- de horarios pone a 0 cuando un profesor deja de aparecer en el archivo, en vez de
+    -- borrar la cuenta — y lo que un admin revierte con un clic desde Usuarios.
+    -- ⚠️ NO va en UsuarioBlog::$columnasDB: se escribe solo por cambiarActivo(), así
+    -- que ningún sincronizar($_POST) puede reactivarse a sí mismo.
+    activo           TINYINT(1)    NOT NULL DEFAULT 1,
     ultimo_acceso    DATETIME      NULL,
     creado_en        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -80,9 +99,26 @@ CREATE TABLE periodos (
     UNIQUE KEY uq_nivel_orden (nivel, orden)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ⚠️ `activo` (aulas, grupos, materias): BAJA LÓGICA, no borrado.
+--
+-- La importación de horarios es el censo del colegio, y lo que el archivo deja de
+-- mencionar deja de ofrecerse: un aula inactiva no sale en el selector del editor ni
+-- en el de suplencias. Pero NO se borra, porque:
+--
+--   · `suplencia_horas.grupo_id/aula_id/materia_id` son ON DELETE SET NULL, así que un
+--     DELETE no da error: le vacía el dato al histórico en silencio y la cobertura de
+--     marzo deja de saber dónde fue.
+--   · el catálogo del curso pasado sigue siendo la explicación de los datos del curso
+--     pasado, y un export incompleto no debería poder destruirlo.
+--
+-- Volver a mencionarlo en un CSV posterior lo reactiva solo. En aulas y grupos hay
+-- además un interruptor en su listado del panel.
+-- ⚠️ NO va en $columnasDB de ningún modelo: se escribe solo por cambiarActivo().
+
 CREATE TABLE aulas (
     id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     nombre VARCHAR(80)  NOT NULL,
+    activo TINYINT(1)   NOT NULL DEFAULT 1,
     PRIMARY KEY (id),
     UNIQUE KEY uq_aula (nombre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -93,6 +129,7 @@ CREATE TABLE grupos (
     id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     nombre VARCHAR(80)  NOT NULL,                     -- ej. '3A Primaria'
     nivel  ENUM('Maternal','Kinder','Primaria','Secundaria','Bachillerato') NOT NULL,
+    activo TINYINT(1)   NOT NULL DEFAULT 1,
     PRIMARY KEY (id),
     UNIQUE KEY uq_grupo (nombre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -102,6 +139,7 @@ CREATE TABLE materias (
     id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     nombre VARCHAR(120) NOT NULL,
     nivel  ENUM('Maternal','Kinder','Primaria','Secundaria','Bachillerato') NOT NULL,
+    activo TINYINT(1)   NOT NULL DEFAULT 1,
     PRIMARY KEY (id),
     UNIQUE KEY uq_materia (nombre, nivel)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -314,6 +352,11 @@ CREATE TABLE eventos (
     fecha       DATE         NOT NULL,
     fecha_fin   DATE         NULL,
     tipo        ENUM('festivo','evento','junta','entrega','suspension') NOT NULL DEFAULT 'evento',
+    -- Icono Font Awesome elegido a mano (`fa-cake-candles`). NULL = el del `tipo`,
+    -- que es como se pintaba el 100% del calendario antes de que existiera esta
+    -- columna. El valor se valida contra Evento::ICONOS antes de guardarse: aquí
+    -- entra una clase CSS que acaba en el HTML público.
+    icono       VARCHAR(40)  NULL,
     titulo      VARCHAR(160) NOT NULL,
     descripcion TEXT         NULL,
     -- interno     → solo el panel (colaboradores)
@@ -326,6 +369,20 @@ CREATE TABLE eventos (
     PRIMARY KEY (id),
     KEY idx_fecha (fecha),
     KEY idx_audiencia (audiencia)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ── Ajustes del sitio ─────────────────────────────────────────────────────────
+-- Clave-valor para los interruptores que no pertenecen a ninguna entidad. Hoy
+-- solo uno: si el calendario del ciclo se puede descargar en PDF desde la web
+-- pública (`calendario_publico_pdf`).
+--
+-- Una fila AUSENTE no es un error: Ajuste::bool() cae al valor por defecto que
+-- se le pase, así que el panel funciona sobre una BD que no la tenga todavía.
+CREATE TABLE ajustes (
+    clave       VARCHAR(60)  NOT NULL,
+    valor       VARCHAR(255) NULL,
+    actualizado TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (clave)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ── Módulo de Suplencias (panel intranet) ─────────────────────────────────────
@@ -473,6 +530,96 @@ CREATE TABLE swap_clases (
     CONSTRAINT fk_swap_hord  FOREIGN KEY (horario_destino_id) REFERENCES horarios (id) ON DELETE SET NULL,
     CONSTRAINT fk_swap_val   FOREIGN KEY (validado_por)       REFERENCES usuarios (id) ON DELETE SET NULL,
     CONSTRAINT fk_swap_crea  FOREIGN KEY (creado_por)         REFERENCES usuarios (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ── Visitas al sitio público ──────────────────────────────────────────────────
+-- Contador propio, no analítica de terceros: alimenta la gráfica del home del
+-- panel (solo admin). Clarity y GA siguen donde estaban, pero ninguno de los dos
+-- expone una serie histórica que podamos consultar desde PHP.
+--
+-- ⚠️ Es un AGREGADO, no un registro de eventos: una fila por (día, ruta, visitante)
+-- con un contador, no una fila por carga de página. Un sitio institucional no
+-- necesita el detalle y así la tabla no crece sin control.
+--
+-- `visitante_hash` = sha1(IP + user-agent + sal del día). No se guarda la IP ni el
+-- user-agent en claro, y como la sal cambia cada día el hash no permite seguir a
+-- nadie de una jornada a la siguiente: solo sirve para no contar diez veces al
+-- mismo visitante en la misma página el mismo día.
+CREATE TABLE visitas (
+    id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    fecha          DATE         NOT NULL,
+    ruta           VARCHAR(190) NOT NULL,      -- 190 y no 255: cabe en un UNIQUE utf8mb4
+    visitante_hash CHAR(40)     NOT NULL,
+    golpes         INT UNSIGNED NOT NULL DEFAULT 1,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_visita (fecha, ruta, visitante_hash),
+    KEY idx_visita_fecha (fecha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ── Actualizaciones (anuncios de versión) ─────────────────────────────────────
+-- El desarrollador publica una novedad y, hasta que cada usuario la marca como
+-- vista, el panel no le deja pasar a ninguna pantalla. Por eso hay DOS tablas: el
+-- anuncio es uno, pero el acuse es por persona.
+--
+-- La puerta se monta en views/layout-admin.php y NO en requireAuth(): ese guard lo
+-- llaman también los endpoints JSON, y pintar HTML desde ahí corrompería sus
+-- respuestas. Por el layout solo pasan las pantallas HTML, que son justo las que
+-- hay que bloquear.
+CREATE TABLE actualizaciones (
+    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    version      VARCHAR(20)  NULL,           -- etiqueta libre: 'v2.4', 'Septiembre 2026'…
+    titulo       VARCHAR(160) NOT NULL,
+    cuerpo       TEXT         NOT NULL,
+    imagen       VARCHAR(255) NULL,           -- captura de la novedad, en /build/assets/actualizaciones/
+    -- Borrador = redactada pero sin soltar. PUBLICAR es el disparador del modal:
+    -- mientras esté en borrador no bloquea a nadie ni sale en el historial.
+    estado       ENUM('borrador','publicada') NOT NULL DEFAULT 'borrador',
+    publicada_en DATETIME     NULL,
+    creado_por   INT UNSIGNED NULL,
+    creado_en    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_act_estado (estado, publicada_en),
+    CONSTRAINT fk_act_creador FOREIGN KEY (creado_por) REFERENCES usuarios (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Acuse de recibo. La PK compuesta es la que garantiza que no haya dos acuses de la
+-- misma persona para el mismo anuncio, así que el POST de "Entendido" es idempotente
+-- y un doble clic no duplica nada.
+CREATE TABLE actualizacion_vistas (
+    actualizacion_id INT UNSIGNED NOT NULL,
+    usuario_id       INT UNSIGNED NOT NULL,
+    visto_en         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (actualizacion_id, usuario_id),
+    KEY idx_av_usuario (usuario_id),
+    CONSTRAINT fk_av_act     FOREIGN KEY (actualizacion_id) REFERENCES actualizaciones (id) ON DELETE CASCADE,
+    CONSTRAINT fk_av_usuario FOREIGN KEY (usuario_id)       REFERENCES usuarios (id)        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ── Solicitudes de restablecimiento de contraseña ─────────────────────────────
+-- El panel NO manda correo (classes/Email.php sirve solo al registro público y
+-- arrastra remitente y textos de la plantilla original). Así que "olvidé mi
+-- contraseña" no genera un token por correo sino una SOLICITUD que un admin resuelve
+-- desde el panel, generando una contraseña temporal que comunica por su cuenta.
+--
+-- ⚠️ `usuario_id` puede ser NULL y es deliberado: el formulario público responde
+-- siempre lo mismo exista o no el correo, para no convertirlo en un verificador de
+-- cuentas. Una solicitud sin usuario es alguien que se equivocó de correo, y la cola
+-- la muestra como tal.
+CREATE TABLE solicitudes_password (
+    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    nombre       VARCHAR(120) NOT NULL,
+    email        VARCHAR(180) NOT NULL,
+    usuario_id   INT UNSIGNED NULL,
+    estado       ENUM('pendiente','resuelta','descartada') NOT NULL DEFAULT 'pendiente',
+    resuelto_por INT UNSIGNED NULL,
+    resuelto_en  DATETIME     NULL,
+    ip           VARCHAR(45)  NULL,           -- 45 = IPv6 en su forma más larga
+    creado_en    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_sp_estado (estado, creado_en),
+    KEY idx_sp_email (email, creado_en),      -- sirve al límite de una por hora
+    CONSTRAINT fk_sp_usuario  FOREIGN KEY (usuario_id)   REFERENCES usuarios (id) ON DELETE SET NULL,
+    CONSTRAINT fk_sp_resuelto FOREIGN KEY (resuelto_por) REFERENCES usuarios (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Reactivar comprobaciones de FK (al final: ver nota de la cabecera)

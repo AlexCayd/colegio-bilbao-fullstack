@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?php include __DIR__ . '/templates/clarity.php'; ?>
     <title>Admin - <?php echo htmlspecialchars($titulo); ?> | Colegio Bilbao</title>
     <link rel="shortcut icon" href="/build/assets/img/global/favicon.png" type="image/png">
     <link rel="icon" type="image/png" sizes="32x32" href="/build/assets/img/global/favicon.png">
@@ -53,6 +54,24 @@
 </head>
 <body class="admin-body"<?= !empty($paginaVista) ? ' data-page="' . htmlspecialchars($paginaVista) . '"' : '' ?>>
     <?php echo $contenido; ?>
+
+<?php
+/* ── Puerta de actualizaciones ──
+   Mientras haya anuncios publicados sin acusar, el panel no deja pasar a ninguna
+   pantalla. Se monta AQUÍ y no en BlogController::requireAuth(), y la diferencia
+   importa: ese guard lo llaman también los endpoints JSON (`/suplencias/sugerir`,
+   `/swaps/clases`, el autocompletado…), y pintar HTML desde él corrompería sus
+   respuestas. Por el layout solo pasan las pantallas HTML, que son exactamente las que
+   hay que bloquear.
+
+   El POST de acuse lleva además su propio guard de servidor, así que esto es la
+   interposición visual y no la única defensa. */
+$_actPend = [];
+if (!empty($_SESSION['blog_usuario']) && class_exists(\Model\Actualizacion::class)) {
+    $_actPend = \Model\Actualizacion::pendientesDe((int)$_SESSION['blog_usuario']['id']);
+}
+if ($_actPend) include __DIR__ . '/blog/_actualizaciones-modal.php';
+?>
 
 <?php
 // Modal de Alex: avisa de la notificación pendiente más reciente, sea del módulo

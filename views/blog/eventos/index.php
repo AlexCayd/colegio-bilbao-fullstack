@@ -2,7 +2,10 @@
 <?php
 /** @var \Model\Evento[] $eventos */
 $tipoLabel = \Model\Evento::TIPO_LABEL;
-$tipoColor = ['festivo' => '#e51022', 'evento' => '#4285f4', 'junta' => '#aa2296', 'entrega' => '#46bdc6', 'suspension' => '#f5b400'];
+// El color sale del modelo: lo comparten este listado, el calendario público y el
+// PDF del ciclo. Cuando cada uno llevaba su propia tabla, un mismo evento salía de
+// un color en el panel y de otro en la web.
+$tipoColor = \Model\Evento::TIPO_COLOR;
 $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 ?>
 <div class="admin-layout">
@@ -22,7 +25,45 @@ $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
             if (isset($_GET['success'])) $toast = ['¡Evento creado!', '#4285f4', 'fa-calendar-plus'];
             elseif (isset($_GET['edited'])) $toast = ['¡Cambios guardados!', '#319795', 'fa-floppy-disk'];
             elseif (isset($_GET['deleted'])) $toast = ['¡Evento eliminado!', '#4267ac', 'fa-circle-check'];
+            elseif (($_GET['ajuste'] ?? '') === '1') $toast = ['¡Ajuste guardado!', '#8ac926', 'fa-sliders'];
+            elseif (($_GET['ajuste'] ?? '') === '0') $toast = ['No se pudo guardar el ajuste', '#e51022', 'fa-triangle-exclamation'];
             ?>
+
+            <?php
+            // ── Calendario público ──
+            // El interruptor del PDF descargable vive aquí, en el módulo que llena ese
+            // calendario, y no en una pantalla de ajustes que no existe. Apagarlo NO
+            // esconde solo el botón: /comunidad/familias/calendario.pdf redirige.
+            $ciclo = $ciclo ?? \Model\Evento::ciclo();
+            ?>
+            <div class="admin-panel ev-ajuste">
+                <div class="admin-panel__header">
+                    <h2 class="admin-panel__title">Calendario público</h2>
+                    <span class="ev-ajuste__ciclo"><i class="fa-solid fa-calendar-days"></i> Ciclo <?= s($ciclo['etiqueta']) ?></span>
+                </div>
+                <form action="/dashboard/eventos/ajustes" method="POST" class="ev-ajuste__form" data-evento-ajuste>
+                    <label class="admin-switch-row">
+                        <input type="checkbox" name="calendario_pdf" value="1" <?= !empty($calendarioPdf) ? 'checked' : '' ?>>
+                        <span class="admin-switch-row__track"><span class="admin-switch-row__knob"></span></span>
+                        <span class="admin-switch-row__text">
+                            <strong>Permitir descargar el calendario en PDF</strong>
+                            <small>Las familias verán el botón de descarga en Comunidad&nbsp;›&nbsp;Familias, con el ciclo completo y el filtro de niveles que tengan puesto.</small>
+                        </span>
+                    </label>
+                    <?php /* Se envía solo al cambiar el interruptor (admin-evento-ajuste.js).
+                             El botón es el camino sin JS y el módulo lo oculta al arrancar;
+                             `.admin-btn` tiene su propio `&[hidden]`, así que sí desaparece. */ ?>
+                    <button type="submit" class="admin-btn admin-btn--primary ev-ajuste__save">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar
+                    </button>
+                </form>
+                <?php if (!empty($calendarioPdf)): ?>
+                <a href="/comunidad/familias#calendario" class="ev-ajuste__link" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver el calendario publicado
+                </a>
+                <?php endif; ?>
+            </div>
+
             <div class="admin-panel">
                 <div class="admin-panel__header">
                     <h2 class="admin-panel__title">Calendario institucional <span class="admin-panel__count"><?= count($eventos ?? []) ?></span></h2>
@@ -66,8 +107,15 @@ $mesesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
                                     </div>
                                 </td>
                                 <td data-val="<?= s($e->titulo) ?>">
-                                    <div class="admin-table__title"><?= s($e->titulo) ?></div>
-                                    <?php if ($e->descripcion): ?><div class="admin-table__meta"><?= s($e->descripcion) ?></div><?php endif; ?>
+                                    <div class="ev-titulo">
+                                        <?php /* El icono es el elegido a mano o, si no hay, el del tipo:
+                                                 `icono()` resuelve las dos vías, igual que en la web. */ ?>
+                                        <span class="ev-ico-chip" style="--c:<?= $col ?>;"><i class="fa-solid <?= s($e->icono()) ?>"></i></span>
+                                        <span>
+                                            <span class="admin-table__title"><?= s($e->titulo) ?></span>
+                                            <?php if ($e->descripcion): ?><span class="admin-table__meta"><?= s($e->descripcion) ?></span><?php endif; ?>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td data-val="<?= s($tipoLabel[$e->tipo] ?? $e->tipo) ?>"><span class="ev-badge" style="--c:<?= $col ?>;"><?= s($tipoLabel[$e->tipo] ?? $e->tipo) ?></span></td>
                                 <?php $aud = $e->audiencia ?: 'interno'; ?>

@@ -62,16 +62,48 @@
                 </div>
             </div>
 
+            <?php /* El nombre solo lo cambia un administrador: es como aparece esta
+                     persona en los horarios, las suplencias y los intercambios de todo el
+                     claustro, así que no es un dato personal sino la identidad con la que
+                     el resto la reconoce. Para quien no es admin se pinta como dato, no
+                     como campo deshabilitado sin explicación — y el servidor lo vuelve a
+                     imponer en perfil(), porque esto es solo la vista. */ ?>
+            <?php $_esAdmin = ($_SESSION['blog_usuario']['rol'] ?? '') === 'administrador'; ?>
             <div class="ufi-campo">
                 <label class="admin-form__label" for="nombre"><i class="fa-regular fa-user"></i> Nombre completo</label>
+                <?php if ($_esAdmin): ?>
                 <input type="text" id="nombre" name="nombre" class="admin-form__input"
                        value="<?= s($u->nombre ?? '') ?>" placeholder="Tu nombre completo" required>
+                <?php else: ?>
+                <p class="ufi-campo__fijo"><i class="fa-solid fa-lock"></i> <?= s($u->nombre ?? '') ?></p>
+                <p class="ufi-campo__hint">Lo cambia un administrador: es el nombre con el que apareces en horarios y suplencias.</p>
+                <?php endif; ?>
             </div>
 
             <div class="ufi-campo">
                 <label class="admin-form__label" for="email"><i class="fa-regular fa-envelope"></i> Correo electrónico</label>
                 <input type="email" id="email" name="email" class="admin-form__input"
                        value="<?= s($u->email ?? '') ?>" placeholder="tu@correo.com" required>
+            </div>
+
+            <?php /* El cumpleaños SÍ es suyo y hasta ahora no había forma de ponerlo desde
+                     aquí: solo se podía por /dashboard/usuarios/editar, que un profesor
+                     abre sobre sí mismo pero que es la pantalla de administración. Alimenta
+                     el calendario del home, así que la fecha por defecto (1/1/2000) se lee
+                     como «sin capturar» hasta que su dueño la corrige.
+                     `habiles=false`: se nace cualquier día de la semana. */ ?>
+            <div class="ufi-campo">
+                <?php
+                $fechaName    = 'fecha_nacimiento';
+                $fechaLabel   = 'Fecha de nacimiento';
+                $fechaValor   = (string)($u->fecha_nacimiento ?? '');
+                $fechaMax     = date('Y-m-d');
+                $fechaHabiles = false;
+                $fechaLimpiar = true;
+                $fechaPlaceholder = 'Elige tu fecha';
+                include __DIR__ . '/../_campo-fecha.php';
+                ?>
+                <p class="ufi-campo__hint">Solo se usa para el calendario de cumpleaños del panel.</p>
             </div>
 
             <!-- Contraseña -->

@@ -151,10 +151,15 @@ foreach (($usuarios ?? []) as $u) {
                                 $color   = $avatarColors[$u->id % count($avatarColors)];
                                 $inicial = strtoupper(mb_substr($u->nombre, 0, 1));
                                 $suple   = (int)($u->puede_suplir ?? 1) === 1;
+                                // Baja lógica. El directorio es la guía de personal, así que la
+                                // enseña en vez de esconderla: es lo que explica por qué esa
+                                // persona ya no sale como candidata a suplir.
+                                $off     = (int)($u->activo ?? 1) === 0;
+                                $clasesTr = trim(($i >= 12 ? 'is-hidden ' : '') . ($off ? 'is-off' : ''));
                             ?>
-                            <tr data-per-row data-pager-item<?= $i >= 12 ? ' class="is-hidden"' : '' ?>
+                            <tr data-per-row data-pager-item<?= $clasesTr ? ' class="' . $clasesTr . '"' : '' ?>
                                 data-nombre="<?= s(mb_strtolower($u->nombre . ' ' . $u->email . ' ' . (string)$u->niveles)) ?>">
-                                <td data-val="<?= s($u->nombre) ?>">
+                                <td data-val="<?= s($u->nombre) ?>" data-label="Colaborador">
                                     <div class="per-user">
                                         <div class="admin-topbar__avatar per-user__ava" style="background:<?= s($color) ?>;">
                                             <?php if ($u->avatar): ?>
@@ -169,13 +174,16 @@ foreach (($usuarios ?? []) as $u) {
                                         <?php else: ?>
                                         <div class="admin-table__title"><?= s($u->nombre) ?></div>
                                         <?php endif; ?>
+                                        <?php if ($off): ?>
+                                        <span class="per-baja" title="Cuenta dada de baja: no entra al panel ni cubre suplencias. Conserva su histórico.">Baja</span>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
-                                <td class="per-mail"><?= s($u->email) ?></td>
-                                <td data-val="<?= s((string)$u->tipo_personal) ?>"><?= tipoChips($u->tipo_personal) ?></td>
+                                <td class="per-mail" data-label="Email"><?= s($u->email) ?></td>
+                                <td data-val="<?= s((string)$u->tipo_personal) ?>" data-label="Tipo"><?= tipoChips($u->tipo_personal) ?></td>
                                 <?php if ($esDirectorioDocente): ?>
-                                <td data-val="<?= s((string)$u->niveles) ?>"><?= nivelChips($u->niveles) ?></td>
-                                <td data-val="<?= $suple ? 'Sí' : 'No' ?>">
+                                <td data-val="<?= s((string)$u->niveles) ?>" data-label="Niveles"><?= nivelChips($u->niveles) ?></td>
+                                <td data-val="<?= $suple ? 'Sí' : 'No' ?>" data-label="Puede suplir">
                                     <?php if ($suple): ?>
                                         <span class="admin-badge admin-badge--published">Sí</span>
                                     <?php else: ?>
@@ -183,7 +191,7 @@ foreach (($usuarios ?? []) as $u) {
                                     <?php endif; ?>
                                 </td>
                                 <?php endif; ?>
-                                <td>
+                                <td data-label="Acciones">
                                     <div class="admin-table__actions">
                                         <?php /* Primera del grupo: es la acción de lectura y la menos
                                                  destructiva. Editar y Eliminar conservan su orden detrás. */ ?>

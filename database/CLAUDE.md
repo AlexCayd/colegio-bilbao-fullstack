@@ -33,35 +33,163 @@ cuarto `.sql`.
 | Archivo | Contiene | No contiene |
 |---------|----------|-------------|
 | `database.sql` | `DROP TABLE` + `CREATE TABLE` de todas las tablas, con sus índices y FKs | Ningún `INSERT` |
-| `deploy/deploy.sql` | Claustro real, catálogos académicos (`periodos`, `aulas`, `grupos`, `materias`), categorías, tags y artículos publicados | Horarios, suplencias, eventos, noticias ni testimoniales — todo eso es material de ejemplo |
-| `development/development.sql` | Todo lo de deploy **más** cuentas de prueba, una semana de horarios, ~90 suplencias, noticias/testimoniales/eventos ficticios | — |
+| `deploy/deploy.sql` | **Solo `INSERT`**: los registros reales del colegio, extraídos del volcado de producción | Ningún `CREATE TABLE` — la estructura es siempre la de `database.sql` |
+| `development/development.sql` | Catálogos académicos, categorías/tags/artículos, noticias y testimoniales ficticios, **un ciclo completo de eventos**, y las cuentas que el importador NO toca (admin, Redacción, prefectura, dirección) | **Claustro docente, horarios y suplencias** — ver abajo |
 
-**Por qué `deploy.sql` no lleva horarios ni suplencias:** son datos operativos que
-en producción genera el propio panel. Los horarios entran por CSV desde
-`/dashboard/horarios/importar`; las suplencias las abren prefectura y el claustro.
-Sembrarlos ensuciaría la base real.
+### `deploy.sql` sale de un volcado de producción, pero se guarda como SOLO INSERT
 
-**`development.sql` es un superconjunto de `deploy.sql`** en las tablas comunes:
-los mismos ids de usuario, las mismas categorías, los mismos catálogos. Si cambias
-un usuario real o un aula, cámbialo en **los dos** o se desincronizan.
+El origen es un export de `bilbaocp_colegiobilbao` desde phpMyAdmin (hoy, el del
+**21-09-2026**: phpMyAdmin 5.2.3 / MariaDB 11.4.13). De ese volcado se conservan
+**únicamente los `INSERT`**, con su lista de columnas explícita, y se descartan los
+`CREATE TABLE`, los `ALTER TABLE … ADD CONSTRAINT` y el `AUTO_INCREMENT`: la
+estructura es siempre la de `database.sql`, que es lo que mantiene la regla de los
+tres archivos y hace que el par se cargue en el orden de siempre.
+
+- **Sí lleva datos operativos**: 504 horarios, 116 suplencias, 206 `suplencia_horas` y
+  8 swaps, además de 36 usuarios (2 administradores; por puesto: 30 `profesor`, 2
+  `profesor,administrativo`, 1 `administrativo`, 1 `prefecto`, 1 `directivo` y 1 sin
+  tipo). La regla vieja («no lleva horarios ni suplencias, porque en producción los
+  genera el panel») describía el archivo anterior, no este. `eventos` y `noticias` sí
+  siguen vacías.
+- **Los datos van TAL CUAL.** No se corrige, rellena ni normaliza ninguna fila: hay 5
+  cumpleaños en `NULL` y una cuenta con `puede_suplir = 0`, y son el dato real. Los
+  `UPDATE` de «Actualizar una BD existente» son para migrar una base viva, **no** para
+  preparar este archivo.
+  ⚠️ **Una sola excepción, y va marcada en el propio archivo**: la contraseña de
+  `alexander.oliva@bilbao.edu.mx` (id 2, el administrador de producción) se fija al hash de
+  `Tlalmimilolpan39%` que documenta `credenciales.md`. Sin ella el archivo no sirve para
+  entrar al panel, porque en `deploy.sql` **no existe `admin@bilbao.edu.mx`**: esa cuenta es
+  del seed de desarrollo. Al regenerar el volcado hay que volver a aplicarla.
+
+**⚠️ `SET time_zone = "+00:00"` es obligatorio y va en la cabecera.** phpMyAdmin exporta
+los `TIMESTAMP` en UTC y pone esa línea en su volcado; al quedarnos solo con los
+`INSERT` hay que arrastrarla, o el servidor interpreta cada literal en su zona local y
+**toda fecha de creación se desplaza** —6 horas con la zona de México— sin dar un solo
+error. Lo demás (`DATE`, `TIME`, `DATETIME`) no se ve afectado.
+
+#### Adaptarlo cuando el volcado va por detrás del esquema
+
+Producción no corre siempre la última versión, así que el export llega con el esquema
+del día en que se sacó. Al ser solo `INSERT` **no hace falta ningún `ALTER`**: cada
+sentencia nombra sus columnas, y lo que el volcado no traía entra por el `DEFAULT` de
+`database.sql`. Lo que hay que comprobar es justamente eso — que ninguna columna del
+volcado haya **desaparecido** del esquema, porque eso sí rompe la carga.
+
+| Novedad del esquema | Qué pasa al cargar | Por qué no altera datos |
+|---|---|---|
+| `activo` en `usuarios`, `aulas`, `grupos`, `materias` | no viaja en el `INSERT` → `DEFAULT 1` | Todo entra de alta, que es lo que era antes de existir la baja lógica |
+| `eventos.icono` | no viaja → `NULL` | `NULL` = el icono del `tipo`, el comportamiento anterior. Y `eventos` va vacía |
+| `usuarios.fecha_nacimiento DEFAULT '2000-01-01'` | el `INSERT` sí trae la columna | El default solo afecta a altas futuras; las volcadas conservan su valor, `NULL` incluido |
+| `ajustes`, `visitas`, `actualizaciones`, `actualizacion_vistas`, `solicitudes_password` | no hay `INSERT` | Producción no tiene nada que volcar de ellas |
+
+La comprobación es cargar el par en una base desechable y verificar que **no hay ni un
+warning** y que los datos coinciden con el volcado de origen:
+
+```bash
+mysql -u root -e "CREATE DATABASE cb_test CHARACTER SET utf8mb4;"
+mysql -u root --default-character-set=utf8mb4 cb_test < database/database.sql
+mysql -u root --default-character-set=utf8mb4 --show-warnings cb_test < database/deploy/deploy.sql
+```
+
+⚠️ Al comparar tablas con `MD5(GROUP_CONCAT(...))`, subir antes
+`SET SESSION group_concat_max_len = 1073741824`: con el defecto de 1 KB, dos tablas
+anchas (`articulos`, con su `longtext`) salen «idénticas» porque la comparación se
+trunca **antes** de llegar a las columnas que difieren.
+
+Las tablas siguen siendo **24**, y las pone `database.sql` él solo:
+
+```bash
+mysql -u root cb_test -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='cb_test';"
+```
+
+**⚠️ `development.sql` tampoco lleva ya claustro, horarios ni suplencias.** Los 43 profesores
+(ids 20–62), la semana de horarios y los ~90 casos de suplencia se retiraron: los tres colgaban
+unos de otros y el importador CSV los reemplaza de golpe.
+
+- El archivo del colegio **da de alta a los profesores** que no existan, así que un claustro
+  sembrado solo servía para crear duplicados: ante una «Fernanda» del archivo y una «Fernanda
+  Covarrubias» en la BD el importador avisa pero **no fusiona** —elegir mal le da a alguien el
+  horario de otra persona—, y partiendo de cero esa ambigüedad no existe.
+- El horario se perdía igualmente: `Horario::borrarTodo()` vacía la tabla en cada importación.
+- Las suplencias de ejemplo sacaban ausente, suplente, grupo, materia y periodo del horario de
+  cada profesor, así que sin claustro no hay caso que sembrar.
+
+⚠️ **No queda NI UNA cuenta de profesor**, tampoco las de prueba: `profesor1@` y `profesor2@` se
+fueron con el resto. Sin horario no servían, y probar Suplencias contra un plantel de dos docentes
+ficticios da conclusiones que no valen. Para volver a tener datos con los que probar: cargar el
+seed, importar el CSV de horarios y entrar con cualquiera del claustro que haya creado
+(`password123`). Las dos cuentas de Redacción (ids 6 y 7) pasaron de `profesor` a `administrativo`
+para sobrevivir al vaciado sin dejar los artículos sin autor.
+
+### Eventos: los ÚNICOS datos del seed con fechas relativas
+
+`development.sql` siembra **41 eventos, un ciclo escolar entero de agosto a julio**, para
+poder ver el calendario del home, las dos vistas de Comunidad › Familias y el PDF del ciclo
+sin capturarlos a mano. `deploy.sql` **sigue sin ninguno**: ese calendario es público y en
+producción lo llena el panel.
+
+**⚠️ Las fechas son RELATIVAS, y tienen que seguir siéndolo.** `Evento::ciclo()` deduce la
+ventana agosto→julio de la fecha de hoy (`CICLO_MES_INICIO` = 8), así que un seed con fechas
+fijas se sale del ciclo el 1 de agosto siguiente y la vista de ciclo y el PDF salen vacíos —
+que es exactamente lo que se lee como una pantalla rota. El archivo ancla todo a una
+variable:
+
+```sql
+SET @c := MAKEDATE(YEAR(CURDATE()) - IF(MONTH(CURDATE()) >= 8, 0, 1), 1) + INTERVAL 7 MONTH;
+-- …y cada evento se coloca como `@c + INTERVAL n MONTH + INTERVAL d DAY`.
+```
+
+Es la única concesión al «solo INSERT» de este archivo, y es por el mismo motivo que los
+justificantes del seed van en `NULL` (ver más abajo): un dato con caducidad no se escribe en
+duro. Tres eventos van anclados a `CURDATE()` para que el panel siempre tenga algo en el día
+de hoy.
+
+Lo que el bloque cubre a propósito, porque es lo que esas vistas saben pintar: los cinco
+`tipo` (color + icono + leyenda), las tres `audiencia`, `niveles` en NULL / uno / varios,
+`icono` a mano y en NULL, y siete eventos de varios días — **incluido uno que cruza de
+diciembre a enero**, que es el caso que se rompió una vez (un tramo existe en todos sus días,
+no solo en el primero).
+
+⚠️ `icono` es **lista blanca**: una clave que no esté en `Evento::ICONOS` se ignora, y si no
+está además en `ICONO_GLIFO` el PDF la imprime sin icono. Comprobación:
+
+```sql
+-- los cinco tipos, las tres audiencias y ningún fin antes del inicio
+SELECT tipo, COUNT(*) FROM eventos GROUP BY tipo;
+SELECT COUNT(*) FROM eventos WHERE fecha_fin IS NOT NULL AND fecha_fin < fecha;   -- 0
+-- los doce meses del ciclo tienen algo
+SELECT COUNT(DISTINCT DATE_FORMAT(fecha,'%Y-%m')) FROM eventos;                   -- 12
+```
+
+**`development.sql` sigue siendo un superconjunto de `deploy.sql`** en las tablas que comparten:
+mismos ids de las cuentas que quedan, mismas categorías, mismos catálogos. Si cambias un aula, un
+grupo o una dirección, cámbialo en **los dos** o se desincronizan.
 
 ---
 
 ## Orden de ejecución
 
-Siempre la estructura primero y luego **un solo** archivo de datos:
+Siempre la estructura primero y luego **uno solo** de los archivos de datos, según el
+entorno. En **desarrollo**:
 
 ```bash
-# Desarrollo
-mysql -u root -p colegiobilbao < database/database.sql
-mysql -u root -p colegiobilbao < database/development/development.sql
+mysql -u root -p --default-character-set=utf8mb4 colegiobilbao < database/database.sql
+mysql -u root -p --default-character-set=utf8mb4 colegiobilbao < database/development/development.sql
+```
 
-# Producción
-mysql -u root -p colegiobilbao < database/database.sql
-mysql -u root -p colegiobilbao < database/deploy/deploy.sql
+En **producción**, lo mismo cambiando el segundo archivo:
+
+```bash
+mysql -u root -p --default-character-set=utf8mb4 colegiobilbao < database/database.sql
+mysql -u root -p --default-character-set=utf8mb4 colegiobilbao < database/deploy/deploy.sql
 ```
 
 Nunca se cargan los dos archivos de datos seguidos: comparten ids y chocarían.
+
+⚠️ **`--default-character-set=utf8mb4` no es opcional.** Sin esa bandera el cliente
+manda en latin1 y los acentos entran **doblemente codificados** («Gabriela Sánchez»
+acaba como `53 E2 94 9C C3 AD`). No da ningún error y arruina en silencio cualquier
+consulta que case nombres. Se detecta con `SELECT HEX(nombre) FROM usuarios WHERE …`.
 
 ---
 
@@ -80,6 +208,13 @@ así, antes de correr nada destructivo conviene mirar qué hay:
 — y nunca añadir un `DROP DATABASE` ni un `DROP TABLE` genérico.
 
 **Reglas de datos que los seeds deben cumplir** (si no, la app se comporta raro):
+- **Un solo hash de contraseña.** Todas las cuentas de los dos seeds llevan el bcrypt de
+  **`password123`**; la única excepción es `admin@bilbao.edu.mx`, que conserva el suyo
+  (`Tlalmimilolpan39%`). El hash exacto está en `credenciales.md` — al añadir un usuario se
+  copia de ahí, no se genera uno nuevo.
+  ⚠️ **Nunca sustituir hashes con `preg_replace`.** El `$2` de `$2y$12$…` se interpreta como
+  retrorreferencia en la cadena de reemplazo y el hash sale truncado a `y$…`, que carga sin
+  error en MySQL y solo se nota al intentar entrar. Usar `str_replace`.
 - `tipo_personal`: `prefecto` y `directivo` son **excluyentes** y tampoco se combinan
   entre sí. `profesor,administrativo` sí es válido. Lo impone
   `UsuarioBlog::normalizarTipoPersonal()` con `TIPOS_EXCLUYENTES`.
@@ -443,6 +578,75 @@ imposible probar sus flujos, ambos ya corregidos en `development.sql`:
 > ⚠️ `deploy.sql` **no tiene ninguna fila de prefectura** (57 usuarios: 48 profesores, 1
 > profesor+administrativo, 6 directivos). No es efecto de este cambio, pero conviene saberlo
 > antes de dar por hecho que el flujo de prefectura existe en producción.
+
+**Icono por evento y ajustes del sitio (septiembre 2026).** Dos cambios del calendario
+público; ninguno destruye datos y los dos son opcionales para que la app arranque —
+`Ajuste::texto()` captura la excepción de tabla ausente y cae al valor por defecto, y
+`Evento::icono()` cae al icono del tipo.
+
+```sql
+-- 1. Icono elegido a mano para el evento. NULL = el del `tipo`, que es como se pintaba
+--    el 100% del calendario antes de que existiera la columna: las filas ya cargadas
+--    no cambian de aspecto.
+ALTER TABLE eventos ADD COLUMN icono VARCHAR(40) NULL AFTER tipo;
+
+-- 2. Interruptores del sitio que no pertenecen a ninguna entidad. Hoy solo uno:
+--    `calendario_publico_pdf`, que habilita la descarga del calendario del ciclo en
+--    Comunidad › Familias. Sin fila = apagado, así que no hace falta sembrarla.
+CREATE TABLE ajustes (
+    clave       VARCHAR(60)  NOT NULL,
+    valor       VARCHAR(255) NULL,
+    actualizado TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (clave)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+> ⚠️ **`eventos.icono` es una lista blanca, no texto libre.** El valor acaba como clase
+> CSS en el HTML público (`<i class="fa-solid {$icono}">`), así que
+> `Evento::normalizarIcono()` descarta cualquier cosa que no esté en `Evento::ICONOS` —
+> comprobado con un POST manipulado, que se guarda como `NULL`. Al sembrar un evento a
+> mano hay que usar una clave de esa constante o el icono se ignorará en la siguiente
+> edición.
+>
+> Guardar el icono que **ya es** el del tipo se normaliza también a `NULL`: así cambiar
+> el tipo del evento más adelante le cambia el icono con él, que es lo que se espera.
+
+**Actualización mayor (septiembre 2026).** Cuatro tablas nuevas y dos defaults. Ninguna
+parte es destructiva; el `UPDATE` de niveles solo rellena lo que está vacío.
+
+```sql
+-- 1. Defaults de usuario. `puede_suplir` ya era DEFAULT 1; lo que cambia es que ahora
+--    también lo es el cumpleaños, y que no queda ninguna fila fuera del criterio.
+--    2000-01-01 es un MARCADOR, no un dato: se lee de un vistazo como "sin capturar",
+--    y su dueño lo corrige desde /dashboard/perfil. El campo sigue admitiendo NULL
+--    (guardarlo vacío lo pone a NULL de verdad).
+ALTER TABLE usuarios MODIFY COLUMN fecha_nacimiento DATE NULL DEFAULT '2000-01-01';
+UPDATE usuarios SET fecha_nacimiento = '2000-01-01' WHERE fecha_nacimiento IS NULL;
+UPDATE usuarios SET puede_suplir = 1 WHERE puede_suplir = 0;
+
+-- 2. Las cuatro tablas nuevas: copiar sus CREATE TABLE de database.sql
+--    (visitas, actualizaciones, actualizacion_vistas, solicitudes_password).
+
+-- 3. Recalcular los niveles del claustro desde el horario ya cargado. Hasta ahora solo
+--    los escribía el importador CSV; el editor por bloques no los tocaba, así que un
+--    profesor al que se le añadió una clase a mano puede tener la ficha desfasada.
+--    Es la MISMA consulta de «Nivel declarado del profesor (agosto 2026)», y se puede
+--    repetir cuantas veces haga falta.
+UPDATE usuarios u
+   JOIN (SELECT h.profesor_id pid,
+                GROUP_CONCAT(DISTINCT p.nivel
+                    ORDER BY FIELD(p.nivel,'Maternal','Kinder','Primaria','Secundaria','Bachillerato')) niv
+           FROM horarios h JOIN periodos p ON p.id = h.periodo_id
+          GROUP BY h.profesor_id) x ON x.pid = u.id
+    SET u.niveles = x.niv
+  WHERE FIND_IN_SET('profesor', u.tipo_personal);
+```
+
+> ⚠️ El paso 3 **no** debe tocar a los `directivo`: ahí `niveles` significa *lo que
+> gestiona*, no *lo que imparte* (ver la tabla del doble significado, más arriba), y
+> recalcularlo desde el horario les cambiaría el alcance de datos. El
+> `FIND_IN_SET('profesor', …)` es lo que lo impide, y `directivo` es excluyente, así que
+> ninguna fila cae en los dos lados.
 
 Ejemplo, el cambio de `notificaciones` a avisos transversales (julio 2026):
 

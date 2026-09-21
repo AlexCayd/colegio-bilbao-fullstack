@@ -61,8 +61,10 @@ hace que el shim PHP de `index.php` **deje de correr** para esas URLs, y con él
 una imagen, respetar el nombre exacto del archivo.
 
 **Necesitan permiso de escritura**, y no solo las carpetas de subidas: `storage/justificantes/`
-(partes médicos) y `storage/fuentes-pdf/` (caché `.ufm` que genera Dompdf solo). Sin la segunda,
-«Mi horario» en PDF falla.
+(partes médicos), `storage/fuentes-pdf/` (caché `.ufm` que genera Dompdf solo) y
+`storage/diccionario/` (el diccionario del claustro que se sube desde el panel). Sin la
+segunda, «Mi horario» en PDF falla; sin la tercera, el importador de horarios no deja
+actualizar la tabla de nombres y lo dice con un error de permisos.
 
 ### MVC custom
 
@@ -135,10 +137,65 @@ alimenta el autocompletado de colaboradores.
 
 **No existe tabla de disponibilidad.** Un profesor no declara en qué horas acepta suplir: la
 disponibilidad **se deduce de las horas libres de su horario**. El descarte lo hacen las reglas de
-`SuplenciaHora::sugerir()` (clase solapada / ya cubre una hora solapada / debe conservar
-`DESCANSO_MIN` minutos libres / equidad) más `usuarios.puede_suplir`, que ya filtra
-`UsuarioBlog::candidatosSuplencia()`. `sugerir()` cuesta **6 consultas fijas**, no una por
-candidato: la ocupación de todo el claustro sale de `Horario::ocupacionDiaDeVarios()`.
+`SuplenciaHora::sugerir()` (ausencia propia ese día / clase solapada / ya cubre una hora
+solapada / debe conservar `DESCANSO_MIN` minutos libres / equidad) más
+`usuarios.puede_suplir`, que ya filtra `UsuarioBlog::candidatosSuplencia()`. `sugerir()`
+cuesta **8 consultas fijas**, no una por candidato: la ocupación de todo el claustro sale de
+`Horario::ocupacionEfectivaDia()`.
+
+**⚠️ La ocupación se lee con `ocupacionEfectivaDia()`, NO con `ocupacionDiaDeVarios()`.**
+Hay dos lectores y confundirlos fue un bug real en producción:
+
+| Lector | Qué devuelve | Para qué |
+|---|---|---|
+| `ocupacionDiaDeVarios($ids, $dia)` | el horario **permanente**, por día de la semana | las rejillas: deben decir la verdad sobre la semana tipo |
+| `ocupacionEfectivaDia($ids, $dia, $fecha)` | quién da clase **ESE día** | cualquier decisión sobre una fecha concreta |
+
+Un swap `validado` cambia quién da una clase **sin tocar `horarios`** — esa es su razón de
+ser: es un cambio puntual, no un cambio de horario. Leyendo solo lo permanente, `sugerir()`
+daba por libre a quien había aceptado cubrir la clase de otro y le encimaba una cobertura.
+Con los 4 swaps validados de producción, **3 reproducían el fallo**.
+
+**⚠️ Y la regla se comprueba al ESCRIBIR, no solo al sugerir.** `SuplenciaHora::asignar()`
+es un `UPDATE` a pelo y la defensa vivía únicamente en `blog-suplencias-agendar.js`, que se
+limita a no pintar el botón de confirmar sobre un candidato bloqueado. Cualquier POST que no
+viniera de ese botón —una pestaña vieja, el botón atrás, un reenvío, dos coordinadores a la
+vez— escribía sin que nadie mirase. Ahora `agendarSuplencia()` pasa por
+**`SuplenciaHora::motivoBloqueo()`**, que no reimplementa nada: pregunta a `sugerir()`, la
+única fuente de verdad, y devuelve el texto del impedimento para poder decirlo
+(`?nodisponible=`). Se paga una vez por asignación.
+
+**⚠️ `hora_id` tiene que ser de la suplencia del POST.** `requireAlcance()` valida la
+SUPLENCIA, no la hora, así que sin comprobarlo un coordinador con alcance sobre A podía
+tocar una hora de B mandando `id=A&hora_id=<hora de B>`. Lo hace
+`SuplenciaHora::esDeSuplencia()`, para las tres ramas (`asignar`, `desasignar`,
+`eliminar_hora`) — antes solo `marcarTrabajo()` tenía el equivalente.
+
+**Quien falta ese día no cubre a nadie, y se bloquea el DÍA ENTERO.** Si alguien no viene el
+lunes, no viene a ninguna hora del lunes, aunque la hora a cubrir caiga fuera de las que
+declaró ausentes. `sugerir()` solo excluía al ausente de *esa* suplencia. `cancelada` no
+cuenta: esa ausencia ya no existe y vuelve a estar disponible.
+
+**Editar y cancelar una suplencia.** `estado = 'cancelada'` estaba en el ENUM y en
+`ESTADO_LABEL` desde el principio y **ningún código lo escribía nunca**: era inalcanzable, y
+lo único que había era el borrado duro. `Suplencia::cancelar()` conserva el registro —una
+ausencia que se anuló ocurrió, y el histórico tiene que distinguirla de una que nunca
+existió— y acumula el motivo en `notas` en vez de pisar el `motivo` de la ausencia, que
+responde a otra pregunta. `/suplencias/editar` toca solo lo blando (motivo, notas,
+justificante): **la fecha y el ausente no**, porque las horas se fijaron leyendo el horario
+de ESA persona en ESE día y hay suplentes ya avisados sobre ellas.
+
+Las dos rutas pasan por **`avisarSuplenciaAnulada()`**, que avisa al ausente, a **cada
+suplente con hora asignada** y a la dirección del nivel. Hay que llamarlo **antes** del
+DELETE en el borrado: `suplencia_horas` cae por CASCADE y con ella la lista de a quién
+avisar.
+
+**⚠️ `guardarHoras()` no persistía `tipo` ni `lugar_id`.** Los declaraba `$columnasDB` y
+`SuplenciaHora::guardar()` los ignoraba, así que **toda** hora nacía como `tipo='clase'`:
+las guardias de receso se colaban en la cola de «¿dejó trabajo?» —en el patio no hay trabajo
+que dejar— y una guardia suplida no decía dónde. No llegan del formulario y no deben: la
+rejilla marca casillas del horario del ausente, así que su naturaleza ya está en `horarios`
+y la lee `Horario::tipoDePeriodos()`.
 
 **Descanso en minutos, no en bloques.** `SuplenciaHora::DESCANSO_MIN` (= 40) son los minutos
 libres que un suplente debe conservar tras aceptar la cobertura. Va en minutos porque un
@@ -184,7 +241,8 @@ módulos que corresponda, una ruta, un método de una línea, el catálogo y la 
 `_modulos.php`, y los cuatro mapas de `_sidebar.php`.
 
 ⚠️ **Los cuatro son TRANSVERSALES, ya no asignables.** Están en
-`UsuarioBlog::MODULOS_TRANSVERSALES` junto a `soporte`, así que `puede('profesores')` da `true`
+`UsuarioBlog::MODULOS_TRANSVERSALES` junto a `soporte` y `actualizaciones`, así que
+`puede('profesores')` da `true`
 para cualquiera con sesión y **no tienen casilla** en el formulario de usuarios. El directorio es
 la guía de personal —nombre, correo y puesto—, no una herramienta de gestión: el enlace a la ficha
 y las acciones de edición que viven dentro de esa vista siguen colgando de
@@ -303,16 +361,37 @@ database/
 `database.sql` y se ajustan los dos archivos de datos. Ejecutar siempre `database.sql` primero y
 luego **uno solo** de los archivos de datos, según el entorno.
 
-`deploy.sql` lleva el claustro real, los catálogos y el contenido publicado; **no** lleva horarios,
-suplencias, eventos, noticias ni testimoniales, porque en producción los genera el propio panel
-(los horarios entran por CSV). `development.sql` es ese mismo contenido más los datos de prueba.
+`deploy.sql` son los **`INSERT` extraídos de un volcado real de producción** (hoy el del
+21-09-2026): el claustro, los catálogos, el contenido publicado y también los datos de operación
+—504 horarios, 116 suplencias, 206 horas de cobertura, 8 intercambios—. Solo `eventos` y
+`noticias` van vacías. Los datos se guardan **tal cual salieron**, sin corregir ni rellenar nada.
+⚠️ Su cabecera lleva `SET time_zone = "+00:00"`: phpMyAdmin exporta los `TIMESTAMP` en UTC y sin
+esa línea toda fecha de creación se desplaza a la zona local, en silencio.
+`development.sql` es el contenido de catálogo más los datos de prueba.
 
 ### Cuentas del seed
 
 **La lista completa vive en [`database/credenciales.md`](database/credenciales.md)** — no duplicarla
-aquí. Para probar el panel con distintos permisos existen `admin@`, `profesor1@`, `profesor2@` y
-`prefecto@bilbao.edu.mx`, todas con la contraseña `Tlalmimilolpan39%`; el claustro real usa
-`EditorBilbao25`.
+aquí. Para probar el panel con distintos permisos existen `admin@` y `prefecto@bilbao.edu.mx`.
+⚠️ **No hay ninguna cuenta de profesor en el seed**: las docentes salen todas del CSV de horarios,
+así que para probar Suplencias, Intercambios o «Mi horario» hay que importarlo primero.
+
+⚠️ **`development.sql` ya NO siembra claustro, horarios ni suplencias.** El claustro entra por el
+**importador CSV** (§ *Módulo Horarios*), que da de alta a cada profesor del archivo; el horario se
+perdería igualmente en la primera importación (`Horario::borrarTodo()`), y las ~90 suplencias de
+ejemplo colgaban de ese horario. Sembrar un claustro inventado solo servía para crear duplicados:
+el importador no fusiona «Fernanda» con «Fernanda Covarrubias» —avisa y crea cuenta nueva—, y
+partiendo de cero esa ambigüedad no existe. Para tener datos con los que probar: cargar el seed,
+importar el CSV y abrir unas ausencias desde el panel. Las dos cuentas de Redacción pasaron de
+`profesor` a `administrativo` para sobrevivir al vaciado sin dejar los artículos sin autor.
+
+**Los dos seeds usan UNA sola contraseña: `password123`.** La única excepción es
+`admin@bilbao.edu.mx`, que conserva `Tlalmimilolpan39%`. Antes convivían cinco hashes distintos
+(`Tlalmimilolpan39%`, `EditorBilbao25` y tres contraseñas personales sin documentar) y no había
+forma de saber con cuál entraba cada cuenta sin probar. Un usuario nuevo del seed copia el hash
+que está en `credenciales.md`.
+⚠️ En **producción** es una contraseña **inicial**: `deploy.sql` siembra con ella al claustro real,
+así que hay que rotarla o forzar el cambio antes de abrir el panel.
 
 > **Roles:** solo existen `administrador` (**Admin** en la UI, acceso a todos los módulos) y
 > `usuario` (**Usuario**, acceso solo a los módulos listados en la columna `modulos`). El antiguo rol
@@ -356,6 +435,21 @@ Los selectores de color en `views/blog/categorias/crear.php`, `editar.php`, `vie
 - Salida compilada: `public/build/css/`, `public/build/js/`, `public/build/assets/`
 - **No editar** nada dentro de `public/build/` directamente; se sobreescribe con Gulp
 - Comando de watch: `npm run dev`
+
+### ⚠️ Todo cambio visual pasa por el subagente `ux-ui`
+
+**Obligatorio**, no opcional: antes de dar por terminado cualquier trabajo que cree o
+modifique un archivo de `src/scss/`, un JS con animación o scroll, o el markup de una vista
+con implicación visual, hay que invocar el subagente **`ux-ui`**
+(`~/.claude/agents/ux-ui.md`, nivel de usuario: sirve a todos los proyectos) con la lista de
+archivos tocados y qué debía conseguir la pantalla. Él juzga jerarquía, contraste, ritmo y
+movimiento, y decide si entra tal cual.
+
+Ahí vive el criterio de diseño (las dos superficies y su licencia creativa distinta, los
+tiempos y easings, la doctrina de GSAP/ScrollTrigger y las condiciones para introducir
+Lenis). Este archivo documenta la mecánica de **este** proyecto — y el agente lo lee primero,
+así que las trampas de cascada, la paleta y el `1rem = 16px` de aquí mandan sobre cualquier
+preferencia suya. Los dos hacen falta.
 
 ### ⚠️ Nada de `<style>` ni `<script>` embebidos en las vistas
 
@@ -446,8 +540,17 @@ especificidad, capa posterior. Un `tbody tr { display:block }` escrito en `admin
 cascada y **mata la paginación en silencio**. Es el mismo fallo que el de `[hidden]`. Todo
 bloque de apilado lleva obligatoriamente sus dos líneas y `.admin-table-scroll{overflow-x:visible}`.
 
-Solo se apilan **`suplencias/historial`** y **`mis-coberturas`** (flujos de profesor, columnas
-cortas); el resto se queda con scroll horizontal, que es cero regresión. Al apilar, `<thead>`
+Se apilan **`suplencias/historial`**, **`mis-coberturas`**, el **directorio de personal**
+(`.per-table`, que pedía `min-width:780px` y ~2,2 pantallas de arrastre para llegar a las
+acciones) y la **cola de solicitudes de contraseña**; el resto se queda con scroll
+horizontal, que es cero regresión.
+
+> ⚠️ **Y una tabla sin `.admin-table-scroll` no scrollea: se RECORTA.** `.admin-panel` es
+> `overflow: clip` y `.admin-table` tiene `min-width: 680px`, así que
+> `views/blog/suplencias/justificantes.php` —que no tenía el envoltorio— dejaba las
+> columnas finales (Archivo, Días, Acciones) cortadas y **sin ninguna forma de llegar a
+> ellas**. En una vista de dirección que se consulta desde el móvil. Al añadir una
+> `.admin-table` dentro de un `.admin-panel`, el envoltorio es obligatorio. Al apilar, `<thead>`
 se oculta con `clip-path: inset(50%)` y **no** con `display:none`, para no perderlo en
 lectores de pantalla; se pierde el afordance de ordenar y se asume, porque el servidor ya
 devuelve por fecha descendente. Y como `.admin-table` hereda `font-size:.88rem`, los bloques
@@ -615,7 +718,7 @@ todas y evita que las dos superficies se desincronicen.
 exponerse con `window.miFuncion = miFuncion;` dentro del módulo, o dejarán de existir al quedar
 encapsuladas en el bundle.
 
-> Únicas excepciones, ambas por el mismo motivo (deben correr **antes del primer pintado**, y el
+> Únicas excepciones, las tres por el mismo motivo (deben correr **antes del primer pintado**, y el
 > bundle va con `defer` al final del `<body>`):
 > - el guard anti-FOUC de i18n en el `<head>` de `views/layout.php`;
 > - el **guard anti-salto del sidebar** en el `<head>` de `views/layout-admin.php`: lee
@@ -623,6 +726,14 @@ encapsuladas en el bundle.
 >   `no-transition` en `<html>`. Sin él la página se pintaba con el sidebar expandido y luego se
 >   encogía animándose (0.28s) en **cada** navegación. `blog-_sidebar.js` sigue mandando al alternar;
 >   solo ha dejado de decidir el estado inicial.
+> - el tag de **Microsoft Clarity** (mapas de calor + grabación de sesión), en el partial
+>   `views/templates/clarity.php`, que incluyen **los dos** layouts — sitio público **e intranet**.
+>   Fuente única: un layout nuevo lo incluye, nunca copia el snippet. Desde el bundle `defer`
+>   perdería el arranque de la sesión, que es justo lo que Clarity graba.
+>   ⚠️ El partial **hace `return` en localhost/127.0.0.1**, o cada `php -S localhost:3000` mandaría
+>   sesiones de desarrollo al panel de Clarity. Para probarlo en local hay que comentar ese `return`.
+>   ⚠️ En la intranet graba pantallas con datos de personal y partes médicos: la configuración de
+>   enmascarado se lleva **en el propio Clarity** (Settings › Masking), no en el código.
 
 ### Imágenes subidas por PHP
 
@@ -675,12 +786,41 @@ El watcher `npm run dev` también observa los directorios de uploads y los optim
 ## Dependencias PHP (Composer)
 
 `phpmailer/phpmailer` · `vlucas/phpdotenv` · `intervention/image` · **`dompdf/dompdf`**
-(PDF de «Mi horario»).
+(PDF de «Mi horario» y calendario público del ciclo).
 
 > ⚠️ **La extensión `gd` de PHP hace falta** para dos cosas: incrustar el logo en el PDF
 > y todo `intervention/image` (avatares y optimización de subidas). Si viene comentada en
 > `php.ini`, descomentar `extension=gd`. El PDF **degrada sin ella** —sale sin logo en vez
 > de reventar—, pero las imágenes no.
+
+**La plomería de Dompdf es UNA, en `Classes\Pdf`.** `fuenteCss()` (las `@font-face` con
+rutas absolutas de disco), `hojaCss()`, `hayIconos()`, `dataUri()`/`logo()`, `emitir()` y
+`slug()`. Vivían como métodos privados de `BlogController` cuando solo había un PDF; al
+aparecer el segundo —el calendario público, que sale de `EstaticasController`— la
+alternativa era copiarlas de controlador a controlador. La clase **no sabe qué se
+imprime**: recibe el HTML ya renderizado, y quién puede verlo lo decide el guard del
+controlador que llama.
+
+**`src/fonts/` se versiona porque Dompdf exige el TTF en disco.** Están los cuatro pesos
+de Outfit y **`fa-solid-900.ttf`** (Font Awesome 6.1.2 Free, fuentes bajo SIL OFL 1.1),
+que es lo que permite imprimir los iconos de evento: el sitio carga Font Awesome desde
+cdnjs, pero Dompdf corre con `isRemoteEnabled = false` y no entiende `::before`, así que
+el icono se escribe como **carácter** con `font-family: FontAwesome` — de ahí
+`Evento::ICONO_GLIFO` (clase → punto de código) y `Evento::glifo()`.
+
+> ⚠️ **La `@font-face` de FA se registra con `font-weight: normal`** aunque el archivo sea
+> el «900». Dompdf casa las caras por familia + peso + estilo y **no** cae a otro peso:
+> declarada como 900, una celda que hereda el peso normal del `body` no la encontraba,
+> Dompdf no incrustaba la fuente y los iconos salían como cajas vacías.
+>
+> Todo degrada: si falta un TTF, `fuenteCss()` lo omite y `hayIconos()` devuelve `false`,
+> así que el PDF sale con otra tipografía o sin iconos —el color del día, la leyenda y la
+> etiqueta de tipo siguen distinguiendo cada evento— en vez de no salir.
+>
+> ⚠️ Al añadir un icono a `Evento::ICONOS` hay que añadir su código a `ICONO_GLIFO`, o en
+> el papel saldrá sin icono. Los códigos se sacan del `all.min.css` de la **misma versión**
+> de Font Awesome que cargan los layouts (6.1.2), no de memoria; ojo con los que FA declara
+> en grupo con sus alias (`.fa-graduation-cap:before,.fa-mortar-board:before{…}`).
 
 ---
 
@@ -731,7 +871,7 @@ El panel está organizado en **módulos**. Tras iniciar sesión se llega a un **
 | `/dashboard/horarios/mi-horario.pdf` | `BlogController::miHorarioPdf` | El mismo horario en PDF (Dompdf), para llevarlo en papel |
 | `/dashboard/usuarios/horario.pdf` | `BlogController::horarioUsuarioPdf` | El horario de **otro** colaborador en PDF, desde su ficha. Mismo guard que la ficha (`requireFichaColaborador()`) |
 | `/dashboard/horarios/pdf` | `BlogController::horariosPdf` | La semana que se está viendo, en PDF (`?vista=profesor\|aula\|grupo&id=N`). Mismo guard que las tres vistas (`requireHorariosVista()`) |
-| `/dashboard/horarios/importar` | `BlogController::importarHorarios` | Carga de horarios por **CSV** — módulo `horarios` + **admin** (es destructivo) |
+| `/dashboard/horarios/importar` | `BlogController::importarHorarios` | Carga de horarios por **CSV** — módulo `horarios` + **admin**. Reemplaza el horario de **todo el colegio** y da de alta profesores, grupos, aulas y materias |
 | `/dashboard/usuarios*` | varios | **Usuarios** (requiere módulo `usuarios`) |
 | `/dashboard/usuarios/cumpleanos` | `BlogController::cumpleanos` | Calendario de cumpleaños (módulo Usuarios) |
 | `/dashboard/usuarios/detalle` | `BlogController::detalleUsuario` | **Ficha de un colaborador** (solo lectura): horario, ausencias, coberturas y swaps. La abre quien **coordina** + módulo `usuarios` **o** el directorio de su tipo |
@@ -748,12 +888,93 @@ El panel está organizado en **módulos**. Tras iniciar sesión se llega a un **
 | `/dashboard/usuarios/horario/lugar` | `crearLugarGuardia` | Alta en línea de un lugar de guardia (JSON, admin) |
 | `/dashboard/swaps*` | `swaps`, `crearSwap`, `clasesSwapJson`, `horarioSwapJson`, `buscarProfesoresSwap`, `responderSwap`, `validarSwap`, `cancelarSwap` | **Swaps** (módulo `swaps`) |
 | `/dashboard/soporte` | `soporte` | **Soporte técnico** — transversal, lo tiene todo el mundo |
+| `/dashboard/eventos/ajustes` | `ajustesEventos` | POST del interruptor del calendario público en PDF (módulo `eventos`) |
 | `/dashboard/perfil` | `BlogController::perfil` | **Mi perfil = mi propia ficha** (misma plantilla que `usuarios/detalle`, con los campos editables). Solo `requireAuth()` |
+| `/dashboard/suplencias/editar` · `/cancelar` | `editarSuplencia`, `cancelarSuplencia` | Editar lo blando de una ausencia y **cancelarla sin borrarla** |
+| `/dashboard/actualizaciones*` | `actualizaciones`, `crearActualizacion`, `publicarActualizacion`, `eliminarActualizacion`, `verActualizacion` | **Actualizaciones** — transversal; publicar pide admin |
+| `/dashboard/usuarios/solicitudes*` | `solicitudesPassword`, `resolverSolicitudPassword` | Cola de restablecimientos de contraseña (admin) |
+| `/recuperar` | `recuperarPassword` | **Público**: solicitud de restablecimiento desde el login |
+
+Y una ruta **pública** que depende de ese interruptor:
+
+| Ruta | Método | Qué es |
+|------|--------|--------|
+| `/comunidad/familias/calendario.pdf` | `EstaticasController::calendarioFamiliasPdf` | El calendario del ciclo en papel. **Redirige si el ajuste está apagado**; acepta `?niveles=` |
 
 **Módulo Soporte técnico.** No se asigna: está en `UsuarioBlog::MODULOS_TRANSVERSALES`,
 así que `puede('soporte')` siempre da `true`. Es la vía para pedir ayuda cuando el panel
 falla, y condicionarla a un permiso dejaría sin ella justo a quien no puede arreglarlo
 por su cuenta.
+
+**Módulo Actualizaciones — la única pantalla que BLOQUEA.** El desarrollador publica un
+anuncio y, hasta que cada usuario lo marca como visto, el panel no le deja pasar a ninguna
+pantalla. Es lo que lo separa de una notificación: una notificación se puede ignorar para
+siempre, y un cambio de funcionamiento que nadie ha leído acaba en tickets de soporte.
+
+Dos tablas porque el anuncio es uno (`actualizaciones`) pero el acuse es por persona
+(`actualizacion_vistas`, con **PK compuesta**: el POST de «Entendido» es idempotente por
+construcción y un doble clic no duplica nada). El estado vive en `estado` +
+`publicada_en`; **el borrador no bloquea a nadie ni sale en el historial**, y el disparador
+es *publicar*, que por eso es un botón aparte y no un `<select>` del formulario.
+
+> ⚠️ **La puerta se monta en `views/layout-admin.php`, NO en `requireAuth()`.** Ese guard lo
+> llaman también los endpoints JSON (`/suplencias/sugerir`, `/swaps/clases`, el
+> autocompletado…) y pintar HTML desde él corrompería sus respuestas. Por el layout solo
+> pasan las pantallas HTML, que son exactamente las que hay que bloquear. El POST de acuse
+> lleva además su propio guard.
+
+El modal (`views/blog/_actualizaciones-modal.php`) no tiene ✕, no cierra con `Escape` ni
+con el fondo, y pone `inert` sobre `.admin-layout`. **Sin JS sigue siendo usable**: los N
+anuncios se pintan seguidos y cada uno trae su formulario, así que se acusan de uno en uno
+recargando — más torpe, pero nadie se queda encerrado si el bundle no carga.
+`Actualizacion::pendientesDe()` captura la excepción de tabla ausente: en una base sin
+actualizar es mejor no bloquear a nadie que reventar el panel entero.
+
+**Restablecimiento de contraseña — cola, no correo.** El panel **no manda correo**:
+`classes/Email.php` sirve al registro público del sitio y arrastra remitente y textos de la
+plantilla original. Así que `/recuperar` (nombre + correo + **confirmación del correo**) no
+genera un token sino una **solicitud** que un admin resuelve en
+`/dashboard/usuarios/solicitudes` generando una contraseña temporal.
+
+> ⚠️ **La respuesta es SIEMPRE la misma**, exista o no el correo, y también cuando salta el
+> freno de `MAX_POR_HORA`. Un mensaje distinto convertiría una pantalla sin autenticar en un
+> verificador de qué direcciones pertenecen al claustro. Por eso `usuario_id` admite `NULL`:
+> una solicitud sin cuenta es alguien que se equivocó de correo, y la cola la muestra como
+> tal. El `/login` ya no distingue «no existe ese correo» de «contraseña incorrecta` por lo
+> mismo.
+
+La temporal la genera `SolicitudPassword::generarTemporal()` evitando los caracteres que se
+confunden al dictar (`0/O`, `1/l/I`) porque se comunica por teléfono, y **se muestra una
+sola vez**: viaja por `$_SESSION` y no por query string —una URL con la contraseña dentro
+acaba en el historial del navegador y en los logs— y lo que queda en base de datos es el
+hash, como cualquier otra.
+
+**Contador de visitas propio.** `visitas` + `Model\Visita`, con la gráfica en el home
+**solo para admin** (a un profesor no le dice nada y le empujaría su horario fuera de la
+primera pantalla). Existe porque ni Clarity ni GA exponen una serie histórica consultable
+desde PHP: sirven para mirar en su panel, no para pintar dentro del nuestro.
+
+- Es un **agregado**, no un registro de eventos: una fila por `(fecha, ruta, visitante)` con
+  un contador (`ON DUPLICATE KEY UPDATE golpes = golpes + 1`), no una por carga.
+- `visitante_hash` = `sha1(IP + user-agent + sal del día)`. **No se guarda nada
+  identificable**, y como la sal cambia cada día el hash no permite seguir a nadie de una
+  jornada a la siguiente: solo deduplica dentro del día.
+- **UN solo punto de registro**, en `index.php`. Salta los POST, `/dashboard/*`, `/login`
+  y los bots por UA. Llamarlo desde `EstaticasController` serían ~30 sitios y bastaría
+  olvidar uno.
+- ⚠️ **Y va al FINAL del archivo, entre las rutas y `comprobarRutas()`.** Lo que separa
+  una visita del ruido es «¿esto es una página del sitio?», y eso solo lo sabe el router:
+  `Router::existeRuta()` lo responde sin despachar ni tocar `$params`. Estuvo arriba, justo
+  tras `includes/app.php`, y ahí contaba **cualquier cosa que llegara al front controller**
+  — el sondeo de Chrome DevTools a `/.well-known/appspecific/com.chrome.devtools.json`, los
+  escaneos a `/admin` o `/wp-login.php`: todos 404, y en «Más visitadas» **por delante de la
+  landing**. Subir ese bloque otra vez deja `$router` vacío y no se cuenta ni una visita.
+  `existeRuta()` y el despacho comparten `casarPatron()` para que la traducción de
+  `{param}` a regex no esté escrita dos veces.
+- `registrar()` **nunca lanza**: una analítica rota no puede tumbar el sitio público.
+- ⚠️ `Visita::serie()` normaliza el inicio a **medianoche**. `new DateTimeImmutable('-6
+  days')` arrastra la hora actual y el bucle se cortaba un día antes, dejando la serie sin
+  **el día de hoy** — justo el que se está mirando.
 
 > ⚠️ **Hay DOS listas y las dos hacen falta.** `MODULOS_ASIGNABLES` es lo que se marca en el
 > formulario; `MODULOS_TRANSVERSALES` lo que se tiene sin marcar. Quien enumera módulos para
@@ -779,6 +1000,21 @@ con notificación en los tres pasos; el último lo da prefectura o dirección.
 > (`.swp-card__pendiente`) para que nadie deje de ir a su clase confiando en él. Al pasar
 > a `aceptado` se avisa a dirección: antes solo lo delataba el badge del subnav y un swap
 > podía quedarse ahí para siempre.
+>
+> Y lo dice también **antes** de tocar nada, en `.swp-intro` (la tarjeta de Alex que abre el
+> listado). El aviso de la tarjeta se lee cuando el swap ya está aceptado, o sea después de
+> haberlo necesitado.
+
+**La tarjeta nombra a las DOS partes en cada lado.** `.swp-permuta` pintaba los dos lados
+tipográficamente **idénticos** —mismo tamaño, mismo peso, mismo color, ambos diciendo «X
+cede»— y la única pista de la dirección era una flecha de 12px: leerla obligaba a
+reconstruir mentalmente quién acaba dando cada clase, que es lo único que un profesor
+necesita de aquí. Ahora cada `.swp-mov` lleva su `.swp-traspaso` con «No la da X → La cubre
+Y»; lo que cambia de un lado a otro es el **orden de los nombres**, y eso sí se ve. El color
+refuerza el mismo eje: **ámbar suelta, verde cubre**, con tinte suave y tinta oscura en los
+dos (el blanco sobre el ámbar `#f5b400` no llega a AA).
+⚠️ En `hasta-sm` el `.swp-traspaso` también apila y la flecha gira: lado a lado, los dos
+nombres quedaban en ~110px y se cortaban a la mitad.
 
 **Decir que no exige decir por qué**, en los dos rechazos. Sin motivo, `responderSwap()` y
 `validarSwap()` rebotan con `?faltamotivo=1` y no cambian el estado; el `required` del
@@ -955,28 +1191,273 @@ guard que la vista web (`requireAuth`). Se genera en servidor con **Dompdf**.
 otros dos sitios, ambos de admin — el **editor por bloques** (`/dashboard/usuarios/horario`, ver
 abajo) y el **importador CSV**. El importador va en dos pasos — subir → vista previa con
 el estado de cada fila → confirmar — y guarda el payload validado en `$_SESSION['horarios_import']`.
-El archivo **reemplaza el horario completo** de los profesores que aparecen en él
-(`Horario::borrarDeProfesores()`) y no toca al resto. Formato (**7 columnas**):
+
+**⚠️ El archivo es el horario COMPLETO del plantel, y es además el censo.** Confirmar hace tres
+cosas irreversibles, y la previa las enseña antes de que haya botón que pulsar:
+
+1. **Da de alta** los profesores, grupos, aulas y materias que el archivo estrene, y
+   **elimina** los grupos, aulas y materias que ya no mencione (los profesores nunca).
+   Administradores y administrativos **no se tocan nunca**.
+2. **Vacía la rejilla entera** (`Horario::borrarTodo()`), no solo la de los profesores del
+   archivo: quien no venga se queda sin clases, con su cuenta intacta. Borrar solo a los del
+   archivo dejaba vivas filas invisibles en el listado de su dueño pero que le ocupaban la hora
+   frente a `sugerir()`, y ningún camino de la UI las alcanzaba.
+3. Inserta y avisa por la campana a cada profesor afectado.
+
+Todo en una transacción, y el POST exige `confirmo` (casilla): el `required` del formulario es la
+ayuda, el guard está en el servidor. Formato (**8 columnas, SIN cabecera**):
 
 ```csv
-profesor_email,dia,nivel,periodo,materia,grupo,aula
-ana.torres@bilbao.edu.mx,lunes,,1,Matemáticas,1A Primaria,A-101
+Pablo Benlliure,L,1,B Arte,6°A Bach,Arte,LEC,1
+Nancy G,L,B1,P Lectura,Prim 1°A,Biblioteca,LEC,1
+Nieves,L,C1,K Esp,Kinder 1,K1,LEC,1
 ```
 
-`dia` ∈ `Horario::DIAS`. **`nivel` va en la cabecera pero normalmente vacío en el contenido:
-se deduce del `grupo`.** Solo hace falta escribirlo en una clase sin grupo, y si viene y
-discrepa del grupo es error — es lo que decide en qué jornada cae «3ª hora». Con el nivel
-resuelto, `periodo` casa con `periodos.etiqueta` **de ese nivel** o su `orden`, y `materia`
-se resuelve por `(nivel, nombre)`, no solo por nombre: `materias` tiene `UNIQUE (nombre, nivel)`
-y antes «Arte» de Kinder y de Primaria se pisaban en silencio. Grupo/aula se resuelven por
-nombre (comparación sin acentos, `BlogController::claveCatalogo()`) y admiten vacío.
+- **`profesor`** — el nombre de sala de maestros, **sin correo**. Lo resuelve
+  `resolverDocente()` contra **el diccionario del claustro** (§ siguiente), y solo si no
+  aparece por ningún lado se crea: nombre y correo del diccionario si los hay, o correo
+  derivado (`pablo.benlliure@bilbao.edu.mx`, numerado si choca), con
+  `CSV_PASSWORD_INICIAL` y los módulos de `MODULOS_SUGERIDOS['profesor']`.
+  ⚠️ **Sigue sin haber fusión difusa** para lo que el diccionario no cubre: «Mauricio» y
+  «Mauricio López Absalón» son dos cuentas. Elegir mal le daría a alguien el horario de otra
+  persona, así que `docentesParecidos()` lo **avisa** en la previa (hasta 3 candidatos, porque
+  «Fernanda» encaja con dos personas) y deja decidir.
+  Compara **token a token, por prefijo y en orden**, saltando tokens del nombre largo: sobre la
+  cadena entera «Ana Lau» no casaba con «Ana Laura Castro», y ese patrón —pila abreviado +
+  apellido abreviado— es la mayoría del claustro real («Fer Uribe», «Nancy G», «Huriel», «Martha
+  T»). Contra el claustro de `deploy.sql` pasa de detectar 21 a **29 de 38**. No caza los apodos
+  que no son prefijo («Gaby» de «Gabriela», «Malena» de «María Elena»): pedirían distancia de
+  edición, que empieza a proponer parecidos falsos y convierte el aviso en ruido. **Esos son
+  justo los que resuelve el diccionario**, que no adivina: los tiene escritos.
+
+#### El diccionario del claustro (`diccionario/`)
+
+**El CSV trae el nombre de sala de maestros y la BD el del expediente.** Sin traducción,
+importar el archivo real **duplicaba 38 de 39 cuentas**: cada nombre corto que no coincidía
+exactamente abría una ficha nueva, y con ella un profesor sin su histórico, sus suplencias ni
+sus intercambios. La salida documentada era *renombrar el claustro a mano antes de importar*,
+que es rehacer el trabajo en cada carga.
+
+Ahora hay una tabla de equivalencias que mantiene el colegio en Excel. La lee
+`Classes\Diccionario` y son cuatro columnas, reconocidas **por su cabecera** y no por su
+posición: **versión corta · versión larga · nombre real · correo**.
+
+| En el archivo | En el diccionario | En la BD |
+|---|---|---|
+| `Gaby` | Gaby · Gabriela Sánchez · GABRIELA SANCHEZ MONTES DE OCA · `gabriela.sanchez.mon@` | `Gabriela Sánchez` |
+
+**Vive en DOS carpetas y las dos se miran** (`Diccionario::CARPETAS`):
+
+| Carpeta | Qué es |
+|---|---|
+| `diccionario/` | versionada. Es el **suelo**: lo que trae un clon limpio (`claustro.csv`) |
+| `storage/diccionario/` | lo que se **sube desde el panel**, junto a las demás carpetas escribibles |
+
+De todos los candidatos gana **el más reciente**, y la fecha es el único criterio: por eso una
+subida gana siempre sin ninguna regla de precedencia entre carpetas —acaba de escribirse—.
+`estado()` devuelve `archivo` y `origen` (`subido` | `repo`), y la pantalla los enseña: leer el
+archivo equivocado en silencio sería peor que no leer ninguno.
+
+> ⚠️ **No se escribe en `diccionario/`**: es carpeta de código versionado, y hacerlo pediría
+> permisos sobre ella y dejaría en producción un archivo que no coincide con el repositorio.
+>
+> ⚠️ **Lo que se sube tiene que ser `.csv`**, y no por comodidad: el destino se llama
+> `claustro.csv` y el lector decide por extensión, así que un `.xlsx` guardado con ese nombre
+> iría al lector de CSV. El Excel sigue valiendo si se deja a mano en `diccionario/`.
+>
+> ⚠️ **Y se exige CABECERA en lo que se sube** (`comprobar($ruta, $ext, true)`). El respaldo
+> posicional A/B/C/D solo vale para el archivo del repositorio, que es el que mantiene el
+> colegio: para uno recién subido significaría que cualquier CSV de cuatro columnas —una lista de
+> aulas, un export de otra cosa— se leería como si fuera el claustro, y a la siguiente
+> importación el colegio entero saldría duplicado sin que nadie hubiera visto un error.
+> Se valida **antes de mover** y con el propio lector: lo que se acepta es exactamente lo que se
+> leerá después.
+
+`resolverDocente()` prueba en este orden, del identificador más fuerte al más débil:
+**nombre exacto** → **correo del diccionario** → **las otras dos grafías** → **alta**. El correo
+va antes que el nombre porque no se repite; un nombre sí puede parecerse a varios.
+
+> ⚠️ **Lo que devuelve es la clave de la PERSONA, no la del texto del archivo**, y se resuelve en
+> la **primera** pasada del parseo. De `k_profesor` cuelga la detección de choques: si el archivo
+> trae «Gaby» y «Gabriela Sánchez» a la misma hora, eso es una profesora en dos clases a la vez, y
+> con la clave sin traducir pasaba por dos personas distintas.
+>
+> ⚠️ **La normalización no vive en la clase.** `Diccionario` devuelve el dato crudo y el índice lo
+> monta `BlogController::indiceDiccionario()` con `claveCatalogo()`, la misma de los demás
+> catálogos. Dos recetas se desincronizan, y la primera vez que lo hicieran sería un profesor
+> recibiendo el horario de otro.
+>
+> ⚠️ **Un alias ambiguo no decide.** Si dos personas comparten una grafía, gana la primera y la
+> segunda no pisa: el importador la trata como nombre a secas y cae en el aviso de parecidos.
+>
+> ⚠️ **Un identificador fuerte con un dato malo es peor que uno débil.** Si el diccionario trae el
+> correo de OTRA persona, el paso 2 casa con esa cuenta y el horario entero se escribe ahí; la
+> suya se inhabilita por no aparecer en el archivo. Pasa en silencio y no hay nada que lo delate.
+> Por eso, al casar por correo se comprueba que la cuenta de destino se llame como alguna de las
+> tres grafías (con `nombresCompatibles()`, la misma heurística de `docentesParecidos()`); si no,
+> **se casa igual —el correo manda— pero marcado `dudoso`**, y la previa lo saca en rojo como
+> primer hallazgo (`resumen.casados_dudosos`).
+> ⚠️ El flag se lee de la resolución de CADA FILA, no de `$porClave`: dos nombres distintos del
+> archivo pueden resolver a la misma cuenta —uno legítimo y otro por el correo mal escrito— y
+> `$porClave` conserva la primera, que es lo correcto para el nombre del alta y justo lo que
+> perdía el caso que hay que enseñar.
+>
+> ⚠️ **Se crea con la versión LARGA**, no con el nombre real. El real es el del expediente, viene
+> en mayúsculas y sin acentos («ADRIAN ARMANDO ARCE PERALTA»), así que capitalizarlo daría
+> «Adrian» — una falta de ortografía en el nombre de una persona, y encima no es como la llama
+> nadie.
+>
+> ⚠️ **Todo degrada.** Sin carpeta, sin archivo o con el Excel corrupto, el índice sale vacío y el
+> importador se comporta exactamente como antes de que el diccionario existiera; el paso 1 lo dice
+> con todas las letras, porque un componente que solo habla cuando falla no se distingue de uno que
+> no está. La previa cuenta además **cuántos nombres del archivo NO figuran** en él
+> (`diccionario.sin_entrada`): ese es el único camino que queda hacia una cuenta duplicada, y se
+> arregla fuera del panel —añadiéndolos al Excel— o sea, antes de confirmar.
+
+**Y la previa enseña los TRES verbos, no dos.** `parsearCsvHorarios()` devuelve además
+`plan['match']`: lo que el archivo **reconoce** y no toca, con los `alias` (las grafías con las que
+lo escribe) cuando no coinciden con la ficha. Sin esa cifra, «17 se crean» se lee igual en un
+archivo que encaja con el colegio y en uno que va a duplicarlo entero. Va en las cuatro
+superficies de la pantalla —tarjeta de cifra, lista de impacto, columna de la tabla de catálogos y
+lista por persona— y el paso «Catálogo» se pinta **aunque solo haya reconocidos**: la mejor noticia
+posible era justo la que no se podía comprobar.
+
+**Los HALLAZGOS son datos, como los `$PASOS`.** El array `$HALLAZGOS` del principio de la vista
+reúne lo que hay que mirar antes de confirmar —filas con error, un nivel entero ausente, casados
+dudosos, nombres fuera del diccionario, parecidos, correos que se corrigen, personas que se
+inhabilitan— y de él sale el tercer bloque del paso «Confirmar». Estaban repartidos por cuatro
+pasos y el último los ponía al mismo peso que las cifras, así que no se distinguía lo que pide una
+decisión de lo que solo informa. Cada uno lleva su cifra, la consecuencia en una frase y un
+`[data-hoi-ir]` que **salta al paso donde se ve**.
+⚠️ `que` va en pareja `[singular, plural]`, no con una «s» pegada: con un archivo casi limpio media
+pantalla sale en singular y ahí el verbo también concuerda.
+⚠️ `grave` reserva el **rojo** a lo que se pierde o se hace mal; el resto es ámbar, que en esta
+pantalla significa reversible. Pintarlos todos igual devuelve el problema que venían a resolver.
+
+**El paso «Las filas» filtra con TRES criterios a la vez** —el texto del buscador, la pill activa y
+la casilla de problemas— y los aplica una sola función, `aplicarFiltros()`. Si cada uno tocara
+`is-filtered` por su cuenta el segundo desharía al primero, que es lo que ya le pasó a la agenda de
+suplencias con su buscador y su calendario. El heno lo compone PHP en `data-buscar` y el JS solo
+quita acentos, como en el resto del panel; las marcas de las pills (`data-acomp`, `data-div`,
+`data-new`) también las emite el servidor, para que el JS pregunte por un dato y no por una
+etiqueta. La tabla tiene **7 columnas**: Día y Hora son la misma pregunta («Cuándo», con `data-val`
+numérico `día × 10000 + minutos`) y el nivel es un atributo de la materia —sale de su prefijo—, no
+una dimensión aparte.
+
+> ⚠️ **`marcarGruposAmbiguos()`**: `grupos` tiene `UNIQUE (nombre)` a secas mientras que la clave
+> del importador es `nivel|nombre` (`claveGrupo()`). Cuando los dos criterios se separan —basta un
+> prefijo de materia equivocado— el INSERT moría con un **`Duplicate entry` de MySQL en crudo a
+> mitad de la transacción**: se perdía la importación entera y el mensaje no decía qué fila la
+> había provocado. Ahora es un error de fila legible y el resto del archivo entra.
+
+**El diccionario CORRIGE el correo de quien ya tiene cuenta.** Si su ficha dice un correo y el
+diccionario otro, manda el del diccionario: `correoACorregir()` lo decide en la previa y
+`UsuarioBlog::guardarEmail()` lo escribe en la transacción, junto al bloque de niveles.
+
+> ⚠️ **El correo es el usuario con el que se entra al panel** (`login()` autentica por
+> `findByEmail()`), así que se exigen tres cosas y cualquier duda deja la ficha como está: que el
+> diccionario traiga correo y sea distinto del actual, que **sea válido** (`FILTER_VALIDATE_EMAIL`
+> — una hoja de cálculo no valida nada y una celda con el hipervínculo en vez del texto entraría
+> tal cual), y que **no sea el de otra cuenta**. Lo tercero se recoge en
+> `resumen.correos_conflicto`, porque significa que el diccionario está mal.
+>
+> ⚠️ `guardarEmail()` **revalida la unicidad dentro de la transacción** y devuelve `false` en vez
+> de dejar reventar el `UNIQUE`: el plan se calcula en la previa, viaja en sesión y se ejecuta
+> minutos después, y en ese hueco un admin puede haber usado ese correo desde
+> `/dashboard/usuarios/editar`. Una cuenta que se salta no puede tumbar la importación del horario
+> de todo el colegio.
+>
+> ⚠️ **El fallo es DIFERIDO y hay que decirlo en pantalla**: `$_SESSION['blog_usuario']` no guarda
+> el correo, así que quien tenga sesión abierta sigue trabajando y descubre el cambio al día
+> siguiente, con un «No encontramos ninguna cuenta con ese correo» que se lee como falta de
+> ortografía propia. La previa lista **todos** los cambios, antes → después, en el paso «Personal».
+> Consecuencia asumida: una corrección hecha a mano en Usuarios se revierte en la siguiente
+> importación. El diccionario es la fuente; lo que no puede es hacerlo sin avisar.
+
+**El diccionario se sube desde la propia pantalla.** Segundo campo `.admin-file` en el formulario
+del paso 1, junto al del horario. Se guarda **antes** de leer el horario —si se suben los dos es
+precisamente para que el horario se lea contra el nuevo— y `Diccionario::olvidar()` reinicia la
+caché estática, que si no seguiría vigente la del principio de la petición.
+**Ninguno de los dos campos es `required`**: subir solo el diccionario es una tarea por sí sola, y
+exigir además un horario llevaba a cargar uno cualquiera para que el formulario dejara pasar.
+- **`dia`** — `L M X J V` (`CSV_DIAS`).
+- **`periodo`** — numera las **horas de clase** de su jornada, saltándose los recesos: `3` en
+  Secundaria/Bachillerato, `B3` en Primaria, `C3` en Kinder (`CSV_NIVEL_PERIODO`). Se resuelve
+  contra `Periodo::porNivel(true)`, **no** contra `orden`: la 4ª hora de Secundaria es `orden` 5,
+  porque el 4 es un receso.
+- **`materia`** — `«<prefijo> <nombre>»`, prefijo `B S P K M` (`CSV_NIVEL_MATERIA`).
+  **De aquí sale el nivel de la fila**, no del grupo. ⚠️ `B` está en los dos mapas y significa
+  cosas distintas (Bachillerato en la materia, Primaria en el periodo): el nivel lo decide siempre
+  la materia y el código de periodo solo se comprueba contra él.
+- **`grupo`** — `claveGrupo()` lo reconoce venga como venga: `Prim 1°A` ≡ `1A Primaria`. Quita el
+  nombre del nivel, el ordinal y lo que no sea letra o dígito, y antepone el nivel. Sin eso la
+  importación creaba un grupo duplicado por cada grafía, con el horario repartido entre los dos.
+- **`aula`** — opcional (la FK admite NULL).
+- **`tipo`** — `LEC`. Otro valor entra como clase y **avisa**. La **8ª columna no se lee**:
+  siempre vale 1 y el sistema de origen no documenta qué es; inventarle un significado sería peor.
+
+**⚠️ El CSV manda también sobre los CATÁLOGOS: crea lo que falta y borra lo que sobra.**
+Lo que el archivo ya no menciona deja de existir, o cada carga deja sedimento y a los tres cursos
+el desplegable de grupos tiene el doble de opciones que el colegio. El tercer valor que devuelve
+`parsearCsvHorarios()` es ese plan: `['altas' => …, 'bajas' => …]`, y `$resumen['catalogos']` trae
+por tipo `archivo` · `nuevos` · `sobran` · `eliminar` · `retener`.
+
+> ⚠️ **`sobran` ≠ `eliminar`, y la diferencia no se negocia.** Una fila que alguna suplencia pasada
+> cite se **conserva** aunque el archivo ya no la mencione: las FK de `suplencia_horas` son
+> ON DELETE SET NULL, así que borrar el aula de una cobertura de marzo no da error —le vacía el
+> dato en silencio— y el histórico deja de saber dónde fue esa clase. `parsearCsvHorarios()` las
+> marca `retenida` (con su número de usos).
+>
+> ⚠️ Y `escribirImportacion()` **vuelve a preguntarlo** con `usosEnSuplencias()` en vez de fiarse
+> de la previa: entre «Revisar archivo» y confirmar pasan minutos, y en ese hueco prefectura puede
+> agendar una suplencia sobre un grupo que la previa dio por prescindible. Cuesta tres consultas.
+> La **lista de candidatos** sí es la de la previa —es lo que el admin vio y aceptó—; lo que se
+> recomprueba es solo si alguno ha dejado de ser borrable.
+
+> ⚠️ **Los PROFESORES no se podan nunca.** Borrar la cuenta arrastraría sus suplencias, sus
+> intercambios y sus notificaciones. Quien no venga en el archivo se queda **sin horario** y
+> conserva todo lo demás — que es otra consecuencia, se cuenta aparte y la tabla de la previa lo
+> dice con la palabra «nunca» en vez de un cero, que se leería como «hoy no toca».
+
+**Las bajas se ejecutan las ÚLTIMAS**, después de insertar la rejilla nueva: mientras la vieja
+exista, cada grupo y cada aula siguen referenciados, y así se garantiza además que nada de lo
+recién insertado apunte a lo que se va.
+
+Con el archivo real y el seed de desarrollo: **+39** profesores · **+4 −2** grupos ·
+**+8 −2** aulas · **+26 −34** materias. El colegio no manda Maternal en el CSV, así que su grupo,
+su aula y sus materias entran enteros en las bajas — vale la pena mirarlo antes de confirmar.
+
+La previa enseña **el denominador** («en el archivo») junto a cada cifra. Sin él, un «Grupos 4»
+sobre un archivo con 22 se lee como que el importador **solo entendió cuatro** — justo lo
+contrario: entendió los 22 y reconoció 18 gracias a `claveGrupo()`.
+
+**⚠️ Las altas se recogen DESPUÉS de marcar los choques**, no dentro del bucle de lectura. Al
+vuelo, una fila que luego resultaba ser un choque —y que por tanto no se importa— dejaba igual su
+grupo o su aula en la lista: se creaban filas de catálogo que después no usaba ninguna clase.
+
+**Las tres convivencias del horario real se deducen solas**, y sin ellas el archivo real no entra:
+
+| Situación | Cómo se ve en el archivo | Qué hace el importador |
+|---|---|---|
+| **Materia dividida** | mismo (día, periodo, grupo), materias distintas | `resolverDivisiones()` reparte `division` 1..n por orden de aparición |
+| **Coteaching** | mismo (día, periodo, grupo, materia), profesores distintos | `resolverCoteaching()`: el primero es `titular`, el resto `acompanante`; pasado `MAX_ACOMPANANTES` es error, no recorte silencioso |
+| **Clase conjunta** | mismo (día, periodo, materia, profesor), grupos distintos | sale sola: son filas con `grupo_id` distinto |
+
+Sin el primero, las 65 filas de Arte/Música/Cine simultáneos del horario real se rechazaban como
+«ese grupo ya tiene clase».
+
+**Encoding:** `csvAUtf8()` decide **por validez**, no por confianza — si ya es UTF-8 válido lo deja
+(convertir dos veces rompe lo que estaba bien) y si no traduce desde Windows-1252, que es como sale
+de Excel. Sin eso no casaba ni una materia con acento. `str_getcsv()` se llama con **escape vacío**:
+el defecto es `\` y el colegio escribe barras (`Dulce\Laura`).
 
 Los choques se validan **por hora de reloj**, no por `periodo_id`: profesor solapado y grupo
-solapado son **error**, aula solapada es **aviso**. Se comprueba tanto dentro del archivo como
-contra el horario ya cargado de los profesores que **no** vienen en él — sin eso, un grupo
-ocupado por un tercero reventaba la transacción con un `Duplicate entry 'lunes-41-5'`
-ilegible. El aula se valida la última: si va antes, su error tapa el de nivel/periodo/materia,
-que es el que hay que corregir primero.
+solapado son **error**, aula solapada es **aviso** (el patio recibe a dos grupos). Las tres
+convivencias de arriba no se reportan. **Ya no se comprueba contra el horario cargado**, y es
+deliberado: el reemplazo es total, así que no queda nada con lo que chocar.
+
+> El formato viejo (7 columnas con cabecera `profesor_email,…`) se detecta y se rechaza **con ese
+> mensaje**: un «faltan columnas» a secas mandaba a revisar el archivo equivocado.
 
 **Ficha del colaborador.** Reúne en una pantalla lo que el panel ya sabía de una persona y
 estaba repartido entre tres módulos: identidad y permisos, su horario semanal, sus ausencias,
@@ -1003,7 +1484,39 @@ dos pantallas acaben pintando historiales distintos:
   está en la lista de `body[data-page]` de `_admin-horarios.scss` (ver abajo).
 - ⚠️ `/dashboard/perfil` pasa `niveles = []`: una dirección de nivel no debe verse **su propia**
   ficha recortada por su alcance de gestión.
-- **Guard en dos pasos** (la ajena): sesión → `puedeCoordinar()` (expone motivos de ausencia y
+- **El cumpleaños lo pone su dueño; el nombre, un administrador.** El campo de fecha vive
+  ahora en `_perfil-cuenta.php` —antes solo se podía por `/dashboard/usuarios/editar`, que
+  es la pantalla de administración— y se guarda con `guardarFechaNacimiento()`, porque el
+  ORM base no sabe escribir `NULL` real. El nombre sale como dato con candado
+  (`.ufi-campo__fijo`) y no como `<input disabled>`: un campo apagado sin explicación se lee
+  como un fallo de la página. No es un dato personal sino la identidad con la que el resto
+  del claustro lo reconoce en horarios, suplencias e intercambios.
+
+> ⚠️ **`sincronizar($_POST)` asigna CUALQUIER propiedad, y eso era una escalada de
+> privilegios.** `modulos` y `puede_suplir` están en `$columnasDB`, así que un POST a
+> `/dashboard/perfil` con `modulos=usuarios,horarios,suplencias` se persistía tal cual y
+> surtía efecto en el siguiente login; solo `rol` estaba blindado. Mismo vector en
+> `editarUsuario()` para un rol `usuario`. Lo cierra
+> **`blindarCamposPrivilegiados($usuario, $id)`**, que restaura `rol`, `nombre`, `modulos` y
+> `puede_suplir` desde la fila de BD antes de `guardar()`, en las **dos** puertas. Que el
+> formulario no pinte esos campos es un guard de vista, no de servidor.
+>
+> En el mismo sitio faltaba comparar `password_confirm`: solo lo hacía `blog-perfil.js`, así
+> que un envío sin JS guardaba lo que viniera en `password` y dejaba al usuario fuera de su
+> cuenta. Lo hace `passwordConfirmada($_POST)`, y **después** de `validarEdicion()` /
+> `validarPerfil()`: esas funciones arrancan vaciando `static::$alertas` y un aviso puesto
+> antes se perdía en silencio.
+- **⚠️ La ficha la abre CUALQUIERA con sesión.** `requireFichaColaborador()` ya no exige
+  `puedeCoordinar()`: la ficha es la guía de personal del claustro —quién es, qué imparte,
+  cuándo está en clase y dónde—, y saber si puedes interrumpir a alguien ahora mismo no es
+  un dato de gestión. Lo que se cerró es lo de DENTRO: **`puedeVerHistorial($id)`** (=
+  coordina **o** es uno mismo) decide si `datosFicha()` entrega ausencias, conteos,
+  coberturas e intercambios. Sin ese flag, abrir la ficha al claustro habría publicado de
+  paso el motivo de cada baja médica.
+  La vista recorta con él las secciones **y los dos contadores del hero**: un «0
+  suplencias» para quien no puede verlas no es ausencia de dato, es mentira. Los
+  justificantes siguen siendo de dirección y no pasan por aquí en ningún caso.
+- **Guard anterior, para contexto**: sesión → `puedeCoordinar()` (expone motivos de ausencia y
   horarios ajenos: la misma frontera que separa la agenda del histórico del plantel).
   Hubo un tercer paso —módulo `usuarios` **o** el directorio del tipo de la persona mirada, vía
   `DIRECTORIO_DE_TIPO`— que acotaba a un prefecto a las fichas de los tipos cuyo directorio
@@ -1123,9 +1636,12 @@ regenerar el CSV entero.
 **`horarios.color`** es el color del bloque elegido a mano ahí. `NULL` = automático, derivado del
 nombre de la materia. Lo calcula **`BlogController::colorMateria($materia, $color)`**, fuente única
 que consumen el JSON de suplencias, `.hor-grid` y el editor — antes había tres copias del `crc32()`
-y la paleta. ⚠️ **El CSV no transporta el color** y una importación reemplaza semanas enteras, así
-que `importarHorarios()` fotografía `(profesor, dia, periodo) → color` con
-`Horario::coloresDeProfesores()` antes del borrado y lo vuelca en las filas nuevas.
+y la paleta. ⚠️ **El CSV no transporta el color** y una importación reemplaza la rejilla entera, así
+que `escribirImportacion()` fotografía `(profesor, dia, periodo) → color` con
+`Horario::coloresDeProfesores()` —**sin argumentos**, que devuelve los de toda la tabla: los ids de
+los profesores que el archivo crea todavía no existen en ese momento— antes del borrado, y lo
+vuelca en las filas nuevas. Es el único dato que el archivo no sabe expresar, así que conservarlo
+no compite con él.
 
 **Módulo Suplencias.** Dos flujos según quién abre la ausencia:
 
@@ -1180,9 +1696,157 @@ abrir una ausencia futura. `resumenDiario($usuarioId)` acepta el mismo filtro qu
 - **`niveles`** — SET opcional. Vacío = todo el colegio, y `Evento::normalizarNiveles()` guarda
   `NULL` también cuando están los cinco: para quien lee el calendario son la misma cosa, y así la
   UI no pinta cinco chips redundantes en cada fila.
+- **`icono`** — clase Font Awesome elegida a mano. `NULL` = el del `tipo`, que es como se pintaba
+  el 100% del calendario antes de que la columna existiera. Lo resuelve `Evento::icono()`, que no
+  devuelve nunca vacío. Se ve en el listado del panel, en las tarjetas de aviso, en el detalle del
+  día, en la vista de ciclo **y en el PDF** (ahí como carácter, ver *Dependencias PHP*).
 
 Todos los eventos, sea cual sea su audiencia, siguen apareciendo en el calendario del panel.
 `Evento::publicos()` se conserva como alias `@deprecated` de `porAudiencia('familias')`.
+
+⚠️ **`icono` es LISTA BLANCA, no texto libre.** Acaba como clase CSS en el HTML público
+(`<i class="fa-solid {$icono}">`), así que `Evento::normalizarIcono()` descarta en silencio
+todo lo que no esté en `Evento::ICONOS` —un catálogo de ~35 glifos agrupado por tema, que es
+también de donde el formulario pinta el selector—. Elegir el icono que **ya es** el del tipo se
+normaliza a `NULL` igualmente: así cambiar el tipo del evento más adelante le cambia el icono
+con él, que es lo que se espera.
+
+**Tres tablas de tipo, una sola fuente.** `Evento::TIPO_COLOR`, `TIPO_ICONO` y
+`TIPO_LABEL_PUBLICO` viven en el modelo porque las leen el listado del panel, la web pública
+**y el PDF** —y este último no puede consultar las `--cal-*` del SCSS—. Antes la vista de
+Familias llevaba su propia tabla `$tipoMeta` con otros cinco colores, así que el mismo evento
+salía morado en su tarjeta de aviso y azul en el punto del calendario de al lado. Los hex de
+`TIPO_COLOR` deben seguir cuadrando con el `:root` de `estaticas/_comunidad-familias.scss`.
+
+**El formulario dice con COLOR las tres decisiones de publicación**, y cada una con su
+lenguaje para que no compitan:
+
+| Campo | Cómo se elige | De dónde sale el color |
+|---|---|---|
+| **Tipo** | pastillas de radio (`.ev-tipo`), con el glifo del tipo en un disco | `Evento::TIPO_COLOR` |
+| **Audiencia** | tres tarjetas-radio (`.ev-aud`) | `$ev-aud-*` en `_admin-eventos.scss` |
+| **Niveles** | `.admin-nivel-check`, el componente compartido | `Materia::NIVEL_COLOR` |
+
+**El formulario va en DOS secciones, no en siete campos seguidos**: título, fechas, tipo,
+icono y descripción dicen **qué es** el evento; audiencia y niveles, **dónde se publica** —
+que es justo el título de la tarjeta de ayuda de la derecha—. Dentro de cada sección el
+color vuelve a tener un solo significado, que es el arreglo de fondo al «tres bloques de
+color compitiendo»: no era cromático sino de arquitectura.
+
+⚠️ **Niveles NO tiene componente propio.** `.admin-nivel-check` ya existía en
+`estaticas/_blog-admin.scss` para «Niveles que imparte» del formulario de usuarios, con la
+misma pregunta y el mismo `--c`; el formulario de eventos estrenó un clon (`.ev-niv`) que
+pintaba lo mismo con otro punto y otro velo. Se borró. **Tocar `.admin-nivel-check` toca las
+dos pantallas**, y es deliberado: arreglar solo una recrea la divergencia.
+
+⚠️ **«Elegido» no puede depender solo del color.** El velo al 13% da **1.09:1** (ámbar)
+contra el blanco y el borde teñido **1.49:1** contra `#e2e8f0`: en escala de grises una
+pastilla marcada y una sin marcar eran el mismo objeto. Por eso el estado marcado **invierte
+luminancia** — disco relleno con el glifo en blanco en el tipo, punto con ✓ en los niveles,
+relleno del chip en la audiencia—, que es la misma regla del ✓ de `.admin-tipo-card`.
+
+⚠️ **Hay DOS suelos de contraste, y son cosas distintas.** `ev-tinta` (45 %) es para
+**texto** y `ev-vivo` (70 %) para **gráficos con significado** — el glifo del tipo y los
+rellenos pequeños—: el 45 % apaga demasiado el tono en un dibujo de 13px que es justo lo que
+identifica al tipo, y el color a pelo se queda en 1.84:1 (ámbar). El 70 % sirve en los dos
+sentidos (glifo oscuro sobre blanco y ✓ blanco sobre el relleno), así que es un número y no
+dos.
+
+- ⚠️ **El tipo era un `<select>`**, y es el campo que decide con qué color e icono aparece el
+  evento en los tres calendarios: el desplegable escondía justo eso —se elegía a ciegas y había
+  que volver al listado para ver qué había tocado—. Las pastillas lo enseñan antes de elegir.
+  `admin-evento-icono.js` (el que mantiene honesta la casilla «Automático») lee ahora el **radio
+  marcado**, no `select.value`: con cinco nodos del mismo `name`, quedarse con el primero
+  congelaba el icono.
+- ⚠️ **Los tres colores de audiencia viven en UN sitio** (`$ev-aud-interno` / `-familias` /
+  `-estudiantes`), porque los pintan el badge del listado y las tarjetas del formulario: es el
+  mismo dato en dos pantallas. Son colores que **no usa ningún tipo de evento** —tipo y
+  audiencia conviven en la misma fila del listado y repetir un tono haría creer que dicen lo
+  mismo—. El gris que tenía «Interno» se leía como opción deshabilitada, y es la que viene
+  marcada por defecto.
+- ⚠️ **`Materia::NIVEL_COLOR` es fuente única** del recorrido naranja→índigo por el orden
+  académico. Estaba copiado a mano en `grupos/index.php` y en `grupos/_form.php`; ahora lo leen
+  esas dos y los chips de Eventos, así que un nivel se reconoce por su tono en todo el panel.
+- ⚠️ **Marcado no es relleno sólido.** Tres de los cinco colores de nivel (ámbar, lima y
+  turquesa) y el naranja de la audiencia «Estudiantes» dejan el blanco por debajo de AA, así que
+  el estado marcado es **velo al 13% + tinta derivada** (mixin `ev-tinta`) y el color puro se
+  reserva para el punto y para los rellenos que se oscurecen con `color-mix(… 88%, --pal-tinta)`.
+  Invertirlo deja media paleta ilegible, que es la misma regla del PDF y de la rejilla de horarios.
+
+### Calendario público (Comunidad › Familias)
+
+La sección «Calendario escolar» tiene **dos vistas sobre los mismos datos y el mismo filtro**,
+y todo ocurre en cliente: los eventos de la audiencia llegan completos en la isla JSON, así que
+filtrar o cambiar de vista no pide nada al servidor.
+
+| Vista | Qué es | Cuándo sirve |
+|---|---|---|
+| **Mes** (`.bilbao-cal`) | la rejilla navegable de siempre + detalle del día al lado | «qué hay esta semana» |
+| **Ciclo completo** (`.fam-ciclo`) | los doce meses del curso, cada tarjeta con mini-rejilla **y la lista de sus eventos** | «cuándo cae el puente de marzo» |
+
+- **Los chips de nivel son de selección MÚLTIPLE** (una familia puede tener hijos en dos
+  niveles). «Todo el colegio» no es un nivel más sino el estado sin filtro, así que apaga a los
+  demás; y marcar los cinco vuelve a ese estado, igual que `normalizarNiveles()` en el panel.
+- ⚠️ **Un evento sin niveles pasa CUALQUIER filtro**: es del colegio entero. La nota bajo la
+  barra lo dice con todas las letras porque, si no, un filtro de Kinder que sigue mostrando la
+  junta general se lee como un filtro roto.
+- ⚠️ **Un evento de varios días existe en TODOS ellos, no solo en el primero.** Lo expanden
+  `dias()` en el JS y `$diasDe` en la plantilla del PDF, las dos con tope de 400 días para que
+  un `fecha_fin` mal tecleado no cuelgue el render. Antes solo se indexaba `fecha` y unas
+  vacaciones del 20 de diciembre al 6 de enero desaparecían de enero.
+- La lista bajo cada mini-rejilla **no es redundante**: en una celda de 26px solo cabe un punto
+  de color, y el evento hay que poder leerlo.
+- ⚠️ Los dos paneles se alternan con `hidden` y **los dos tienen `display` propio**, así que
+  `.fam__cal-wrap` y `.fam-ciclo` llevan obligatoriamente su `&[hidden]` — la trampa de cascada
+  de siempre (`[hidden]{display:none}` vive en `base/_normalize.scss`, capa anterior).
+
+**El ciclo se DEDUCE de la fecha, no se configura.** `Evento::ciclo()` parte de
+`CICLO_MES_INICIO` (agosto) y devuelve la ventana agosto→julio que contiene hoy; `mesesCiclo()`
+da sus doce meses. Un rango fijo habría que moverlo cada agosto, y el calendario se quedaría
+enseñando el curso pasado hasta que alguien se diera cuenta.
+
+**Descarga en PDF, con interruptor en el panel.** `GET /comunidad/familias/calendario.pdf`
+(A4 apaisado, Dompdf): portada con los doce meses en rejilla 4×3 + leyenda, y después el
+detalle mes a mes. Acepta `?niveles=` para descargar **lo que se está mirando** — el JS
+reescribe el `href` con los chips activos, y el servidor filtra el parámetro contra
+`Materia::NIVELES` porque acaba en el documento y en el nombre del archivo.
+
+> ⚠️ **La rejilla de doce meses se pinta SIEMPRE, también sin un solo evento.** El ciclo vacío
+> —o un filtro de nivel sin resultados— devolvía una hoja con la cabecera y la línea «No hay
+> eventos publicados»: un folio en blanco que no se distingue de un PDF roto, y es justo lo que
+> descarga quien estrena el interruptor antes de cargar el calendario del curso. Los doce meses
+> no dependen de que alguien haya metido eventos, así que lo que falta cuando no los hay es el
+> contenido de las celdas. Lo que sí se retira entero es **la leyenda y el detalle mes a mes**:
+> explican colores que ahí no hay ninguno.
+>
+> ⚠️ **Y el aviso de «sin eventos» va en el ENCABEZADO, no bajo la rejilla**, aunque ahí sea
+> donde parece que toca. Medido con Dompdf: la rejilla más el pie llenan la primera página
+> **exacta** —un espaciador de 2 mm ya la parte en dos—, así que un párrafo debajo condena el
+> documento a una segunda página que solo lleva el pie. (La leyenda del caso normal cabe
+> únicamente porque allí el pie no está en esa página: se va a la última, detrás del detalle,
+> que abre con `page-break-before`.) Va como tercera línea de `.cp-head__meta`, bajo «Generado
+> el …», y ni siquiera esos 6,8 pt entran gratis: la plantilla marca el `<body>` con
+> **`.cp-sin-eventos`**, que le reclama ~5 mm al aire del encabezado y del pie para gastar 2,4.
+> El sobrante es deliberado — el alto del logo o de la tipografía puede cambiar, y aquí el
+> error se paga con una página en blanco.
+
+> ⚠️ **El interruptor es el GUARD, no la condición del botón.** Con
+> `Ajuste::CALENDARIO_PDF` apagado la ruta **redirige**; si solo escondiera el enlace, la URL
+> seguiría sirviendo el documento a cualquiera que la conociera, y el sentido del interruptor
+> es justamente decidir si el colegio ya publica su calendario.
+>
+> Vive en la tabla **`ajustes`** (clave-valor) y no en una columna de `eventos`: no es
+> propiedad de ningún evento sino del sitio. Lo lee el modelo `Ajuste`, cuyo `texto()`
+> **captura la excepción** de tabla ausente y cae al valor por defecto — con `@` a secas no
+> valía: desde PHP 8.1 mysqli reporta por excepción y el arroba no la silencia, así que una
+> base anterior a este cambio tumbaba la portada pública entera con un fatal.
+>
+> Lo cambia `POST /dashboard/eventos/ajustes` (guard `requireModulo('eventos')`, no admin:
+> quien puede crear un evento con audiencia `familias` ya publica en esa misma página). Se
+> envía **al cambiar el interruptor** (`admin-evento-ajuste.js`); el botón «Guardar» es el
+> camino sin JS y el módulo lo oculta. Si la escritura falla el redirect lleva `?ajuste=0` y
+> el toast lo dice: el interruptor volviendo solo a su sitio sin explicación se lee como que
+> el panel lo ignora.
 
 El home `/dashboard` muestra un **calendario interactivo** (`.bilbao-cal`) que combina **cumpleaños +
 eventos**, más una lista de **próximos eventos** y el panel de cumpleaños — todo visible para
@@ -1193,6 +1857,25 @@ pintado en vez de capturarlo al montar.
 
 **Pulsar un día del calendario abre su ficha** (`#mhDiaModal`): antes las celdas eran botones sin
 acción — se veían los puntos de color pero no había forma de saber qué eran sin ir a Eventos.
+
+**Debajo del hero va «Ahora / Sigue».** El partial `views/blog/_horario-ahora.php` (`.hoy`)
+pinta la clase EN CURSO con los minutos que quedan, la siguiente, y la columna del día
+entero. Va ahí a propósito: es lo más perecedero de la pantalla —en diez minutos dice otra
+cosa— y las tarjetas de módulo siguen ahí todo el curso. Solo para quien imparte; a un
+administrativo saldría vacío y le empujaría sus módulos fuera de la primera pantalla.
+
+- **Sin scope de página**: el mismo partial lo incluye la **ficha del colaborador**, así que
+  quien la abre ve dónde está esa persona ahora mismo — que es justo lo que se viene a
+  consultar. Encerrarlo en un `body[data-page]` lo apagaría en una de las dos.
+- Los datos salen de `bloquesDeHoy(datosHorarioProfesor($id))`, la misma fuente que «Mi
+  horario», su PDF y la rejilla de la ficha: las cuatro no pueden pintar días distintos.
+- ⚠️ **La hora la lleva el cliente** (`admin-horario-ahora.js`, tic de 30 s), pero el reloj
+  del navegador no es de fiar: un portátil mal puesto marcaría la clase equivocada, y aquí
+  eso significa que alguien cree que le toca otra cosa. El servidor sella su hora en
+  `data-ahora` y el JS corrige la **deriva** en cada tic. Sin JS el bloque se queda en su
+  estado base —la columna completa, sin resaltado—, que sigue siendo información correcta.
+- ⚠️ `.hoy__ahora`, `.hoy__sigue` y `.hoy__fin` se alternan con `hidden` y tienen `display`
+  propio, así que **cada uno lleva su `&[hidden]`**.
 
 **El hero del home es la portada, no un tablero.** `.mh-hero` lleva el **bosque WebGL** del login
 (`BilbaoForest.init(canvas, {dark:false})`, paleta CLARA como la del landing) y el saludo sobre una
@@ -1318,6 +2001,33 @@ segundo JOIN multiplicaría filas disparando el `COUNT(sh.id) AS total_horas`.
 no tiene nivel. En la **agenda** y la **cola** se deja pasar (si no, desaparecería justo de quien
 debe agendarla); en las **estadísticas** se excluye (no aporta a ningún nivel). El guard de objeto
 `requireAlcance()` es *fail-open* por lo mismo.
+
+> ⚠️ **`conteos()` lo pasaba a `false` y la tabla a `true`, así que no cuadraban.**
+> `listar()` y `resumenDiario()` dejaban pasar la suplencia sin horas y las **tarjetas de
+> conteo** no: a una dirección de Primaria las tarjetas decían **43 sobre 51 filas** — ocho
+> ausencias recién abiertas por prefectura, visibles en la tabla e invisibles en el
+> contador. `conteos()` pasa ya `true`; el tablero sigue llamando a `porEstado()` directo y
+> excluyéndolas, que ahí es lo correcto.
+
+**El alcance sigue al PERSONAL, no solo al calendario.** Tanto `Suplencia::sqlNivel()` como
+`Swap::sqlNivel()` tienen ahora un término **OR** sobre los `niveles` declarados de las
+personas implicadas —el ausente en una suplencia, los dos profesores en un intercambio—
+además del nivel de las horas o de las clases. Una dirección gestiona personas: la ausencia
+de un profesor de Primaria le compete aunque sus horas todavía no ubiquen el nivel.
+
+En los swaps eso además tapa un agujero: `horario_origen_id` y `horario_destino_id` son
+`ON DELETE SET NULL`, así que un intercambio cuya clase se borró se quedaba con
+`po.nivel`/`pd.nivel` en NULL y **desaparecía para todas las direcciones**, incluida la que
+debía validarlo.
+
+> ⚠️ `niveles` es un **SET**: se consulta con `FIND_IN_SET`, no con `IN`. Y todo término
+> nuevo necesita su `IS NULL OR = ''` cuando se recorra la tabla de direcciones, o la
+> dirección general se queda sin un solo aviso (ver `direccionesDeNiveles()`).
+
+**Los avisos a dirección cubren ya cinco momentos**, no dos: suplencia creada, cobertura
+asignada, justificante subido, cobertura validada y suplencia anulada — más los tres de
+swaps. Antes solo llegaban las validaciones, así que una ausencia se abría, se agendaba y se
+justificaba sin que dirección se enterara salvo que entrara a mirar.
 
 **Filtrar el listado no es cerrar la puerta.** Todo lo que llega por `?id=` lleva además
 `requireAlcance()`: `/agendar`, la descarga del justificante, `resolver`, `aprobar`, `reabrir-hora`,
@@ -1551,6 +2261,10 @@ con un toast de Alex. Antes era un `Location: /dashboard` mudo y parecía que el
 
 ### Protección y permisos
 
+- ⚠️ **`requireAuth()` NO es el sitio para bloquear pantallas.** Lo llaman también los
+  endpoints JSON, así que cualquier cosa que pinte HTML desde ahí corrompe sus respuestas.
+  La puerta de Actualizaciones se monta por eso en `views/layout-admin.php`, que solo
+  atraviesan las pantallas HTML — que son exactamente las que hay que bloquear.
 - `requireAuth()` redirige a `/` si `$_SESSION['blog_usuario']` está vacío. La sesión guarda
   `['id','nombre','rol','avatar','modulos']`.
 - `puede(string $modulo)` → `true` si el rol es `administrador`, o si el módulo está en el CSV `modulos`.
@@ -1658,6 +2372,16 @@ el `EstaticasController`, y animaciones GSAP (ya global en `header.php`). Todo r
 prueba + calendario interactivo infantil con mascotas Alex), **Colaboradores** (landing de acceso al
 panel, enlaza a `/login`). *Exalumnos fue eliminado.* El calendario usa el componente reutilizable
 `.bilbao-cal` (definido en `_comunidad-familias.scss`, disponible también en el panel para cumpleaños).
+
+**Familias lleva la puerta a Algebraix** (`.fam-alg`), el sistema de gestión escolar que las
+familias ya usan para calificaciones, boletas y pagos. Va **arriba del calendario** y debajo
+de los avisos: es la razón nº1 por la que una familia entra a esa página, y más abajo habría
+que bajar dos pantallas para encontrarla. Todo el bloque es el `<a>` —no un botón dentro de
+una tarjeta— para que no haya forma de fallar el clic, y va en azul institucional sólido
+porque no es una categoría de contenido sino una **salida del sitio**: el contraste con las
+tarjetas blancas de aviso es lo que la hace encontrable de un vistazo.
+⚠️ Enlace externo: `target="_blank"` **con `rel="noopener noreferrer"`** — sin `noopener` la
+pestaña destino puede reescribir esta vía `window.opener`.
 
 **Colaboradores usa `forest.js`, el MISMO bosque del login**, no la nube de partículas de
 `_bg.php` que tuvo antes (`$bg_scene='orbes'`). Es la puerta al panel y su único CTA lleva a

@@ -56,6 +56,13 @@ $DIAS_PURGA = \Model\Suplencia::DIAS_PURGA;
             <?php else: ?>
 
             <div class="admin-panel">
+                <?php /* ⚠️ El envoltorio de scroll es OBLIGATORIO y faltaba. `.admin-panel`
+                         es `overflow: clip` y `.admin-table` tiene `min-width: 680px`, así
+                         que por debajo de ese ancho las últimas columnas —Archivo, Días y
+                         Acciones— quedaban CORTADAS y sin forma de llegar a ellas: ni
+                         scroll, ni nada. Y es una vista de dirección que se consulta desde
+                         el móvil. */ ?>
+                <div class="admin-table-scroll">
                 <table class="admin-table" data-table data-table-per="12" data-table-noun="justificantes">
                     <thead><tr>
                         <th data-sort="date">Ausencia</th>
@@ -138,6 +145,7 @@ $DIAS_PURGA = \Model\Suplencia::DIAS_PURGA;
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
             <?php endif; ?>
 

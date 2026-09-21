@@ -30,35 +30,50 @@
         }).then(function (r) { return r.json(); });
     }
 
-    /** Resta uno a la campana del topbar; al llegar a 0 la deja apagada. */
-    function bajarBadge() {
-        var badge = document.querySelector('[data-notif-badge]');
-        if (!badge) return;
-        var n = parseInt(badge.textContent, 10) - 1;
-        if (isNaN(n) || n <= 0) {
-            var campana = badge.closest('.admin-topbar__bell');
-            badge.remove();
-            if (campana) campana.classList.remove('has-pend');
-        } else {
-            badge.textContent = n;
-        }
+    /* ── Contadores de pendientes ──
+       Hay DOS y los dos están siempre en el DOM: la campana del topbar y el acceso a
+       «Avisos» dentro del cajón, que es el que se ve por debajo de 1024px. Quién se
+       pinta lo decide el CSS, así que actualizar solo el primero —como se hacía—
+       dejaba en móvil el número visible congelado mientras se movía el invisible. */
+    function hostsBadge() {
+        return [
+            document.querySelector('.admin-topbar__bell'),
+            document.querySelector('[data-notif-cta]')
+        ].filter(Boolean);
     }
 
-    function subirBadge() {
-        var campana = document.querySelector('.admin-topbar__bell');
-        if (!campana) return;
-        var badge = campana.querySelector('[data-notif-badge]');
-        if (badge) {
-            badge.textContent = (parseInt(badge.textContent, 10) || 0) + 1;
-        } else {
-            badge = document.createElement('span');
-            badge.className = 'admin-topbar__bell-badge';
-            badge.setAttribute('data-notif-badge', '');
-            badge.textContent = '1';
-            campana.appendChild(badge);
+    /** Deja el contador de `host` en `n`; en 0 lo retira y apaga el estado. */
+    function pintarBadge(host, n) {
+        var badge = host.querySelector('[data-notif-badge]');
+        if (n <= 0) {
+            if (badge) badge.remove();
+            host.classList.remove('has-pend');
+            return;
         }
-        campana.classList.add('has-pend');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.setAttribute('data-notif-badge', '');
+            /* Cada superficie tiene su pastilla: la del topbar cuelga de la campana,
+               la del cajón es la misma de los badges de subopción del sidebar. */
+            badge.className = host.classList.contains('admin-topbar__bell')
+                ? 'admin-topbar__bell-badge'
+                : 'admin-nav__badge';
+            host.appendChild(badge);
+        }
+        badge.textContent = n > 99 ? '99+' : n;
+        host.classList.add('has-pend');
     }
+
+    function moverBadge(delta) {
+        hostsBadge().forEach(function (host) {
+            var badge = host.querySelector('[data-notif-badge]');
+            var n = badge ? parseInt(badge.textContent, 10) : 0;
+            pintarBadge(host, (isNaN(n) ? 0 : n) + delta);
+        });
+    }
+
+    function bajarBadge() { moverBadge(-1); }
+    function subirBadge() { moverBadge(1); }
 
     function repaginar() {
         var pager = document.querySelector('[data-pager]');

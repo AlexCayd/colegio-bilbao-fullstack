@@ -32,12 +32,18 @@ function rolLabel(string $rol): string {
 // Reparto en tres tablas. Un usuario con varios tipos aparece en todas las que le
 // correspondan (p. ej. profesor + administrativo sale en dos), así que no son
 // grupos excluyentes: se filtra la misma lista tres veces.
-// Orden de presentación fijo (administrativo · profesor · prefecto · directivo), el
-// mismo de UsuarioBlog::normalizarTipoPersonal(). No basta con el orden del CSV: los
-// registros guardados antes del cambio conservan el anterior y solo se reescriben al
-// volver a guardarlos. `directivo` faltaba aquí, así que un directivo se quedaba sin
-// etiqueta de tipo y fuera de los tres grupos de la lista.
-$ORDEN_TIPOS = ['administrativo', 'profesor', 'prefecto', 'directivo'];
+//
+// Orden de presentación FIJO y completo: no basta con el orden del CSV (los registros
+// guardados antes del cambio conservan el anterior y solo se reescriben al volver a
+// guardarlos), y si falta un tipo —a `directivo` le pasó— quien lo tenga se queda sin
+// etiqueta y fuera de los tres grupos.
+//
+// Encabeza el puesto DOMINANTE, porque la celda pinta un solo chip y el color sale de
+// `$tipos[0]`: `prefecto` y `directivo` son excluyentes, así que solo compiten
+// `profesor` y `administrativo`, y ahí pesa más dar clase — es lo que decide si esa
+// persona aparece en horarios, suplencias e intercambios. La pertenencia a cada grupo
+// se comprueba con `in_array`, así que el orden no la toca.
+$ORDEN_TIPOS = ['directivo', 'prefecto', 'profesor', 'administrativo'];
 $tiposDe = function ($u) use ($ORDEN_TIPOS) {
     $lista = array_filter(array_map('trim', explode(',', (string)($u->tipo_personal ?? ''))));
     return array_values(array_intersect($ORDEN_TIPOS, $lista));
@@ -177,48 +183,84 @@ $grupos = [
                                     str_replace(',', ' ', (string)($u->niveles ?? '')),
                                 ])), 'UTF-8');
                                 $niveles = array_filter(array_map('trim', explode(',', (string)($u->niveles ?? ''))));
+                                // Baja lógica: la cuenta existe y conserva todo su histórico, pero
+                                // no entra al panel ni sale como candidata a suplir. La pone un admin
+                                // desde la FICHA (aquí solo se muestra), o la importación de horarios
+                                // con quien deja de aparecer en el archivo.
+                                $off     = (int)($u->activo ?? 1) === 0;
+                                $clasesTr = trim(($i >= 10 ? 'is-hidden ' : '') . ($off ? 'is-off' : ''));
                             ?>
-                            <tr data-pager-item data-usr-row data-buscar="<?= s($buscable) ?>"<?= $i >= 10 ? ' class="is-hidden"' : '' ?>>
+                            <tr data-pager-item data-usr-row data-buscar="<?= s($buscable) ?>"<?= $clasesTr ? ' class="' . $clasesTr . '"' : '' ?>>
+                                <?php /* `data-label` alimenta el `::before` de cada celda cuando la tabla
+                                         se apila en tarjetas (≤900px). La primera no lo lleva: ahí el
+                                         colaborador es la cabecera de la tarjeta, no un campo más. */ ?>
                                 <td data-val="<?= s($u->nombre) ?>">
-                                    <div style="display:flex;align-items:center;gap:.75rem;">
-                                        <div class="admin-topbar__avatar" style="width:38px;height:38px;font-size:.875rem;flex-shrink:0;background:<?= s($color) ?>;">
+                                    <div class="usr-user">
+                                        <div class="admin-topbar__avatar usr-ava" style="background:<?= s($color) ?>;">
                                             <?php if ($u->avatar): ?>
-                                                <img src="<?= s($u->avatar) ?>" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.textContent='<?= s($inicial) ?>'">
+                                                <img src="<?= s($u->avatar) ?>" alt="" onerror="this.parentElement.textContent='<?= s($inicial) ?>'">
                                             <?php else: ?>
                                                 <?= s($inicial) ?>
                                             <?php endif; ?>
                                         </div>
                                         <?php /* El nombre abre la ficha. No rompe el ordenamiento: admin-table.js
                                                  usa `td.dataset.val`, que esta celda ya emite. */ ?>
-                                        <?php if ($puedeFicha): ?>
-                                        <a class="admin-table__title usr-link" href="/dashboard/usuarios/detalle?id=<?= (int)$u->id ?>"><?= s($u->nombre) ?></a>
-                                        <?php else: ?>
-                                        <div class="admin-table__title"><?= s($u->nombre) ?></div>
-                                        <?php endif; ?>
+                                        <div class="usr-ident">
+                                            <?php if ($puedeFicha): ?>
+                                            <a class="admin-table__title usr-link" href="/dashboard/usuarios/detalle?id=<?= (int)$u->id ?>"><?= s($u->nombre) ?></a>
+                                            <?php else: ?>
+                                            <div class="admin-table__title"><?= s($u->nombre) ?></div>
+                                            <?php endif; ?>
+                                            <?php if ($off): ?>
+                                            <span class="usr-baja" title="No puede entrar al panel ni suplir. Conserva todo su histórico.">Baja</span>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </td>
-                                <td style="color:var(--text-gray);font-size:.875rem;"><?= s($u->email) ?></td>
-                                <td data-val="<?= s(rolLabel($u->rol)) ?>">
+                                <td data-label="Email" class="usr-mail"><?= s($u->email) ?></td>
+                                <td data-label="Rol" data-val="<?= s(rolLabel($u->rol)) ?>">
                                     <span class="admin-badge <?= rolBadgeClass($u->rol) ?>"><?= s(rolLabel($u->rol)) ?></span>
                                 </td>
-                                <td data-val="<?= s(implode(',', $tipos)) ?>">
+                                <?php /* UN chip, no uno por tipo. Con dos tipos (profesor +
+                                         administrativo) más la línea de niveles, la celda se iba a
+                                         tres renglones de objetos apilados y costaba más leer «qué es
+                                         esta persona» que con una sola etiqueta. Los puestos se
+                                         concatenan dentro del mismo pill —$ORDEN_TIPOS ya los trae con
+                                         el dominante delante— y el color sale de ese primero. */ ?>
+                                <td data-label="Tipo" data-val="<?= s(implode(',', $tipos)) ?>">
+                                    <?php /* Envoltorio obligatorio: apilada, la celda es un flex con la
+                                             etiqueta en un `::before`, y dos hijos sueltos se repartirían
+                                             el ancho en vez de quedarse juntos a la derecha. */ ?>
+                                    <div class="usr-tipos">
                                     <?php if ($tipos): ?>
-                                        <?php foreach ($tipos as $t): ?>
-                                        <span class="usr-tipo usr-tipo--<?= s($t) ?>"><?= s(\Model\UsuarioBlog::TIPO_LABEL[$t] ?? ucfirst($t)) ?></span>
-                                        <?php endforeach; ?>
+                                        <?php $tipoTexto = implode(' · ', array_map(
+                                            fn($t) => \Model\UsuarioBlog::TIPO_LABEL[$t] ?? ucfirst($t), $tipos)); ?>
+                                        <span class="usr-tipo usr-tipo--<?= s($tipos[0]) ?>"><?= s($tipoTexto) ?></span>
                                         <?php /* Los niveles cuelgan del tipo en vez de ocupar columna propia:
-                                                  solo los tiene el profesorado y la tabla ya va con seis. */ ?>
+                                                  solo los tiene el profesorado y la tabla ya va con seis.
+                                                  ⚠️ El rótulo depende del PUESTO: en un profesor son los que
+                                                  imparte, en un directivo los que gestiona. Decir «imparte»
+                                                  en una dirección hace pensar que da clase. */ ?>
                                         <?php if ($niveles): ?>
-                                        <span class="usr-niveles" title="Niveles que imparte"><?= s(implode(' · ', $niveles)) ?></span>
+                                        <span class="usr-niveles" title="<?= in_array('directivo', $tipos, true) ? 'Niveles que gestiona' : 'Niveles que imparte' ?>"><?= s(implode(' · ', $niveles)) ?></span>
                                         <?php endif; ?>
                                     <?php else: ?>
                                         <span class="usr-nil">—</span>
                                     <?php endif; ?>
+                                    </div>
                                 </td>
                                 <?php /* data-val en Y-m-d: "Hoy, 09:14" no ordena cronológicamente */ ?>
-                                <td data-val="<?= $u->ultimo_acceso ? s(date('Y-m-d H:i', strtotime($u->ultimo_acceso))) : '' ?>"
-                                    style="font-size:.85rem;color:var(--text-gray);"><?= s(formatAcceso($u->ultimo_acceso)) ?></td>
-                                <td>
+                                <td data-label="Último acceso" class="usr-acceso"
+                                    data-val="<?= $u->ultimo_acceso ? s(date('Y-m-d H:i', strtotime($u->ultimo_acceso))) : '' ?>"><?= s(formatAcceso($u->ultimo_acceso)) ?></td>
+                                <?php /* DOS acciones, no cinco. Editar, editar horario y la baja lógica
+                                         viven en la ficha, que es la pantalla de esa persona y donde
+                                         además se ve sobre qué se está actuando; repetirlas aquí llenaba
+                                         la fila de colores que competían entre sí (ámbar, naranja
+                                         profundo, un icono suelto sin fondo y rojo) y obligaba a
+                                         distinguir dos calendarios casi iguales. Aquí quedan la de
+                                         lectura —azul, la que casi siempre se quiere— y la destructiva,
+                                         con el rojo de la paleta. */ ?>
+                                <td data-label="Acciones">
                                     <?php if ($puedeGestionar || $puedeFicha): ?>
                                     <div class="admin-table__actions">
                                         <?php if ($puedeFicha): ?>
@@ -227,15 +269,6 @@ $grupos = [
                                         </a>
                                         <?php endif; ?>
                                         <?php if ($puedeGestionar): ?>
-                                        <a href="/dashboard/usuarios/editar?id=<?= (int)$u->id ?>" class="admin-act admin-act--edit" title="Editar usuario">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </a>
-                                        <?php /* Solo el profesorado tiene horario que editar */ ?>
-                                        <?php if (in_array('profesor', $tipos, true)): ?>
-                                        <a href="/dashboard/usuarios/horario?id=<?= (int)$u->id ?>" class="admin-act admin-act--horario-edit" title="Editar horario">
-                                            <i class="fa-regular fa-calendar-plus"></i>
-                                        </a>
-                                        <?php endif; ?>
                                         <button
                                             type="button"
                                             class="admin-act admin-act--del"
@@ -244,7 +277,7 @@ $grupos = [
                                         >
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
-                                        <?php endif; /* $puedeGestionar */ ?>
+                                        <?php endif; ?>
                                     </div>
                                     <?php else: ?>
                                     <span class="usr-nil">Solo lectura</span>
@@ -320,6 +353,30 @@ if ($success ?? false) {
         'icon'   => 'fa-circle-check',
         'color'  => '#38a169',
         'bar'    => '#38a169',
+    ];
+} elseif (isset($_GET['inhabilitado'])) {
+    $atConfig = [
+        'title'  => 'Cuenta dada de baja',
+        'msg'    => 'Ya no entra al panel ni sale como suplente. Conserva todo su histórico y puedes reactivarla cuando quieras.',
+        'icon'   => 'fa-power-off',
+        'color'  => '#f5b400',
+        'bar'    => '#f5b400',
+    ];
+} elseif (isset($_GET['reactivado'])) {
+    $atConfig = [
+        'title'  => 'Cuenta reactivada',
+        'msg'    => 'Vuelve a tener acceso al panel con la contraseña de siempre.',
+        'icon'   => 'fa-rotate-left',
+        'color'  => '#38a169',
+        'bar'    => '#38a169',
+    ];
+} elseif (($_GET['nobaja'] ?? '') === 'propia') {
+    $atConfig = [
+        'title'  => 'No puedes darte de baja a ti mismo',
+        'msg'    => 'Te dejaría fuera del panel sin nadie que lo revierta. Pídeselo a otro administrador.',
+        'icon'   => 'fa-circle-exclamation',
+        'color'  => '#e51022',
+        'bar'    => '#e51022',
     ];
 }
 ?>

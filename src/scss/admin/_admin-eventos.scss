@@ -2,6 +2,46 @@
    PANEL · MÓDULO EVENTOS
    Migrado desde los style="" embebidos de views/blog/eventos/
 ========================================================= */
+/* ⚠️ TINTA DERIVADA DEL COLOR DEL TIPO, no el color a pelo.
+   Los cinco tipos de evento usan colores de la paleta, y tres de ellos (`#f5b400`
+   ámbar, `#46bdc6` cyan, `#4285f4` azul) no llegan a AA como tinta sobre su propio
+   velo al 12-14%: el ámbar se quedaba en 1.7:1 con texto de 12px, el cyan en 2.0 y
+   el azul en 3.1. Mezclarlos al 45% con la tinta institucional conserva el tono
+   —el velo de fondo lleva el color puro y es quien identifica el tipo— y sube el
+   peor caso a 5.2:1. Es la misma regla que `--pal-tinta` sobre los claros de la
+   paleta en el resto del panel, y la que ya aplica el PDF por luminancia. */
+@mixin ev-tinta {
+    color: color-mix(in srgb, var(--c, #94a3b8) 45%, var(--pal-tinta, #0b1f3d));
+}
+
+/* ⚠️ SEGUNDO SUELO, para lo que NO es texto: el glifo del tipo y los rellenos
+   pequeños. `ev-tinta` (45%) apaga demasiado el tono para un dibujo de 13px que es
+   justamente lo que identifica al tipo de un vistazo; el color a pelo no llega al
+   3:1 que pide un gráfico con significado — el ámbar de «Suspensión» se queda en
+   **1.84:1** sobre blanco y el cyan de «Entrega» en **2.24:1**.
+   Al 70% el peor caso sube a 3.33:1 (ámbar), 3.53 (lima) y 3.82 (cyan), y el tono
+   se conserva: `#f5b400` → `#af8712` sigue leyéndose oro.
+   El mismo valor sirve **al revés** —blanco encima— porque el 70% es también el
+   punto en que el relleno es lo bastante oscuro para un ✓ blanco: un solo número
+   para el glifo sin marcar y para el disco marcado. */
+@mixin ev-vivo {
+    color: color-mix(in srgb, var(--c, #94a3b8) 70%, var(--pal-tinta, #0b1f3d));
+}
+
+/* ⚠️ LOS TRES COLORES DE AUDIENCIA, en un solo sitio: los pintan el badge del
+   listado y las tarjetas del formulario, que son el mismo dato en dos pantallas.
+   Estuvieron declarados por separado y el formulario acabó con un gris para
+   «Interno» que se leía como opción deshabilitada —y es la que viene marcada por
+   defecto—.
+
+   Son colores de la paleta que **no** usa ningún tipo de evento (`TIPO_COLOR`):
+   tipo y audiencia conviven en la misma fila del listado, y repetir un tono haría
+   creer que dicen lo mismo. El eje es hasta dónde llega el evento: índigo se queda
+   en la intranet, verde llega a las casas, naranja al alumnado. */
+$ev-aud-interno:     #4267ac;   // --pal-indigo
+$ev-aud-familias:    #34a853;   // --pal-verde
+$ev-aud-estudiantes: #fc6722;   // --pal-naranja
+
 body[data-page="blog-eventos-index"] {
 
     .ev-scroll { overflow-x: auto; }
@@ -20,13 +60,15 @@ body[data-page="blog-eventos-index"] {
         line-height: 1;
         flex-shrink: 0;
 
-        &__d  { font-size: 16px; font-weight: 800; color: var(--c); }
-        &__mo { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--c); margin-top: 2px; }
+        &__d  { @include ev-tinta; font-size: 16px; font-weight: 800; }
+        &__mo { @include ev-tinta; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
     }
-    .ev-range { font-size: 11px; font-weight: 600; color: #94a3b8; white-space: nowrap; }
+    /* #94a3b8 sobre blanco es 2.6:1. A 11px hay que bajar a slate-500. */
+    .ev-range { font-size: 11px; font-weight: 600; color: #64748b; white-space: nowrap; }
 
     /* ── Badges de tipo y visibilidad ── */
     .ev-badge {
+        @include ev-tinta;
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -36,13 +78,12 @@ body[data-page="blog-eventos-index"] {
         font-weight: 700;
         white-space: nowrap;
         background: color-mix(in srgb, var(--c, #94a3b8) 13%, #fff);
-        color: var(--c, #64748b);
     }
-    /* Audiencia del evento. El color dice hasta dónde llega: gris no sale del panel,
-       verde llega a las familias, azul al alumnado. */
-    .ev-badge--interno     { --c: #94a3b8; }
-    .ev-badge--familias    { --c: #34a853; }
-    .ev-badge--estudiantes { --c: #4285f4; }
+    /* Audiencia del evento. El color dice hasta dónde llega (ver las tres variables
+       de arriba, compartidas con las tarjetas del formulario). */
+    .ev-badge--interno     { --c: #{$ev-aud-interno}; }
+    .ev-badge--familias    { --c: #{$ev-aud-familias}; }
+    .ev-badge--estudiantes { --c: #{$ev-aud-estudiantes}; }
 
     /* Niveles a los que se dirige */
     .ev-niv-tag {
@@ -57,7 +98,8 @@ body[data-page="blog-eventos-index"] {
         font-weight: 700;
         white-space: nowrap;
 
-        &--todos { background: #fff; color: #94a3b8; font-weight: 600; font-style: italic; }
+        /* #94a3b8 a 10,9px es 2.6:1. Slate-500 (4.8:1) sin perder el tono menor. */
+        &--todos { background: #fff; color: #64748b; font-weight: 600; font-style: italic; }
     }
 
     /* Los botones son los compartidos .admin-act--edit/--del (_blog-admin.scss);
@@ -102,6 +144,86 @@ body[data-page="blog-eventos-index"] {
         &__actions { display: flex; gap: 10px; justify-content: center; }
     }
     .ev-btn-danger { background: #dc2626; color: #fff; }
+
+    /* ── Título del evento con su icono ──
+       El icono es el mismo que verán las familias (el elegido a mano o, si no hay,
+       el del tipo): el panel tiene que enseñar lo que publica. */
+    .ev-titulo { display: flex; align-items: flex-start; gap: 10px; }
+    .ev-ico-chip {
+        @include ev-tinta;   /* un icono con significado necesita 3:1; el ámbar puro sobre su velo daba 1.7:1 */
+        flex-shrink: 0;
+        width: 30px; height: 30px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--c, #94a3b8) 14%, #fff);
+        font-size: .8rem;
+        margin-top: 1px;
+    }
+    /* Vienen de `.admin-table__title`/`__meta`, que son bloques; aquí son <span>
+       dentro de un flex, así que necesitan recuperar el salto de línea. */
+    .ev-titulo .admin-table__title,
+    .ev-titulo .admin-table__meta { display: block; }
+
+    /* ── Ajuste del calendario público ──
+       Panel propio y no una fila de la tabla: no es un evento, es una decisión sobre
+       la página entera. Se guarda al cambiar el interruptor (admin-evento-ajuste.js).
+
+       ⚠️ Es un AJUSTE, y está colocado encima de la tabla de eventos: el sitio más
+       visible de la pantalla ocupado por una decisión que se toma una vez al curso,
+       por delante del trabajo diario. Como es una tarjeta blanca con título de panel,
+       compite de tú a tú con «Calendario institucional» y gana por estar primero.
+       Aquí baja de peso —superficie tenue en vez de tarjeta blanca, título al tamaño
+       de una etiqueta, sin sombra— para que la tabla recupere la primera mirada.
+       El arreglo de fondo es de markup: llevarlo DEBAJO de la tabla. */
+    .ev-ajuste {
+        margin-bottom: 18px;
+        background: color-mix(in srgb, var(--pal-indigo, #4267ac) 5%, #fff);
+
+        .admin-panel__header { padding: 14px 24px 0; border-bottom: 0; }
+        .admin-panel__title  { font-size: .95rem; }
+
+        &__ciclo {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: #fff;
+            /* `--pal-azul` (#4285f4) da 3.1:1 sobre su propio velo y 4.0:1 sobre
+               blanco: no llega a AA para 12px. El índigo del panel sí (6.9:1). */
+            color: var(--pal-indigo, #4267ac);
+            font-size: .76rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        &__form {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 12px 24px;
+        }
+
+        /* El interruptor es lo único accionable del bloque: dentro de una superficie
+           ya tenue, la fila blanca lo destaca sin que el bloque entero grite. */
+        .admin-switch-row { flex: 1 1 320px; }
+
+        &__link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin: 0 24px 14px;
+            font-size: .78rem;
+            font-weight: 700;
+            color: var(--pal-indigo, #4267ac);
+            text-decoration: none;
+
+            &:hover { text-decoration: underline; }
+        }
+    }
 }
 
 /* Formularios de evento */
@@ -109,9 +231,100 @@ body[data-page="blog-eventos-crear"],
 body[data-page="blog-eventos-editar"] {
     .admin-switch-row { margin-top: 4px; }
 
+    /* ⚠️ DOS SECCIONES, no siete campos seguidos. Tipo, audiencia y niveles son tres
+       bloques de decisión llenos de color puestos uno detrás de otro, y competían
+       entre sí porque nada decía que responden a preguntas distintas: los tres
+       primeros describen QUÉ es el evento, los dos últimos DÓNDE se publica —que es
+       literalmente el título de la tarjeta de ayuda de al lado—.
+       El corte hace el trabajo que ningún ajuste de color podía hacer: dentro de cada
+       sección el color vuelve a tener un solo significado.
+       `.admin-form-section + .admin-form-section` trae `padding-top: 0`, así que el
+       aire encima de la regla lo pone el título. */
+    .admin-form-section + .admin-form-section .admin-form-section__title { margin-top: 10px; }
+
+    /* ── Tipo ── pastillas de radio, una por tipo, con su color y su glifo.
+       Era un <select> con cinco nombres, y el tipo no es una etiqueta: decide el
+       color y el icono con los que el evento aparece en los tres calendarios. Un
+       desplegable escondía justo eso —había que elegir a ciegas y volver al listado
+       para ver qué color había tocado—, así que cada pastilla lo enseña.
+
+       ⚠️ El color va en el `--c` de la etiqueta (Evento::TIPO_COLOR, fuente única
+       compartida con el listado, la web y el PDF) y la tinta del texto se deriva de
+       él con `ev-tinta`: el ámbar de «Suspensión» y el cyan de «Entrega» a pelo se
+       quedan en 1.7:1 y 2.0:1 sobre su propio velo. */
+    .ev-tipo {
+        display: flex; flex-wrap: wrap; gap: 8px;
+        margin-top: 6px;
+
+        input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+        /* Tiene `display` propio: sin esta línea `[hidden]` no lo oculta
+           (`base/_normalize.scss` va en una capa anterior con la misma
+           especificidad). Ver la trampa documentada en CLAUDE.md. */
+        &[hidden] { display: none; }
+    }
+    .ev-tipo__opt { --c: #4267ac; cursor: pointer; }
+    .ev-tipo__box {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px 8px 9px;
+        border-radius: 999px;
+        border: 1.5px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        font-size: .82rem;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease;
+
+        /* ⚠️ EL GLIFO ES LA MARCA DE SELECCIÓN, no un adorno.
+           El disco mide 22px marcado y sin marcar: así el relleno puede aparecer sin
+           que la pastilla cambie de tamaño (nada de reflujo al elegir, §CLS).
+           Sin marcar: glifo `ev-vivo` sobre transparente. Marcado: disco relleno y
+           glifo en blanco — una **inversión de luminancia**, que es lo que hace que
+           «elegido» se vea en escala de grises. El velo de fondo al 13% solo aporta
+           1.09:1 (ámbar) frente al blanco, así que por sí solo el color era el único
+           portador del estado. Es la misma razón por la que `.admin-tipo-card` lleva
+           su ✓ en la esquina. */
+        i {
+            @include ev-vivo;
+            flex-shrink: 0;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-size: .8rem;
+            background: transparent;
+            transition: background .15s ease, color .15s ease;
+        }
+    }
+    .ev-tipo__opt:hover .ev-tipo__box { border-color: color-mix(in srgb, var(--c) 45%, #fff); }
+    .ev-tipo__opt:hover .ev-tipo__box i { background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .ev-tipo input:focus-visible + .ev-tipo__box { outline: 2px solid var(--c); outline-offset: 2px; }
+    .ev-tipo input:checked + .ev-tipo__box {
+        @include ev-tinta;
+        border-color: var(--c);
+        background: color-mix(in srgb, var(--c) 13%, #fff);
+        box-shadow: 0 8px 18px -14px var(--c);
+        transform: translateY(-1px);
+
+        /* Blanco sobre el 70%: 3.33:1 en el peor caso (ámbar). El color puro se
+           queda en 1.84:1 y el glifo dejaría de verse. */
+        i { background: color-mix(in srgb, var(--c) 70%, var(--pal-tinta, #0b1f3d)); color: #fff; }
+    }
+
     /* ── Audiencia ──
        Tres tarjetas-radio en vez de un interruptor: la decisión ya no es binaria y
-       cada opción necesita explicar dónde acaba publicándose el evento. */
+       cada opción necesita explicar dónde acaba publicándose el evento.
+
+       ⚠️ **El color dice hasta dónde llega el evento**, y los tres tienen que
+       distinguirse a la primera: índigo se queda en la intranet, verde llega a las
+       casas, naranja al alumnado. El gris que tenía «Interno» no era una decisión
+       cromática sino la ausencia de una —se leía como opción deshabilitada, y es la
+       que trae marcada el formulario por defecto—; el azul de «Estudiantes» quedaba
+       además a un tono del índigo del panel. Las mismas tres claves visten los
+       badges del listado (`.ev-badge--*`): son el mismo dato en dos pantallas. */
     .ev-aud {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -119,13 +332,15 @@ body[data-page="blog-eventos-editar"] {
         margin-top: 6px;
 
         input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+        &[hidden] { display: none; }   /* tiene `display` propio (ver .ev-tipo) */
     }
     .ev-aud__opt {
-        --c: #94a3b8;
+        --c: #{$ev-aud-interno};
         cursor: pointer;
 
-        &--familias    { --c: #34a853; }
-        &--estudiantes { --c: #4285f4; }
+        &--familias    { --c: #{$ev-aud-familias}; }
+        &--estudiantes { --c: #{$ev-aud-estudiantes}; }
     }
     .ev-aud__box {
         display: flex; flex-direction: column; gap: 4px;
@@ -134,54 +349,176 @@ body[data-page="blog-eventos-editar"] {
         border-radius: 14px;
         border: 1.5px solid #e2e8f0;
         background: #fff;
-        transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+        transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
     }
     .ev-aud__ico {
-        width: 32px; height: 32px; border-radius: 10px;
+        width: 34px; height: 34px; border-radius: 11px;
         display: grid; place-items: center;
-        background: color-mix(in srgb, var(--c) 12%, #fff);
-        color: var(--c);
-        font-size: .85rem;
+        background: color-mix(in srgb, var(--c) 14%, #fff);
+        /* Un icono con significado necesita 3:1; el color puro no siempre llega. */
+        @include ev-tinta;
+        font-size: .88rem;
+        transition: background .16s ease, color .16s ease;
     }
     .ev-aud__nom  { font-weight: 800; font-size: .92rem; color: #0B1F3D; }
     .ev-aud__desc { font-size: .74rem; color: #64748B; line-height: 1.35; }
 
-    .ev-aud__opt:hover .ev-aud__box { border-color: color-mix(in srgb, var(--c) 45%, #fff); }
+    .ev-aud__opt:hover .ev-aud__box {
+        border-color: color-mix(in srgb, var(--c) 45%, #fff);
+        background: color-mix(in srgb, var(--c) 4%, #fff);
+    }
     .ev-aud input:focus-visible + .ev-aud__box { outline: 2px solid var(--c); outline-offset: 2px; }
     .ev-aud input:checked + .ev-aud__box {
         border-color: var(--c);
-        background: color-mix(in srgb, var(--c) 6%, #fff);
+        background: color-mix(in srgb, var(--c) 8%, #fff);
         box-shadow: 0 10px 22px -16px var(--c);
         transform: translateY(-1px);
-    }
-    .ev-aud input:checked + .ev-aud__box .ev-aud__ico { background: var(--c); color: #fff; }
 
-    /* ── Niveles ── chips de selección múltiple */
-    .ev-niv {
-        display: flex; flex-wrap: wrap; gap: 8px;
+        /* Solo la marcada lleva el título en el color de su audiencia: con las tres
+           teñidas el color dejaría de señalar cuál está elegida. */
+        .ev-aud__nom { @include ev-tinta; }
+    }
+    /* ⚠️ El relleno de la casilla marcada se oscurece un 12% con la tinta: el blanco
+       sobre el naranja puro de «Estudiantes» se queda en 2.9:1 y un icono con
+       significado necesita 3:1. Mezclado sube a 3.6:1 sin que el tono cambie a la
+       vista, y la regla vale para cualquier color que entre después. */
+    .ev-aud input:checked + .ev-aud__box .ev-aud__ico {
+        background: color-mix(in srgb, var(--c) 88%, var(--pal-tinta, #0b1f3d));
+        color: #fff;
+    }
+
+    /* ── Niveles ──
+       ⚠️ **NO hay componente propio: se reusa `.admin-nivel-check`**, el mismo que
+       el formulario de usuarios («Niveles que imparte / que dirige»). Hubo aquí un
+       `.ev-niv__chip` que era un clon casi literal de él —mismo `Materia::NIVEL_COLOR`
+       en `--c`, mismo punto, mismo velo, mismo radio de 999px— y con los dos vivos la
+       misma pregunta se pintaba distinta en dos pantallas del panel según cuál
+       hubieras tocado la última vez. Se borró.
+       El componente es global (`estaticas/_blog-admin.scss`), así que aquí solo queda
+       la separación del bloque. */
+    .admin-niveles-grid { margin-top: 6px; }
+
+    /* ── Icono ──
+       Rejilla de radios agrupada por tema. Un <select> con 35 nombres no sirve para
+       elegir un icono: hay que verlo. La primera opción es «Automático» —el del
+       tipo—, y va separada del resto porque no es un icono más sino la renuncia a
+       elegir uno; su glifo lo sincroniza admin-evento-icono.js con **el radio de tipo
+       que esté marcado** (ya no es un `<select>`), o mentiría en cuanto se cambiara. */
+    /* ⚠️ Treinta y cinco iconos en cinco bloques apilados son ~460px de formulario
+       —más que el título, las dos fechas y el tipo juntos— y empujaban «¿Quién lo
+       ve?» y «Niveles educativos» fuera de la primera pantalla. Son decisiones que
+       cambian dónde se publica el evento; elegir el dibujito no lo es.
+       Se compacta a ~290px sin quitar ni un icono: el rótulo del grupo pasa a una
+       columna izquierda fija, así cada tema ocupa UNA fila en vez de dos, y el
+       conjunto se encierra en su propio marco para que se lea como un campo y no
+       como cinco secciones sueltas del formulario. */
+    .ev-ico {
+        --ev-ico-auto: #4267ac;
         margin-top: 6px;
+        padding: 12px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fbfdff;
 
         input { position: absolute; opacity: 0; width: 0; height: 0; }
     }
-    .ev-niv__chip {
-        cursor: pointer;
+    .ev-ico__grupo {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        align-items: start;
+        gap: 4px 12px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed #e2e8f0;
+    }
+    .ev-ico__grupo-tit {
+        display: block;
+        font-size: .68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .6px;
+        /* #94a3b8 es 2.6:1 sobre blanco: no llega a AA con 10,9px en versalitas. */
+        color: #64748b;
+        padding-top: 13px;
+        margin-bottom: 0;
+        text-align: right;
+        line-height: 1.25;
+    }
+    .ev-ico__set { display: flex; flex-wrap: wrap; gap: 7px; }
 
-        span {
-            display: inline-block;
-            padding: 7px 14px;
-            border-radius: 999px;
-            border: 1.5px solid #e2e8f0;
-            background: #fff;
-            color: #475569;
-            font-size: .8rem; font-weight: 700;
-            transition: all .15s ease;
+    .ev-ico__opt { cursor: pointer; }
+    .ev-ico__box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        width: 40px; height: 40px;
+        border-radius: 12px;
+        border: 1.5px solid #e2e8f0;
+        background: #fff;
+        color: #64748b;
+        font-size: .95rem;
+        transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease;
+    }
+    .ev-ico__opt:hover .ev-ico__box { border-color: #cbd5e1; color: #334155; }
+    /* ⚠️ `--pal-indigo` (#4267ac) y NO `--pal-azul` (#4285f4). Estuvo escrito
+       `var(--pal-azul, #4267ac)`, o sea el token azul con el índigo de respaldo: dos
+       colores distintos en una declaración, y el diseño cambiaba según si el `:root`
+       había cargado. El azul de la paleta da 3.19:1 como glifo sobre su propio velo y
+       2.89:1 de borde contra `#e2e8f0`; el índigo del panel, 4.88 y 4.52. Es la misma
+       razón por la que `.ev-ajuste__ciclo` ya usa el índigo. */
+    .ev-ico input:focus-visible + .ev-ico__box { outline: 2px solid var(--pal-indigo, #4267ac); outline-offset: 2px; }
+    /* ⚠️ RELLENO, no tinte. Entre 36 casillas iguales hay que poder localizar la
+       elegida de un barrido, y un velo del 10% con el borde teñido es 1.2:1 contra el
+       blanco: en escala de grises la casilla marcada no se distinguía de sus vecinas.
+       Invertida (fondo índigo, glifo blanco, 5.57:1) salta a la vista y el estado deja
+       de depender del color. */
+    .ev-ico input:checked + .ev-ico__box {
+        border-color: var(--pal-indigo, #4267ac);
+        background: var(--pal-indigo, #4267ac);
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px -12px var(--pal-indigo, #4267ac);
+    }
+
+    /* «Automático» es más ancha y lleva rótulo: sin él, una casilla más entre 35
+       iconos no se distingue de los demás, y es la única que significa algo
+       distinto. Se tiñe del color del tipo elegido. */
+    .ev-ico__opt--auto {
+        display: inline-block;
+
+        .ev-ico__box {
+            width: auto;
+            padding: 0 14px;
+            /* El color del tipo puede ser ámbar o cyan, que sobre blanco no pasan
+               de 2:1. El rótulo «Automático» es texto, así que la tinta se oscurece
+               igual que en el listado y el tono se conserva. */
+            color: color-mix(in srgb, var(--ev-ico-auto) 45%, var(--pal-tinta, #0b1f3d));
+            border-color: color-mix(in srgb, var(--ev-ico-auto) 35%, #fff);
         }
-        &:hover span { border-color: #cbd5e1; }
-        input:checked + span {
-            background: var(--pal-azul, #4267ac);
-            border-color: var(--pal-azul, #4267ac);
-            color: #fff;
+    }
+    .ev-ico__auto { font-size: .78rem; font-weight: 800; }
+    /* ⚠️ Esta sí se queda en tinte y no se rellena como las 35 de al lado: lleva
+       **texto**, y el texto necesita 4.5:1 — blanco sobre el ámbar o el cyan del tipo
+       no pasa de 3.3:1. El estado lo marca el grosor: el `inset` duplica el trazo del
+       borde a 3px, que es una diferencia de forma y se ve sin distinguir el tono. */
+    .ev-ico__opt--auto input:checked + .ev-ico__box {
+        border-color: var(--ev-ico-auto);
+        background: color-mix(in srgb, var(--ev-ico-auto) 10%, #fff);
+        color: color-mix(in srgb, var(--ev-ico-auto) 45%, var(--pal-tinta, #0b1f3d));
+        box-shadow: inset 0 0 0 1.5px var(--ev-ico-auto);
+    }
+
+    /* ⚠️ Objetivo táctil. 40px es lo que mide un icono en escritorio y basta con
+       ratón, pero el panel también se abre desde el móvil: ahí las casillas suben
+       a 44px, que es el estándar real. */
+    @media (max-width: 720px) {
+        .ev-ico__box { width: 44px; height: 44px; }
+        .ev-ico__grupo {
+            grid-template-columns: 1fr;
+            gap: 6px;
         }
-        input:focus-visible + span { outline: 2px solid var(--pal-azul, #4267ac); outline-offset: 2px; }
+        .ev-ico__grupo-tit { text-align: left; padding-top: 0; }
+        .ev-tipo__box     { padding: 11px 18px 11px 11px; }
     }
 }

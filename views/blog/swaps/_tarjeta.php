@@ -26,38 +26,73 @@ $hora = fn($i, $f) => substr((string)$i, 0, 5) . '–' . substr((string)$f, 0, 5
         <?php endif; ?>
     </header>
 
+    <?php /* ⚠️ Los dos lados decían «X cede» con el MISMO tipo, peso y color, y la única
+             pista de la dirección era una flecha de 12px. Leer la tarjeta obligaba a
+             reconstruir mentalmente quién acaba dando cada clase — que es lo único que
+             un profesor necesita saber de aquí.
+
+             Ahora cada lado nombra las DOS partes explícitamente: quién suelta la clase
+             y quién la toma. Lo que cambia de un lado a otro es el orden de los nombres,
+             y eso sí se ve. El color refuerza el mismo eje: ámbar suelta, verde cubre. */ ?>
+    <?php
+    // Cada movimiento: la clase, quién la deja y quién la da en su lugar.
+    $movimientos = [
+        [
+            'rol'     => 'origen',
+            'materia' => $sw->origen_materia ?: 'Clase',
+            'fecha'   => $sw->fecha_origen,
+            'hora'    => $hora($sw->origen_ini, $sw->origen_fin),
+            'grupo'   => $sw->origen_grupo,
+            'aula'    => $sw->origen_aula,
+            'cede'    => $sw->solicitante_nombre,
+            'cubre'   => $sw->destinatario_nombre,
+        ],
+        [
+            'rol'     => 'destino',
+            'materia' => $sw->destino_materia ?: 'Clase',
+            'fecha'   => $sw->fecha_destino,
+            'hora'    => $hora($sw->destino_ini, $sw->destino_fin),
+            'grupo'   => $sw->destino_grupo,
+            'aula'    => $sw->destino_aula,
+            'cede'    => $sw->destinatario_nombre,
+            'cubre'   => $sw->solicitante_nombre,
+        ],
+    ];
+    ?>
     <div class="swp-permuta">
-        <!-- Lo que cede quien solicita -->
-        <div class="swp-lado">
-            <span class="swp-lado__quien">
-                <i class="fa-solid fa-arrow-up-from-bracket"></i> <?= $s($sw->solicitante_nombre) ?> cede
-            </span>
-            <span class="swp-clase">
-                <strong><?= $s($sw->origen_materia ?: 'Clase') ?></strong>
-                <small>
-                    <?= $s(fecha_larga($sw->fecha_origen)) ?> · <?= $s($hora($sw->origen_ini, $sw->origen_fin)) ?>
-                    <?php if ($sw->origen_grupo): ?> · <?= $s($sw->origen_grupo) ?><?php endif; ?>
-                    <?php if ($sw->origen_aula): ?> · <?= $s($sw->origen_aula) ?><?php endif; ?>
-                </small>
-            </span>
-        </div>
+        <?php foreach ($movimientos as $i => $m): ?>
 
+        <?php if ($i === 1): ?>
         <span class="swp-permuta__ico" aria-hidden="true"><i class="fa-solid fa-right-left"></i></span>
+        <?php endif; ?>
 
-        <!-- Lo que da a cambio -->
-        <div class="swp-lado">
-            <span class="swp-lado__quien">
-                <i class="fa-solid fa-arrow-down-to-bracket"></i> <?= $s($sw->destinatario_nombre) ?> cede
-            </span>
-            <span class="swp-clase">
-                <strong><?= $s($sw->destino_materia ?: 'Clase') ?></strong>
-                <small>
-                    <?= $s(fecha_larga($sw->fecha_destino)) ?> · <?= $s($hora($sw->destino_ini, $sw->destino_fin)) ?>
-                    <?php if ($sw->destino_grupo): ?> · <?= $s($sw->destino_grupo) ?><?php endif; ?>
-                    <?php if ($sw->destino_aula): ?> · <?= $s($sw->destino_aula) ?><?php endif; ?>
-                </small>
-            </span>
+        <div class="swp-mov swp-mov--<?= $m['rol'] ?>">
+            <p class="swp-mov__cuando">
+                <i class="fa-regular fa-calendar"></i>
+                <?= $s(fecha_larga($m['fecha'])) ?> · <?= $s($m['hora']) ?>
+            </p>
+
+            <p class="swp-mov__clase"><?= $s($m['materia']) ?></p>
+
+            <?php if ($m['grupo'] || $m['aula']): ?>
+            <p class="swp-mov__donde">
+                <?= $s(trim(($m['grupo'] ?? '') . ($m['aula'] ? ' · ' . $m['aula'] : ''), ' ·')) ?>
+            </p>
+            <?php endif; ?>
+
+            <div class="swp-traspaso">
+                <span class="swp-quien swp-quien--cede">
+                    <span class="swp-quien__rol"><i class="fa-solid fa-arrow-right-from-bracket"></i> No la da</span>
+                    <span class="swp-quien__nombre"><?= $s($m['cede']) ?></span>
+                </span>
+                <i class="fa-solid fa-arrow-right swp-traspaso__flecha" aria-hidden="true"></i>
+                <span class="swp-quien swp-quien--cubre">
+                    <span class="swp-quien__rol"><i class="fa-solid fa-chalkboard-user"></i> La cubre</span>
+                    <span class="swp-quien__nombre"><?= $s($m['cubre']) ?></span>
+                </span>
+            </div>
         </div>
+        <?php endforeach; ?>
     </div>
 
     <?php if ($sw->estado === 'aceptado'): ?>

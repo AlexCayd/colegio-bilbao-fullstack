@@ -235,14 +235,30 @@ class Swap extends ActiveRecord {
      * swap cruza dos clases y puede cruzar dos niveles, así que a la dirección
      * de Primaria le compete si cualquiera de los dos lados es de Primaria.
      *
-     * selectBase() ya une `po`/`pd`, así que no añade ni un JOIN — pero por eso mismo
-     * solo vale sobre consultas que arranquen de selectBase().
+     * El OR tiene CUATRO términos, no dos: los niveles de las dos clases y los niveles
+     * declarados de los dos profesores. La segmentación de una dirección sigue a **su
+     * personal**, no solo al calendario, y aquí eso además tapa un agujero: los dos
+     * `horario_*_id` son `ON DELETE SET NULL`, así que un intercambio cuya clase se borró
+     * se queda con `po.nivel`/`pd.nivel` en NULL y desaparecía para TODAS las direcciones
+     * —incluida la que debía validarlo— sin que nadie pudiera notarlo.
+     *
+     * selectBase() ya une `po`/`pd` y también `s`/`d` (los dos profesores), así que no
+     * añade ni un JOIN — pero por eso mismo solo vale sobre consultas que arranquen de
+     * selectBase().
      */
     private static function sqlNivel(array $niveles): string {
         $ok = array_values(array_intersect(Materia::NIVELES, $niveles));
         if (!$ok || count($ok) === count(Materia::NIVELES)) return '';
         $in = implode(',', array_map(fn($x) => "'" . self::$db->escape_string($x) . "'", $ok));
-        return "(po.nivel IN ({$in}) OR pd.nivel IN ({$in}))";
+
+        // `niveles` es un SET: se consulta con FIND_IN_SET, no con IN.
+        $porPersona = [];
+        foreach (['s', 'd'] as $alias) {
+            foreach ($ok as $n) {
+                $porPersona[] = "FIND_IN_SET('" . self::$db->escape_string($n) . "', {$alias}.niveles)";
+            }
+        }
+        return "(po.nivel IN ({$in}) OR pd.nivel IN ({$in}) OR " . implode(' OR ', $porPersona) . ")";
     }
 
     /**

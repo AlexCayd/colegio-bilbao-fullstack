@@ -2,6 +2,11 @@
    COMUNIDAD · FAMILIAS  (avisos + calendario, estilo infantil)
    Incluye el componente reutilizable .bilbao-cal
 ========================================================= */
+/* Mixin en lo nuevo, ad-hoc intacto en lo viejo: los ~7 breakpoints escritos a mano
+   que ya había en este archivo se quedan como están (migrarlos es riesgo de
+   regresión sin contrapartida), pero lo que se añada de aquí en adelante usa la
+   escala de base/_mixins.scss. */
+@use '../base/mixins' as *;
 
 /* Colores por tipo de evento (compartidos con el calendario de cumpleaños) */
 :root {
@@ -171,6 +176,14 @@
         grid-template-columns: 1.5fr 1fr;
         gap: 24px;
         align-items: start;
+
+        /* ⚠️ Tiene `display` propio, así que necesita SU PROPIO `&[hidden]`.
+           `[hidden] { display: none }` vive en `base/_normalize.scss`: misma
+           especificidad (0,1,0) y capa ANTERIOR (`app.scss` importa `base` antes que
+           `estaticas`), así que sin esta línea el `grid` gana y el conmutador de vista
+           mostraría a la vez el mes y el ciclo completo. Es la misma trampa de
+           cascada que `.admin-btn` y las modales del panel. */
+        &[hidden] { display: none; }
     }
 
     &__cal-detail {
@@ -248,7 +261,526 @@
 
     &__cal-item-date  { display: block; font-size: 0.74rem; opacity: .7; font-weight: 600; }
     &__cal-item-title { display: block; font-size: 0.9rem; font-weight: 700; line-height: 1.35; }
+    &__cal-item-desc  { display: block; font-size: 0.78rem; opacity: .72; line-height: 1.45; margin-top: 3px; }
     &__cal-empty      { font-size: 0.9rem; opacity: .75; }
+
+    /* El icono del evento sustituye al punto de color: dice el color Y de qué va,
+       en el mismo espacio. El punto seguía siendo legible solo con la leyenda
+       delante, y aquí la leyenda queda a media pantalla de distancia.
+
+       ⚠️ La pastilla es CLARA y el glifo lleva el color oscurecido, no al revés.
+       Con el color a fondo entero y el glifo blanco, dos de los cinco tipos
+       quedaban ilegibles: blanco sobre el ámbar #f5b400 da 1.86:1 y sobre el
+       cyan #46bdc6 da 2.24:1, cuando un icono con significado necesita 3:1.
+       Con esta vuelta el peor caso (ámbar) sube a 3.3:1 y el resto pasa de 5:1,
+       y el tipo se sigue reconociendo por el color del glifo. Es la misma regla
+       que `colorMateria()['oscuro']` en los horarios. */
+    &__cal-item-ico {
+        flex-shrink: 0;
+        width: 30px; height: 30px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        color: color-mix(in srgb, var(--ev-color, #4d8abb) 74%, var(--pal-tinta));
+        font-size: 0.8rem;
+        box-shadow: 0 3px 10px -4px rgba(0, 0, 0, .5);
+    }
+
+    &__cal-item-nivs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+}
+
+/* ── Etiqueta de nivel ────────────────────────────────
+   La misma pieza en las tarjetas de aviso, el detalle del día y la lista del ciclo:
+   es siempre el mismo dato, así que no puede verse de tres maneras. Hereda el color
+   del texto de donde esté (tarjeta clara u oscura) en vez de fijar uno. */
+.fam-nivtag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid currentColor;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: .2px;
+    /* .75 sobre `--col-herencia` daba 4.45:1 en la tarjeta clara — por debajo del
+       mínimo AA para 10,6px. .85 la deja en 5,8:1 y no cambia nada en la oscura. */
+    opacity: .85;
+    white-space: nowrap;
+}
+
+/* =========================================================
+   BARRA DE FILTROS DEL CALENDARIO
+========================================================= */
+.fam-calbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px 20px;
+    margin-bottom: 22px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid var(--col-borde);
+    border-radius: 18px;
+    box-shadow: 0 10px 26px -20px rgba(22, 32, 46, .35);
+
+    &__niveles { display: flex; flex-wrap: wrap; gap: 8px; }
+    &__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+    /* Ocupa la fila entera por debajo de los controles: es la letra pequeña que
+       explica por qué un filtro de Kinder sigue mostrando la junta general. */
+    &__nota {
+        flex: 1 0 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        padding-top: 12px;
+        border-top: 1px dashed var(--col-borde);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--col-herencia);
+        /* .75 dejaba la letra pequeña en 4.45:1 a 12px, justo por debajo de AA. */
+        opacity: .85;
+
+        i { color: var(--cal-evento); }
+    }
+
+    &__ciclo { font-weight: 700; }
+}
+
+/* Chip de nivel. Selección MÚLTIPLE, así que se leen como interruptores y no como
+   pestañas: el estado encendido es relleno sólido, no solo un subrayado.
+
+   ⚠️ El relleno sólido dice «activo», no dice «puedo marcar varios»: con seis
+   pastillas idénticas en fila, la primera lectura es la de un grupo de pestañas
+   excluyentes. Lo desambigua la PALOMA que aparece al encender un nivel —el
+   afordance universal de casilla— y el que «Todo el colegio» se vea de otra
+   especie (ver abajo): si los seis se encendieran igual, no habría forma de
+   anticipar que uno apaga a los otros cinco. */
+.fam-nivchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 15px;
+    border-radius: 100px;
+    border: 1.5px solid var(--col-borde);
+    background: #fff;
+    color: var(--col-herencia);
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+
+    &:hover { border-color: var(--col-bilbao); color: var(--col-bilbao); }
+    &:focus-visible { outline: 2px solid var(--col-bilbao); outline-offset: 2px; }
+
+    &.is-on {
+        background: var(--col-bilbao);
+        border-color: var(--col-bilbao);
+        color: #fff;
+    }
+
+    /* Paloma de «marcado». Font Awesome 6 va como webfont (lo carga el layout),
+       así que el glifo se puede pintar desde CSS sin tocar el markup ni el JS.
+       Solo en los chips de nivel: el de «todo» no es una casilla que se marca. */
+    &[data-nivel]:not([data-nivel=""]).is-on::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        font-size: .66em;
+        line-height: 1;
+        margin-right: -1px;
+    }
+
+    /* ── «Todo el colegio» = estado SIN filtro ──
+       Ni es un nivel más ni se suma a los demás: apaga la selección. Por eso su
+       estado activo es un tinte suave con tinta oscura y no el relleno sólido de
+       los niveles — activo, sí, pero de otra naturaleza — y una línea lo separa
+       del grupo que sí es multi-selección. */
+    &[data-nivel=""] {
+        position: relative;
+        margin-right: 15px;
+
+        &.is-on {
+            background: color-mix(in srgb, var(--col-bilbao) 14%, #fff);
+            border-color: color-mix(in srgb, var(--col-bilbao) 55%, #fff);
+            color: var(--pal-tinta);
+        }
+
+        &::after {
+            content: '';
+            position: absolute;
+            right: -9px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1px;
+            height: 58%;
+            background: rgba(55, 76, 105, .22);
+        }
+    }
+}
+
+/* Conmutador mes ↔ ciclo. Dos estados excluyentes sobre el mismo dato, así que va
+   como segmented control y no como dos botones sueltos. */
+.fam-calvista {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 100px;
+    background: #eef3f9;
+    border: 1px solid var(--col-borde);
+
+    &__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
+        border: none;
+        border-radius: 100px;
+        background: transparent;
+        color: var(--col-herencia);
+        font-size: 0.78rem;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+
+        &:focus-visible { outline: 2px solid var(--col-bilbao); outline-offset: 2px; }
+
+        /* `--col-bilbao` (#4D8ABB) da 3.7:1 sobre blanco: vale para un titular de
+           27px, no para una etiqueta de 12,5px. El azul institucional oscuro llega
+           a 7.1:1 y además hace que la opción activa pese más que la inactiva. */
+        &.is-on {
+            background: #fff;
+            color: #1f5a94;
+            box-shadow: 0 2px 8px -3px rgba(22, 32, 46, .4);
+        }
+    }
+}
+
+/* Descarga del ciclo en PDF. Solo existe si el módulo Eventos lo habilitó.
+
+   ⚠️ Botón de contorno, y NO una pastilla rellena.
+   Iba en cyan sólido (`--cal-entrega`), que trae dos problemas: era lo más
+   llamativo de la barra y le ganaba la primera mirada al conmutador de vista
+   —que es el control que decide qué se está mirando, mientras que la descarga es
+   una salida de la página—, y ese cyan es además el color que la leyenda de
+   debajo asigna a los eventos de tipo «Académico»: un color con significado
+   gastado en una acción que no lo tiene. Con el contorno azul institucional se
+   lee como acción sin competir, y el relleno se reserva para el hover.
+   El azul #1f5a94 da 7.1:1 sobre blanco (y el blanco 7.1:1 sobre él al rellenar);
+   `--col-bilbao` se queda en 3.7:1 y no sirve para texto de 12,5px. */
+.fam-caldesc {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 17px;
+    border-radius: 100px;
+    background: #fff;
+    border: 1.5px solid color-mix(in srgb, var(--col-bilbao) 60%, #fff);
+    color: #1f5a94;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+
+    &:hover {
+        background: #1f5a94;
+        border-color: #1f5a94;
+        color: #fff;
+        transform: translateY(-1px);
+    }
+    &:focus-visible { outline: 2px solid var(--col-bilbao); outline-offset: 2px; }
+}
+
+/* =========================================================
+   VISTA DE CICLO COMPLETO (doce meses)
+========================================================= */
+.fam-ciclo {
+    display: block;
+    /* ⚠️ Con `display` propio, su propio `&[hidden]` — ver la nota de
+       `.fam__cal-wrap`, que es exactamente el mismo caso. */
+    &[hidden] { display: none; }
+
+    &__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    &__titulo {
+        font-size: 1.25rem;
+        font-weight: 900;
+        color: var(--col-bilbao);
+        margin: 0;
+    }
+
+    &__meta {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--col-herencia);
+        opacity: .85;   /* .7 daba 3.9:1 a 12,8px */
+    }
+
+    /* Cuatro columnas en escritorio: los doce meses del curso caben en tres filas,
+       que es lo que hace que esta vista sirva para "verlo todo de una vez".
+       `align-items: start` y no el estirado por defecto: con doce meses de contenido
+       muy desigual, igualar alturas deja media tarjeta en blanco bajo las listas
+       cortas y engorda la fila entera a la medida del mes más cargado. */
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        align-items: start;
+        gap: 16px;
+    }
+
+    &__vacio {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--col-herencia);
+        opacity: .85;   /* .75 se queda en 4.45:1 */
+
+        &[hidden] { display: none; }
+    }
+}
+
+/* Tarjeta de un mes: mini-rejilla + lista de sus eventos.
+   La lista NO es redundante con la rejilla: en una celda de 26px solo cabe un punto
+   de color, y el evento hay que poder leerlo.
+
+   ⚠️ Doce tarjetas iguales son un muro. Lo que las separa es el CONTRASTE DE PESO,
+   no el adorno: la tarjeta es plana (borde de 1px, sin sombra — doce sombras juntas
+   solo ensucian), los días sin evento no dibujan ninguna baldosa, y el mes sin nada
+   que contar se apaga entero. Así lo único con color en toda la pantalla son los
+   días marcados, que es exactamente lo que se viene a buscar. */
+.fam-cmes {
+    background: #fff;
+    border: 1px solid var(--col-borde);
+    border-radius: 18px;
+    padding: 14px;
+
+    &__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--col-borde);
+    }
+
+    /* Es el ancla de lectura de la vista: en doce tarjetas, el nombre del mes es lo
+       que se recorre. A 0.92rem competía con la lista de debajo. */
+    &__titulo {
+        font-size: 1rem;
+        font-weight: 900;
+        color: var(--pal-tinta);
+        margin: 0;
+        letter-spacing: -.2px;
+
+        span { font-weight: 600; opacity: .5; font-size: .8em; }
+    }
+
+    /* Tinte + tinta oscura: el blanco sobre `--col-bilbao` se queda en 3.7:1, y
+       doce pastillas azules sólidas eran doce puntos de atención repetidos que no
+       jerarquizan nada — la cifra importa dentro de su tarjeta, no en la página. */
+    &__count {
+        flex-shrink: 0;
+        min-width: 22px;
+        padding: 2px 8px;
+        border-radius: 100px;
+        background: color-mix(in srgb, var(--col-bilbao) 16%, #fff);
+        color: #1f5a94;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    &__dow,
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 3px;
+    }
+
+    &__dow {
+        margin-bottom: 4px;
+
+        span {
+            text-align: center;
+            font-size: 0.64rem;   /* 9,6px era ilegible incluso pasando contraste */
+            font-weight: 800;
+            color: var(--col-herencia);
+            opacity: .8;          /* .5 daba 2.5:1 */
+        }
+    }
+
+    &__cell {
+        position: relative;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        border-radius: 7px;
+        /* Sin baldosa. Treinta recuadros grises por tarjeta × doce tarjetas eran
+           una textura que competía con los pocos días que sí llevan información. */
+        background: transparent;
+        color: var(--col-herencia);
+        font-size: 0.66rem;
+        font-weight: 600;
+        font-family: inherit;
+        padding: 0;
+
+        &--empty { color: transparent; }
+
+        &.is-today { box-shadow: inset 0 0 0 1.5px var(--cal-evento); }
+
+        /* Día con evento: se tiñe del color de su tipo. La tinta blanca no sirve
+           sobre los tres claros de la paleta, así que el contraste lo da un velo
+           del color al 18% con la tinta institucional encima — legible con los diez.
+           ⚠️ La tinta es `--pal-tinta` y NO `--col-bilbao`: sobre el velo ámbar,
+           ese azul se quedaba en 3.25:1 con una cifra de 10,5px, justo el caso que
+           el velo venía a resolver. Con la tinta oscura el peor caso es 14:1. */
+        &.has-event {
+            cursor: pointer;
+            background: color-mix(in srgb, var(--ev-color) 18%, #fff);
+            color: var(--pal-tinta);
+            font-weight: 900;
+            box-shadow: inset 0 0 0 1.5px var(--ev-color);
+            transition: background .16s ease;
+
+            &:hover { background: color-mix(in srgb, var(--ev-color) 34%, #fff); }
+            &:focus-visible { outline: 2px solid var(--pal-tinta); outline-offset: 1px; }
+        }
+
+        /* Seleccionado: el mismo velo más saturado y el anillo al doble, no el color
+           a fondo entero — ahí la cifra volvía a ser blanca sobre ámbar (1.9:1). */
+        &.is-sel {
+            background: color-mix(in srgb, var(--ev-color) 45%, #fff);
+            box-shadow: inset 0 0 0 2.5px var(--ev-color);
+            color: var(--pal-tinta);
+        }
+    }
+
+    /* Segundo evento del día en adelante. Un punto y no un número: la cifra exacta
+       no cambia ninguna decisión y en 26px compite con el día. */
+    &__mas {
+        position: absolute;
+        bottom: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3px; height: 3px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: .65;
+    }
+
+    &__list {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 12px 0 0;
+        border-top: 1px dashed var(--col-borde);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    &__item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 6px 7px;
+        border-radius: 10px;
+        transition: background .18s ease;
+
+        /* Resalte al pulsar su día en la mini-rejilla. */
+        &.is-hit { background: color-mix(in srgb, var(--ev-color) 15%, #fff); }
+    }
+
+    /* Mismo criterio que la celda: velo del color + anillo + tinta oscura. El día
+       en blanco sobre el color a fondo entero era 1.9:1 en ámbar y 2.2:1 en cyan,
+       y aquí el dato ES la cifra. */
+    &__dia {
+        flex-shrink: 0;
+        min-width: 26px;
+        padding: 2px 5px;
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--ev-color, #4d8abb) 22%, #fff);
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ev-color, #4d8abb) 70%, #fff);
+        color: var(--pal-tinta);
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-align: center;
+        line-height: 1.45;
+    }
+
+    /* El glifo va oscurecido por la misma razón que el de la ficha del día: el
+       ámbar y el cyan puros sobre blanco no llegan ni al 3:1 de un icono. */
+    &__ico {
+        flex-shrink: 0;
+        color: color-mix(in srgb, var(--ev-color, #4d8abb) 74%, var(--pal-tinta));
+        font-size: 0.76rem;
+        line-height: 1.6;
+    }
+
+    /* 11,8px en `--col-bilbao` (3.7:1) era el texto menos legible de la página, y
+       es el que dice de qué va el evento. 12,8px sobre tinta = 16:1. */
+    &__txt {
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: var(--pal-tinta);
+    }
+
+    &__nivs {
+        display: block;
+        font-size: 0.66rem;
+        font-weight: 600;
+        color: var(--col-herencia);
+        opacity: .85;   /* .65 daba 3.5:1 a 10,2px */
+        margin-top: 2px;
+    }
+
+    &__sin {
+        margin: 10px 0 0;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--col-herencia);
+        opacity: .8;    /* .5 daba 2.5:1 */
+        text-align: center;
+    }
+}
+
+/* ── El mes sin eventos se aparta del camino ──
+   Doce tarjetas idénticas obligan a leer las doce para encontrar las que tienen
+   algo. Un mes vacío conserva su rejilla —«no hay nada en octubre» es información,
+   y quitarlo rompería la retícula del curso— pero baja de peso: sin fondo, sin
+   sombra y con el número del día atenuado. El ojo aterriza solo en los que cuentan.
+   `:has()` porque la diferencia la marca el contenido que pinta el JS, y no hay
+   ninguna clase que lo anuncie; sin soporte, todas las tarjetas se ven como antes. */
+@supports selector(:has(*)) {
+    .fam-cmes:has(.fam-cmes__sin) {
+        background: transparent;
+        border-style: dashed;
+        border-color: color-mix(in srgb, var(--col-borde) 70%, transparent);
+
+        /* ⚠️ Baja de peso la SUPERFICIE, nunca la tinta de los números.
+           Atenuar la rejilla con `opacity` dejaba las cifras en 2-3:1, y un texto
+           por debajo de AA no se arregla diciendo que ahí no hay nada que leer.
+           La tarjeta pierde fondo y el título baja de negro a gris (8.7:1): la
+           diferencia de peso se ve a un metro y todo sigue siendo legible. */
+        .fam-cmes__titulo { color: var(--col-herencia); font-weight: 800; }
+        .fam-cmes__head   { border-bottom-color: transparent; }
+    }
 }
 
 /* ── TARJETA DE AVISO ─────────────────────────── */
@@ -302,6 +834,16 @@
 
     &__title { font-size: 1.02rem; font-weight: 800; color: var(--col-bilbao); margin-bottom: 6px; line-height: 1.25; }
     &__text  { font-size: 0.86rem; line-height: 1.55; color: var(--col-herencia); }
+
+    /* A qué niveles va dirigido. Solo aparece cuando el evento acota: un chip
+       «Todo el colegio» en cada tarjeta sería ruido en la mayoría de ellas. */
+    &__nivs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 10px;
+        color: var(--col-herencia);
+    }
 }
 
 /* =========================================================
@@ -504,4 +1046,200 @@
     .fam__hero-chips  { justify-content: center; }
     .fam__hero-img    { width: 220px; }
     .fam__hero-halo   { width: 250px; height: 250px; }
+}
+
+/* ── Ciclo completo: la rejilla baja de columnas antes que el resto ──
+   Doce tarjetas con mini-calendario dentro necesitan ~240px de ancho útil cada una;
+   a cuatro columnas eso se rompe mucho antes de los 820px del resto de la página. */
+@media (max-width: 1180px) { .fam-ciclo__grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px)  { .fam-ciclo__grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px)  { .fam-ciclo__grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 720px) {
+    /* La barra pasa a columna: los chips de nivel son seis y, apretados junto al
+       conmutador y la descarga, quedaban en dos líneas rotas a media palabra. */
+    .fam-calbar {
+        flex-direction: column;
+        align-items: stretch;
+
+        &__acciones { justify-content: space-between; }
+    }
+    .fam-calvista__btn { flex: 1; justify-content: center; }
+
+    /* ⚠️ Objetivo táctil de 44px en TODOS los controles de la barra.
+       Esta página se consulta sobre todo desde el móvil de un padre o una madre,
+       y los seis chips de nivel medían 35px de alto, el conmutador 33 y la
+       descarga 37: por debajo del estándar real, y además pegados entre sí. */
+    .fam-nivchip,
+    .fam-calvista__btn,
+    .fam-caldesc { min-height: 44px; }
+    .fam-calvista { padding: 2px; }
+    .fam__cal-reset { min-height: 40px; }
+}
+
+@media (max-width: 400px) {
+    /* A este ancho el conmutador y la descarga no caben en la misma fila. */
+    .fam-calbar__acciones { flex-direction: column; align-items: stretch; }
+    .fam-caldesc { justify-content: center; }
+}
+
+/* ── Tarjeta de mes: se adapta a SU ancho, no al del viewport ──
+   En una sola columna (≤560px) la tarjeta pasa a medir 300-500px, y con la
+   rejilla estirada a todo el ancho las casillas llegaban a 68px para alojar una
+   cifra de 10px: un mes ocupaba media pantalla de alto y los doce se volvían un
+   scroll interminable. Como el ancho de la tarjeta depende del número de columnas
+   y no del viewport, la media query no puede saberlo — esto es exactamente para lo
+   que existen las container queries.
+   Sin soporte, la tarjeta se queda como estaba: legible, solo que más suelta. */
+@supports (container-type: inline-size) {
+    .fam-cmes { container-type: inline-size; }
+
+    @container (min-width: 290px) {
+        /* La cifra del día crece con la tarjeta en vez de nadar en la casilla. */
+        .fam-cmes__cell     { font-size: clamp(.66rem, 3.1cqi, .92rem); }
+        .fam-cmes__dow span { font-size: clamp(.64rem, 2.6cqi, .8rem); }
+    }
+
+    @container (min-width: 420px) {
+        /* Rejilla contenida y centrada: por encima de este ancho, estirarla solo
+           añade alto. El ancho sobrante se lo queda la lista, que pasa a dos
+           columnas — que es donde el texto sí se aprovecha. */
+        .fam-cmes__dow,
+        .fam-cmes__grid { max-width: 340px; margin-inline: auto; }
+        .fam-cmes__list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-content: start;
+            column-gap: 12px;
+        }
+    }
+}
+
+/* ── ACCESO A ALGEBRAIX ───────────────────────── */
+/* Puerta al sistema de gestión que las familias ya usan. Es la acción más buscada de
+   la página, así que es UN solo objetivo grande y no una tarjeta más entre iguales:
+   toda la pieza es el `<a>`, para que no haya forma de fallar el clic.
+
+   Va en azul institucional sólido —no en la paleta de categorías— porque no es una
+   categoría de contenido sino una salida del sitio, y el contraste con las tarjetas
+   blancas de aviso y con el calendario es lo que la hace encontrable de un vistazo. */
+.fam__section--alg { margin-top: 8px; }
+
+.fam-alg {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 22px;
+    padding: 22px 28px;
+    border-radius: 26px;
+    text-decoration: none;
+    color: #fff;
+    background: linear-gradient(120deg, var(--col-herencia) 0%, var(--col-bilbao) 100%);
+    box-shadow: 0 18px 38px -22px rgba(22, 32, 46, .65);
+    transition: transform .25s ease, box-shadow .25s ease;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 26px 50px -24px rgba(22, 32, 46, .75);
+    }
+    /* El foco va en blanco y por fuera: sobre el degradado azul, un outline del color
+       de marca sería invisible. */
+    &:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+    &__art {
+        position: relative;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        width: 96px;
+        height: 96px;
+    }
+    &__halo {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .16);
+    }
+    &__alex {
+        position: relative;
+        width: 84px;
+        height: auto;
+    }
+
+    &__body { display: grid; gap: 6px; min-width: 0; }
+
+    &__pill {
+        justify-self: start;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 11px;
+        border-radius: var(--radius-full, 100px);
+        background: rgba(255, 255, 255, .18);
+        font-size: .72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+    }
+    &__title { font-size: 1.5rem; font-weight: 900; line-height: 1.15; }
+    /* Blanco al 88%: el cuerpo tiene que ceder jerarquía al título sin bajar de AA
+       sobre el azul. Por debajo de ~85% ya no pasa. */
+    &__text  { font-size: .95rem; line-height: 1.5; color: rgba(255, 255, 255, .88); }
+
+    &__cta {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 22px;
+        border-radius: var(--radius-full, 100px);
+        background: #fff;
+        color: var(--col-herencia);
+        font-size: .92rem;
+        font-weight: 800;
+        white-space: nowrap;
+        transition: gap .25s ease;
+    }
+    &:hover &__cta { gap: 16px; }
+}
+
+/* Móvil: el CTA no cabe en la misma fila que el texto y partirlo lo dejaría en dos
+   líneas. Pasa a bloque a ancho completo, que además agranda el objetivo táctil. */
+@include hasta-sm {
+    .fam-alg {
+        grid-template-columns: auto 1fr;
+        gap: 16px 18px;
+        padding: 20px;
+
+        &__art  { width: 72px; height: 72px; }
+        &__alex { width: 64px; }
+        &__title { font-size: 1.25rem; }
+        &__cta  { grid-column: 1 / -1; justify-content: center; }
+    }
+}
+
+@include hasta-xxs {
+    .fam-alg {
+        grid-template-columns: 1fr;
+        text-align: center;
+
+        &__art  { justify-self: center; }
+        &__pill { justify-self: center; }
+    }
+}
+
+/* ── Movimiento reducido ──
+   El hero balancea a Alex en bucle (`fam-bob`, 3,4s infinito) y las tarjetas de
+   aviso se levantan y se giran al pasar por encima. Es una animación permanente en
+   pantalla, justo lo que `prefers-reduced-motion` viene a apagar; el GSAP de la
+   página ya lo respetaba, el CSS no. Reducido no es inmóvil: los cambios de color
+   y de fondo se conservan, solo desaparece el desplazamiento. */
+@media (prefers-reduced-motion: reduce) {
+    .fam__hero-img { animation: none; }
+    .fam-aviso:hover { transform: none; }
+    .fam-alg:hover { transform: none; }
+    .fam-alg:hover .fam-alg__cta { gap: 10px; }
+    .fam-caldesc:hover,
+    .fam__cal-reset:hover { transform: none; }
+    .bilbao-cal__nav:hover { transform: none; }
 }

@@ -2,33 +2,73 @@
    blog-usuarios-index
    Migrado desde el <style> embebido de views/blog/usuarios/index.php
 ========================================================= */
+@use '../base/mixins' as *;
+
 body[data-page="blog-usuarios-index"] {
     /* ── Tres tablas por grupo (superadmins · profesores · administrativos) ── */
     .usr-panel { margin-bottom: 22px; }
     .usr-panel__icon { color: var(--col-bilbao); margin-right: 6px; }
+    /* ⚠️ Los grises de apoyo van en #64748B (4,76:1) y no en #94A3B8 (2,56:1), que no
+       pasa AA a estos tamaños. Y no es texto decorativo: aquí dentro están la
+       respuesta del buscador cuando no hay coincidencias, el «Solo lectura» de quien
+       no puede actuar y las etiquetas que en móvil dicen qué es cada dato. */
     .usr-panel__sub {
         margin: -8px 0 0;
         padding: 0 22px 14px;
         font-size: .8rem;
-        color: #94A3B8;
+        color: #64748B;
     }
     .usr-panel__vacio {
         margin: 0;
         padding: 4px 22px 22px;
         font-size: .85rem;
-        color: #94A3B8;
+        color: #64748B;
     }
 
-    /* Chips de tipo de personal: un usuario puede llevar varios */
+    /* ── Identidad de la fila ──
+       Lo que antes iba en `style=` dentro de la vista. Aquí además sirve de base a la
+       cabecera de la tarjeta en móvil, donde estos tres datos cambian de tamaño. */
+    .usr-user { display: flex; align-items: center; gap: .75rem; }
+    .usr-ava {
+        width: 38px; height: 38px;
+        font-size: .875rem;
+        flex-shrink: 0;
+        img { width: 100%; height: 100%; object-fit: cover; }
+    }
+    .usr-ident { min-width: 0; }
+    .usr-mail   { color: var(--text-gray); font-size: .875rem; }
+    .usr-acceso { color: var(--text-gray); font-size: .85rem; }
+
+    /* Cuenta dada de baja: no entra al panel ni sale como suplente. Con el botón de
+       baja movido a la ficha, esta pastilla es la ÚNICA señal del estado en el
+       listado, así que no puede seguir siendo texto suelto sin estilo. */
+    .usr-baja {
+        display: inline-block;
+        margin-top: 3px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: rgba(229, 16, 34, .1);
+        color: #a8121f;
+        font-size: .68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    /* Chip de tipo de personal. UNO por persona: los puestos se concatenan dentro
+       («Profesor · Administrativo») y el color lo pone el dominante, que es el que la
+       vista deja en $tipos[0]. Con un chip por tipo más la línea de niveles, la celda
+       llegaba a tres renglones de objetos y el dato se leía peor cuanto más tenía. */
     .usr-tipo {
         display: inline-block;
         padding: 3px 9px;
         border-radius: 999px;
         font-size: .7rem;
         font-weight: 700;
+        line-height: 1.45;
+        /* Una píldora partida en dos líneas se lee como un fallo de maquetación. La
+           columna es `table-layout: auto`, así que ensancha en vez de desbordar. */
         white-space: nowrap;
-
-        & + & { margin-left: 4px; }
 
         &--profesor       { background: rgba(66, 133, 244, .12); color: #1a4fa0; }
         &--prefecto       { background: rgba(170, 34, 150, .12);  color: #7c1a6d; }
@@ -38,16 +78,16 @@ body[data-page="blog-usuarios-index"] {
         &--directivo      { background: rgba(52, 168, 83, .14);   color: #1c6b34; }
     }
 
-    .usr-nil { font-size: .8rem; color: #94A3B8; }
+    .usr-nil { font-size: .8rem; color: #64748B; }
 
-    /* Niveles que imparte, colgando de los chips de tipo. Segunda línea y en tono
+    /* Niveles del puesto, colgando del chip de tipo. Segunda línea y en tono
        menor: es un matiz del "Profesor" que tiene encima, no otra categoría. */
     .usr-niveles {
         display: block;
         margin-top: 3px;
         font-size: .7rem;
         font-weight: 600;
-        color: #94A3B8;
+        color: #64748B;
     }
 
     /* ── Buscador (filtra las tres tablas a la vez) ── */
@@ -123,6 +163,209 @@ body[data-page="blog-usuarios-index"] {
         color: #64748B;
     }
 
+    /* =====================================================================
+       Móvil y tablet: la tabla se apila en tarjetas
+       ---------------------------------------------------------------------
+       `.admin-table` pide `min-width: 680px` y esta tiene SEIS columnas, así que en un
+       teléfono había que arrastrar más de una pantalla para llegar al tipo y a las
+       acciones —y el listado de personal es de lo que más se consulta desde el móvil—.
+       Mismo patrón probado del directorio de personal y del histórico de suplencias.
+
+       Apila en `hasta-md` (900px) por DENSIDAD, no por desbordamiento: a 900px el
+       sidebar ya es cajón y el contenido mide ~870px, así que los 680px de mínimo
+       todavía caben —el arrastre real empieza hacia los 712px—. Lo que no cabe son
+       seis columnas legibles: el correo y el tipo salen partidos mucho antes de que
+       aparezca la barra de desplazamiento.
+
+       ⚠️ Las dos líneas de `is-hidden`/`is-filtered` son OBLIGATORIAS. Viven sueltas
+       en `estaticas/_blog-admin.scss`, que `app.scss` importa ANTES que `admin/`:
+       misma especificidad, capa posterior. Sin repetirlas aquí, el
+       `tbody tr { display:block }` de abajo las gana por cascada y mata en silencio la
+       paginación Y el buscador de esta vista.
+
+       ⚠️ `<thead>` se oculta con `clip-path`, no con `display:none`: así desaparece de
+       la vista pero sigue existiendo para los lectores de pantalla. Se pierde el
+       afordance de ordenar y se asume — cada tarjeta ya dice qué es cada dato.
+    ===================================================================== */
+    @include hasta-md {
+        .usr-panel__sub { padding: 0 16px 12px; }
+        .admin-panel__header { padding: 15px 16px; }
+
+        /* El contenedor deja de desplazarse y pasa a ser el margen de las tarjetas:
+           `.admin-panel` no tiene padding propio y sin esto los bordes se tocarían.
+           ⚠️ Aquí se SUMAN tres sangrados —el de `.admin-content`, este y el de la
+           propia tarjeta—, así que cada píxel cuenta tres veces contra el ancho útil
+           del dato. Por eso son 12 y no los 22 que usa la versión de escritorio. */
+        .admin-table-scroll {
+            overflow-x: visible;
+            padding: 0 12px 12px;
+        }
+
+        .admin-table {
+            min-width: 0;
+            /* `.admin-table` hereda .88rem; apilado hay sitio de sobra y a ese tamaño
+               el correo se lee mal. Se sube aquí y no en el root, que afectaría
+               también al sitio público. */
+            font-size: .9rem;
+
+            thead {
+                position: absolute;
+                clip-path: inset(50%);
+                width: 1px; height: 1px; overflow: hidden;
+            }
+
+            tbody tr {
+                display: block;
+                margin-bottom: 10px;
+                padding: 13px 14px;
+                border: 1px solid #e8eef6;
+                border-radius: 14px;
+                background: #fff;
+                box-shadow: 0 1px 2px rgba(11, 31, 61, .04);
+            }
+            tbody tr.is-hidden,
+            tbody tr.is-filtered { display: none; }
+
+            /* Etiqueta a la izquierda en tono menor, dato a la derecha: la jerarquía
+               la marca el peso, no el tamaño, porque todas las filas miden igual. */
+            tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 14px;
+                padding: 5px 0;
+                border: 0;
+                text-align: right;
+
+                /* Peso 700 y no 800: compartir el 800 con el nombre de la tarjeta
+                   aplana la señal, y la caja alta más el `letter-spacing` ya separan
+                   de sobra la etiqueta del dato. */
+                &::before {
+                    content: attr(data-label);
+                    flex-shrink: 0;
+                    font-size: .72rem;
+                    font-weight: 700;
+                    color: #64748B;
+                    text-transform: uppercase;
+                    letter-spacing: .04em;
+                    text-align: left;
+                }
+            }
+
+            /* Nombre y correo son la CABECERA de la tarjeta, no dos campos más: van sin
+               etiqueta, a ancho completo y alineados a la izquierda, y la línea que los
+               separa del resto cierra debajo del correo. Etiquetar «EMAIL» un dato que
+               se reconoce solo gastaba la mitad del ancho de la fila en decirlo. Se
+               enganchan por clase y no por `nth-child`, que se rompe en cuanto la tabla
+               gane o pierda una columna. */
+            tbody td:first-child,
+            tbody td.usr-mail {
+                display: block;
+                text-align: left;
+                &::before { content: none; }
+            }
+            tbody td:first-child { padding-bottom: 4px; }
+            /* Sangrado izquierdo = avatar (42) + el gap de `.usr-user` (.75rem): el
+               correo cuelga del NOMBRE, no del avatar. Sin él arrancaba en x=0 y la
+               cabecera se leía como dos piezas desalineadas. */
+            tbody td.usr-mail {
+                padding: 0 0 12px 54px;
+                margin-bottom: 4px;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: .84rem;
+            }
+            /* El respiro de 28px a la derecha existe para que las acciones no queden
+               pegadas al borde con scroll horizontal; apilado no hay tal borde.
+               `align-items: center` porque los botones solo llevan un `<i>`: con la
+               línea base del glifo, la etiqueta caía por debajo de su centro. */
+            tbody td:last-child {
+                padding-right: 0;
+                padding-top: 10px;
+                align-items: center;
+            }
+
+            .usr-ava { width: 42px; height: 42px; font-size: .95rem; }
+            /* La cabecera tiene que ser el texto MÁS oscuro de la tarjeta, y era el
+               menos: `.admin-table__title` es `--col-herencia` (#374C69) mientras los
+               valores heredan #1A202C. Con 1.05rem el salto sobre los .9rem del dato
+               llega a 1,17×, que ya se distingue sin comparar. */
+            .admin-table__title {
+                max-width: none;
+                white-space: normal;
+                font-size: 1.05rem;
+                font-weight: 800;
+                color: var(--pal-tinta, #0B1F3D);
+            }
+            /* El correo es el único dato sin puntos de corte naturales: sin esto un
+               `nombre.apellido@bilbao.edu.mx` largo se sale de la tarjeta. `anywhere` y
+               no `break-all` porque aquí la celda ya es un bloque y no un flex: parte
+               solo cuando hace falta, en vez de a mitad de palabra siempre. */
+            .usr-mail { overflow-wrap: anywhere; }
+            .usr-tipos   { min-width: 0; }
+            /* En su propia línea, no detrás de la píldora: con `text-align:right`
+               heredado y hasta cinco niveles, envolvía alrededor del chip y devolvía
+               justo los renglones desordenados que el chip único vino a quitar. */
+            .usr-niveles { display: block; margin: 4px 0 0; }
+            .admin-table__actions { justify-content: flex-end; padding-right: 0; }
+        }
+
+        /* Una cuenta dada de baja cambia cómo se lee la fila entera —no entra al panel
+           ni sale como suplente— y en una lista de cuarenta tarjetas eso no puede
+           depender de una píldora de 11px. Sin `:has()` queda exactamente la píldora
+           sola, que sigue siendo correcta.
+           ⚠️ `box-shadow: inset` y no `border-left`: en una tabla el borde se dibuja
+           dentro del ancho de la celda y le roba espacio al contenido. */
+        @supports selector(:has(*)) {
+            .admin-table tbody tr:has(.usr-baja) {
+                background: #fdfcfc;
+                border-color: #f0dcdc;
+                box-shadow: inset 3px 0 0 color-mix(in oklab, var(--pal-rojo) 55%, #fff);
+
+                .admin-table__title { color: #64748B; }
+            }
+        }
+    }
+
+    /* Barra de herramientas en el teléfono: buscador a ancho completo y el alta
+       debajo. `margin-left:auto` en una barra que ya envuelve dejaba el botón
+       colgando solo en su línea y pegado a la derecha, con media pantalla vacía. */
+    @include hasta-sm {
+        .usr-toolbar {
+            gap: 10px;
+            &__new { margin-left: 0; width: 100%; justify-content: center; }
+        }
+        .usr-search { min-width: 0; max-width: none; flex: 1 1 100%; }
+    }
+
+    /* En pantallas pequeñas desaparece UN NIVEL de sangrado, en vez de estrechar los
+       tres. Contenido · panel · tarjeta estaban dentro de 4px unos de otro (10·8·12),
+       que no se lee como jerarquía sino como un borde borroso de 30px: no se distingue
+       dónde acaba la página, dónde el panel y dónde la tarjeta.
+
+       La tarjeta ya está delimitada por borde y radio, así que el hueco del panel no
+       separaba nada: se va, y las tarjetas pasan a lista con filete. Quedan 12 + 14 =
+       26px por lado, ocho píxeles más de dato que antes.
+
+       ⚠️ NADA de `box-shadow: none` aquí: este bloque va después del `:has(.usr-baja)`
+       de arriba y con la misma especificidad, así que apagaría el acento rojo de las
+       cuentas de baja justo en el ancho donde más falta hace. Sin radio, la sombra de
+       1px no se ve de todas formas. */
+    @include hasta-xs {
+        .usr-panel__sub      { padding: 0 12px 10px; }
+        .usr-panel__vacio    { padding: 4px 12px 16px; }
+        .admin-panel__header { padding: 14px 12px; }
+        .admin-table-scroll  { padding: 0; }
+
+        .admin-table tbody tr {
+            margin: 0;
+            padding: 12px 14px;
+            border-width: 0 0 1px;
+            border-radius: 0;
+
+            &:last-child { border-bottom: 0; }
+        }
+    }
+
     .ubm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s ease}
     .ubm-backdrop.is-open{opacity:1;pointer-events:all}
     .ubm-card{background:#fff;border-radius:20px;padding:40px 32px 32px;max-width:420px;width:92%;text-align:center;box-shadow:0 40px 80px rgba(15,23,42,.22),0 8px 24px rgba(15,23,42,.1);transform:scale(.84) translateY(20px);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .22s ease}
@@ -157,6 +400,15 @@ body[data-page="blog-usuarios-index"] {
     .at-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#CBD5E0;cursor:pointer;font-size:.82rem;padding:4px;line-height:1;transition:color .15s}
     .at-close:hover{color:var(--col-herencia)}
     .at-bar{position:absolute;bottom:0;left:0;height:3px;width:100%;border-radius:0 0 18px 0;transform-origin:left;animation:atBar 5s linear .5s both}
+
+    /* ⚠️ Repetida a propósito de `admin/_admin-toast.scss`: esta copia del toast vive
+       dentro del scope de página y le gana por especificidad, así que la versión
+       compartida no puede corregirla. Sin esto, `min-width:300px` + `right:24px`
+       necesitan 324px de ancho y por debajo el aviso —que es `fixed`— se sale y
+       arrastra scroll horizontal a toda la pantalla. */
+    @media (max-width: 420px) {
+        .at-wrap { left: 12px; right: 12px; min-width: 0; max-width: none; }
+    }
 }
 
 /* Fuera del scope: keyframes / variables */
